@@ -1,0 +1,14 @@
+version: '4.19.0'
+services:
+  north_south_pg:
+    image: postgres:16.3
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
