@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { UsersModule } from './users/users.module';
+import { UserModule } from './user/user.module';
+import { ConfigModule } from '@nestjs/config';
+import { DataSourceConfig } from './entities/data.source';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [UsersModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    //lee y setea las variables de entorno
+    ConfigModule.forRoot({
+      envFilePath: `.${process.env.NODE_ENV}.env`,
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRoot({ ...DataSourceConfig }),
+    UserModule,
+  ],
 })
-export class AppModule {}
+export default class AppModule {}

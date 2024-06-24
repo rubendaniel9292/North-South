@@ -20,9 +20,10 @@ declare namespace NodeJS {
     DB_PASSWORD: string;
     DB_NAME: string;
     HASH_SALT: string;
-    POSTGRES_DB: string;
-    POSTGRES_USER: string;
-    POSTGRES_PASSWORD: string;
-    CONTAINER_NAME: string;
+    JWT_SECRET: string;
+    //POSTGRES_DB: string;
+    //POSTGRES_USER: string;
+    //POSTGRES_PASSWORD: string;
+    //CONTAINER_NAME: string;
   }
 }
