@@ -8,9 +8,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Crear la extensión para pgcrypto
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Crear la secuencia para el campo count
-CREATE SEQUENCE IF NOT EXISTS user_count_seq START 0;
-
 -- Crear el tipo ENUM para roles
 DO $$
 BEGIN
@@ -23,19 +20,30 @@ $$;
 -- Crear la tabla users si no existe
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    count INT NOT NULL DEFAULT nextval('user_count_seq'),
     name VARCHAR(60) NOT NULL,
     last_name VARCHAR(60) NOT NULL,
-    user_name VARCHAR(60) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    user_name VARCHAR(60) NOT NULL,
+    email VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
     role roles NOT NULL DEFAULT 'ADMIN',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_name, email)
 );
 
 -- Insertar un usuario admin por defecto si no existe
--- Insertar información de José Rivas en la tabla user
-INSERT INTO users (count, name, last_name, user_name, email, password, role)
-VALUES (nextval('user_count_seq'),'Jose', 'Rivas', 'joserivas', 'joserivas@ejemplo.com', crypt('Sk79^o&V@$qq', gen_salt('bf')), 'ADMIN') ON CONFLICT (user_name) DO NOTHING; -- Evita insertar si ya existe un usuario con ese username
+INSERT INTO users (name, last_name, user_name, email, password, role)
+VALUES ('Jose', 'Rivas', 'joserivas', 'joserivas@ejemplo.com', crypt('Sk79^o&V@$qq', gen_salt('bf')), 'ADMIN')
+ON CONFLICT (email) DO NOTHING;-- Evita insertar si ya existe un usuario con ese username
+
+--LISTAR USUARIOS
+SELECT * FROM users;
+
+--CONTAR USUARIOS
+SELECT *, COUNT(*) OVER () AS total
+FROM users;
+
+--ELIMINAR UN USUARIO ESPECIFICO (OPCIONAL)
+DELETE FROM users
+WHERE user_name = 'joserivas';
 

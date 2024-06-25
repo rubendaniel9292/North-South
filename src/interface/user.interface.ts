@@ -1,5 +1,4 @@
 export interface IUser {
-  count: number;
   name: string;
   lastName: string;
   userName: string;
