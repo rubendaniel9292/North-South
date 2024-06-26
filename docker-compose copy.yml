@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  north_south_pg_container:
+    image: postgres:16.3
+    container_name: 
+    restart: always
+    environment:
+      POSTGRES_DB: 
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports: 
+      - 5432:5432
