@@ -1,11 +1,22 @@
 import { AuthBody } from 'src/interface/auth.interfaces';
 import { AuthService } from './../services/auth.service';
-import { Body, Controller, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '../guards/auth.guard';
+import { PublicAcces } from '../decorators/public.decorator';
 
 @Controller('auth')
+//guardian para los endpoints, se requeiere autorizacion con token para su ejecucion
+@UseGuards(AuthGuard)
 export class AuthController {
   constructor(private readonly authServices: AuthService) {}
-  @Post('login')
+  @PublicAcces()
+  @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() { username, password }: AuthBody) {
     const userValidate = await this.authServices.validateUser(
       username,
