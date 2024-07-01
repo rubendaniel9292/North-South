@@ -7,8 +7,8 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { PublicAcces } from '../decorators/decorators';
 import { AuthGuard } from '../guards/auth.guard';
-import { PublicAcces } from '../decorators/public.decorator';
 
 @Controller('auth')
 //guardian para los endpoints, se requeiere autorizacion con token para su ejecucion

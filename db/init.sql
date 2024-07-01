@@ -38,6 +38,8 @@ ON CONFLICT (email) DO NOTHING;-- Evita insertar si ya existe un usuario con ese
 
 --LISTAR USUARIOS
 SELECT * FROM users;
+--LISTAR USUARIO POR ID
+SELECT * FROM users WHERE id = '31850ef1-7e45-4164-a97f-066fea0c1016';
 
 --CONTAR USUARIOS
 SELECT *, COUNT(*) OVER () AS total
@@ -46,4 +48,7 @@ FROM users;
 --ELIMINAR UN USUARIO ESPECIFICO (OPCIONAL)
 DELETE FROM users
 WHERE user_name = 'joserivas';
-
+DELETE FROM users
+WHERE user_name = 'angiezge';
+DELETE FROM users
+WHERE id = '780a7470-f485-436e-816f-ce33c5cca75e';

@@ -28,7 +28,7 @@ export class AuthService {
     }
   };
 
-  //2: metodo para general la firma del token, ese sera aleatorio y rotativo
+  //2: metodo para general la firma del token, este sera aleatorio y rotativo
   //const: secret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
   public singJWT({
     payload,
@@ -43,7 +43,7 @@ export class AuthService {
     return jwt.sign(payload, secret, { expiresIn: expires });
   }
 
-  //generacion del token
+  //3: metodo para generacion del token
 
   public generateJWT = async (user: UserEntity): Promise<any> => {
     const getUser = await this.userService.findUserById(user.id);
