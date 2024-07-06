@@ -26,15 +26,15 @@ export class UserService {
   //2: metodo para listar todos los usuarios, el equivalente en sql SELECT * FROM users;
   public findUsers = async (): Promise<UserEntity[]> => {
     try {
-      const users: UserEntity[] = await this.userRepository.find();
-      if (users.length === 0) {
+      const allUsers: UserEntity[] = await this.userRepository.find();
+      if (allUsers.length === 0) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-      return users;
+      return allUsers;
     } catch (error) {
       //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
@@ -44,10 +44,13 @@ export class UserService {
   //3:metodo para buscar usuarios por id SELECT * FROM users WHERE id = '31850ef1-7e45-4164-a97f-066fea0c1016';
   public findUserById = async (id: string): Promise<UserEntity> => {
     try {
+      /* otra manera igual funciona
       const user: UserEntity = await this.userRepository
         .createQueryBuilder('user')
         .where({ id })
-        .getOne();
+        .getOne();*/
+      const user = await this.userRepository.findOne({ where: { id } });
+
       if (!user) {
         //se guarda el error
         throw new ErrorManager({

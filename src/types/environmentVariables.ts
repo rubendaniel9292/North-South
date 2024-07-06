@@ -21,6 +21,7 @@ declare namespace NodeJS {
     DB_NAME: string;
     HASH_SALT: string;
     JWT_SECRET: string;
+    URL: string;
     //POSTGRES_DB: string;
     //POSTGRES_USER: string;
     //POSTGRES_PASSWORD: string;

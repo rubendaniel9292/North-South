@@ -28,16 +28,19 @@ export class UserController {
   @Roles('ADMIN') //Solo usuarios admin podran ver todos los usuarios
   @Get('all')
   public async findAllUsers() {
-    return await this.userService.findUsers();
+    const allUser = await this.userService.findUsers();
+    return allUser;
   }
-  @Roles('ADMIN') //Solo usuarios admin podran ver un usuario
+  @Roles('ADMIN', 'BASIC') //Solo usuarios admin podran ver un usuario
   @Get(':id')
   public async findUserById(@Param('id', new ParseUUIDPipe()) id: string) {
-    return await this.userService.findUserById(id);
+    const user = await this.userService.findUserById(id);
+    return user;
   }
   @Roles('ADMIN') //solo usuarios de tipo admin pordran eliminar otros usuarios
   @Delete('delete/:id')
   public async deleteUser(@Param('id', new ParseUUIDPipe()) id: string) {
-    return await this.userService.deleteUser(id);
+    const deletedUser = await this.userService.deleteUser(id);
+    return deletedUser;
   }
 }

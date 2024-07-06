@@ -1,5 +1,5 @@
-import { AuthBody } from 'src/interface/auth.interfaces';
 import { AuthService } from './../services/auth.service';
+import { LoginDto } from '../dto/auth.dto';
 import {
   Body,
   Controller,
@@ -17,7 +17,8 @@ export class AuthController {
   constructor(private readonly authServices: AuthService) {}
   @PublicAcces()
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
-  async login(@Body() { username, password }: AuthBody) {
+  async login(@Body() loginDto: LoginDto) {
+    const { username, password } = loginDto;
     const userValidate = await this.authServices.validateUser(
       username,
       password,

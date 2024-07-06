@@ -51,11 +51,12 @@ export class AuthService {
       role: getUser.role,
       sub: getUser.id,
     };
-    // Eliminar la contraseña del usuario antes de devolverlo
+    // Eliminar la contraseña del usuario antes de devolverlo. funciona solo al probar en postman de ahi que sa necesario usar el reflector en main
     delete getUser.password;
     //retornar la informacion que quiero enviar
     return {
-      accesToken: this.singJWT({
+      status: 'success',
+      accessToken: this.singJWT({
         payload,
         secret:
           process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
