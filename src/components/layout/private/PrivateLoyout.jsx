@@ -4,20 +4,22 @@ const PrivateLoyout = () => {
     /*restringir acceso a usuarios a la parte privada */
     const { auth, loading } = useAuth();
 
-    console.log('log de auth en private loyout', auth)
+    //console.log('log de auth en private loyout', auth)
 
     if (loading) {
-        return <h1>Cargando el login...</h1>
+        return (
+            <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Loading...</span>
+            </div>
+
+        )
+
     } else {
         return (
             <>
-                <section className="">
-                    {//si existe el usuario cargar mostrar outlet, y sino que navegue a la parte publica
-
-                        auth.id ? <Outlet /> : <Navigate to='/login' />
-
-                    }
-                </section>
+                {//si existe el usuario cargar mostrar outlet, y sino que navegue a la parte publica
+                    auth.id ? <Outlet /> : <Navigate to='/login' />
+                }
             </>
         )
     }

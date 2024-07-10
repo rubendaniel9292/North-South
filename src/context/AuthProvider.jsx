@@ -60,7 +60,7 @@ const AuthProvider = ({ children }) => {
                 }
             }
             const data = await request.json();
-            console.log('Datos del usuario:', data);
+            //console.log('Datos del usuario:', data);
             setAuth(data);
             setLoading(false);
 

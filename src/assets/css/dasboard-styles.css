@@ -1,0 +1,34 @@
+.row .navIndex {
+  height: 100px;
+  background-color: #5e72e4;
+  /*border: 3px solid rgb(190, 13, 128);*/
+  width: 100%;
+}
+.dasboard {
+  height: 89vh;
+  /*border: 1px solid red;*/
+}
+.container-fluid .row .col-12 {
+  padding-right: 0px !important;
+  padding-left: 0px !important;
+  /*border: 2px solid rgb(60, 203, 20);*/
+}
+/*barra lateral izquierda*/
+.lateral {
+  background-color: #172b4d;
+}
+.lateral .btnDas {
+  width: 100%;
+  height: 50px;
+  border-radius: 10px;
+  background-color: rgb(60, 203, 20);
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+}
+.dropdown-toggle{
+  background-color: rgb(60, 203, 20);
+  width: 100%;
+
+}
