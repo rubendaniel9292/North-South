@@ -23,15 +23,26 @@ export class UserController {
   @Roles('ADMIN') //solo usuarios de tipo admin pordran agrear otros usuarios
   @Post('register')
   public async registerUser(@Body() body: UserDTO) {
-    return await this.userService.createUser(body);
+    const newUser = await this.userService.createUser(body);
+    if (newUser) {
+      return {
+        status: 'success',
+        newUser,
+      };
+    }
   }
   @Roles('ADMIN') //Solo usuarios admin podran ver todos los usuarios
   @Get('all')
   public async findAllUsers() {
-    const allUser = await this.userService.findUsers();
-    return allUser;
+    const users = await this.userService.findUsers();
+    if (users) {
+      return {
+        status: 'success',
+        users,
+      };
+    }
   }
-  @Roles('ADMIN', 'BASIC') //Solo usuarios admin podran ver un usuario
+  @Roles('ADMIN', 'BASIC')
   @Get(':id')
   public async findUserById(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.findUserById(id);

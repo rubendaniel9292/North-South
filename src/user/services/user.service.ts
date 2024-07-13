@@ -17,24 +17,29 @@ export class UserService {
     try {
       const pwd = parseInt(process.env.HASH_SALT);
       body.password = await bcrypt.hash(body.password, pwd);
-      return await this.userRepository.save(body);
+      const newUser = await this.userRepository.save(body);
+      return newUser;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
 
-  //2: metodo para listar todos los usuarios, el equivalente en sql SELECT * FROM users;
+  //2:
   public findUsers = async (): Promise<UserEntity[]> => {
     try {
-      const allUsers: UserEntity[] = await this.userRepository.find();
-      if (allUsers.length === 0) {
+      const users: UserEntity[] = await this.userRepository.find(); //obtener el listado de usuarios el equivalente en sql SELECT * FROM users;
+      /*const [users, count] = await this.userRepository
+        .createQueryBuilder()
+        .getManyAndCount();*/
+      if (users.length === 0) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-      return allUsers;
+      //return { users, count };
+      return users;
     } catch (error) {
       //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
