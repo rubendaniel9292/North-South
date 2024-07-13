@@ -1,0 +1,117 @@
+import { Global } from "../../helpers/Global";
+import UserFrom from "../../hooks/UserFrom";
+import alerts from "../../helpers/Alerts";
+const CreateUser = () => {
+    const { form, changed } = UserFrom({});
+    const saveUser = async (e) => {
+        try {
+            e.preventDefault();
+            let newUser = form;
+            const token = localStorage.getItem('token');
+            const request = await fetch(Global.url + 'users/register', {
+                method: 'POST',
+                body: JSON.stringify(newUser),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'token': token
+                },
+            });
+            const data = await request.json();
+            console.log(data);
+            if (data.status === 'success') {
+                alerts('Registro exitoso', 'Usuario registrado correctamente', 'success');
+                const myForm = document.querySelector("#user-form");
+                myForm.reset();
+            } else {
+                //setSaved('error');
+                alerts('Error', 'Usuario no registrado correctamente. Verificar que no haya campos vacíos', 'error')
+            }
+        } catch (error) {
+            //setError(error);
+            alerts('Error', 'Error fetching users.', 'error');
+            console.error('Error fetching users:', error);
+        } finally {
+            /*se utiliza para ejecutar código que debe ejecutarse independientemente 
+            de si una excepción fue lanzada o no en los bloques try o catch */
+            //setLoading(false);   
+        }
+
+    }
+
+    return (
+        <>
+            <div className="container-fluid">
+                <form onSubmit={saveUser} id="user-form">
+                    <div className="row">
+                        <div className="mb-3 col-6">
+                            <label htmlFor="name" className="form-label">Nombres</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="name"
+                                name="name"
+                                onChange={changed}
+                            />
+                        </div>
+                        <div className="mb-3 col-6">
+                            <label htmlFor="lastname" className="form-label">Apellidos</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="lastname"
+                                name="lastName"
+                                onChange={changed}
+                            />
+                        </div>
+                        <div className="mb-3 col-6">
+                            <label htmlFor="username" className="form-label">Usuario</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="username"
+                                name="userName"
+                                onChange={changed}
+                            />
+                        </div>
+                        <div className="mb-3 col-6">
+                            <label htmlFor="email" className="form-label">Email</label>
+                            <input
+                                type="email"
+                                className="form-control"
+                                id="email"
+                                name="email"
+                                onChange={changed}
+                            />
+                        </div>
+                        <div className="mb-3 col-6">
+                            <label htmlFor="password" className="form-label">Contraseña</label>
+                            <input
+                                type="password"
+                                className="form-control"
+                                id="password"
+                                name="password"
+                                onChange={changed}
+                            />
+                        </div>
+                        <div className="mb-3 col-6">
+                            <label htmlFor="role" className="form-label">Seleccione un rol para el usuario</label>
+                            <select
+                                className="form-select"
+                                id="role"
+                                name="role"
+                                onChange={changed}
+                            > <option value="" selected disabled>Seleccione un rol</option>
+                                <option value="ADMIN">Administrador</option>
+                                <option value="BASIC">Básico</option>
+                            </select>
+                        </div>
+                        <div className="mt-4 col-6">
+                            <button type="submit" className="btn btn-primary">Submit</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </>
+    )
+}
+export default CreateUser;

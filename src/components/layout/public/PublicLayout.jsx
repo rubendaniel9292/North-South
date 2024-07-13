@@ -7,7 +7,7 @@ const PublicLayout = () => {
     return (
         <div>
             {!auth.id ?
-                <Outlet/> : <Navigate to='/gestion'/>
+                <Outlet/> : <Navigate to='/management'/>
             }
 
         </div>

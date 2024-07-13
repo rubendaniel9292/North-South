@@ -10,7 +10,8 @@ const Login = () => {
   const { form, changed } = UserFrom({});
   const { setAuth } = useAuth();
   const loginUser = async (e) => {
-    //prevenir atualziacion de pantalla
+    try {
+      //prevenir atualziacion de pantalla
     e.preventDefault();
     //regoger datos del formulario
     let userToLogin = form;
@@ -46,6 +47,12 @@ const Login = () => {
       //setLoged('error')
       alerts('Error', 'Usuario o contraseña incorrecta', 'error');
     }
+    } catch (error) {
+       //setError(error);
+       alerts('Error', 'Error fetching users.', 'error');
+       console.error('Error fetching users:', error);
+    }
+    
 
   }
 
