@@ -1,8 +1,36 @@
-# React + Vite
+# APP NORTH SOUTH PARA LA GESTION DE CLIENTES
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## DEPENDENCIAS USADAS EN LA APP
 
-Currently, two official plugins are available:
+### PARA EL DOM 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+#### npm i react-router-dom
+
+
+### ICONOS Y ESTILOS 
+
+
+
+#### npm i --save @fortawesome/fontawesome-svg-core
+
+#### npm i --save @fortawesome/free-solid-svg-icons
+
+#### npm i --save @fortawesome/free-regular-svg-icons
+
+#### npm i --save @fortawesome/free-brands-svg-icons
+
+#### npm i --save @fortawesome/react-fontawesome@latest
+
+
+### ALERTAS
+
+#### npm i sweetalert2
+
+### BOOTSTRAP: LIBRERÍA DE ESTILOS CSS Y JS
+#### npm install bootstrap@5.3.3
+#### npm i popper.js
+
+### NORMALIZE PARA EL ESTILOS BASES
+#### npm i normalize.css
+
+
