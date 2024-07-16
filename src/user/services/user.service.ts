@@ -17,6 +17,18 @@ export class UserService {
     try {
       const pwd = parseInt(process.env.HASH_SALT);
       body.password = await bcrypt.hash(body.password, pwd);
+
+      // Verificar si el correo ya existe registrado
+      //body.email! le dice al compilador que body.email no es null ni undefined
+      const existingUser = await this.userRepository.findOne({
+        where: { email: body.email!.toLowerCase() },
+      });
+      if (existingUser) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'El correo ya está registrado',
+        });
+      }
       const newUser = await this.userRepository.save(body);
       return newUser;
     } catch (error) {
