@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faUser } from '@fortawesome/free-solid-svg-icons';
 import UserFrom from '../../hooks/UserFrom';
 import alerts from '../../helpers/Alerts';
-import { Global } from '../../helpers/Global';
+import http from '../../helpers/Http';
 import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
@@ -15,8 +15,9 @@ const Login = () => {
     e.preventDefault();
     //regoger datos del formulario
     let userToLogin = form;
+    /*  peticion mediante fecth
     console.log("Sending request to:", Global.url + 'auth/login');
-    //peticion a la api 
+    peticion a la api 
     const request = await fetch(Global.url + 'auth/login', {
       method: 'POST',
       body: JSON.stringify(userToLogin),//convertir a JSON string
@@ -24,23 +25,24 @@ const Login = () => {
         'Content-Type': 'application/json'
       }
     });
-    const data = await request.json();
-    console.log(data);
+    const data = await request.json();*/
+    const request= await http.post('auth/login', userToLogin);
+    console.log(request.data);
     console.log(request);
-    console.log("Request status:", request.status);
-    console.log("Request headers:", request.headers);
+    console.log("Request status:", request.data.status);
+    console.log("Request headers:", request.data.headers);
     //persistir los datos en el navegador 
-    if (data.accessToken) {
-      localStorage.setItem('token', data.accessToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    if (request.data.accessToken) {
+      localStorage.setItem('token', request.data.accessToken);
+      localStorage.setItem('user', JSON.stringify(request.data.user));
       //setLoged('login');
       //redireccion 
       alerts('Login exitoso', 'Bienvenido/a...', 'success');
       setTimeout(() => {
         //setear datos en el para que redireciones y no entrar manualamente a /social
-        setAuth(data.user);
+        setAuth(request.data.user);
         window.location.reload();//realiza el navigate a public o private layout de manera automatica
-      }, 1000);
+      }, 500);
 
 
     } else {

@@ -8,6 +8,7 @@ import { AuthProvider } from '../context/AuthProvider';
 import UserList from '../components/users/UserList';
 import CreateUser from '../components/users/CreateUser';
 import Home from '../components/users/Home';
+import Logout from '../components/users/Logout';
 
 const Routing = () => {
     return (
@@ -25,6 +26,7 @@ const Routing = () => {
                         <Route path='home' element={<Home />} ></Route>
                         <Route path='create-user' element={<CreateUser />} ></Route>
                         <Route path='user-list' element={<UserList />} ></Route>
+                        <Route path='logout' element={<Logout/>}></Route>
                     </Route>
 
                     {/* Redirección predeterminada */}

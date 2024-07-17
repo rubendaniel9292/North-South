@@ -1,12 +1,13 @@
-import { Global } from "../../helpers/Global";
 import UserFrom from "../../hooks/UserFrom";
 import alerts from "../../helpers/Alerts";
+import http from '../../helpers/Http';
 const CreateUser = () => {
     const { form, changed } = UserFrom({});
     const saveUser = async (e) => {
         try {
             e.preventDefault();
             let newUser = form;
+            /*  peticion mediante fecth
             const token = localStorage.getItem('token');
             const request = await fetch(Global.url + 'users/register', {
                 method: 'POST',
@@ -16,15 +17,17 @@ const CreateUser = () => {
                     'token': token
                 },
             });
-            const data = await request.json();
-            console.log(data);
-            if (data.status === 'success') {
+            
+            const data = await request.json();*/
+            const request= await http.post('users/register', newUser);
+            console.log(request.data);
+            if (request.data.status === 'success') {
                 alerts('Registro exitoso', 'Usuario registrado correctamente', 'success');
-                const myForm = document.querySelector("#user-form");
-                myForm.reset();
+                document.querySelector("#user-form").reset();
+                
             } else {
                 //setSaved('error');
-                alerts('Error', 'Usuario no registrado correctamente. Verificar que no haya campos vacíos', 'error')
+                alerts('Error', 'Usuario no registrado correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.', 'error')
             }
         } catch (error) {
             //setError(error);

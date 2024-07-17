@@ -33,4 +33,13 @@
 ### NORMALIZE PARA EL ESTILOS BASES
 #### npm i normalize.css
 
+## Axios 
+Axios es un Cliente HTTP basado en promesas para node.js y el navegador. puede ejecutarse en el navegador y nodejs con el mismo código base. En el lado del servidor usa el modulo nativo http de node.js, mientras que en el lado del cliente (navegador) usa XMLHttpRequests.
+Ventajas frente a fetch: 
+Conversión de Automática de JSON:
+Axios permite interceptar solicitudes y respuestas
+Axios proporciona una forma más fácil de cancelar solicitudes en comparación con Fetch
+tiempos de espera en Axios es más directo y fácil de manejar
+La sintaxis de Axios es más concisa y amigable
+#### npm i axios
 

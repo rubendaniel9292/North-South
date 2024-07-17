@@ -1,6 +1,7 @@
-import { Global } from "../../helpers/Global";
+//import { Global } from "../../helpers/Global";
 import { useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
+import http from '../../helpers/Http';
 const UserList = () => {
     const [users, setUsers] = useState([]); // Almacenar la lista de usuarios en el estado
     //const [loading, setLoading] = useState(true); // Estado para mostrar que está cargando
@@ -14,6 +15,7 @@ const UserList = () => {
     const getAllList = async () => {
 
         try {
+            /* peitcion fecth
             const token = localStorage.getItem('token');
             const request = await fetch(Global.url + 'users/all', {
                 method: 'GET',
@@ -21,15 +23,20 @@ const UserList = () => {
                     'Content-Type': 'application/json',
                     'token': token
                 }
-            });
-            const data = await request.json();
-            console.log('usuarios del sistema: ', data);
+            });*/
+             //const data = await request.json();
 
-            if (data.status === 'success') {
-                setUsers(data.users); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
+            //Peticion con axios: mas entendible mantenible y robusto
+            
+            const request= await http.get('users/all');
+           
+            console.log('usuarios del sistema: ', request);
+
+            if (request.data.status === 'success') {
+                setUsers(request.data.users); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
             } else {
                 alerts('Error', 'No se pudo listar los usuarios.', 'error');
-                console.error('Error fetching users:', data.message);
+                console.error('Error fetching users:', request.message);
             }
         } catch (error) {
             //setError(error);

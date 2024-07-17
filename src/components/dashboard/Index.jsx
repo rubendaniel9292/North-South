@@ -1,7 +1,9 @@
 import '../../assets/css/dasboard-styles.css';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPowerOff } from '@fortawesome/free-solid-svg-icons';
 import useAuth from "../../hooks/useAuth";
-
+import { NavLink } from 'react-router-dom';
 
 const Index = () => {
   const { auth } = useAuth();
@@ -19,7 +21,10 @@ const Index = () => {
           <div className="row">
             <div className="col-12">
               <nav className="navIndex d-flex align-items-center justify-content-end">
-                <h2 className='text-white h5'>Bienvenid@ {auth.name} {auth.lastName} al sistema de gestión de North South</h2>
+                <h2 className='text-white h5'>Bienvenid@ {auth.name} {auth.lastName} al sistema de gestión de North South</h2>        
+                <NavLink to='/management/logout' className="list-end__link">
+                  <i className='px-4 text-white h2'><FontAwesomeIcon icon={faPowerOff} /></i>
+                </NavLink>
               </nav>
             </div>
           </div>
