@@ -4,6 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { DataSourceConfig } from './entities/data.source';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+//import { HttpModule } from '@nestjs/axios';
+//import { ProvidersModule } from './providers/providers.module';
 
 @Module({
   imports: [

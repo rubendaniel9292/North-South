@@ -1,19 +1,24 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class HttpCustomService {
-  constructor(private readonly httpService: HttpService) {}
-  //priovider del tipo http con axios para el manejo de apis,
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
+  //priovider del tipo http con axios para el manejo de solicitudes a la api,
 
-  public apiFindAll = async () => {
-    const API_URL = process.env.URL;
-    console.log(API_URL);
-    if (!API_URL) {
-      throw new Error('API URL is not defined in the environment variables');
+  async fetchDataFromExternalApi(endpoint: string): Promise<any> {
+    try {
+      const apiUrl = this.configService.get<string>('URL'); // Obtiene la URL base de la variable de entorno
+      const url = `${apiUrl}${endpoint}`;
+      const response = await lastValueFrom(this.httpService.get(url));
+      return response.data;
+    } catch (error) {
+      throw new Error(`Error fetching data: ${error.message}`);
     }
-    const response = await firstValueFrom(this.httpService.get(API_URL));
-    return response.data;
-  };
+  }
 }

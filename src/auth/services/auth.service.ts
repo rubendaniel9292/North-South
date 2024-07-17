@@ -5,6 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { PayloadToken } from '../../interface/auth.interfaces';
 import crypto from 'crypto';
+
 @Injectable()
 export class AuthService {
   constructor(private readonly userService: UserService) {}
