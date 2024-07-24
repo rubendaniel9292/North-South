@@ -1,5 +1,6 @@
-import { Navigate, Outlet } from "react-router-dom"
+import { Navigate} from "react-router-dom"
 import useAuth from "../../../hooks/useAuth"
+import Index from "../../dashboard/Index";
 const PrivateLoyout = () => {
     /*restringir acceso a usuarios a la parte privada */
     const { auth, loading } = useAuth();
@@ -8,7 +9,8 @@ const PrivateLoyout = () => {
 
     if (loading) {
         return (
-            <div className="spinner-border text-success" role="status">
+            <div className="spinner-border text-success" role="sta
+            tus">
                 <span className="visually-hidden">Loading...</span>
             </div>
 
@@ -17,8 +19,8 @@ const PrivateLoyout = () => {
     } else {
         return (
             <>
-                {//si existe el usuario cargar mostrar outlet, y sino que navegue a la parte publica
-                    auth.id ? <Outlet /> : <Navigate to='/login' />
+                {//si existe el usuario cargar mostrar el index y sino que navegue a la parte publica
+                    auth.id ? <Index /> : <Navigate to='/login' />
                 }
             </>
         )

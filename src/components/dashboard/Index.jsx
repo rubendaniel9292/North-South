@@ -1,13 +1,14 @@
 import '../../assets/css/dasboard-styles.css';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPowerOff } from '@fortawesome/free-solid-svg-icons';
 import useAuth from "../../hooks/useAuth";
-import { NavLink } from 'react-router-dom';
+
+
 
 const Index = () => {
   const { auth } = useAuth();
-  const location = useLocation(); //cambia dinámicamente según la ruta sin mostrar el contenido predeterminado
+
   // Verificar si auth es undefined antes de acceder a sus propiedades
   if (!auth) {
     // Manejar el caso donde auth es undefined, por ejemplo, mostrando un mensaje de error o tomando una acción predeterminada.
@@ -21,8 +22,8 @@ const Index = () => {
           <div className="row">
             <div className="col-12">
               <nav className="navIndex d-flex align-items-center justify-content-end">
-                <h2 className='text-white h5'>Bienvenid@ {auth.name} {auth.lastName} al sistema de gestión de North South</h2>        
-                <NavLink to='/management/logout' className="list-end__link">
+                <h2 className='text-white h5'>Bienvenid@ {auth.name} {auth.lastName} al sistema de gestión de North South</h2>
+                <NavLink to='/management/logout' className="">
                   <i className='px-4 text-white h2'><FontAwesomeIcon icon={faPowerOff} /></i>
                 </NavLink>
               </nav>
@@ -30,10 +31,11 @@ const Index = () => {
           </div>
           <div className="row dasboard">
             <div className="col-2 lateral">
+
               <div className='py-2'>
-                <Link to={'/management/home'}>
-                  <button className='btnDas text-white fw-bold'>Inicio</button>
-                </Link>
+                <NavLink to={'/management/home'}>
+                  <button className='btnDas text-white fw-bold' type="button" >Inicio</button>
+                </NavLink>
               </div>
               <div className='py-2 dropdown'>
                 <button className='dropdown-toggle btnDas text-white  fw-bold' type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -53,32 +55,26 @@ const Index = () => {
                     </button>
                     <ul className="dropdown-menu dropdown-toggle text-center">
                       <li >
-                        <Link className="dropdown-item text-white fw-bold" to={'/management/create-user'}>
+                        <NavLink className="dropdown-item text-white fw-bold" to={'/management/create-user'}>
                           Añadir usuario
-                        </Link>
+                        </NavLink>
                       </li>
                       <li >
-                        <Link className="dropdown-item text-white fw-bold" to={'/management/user-list'}>
+                        <NavLink className="dropdown-item text-white fw-bold" to={'/management/user-list'}>
                           Lista de usuarios
-                        </Link>
+                        </NavLink>
                       </li>
                     </ul>
                   </div>
-
                 )
               }
-
-
             </div>
-            <div className="col-10 dasboard my-2 ms-2">
-              {
-                location.pathname === 'management' ? <Index /> : <Outlet />
-              }
-
+            <div className="col-10 dasboard my-2 ms-2" >
+               <Outlet />
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
     </>
 

@@ -3,7 +3,6 @@ import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
 import Login from '../components/users/Login'
 import PublicLayout from '../components/layout/public/PublicLayout'
 import PrivateLoyout from '../components/layout/private/PrivateLoyout';
-import Index from '../components/dashboard/Index';
 import { AuthProvider } from '../context/AuthProvider';
 import UserList from '../components/users/UserList';
 import CreateUser from '../components/users/CreateUser';
@@ -22,7 +21,7 @@ const Routing = () => {
                     </Route>
                     {/*rutas privadas que empiecen con management */}
                     <Route path='/management' element={<PrivateLoyout />}>
-                        <Route index element={<Index/>} ></Route>
+                        <Route index element={<Home/>} ></Route>
                         <Route path='home' element={<Home />} ></Route>
                         <Route path='create-user' element={<CreateUser />} ></Route>
                         <Route path='user-list' element={<UserList />} ></Route>
