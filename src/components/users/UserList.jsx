@@ -2,14 +2,17 @@
 import { useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from '../../helpers/Http';
+import useAuth from "../../hooks/useAuth";
+
 const UserList = () => {
     const [users, setUsers] = useState([]); // Almacenar la lista de usuarios en el estado
     //const [loading, setLoading] = useState(true); // Estado para mostrar que está cargando
     //const [error, setError] = useState(null); // Estado para manejar errores
+    const { auth } = useAuth();
 
     useEffect(() => {
-        getAllList();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        getAllList()
+        //deleteUser(users);
     }, []);
 
     const getAllList = async () => {
@@ -24,28 +27,45 @@ const UserList = () => {
                     'token': token
                 }
             });*/
-             //const data = await request.json();
-
+            //const data = await request.json();
             //Peticion con axios: mas entendible mantenible y robusto
-            
-            const request= await http.get('users/all');
-           
+            const request = await http.get('users/all');
             console.log('usuarios del sistema: ', request);
 
             if (request.data.status === 'success') {
                 setUsers(request.data.users); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
+                console.log('usuarios del sistema: ', request);
             } else {
                 alerts('Error', 'No se pudo listar los usuarios.', 'error');
                 console.error('Error fetching users:', request.message);
             }
         } catch (error) {
             //setError(error);
-            alerts('Error', 'Error fetching users.', 'error');
+            alerts('Error', 'No se pudo ejecutar la consulta', 'error');
             console.error('Error fetching users:', error);
         } finally {
             //setLoading(false);
         }
+    }
+    const deleteUser = async (userId) => {
+        try {
+            //peticion mediante axios
+            const request = await http.delete('users/delete/' + userId);
+            console.log('Usuario eliminado: ', request.data.deletedUser);
+            if (request.data.status === 'success') {
+                // Actualizar con filter la lista de usuarios eliminando el usuario eliminado
+                setUsers(prevUsers => prevUsers.filter(user => user.id !== userId)); 
+                alerts('Eliminación exitosa', 'Usuario eliminado correctamente', 'success');
+            } else {
+                //setSaved('error');
+                alerts('Error', 'Usuario no eliminado correctamente. Ocurrió un error durante la eliminacion.', 'error')
+            }
 
+        } catch (erro) {
+            alerts('Error', 'No se pudo ejecutar la consulta', 'error');
+        } finally {
+            //setLoading(false);
+        }
     }
     return (
         <>
@@ -54,7 +74,14 @@ const UserList = () => {
                 <ul>
                     {users.map((user, index) => (
                         <li key={user.id}>
-                            {index + 1} {user.name} {user.lastname} - {user.role} - {user.email} - {user.createdAt}  <button className="btn bg-danger">Eliminar usuario</button>
+                            {index + 1} {user.name} {user.lastName} - {user.role} - {user.email} - {user.createdAt}
+                            {
+                                user.id !== auth.id &&
+                                <button onClick={() => deleteUser(user.id)} className="btn bg-danger text-white fw-bold">
+                                    Eliminar usuario
+                                </button>
+                            }
+
                         </li>
                     ))}
                 </ul>

@@ -19,12 +19,12 @@ const CreateUser = () => {
             });
             
             const data = await request.json();*/
-            const request= await http.post('users/register', newUser);
+            const request = await http.post('users/register', newUser);
             console.log(request.data);
             if (request.data.status === 'success') {
                 alerts('Registro exitoso', 'Usuario registrado correctamente', 'success');
                 document.querySelector("#user-form").reset();
-                
+
             } else {
                 //setSaved('error');
                 alerts('Error', 'Usuario no registrado correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.', 'error')
@@ -49,6 +49,7 @@ const CreateUser = () => {
                         <div className="mb-3 col-6">
                             <label htmlFor="name" className="form-label">Nombres</label>
                             <input
+                                required
                                 type="text"
                                 className="form-control"
                                 id="name"
@@ -59,6 +60,7 @@ const CreateUser = () => {
                         <div className="mb-3 col-6">
                             <label htmlFor="lastname" className="form-label">Apellidos</label>
                             <input
+                                required
                                 type="text"
                                 className="form-control"
                                 id="lastname"
@@ -69,6 +71,7 @@ const CreateUser = () => {
                         <div className="mb-3 col-6">
                             <label htmlFor="username" className="form-label">Usuario</label>
                             <input
+                                required
                                 type="text"
                                 className="form-control"
                                 id="username"
@@ -79,6 +82,7 @@ const CreateUser = () => {
                         <div className="mb-3 col-6">
                             <label htmlFor="email" className="form-label">Email</label>
                             <input
+                                required
                                 type="email"
                                 className="form-control"
                                 id="email"
@@ -89,6 +93,7 @@ const CreateUser = () => {
                         <div className="mb-3 col-6">
                             <label htmlFor="password" className="form-label">Contraseña</label>
                             <input
+                                required
                                 type="password"
                                 className="form-control"
                                 id="password"

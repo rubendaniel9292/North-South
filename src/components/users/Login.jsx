@@ -8,7 +8,7 @@ import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
   const { form, changed } = UserFrom({});
-  const { setAuth } = useAuth();
+  const {setAuth } = useAuth();
   const loginUser = async (e) => {
     try {
       //prevenir atualziacion de pantalla
@@ -30,14 +30,14 @@ const Login = () => {
     console.log(request.data);
     console.log(request);
     console.log("Request status:", request.data.status);
-    console.log("Request headers:", request.data.headers);
+
     //persistir los datos en el navegador 
     if (request.data.accessToken) {
       localStorage.setItem('token', request.data.accessToken);
       localStorage.setItem('user', JSON.stringify(request.data.user));
       //setLoged('login');
       //redireccion 
-      alerts('Login exitoso', 'Bienvenido/a...', 'success');
+      alerts('Login exitoso', `Bienvenido/a ${request.data.user.name} ${request.data.user.lastName}`, 'success');
       setTimeout(() => {
         //setear datos en el para que redireciones y no entrar manualamente a /social
         setAuth(request.data.user);
@@ -51,7 +51,7 @@ const Login = () => {
     }
     } catch (error) {
        //setError(error);
-       alerts('Error', 'Error fetching users.', 'error');
+       alerts('Error', 'No se permiten campos vacios', 'error');
        console.error('Error fetching users:', error);
     }
     
@@ -73,7 +73,7 @@ const Login = () => {
               </span>
 
               <div className="wrap-input100 validate-input" data-validate="El usuario o email es requerido">
-                <input className="input100" type="text" name="username" placeholder="User / Email" onChange={changed} />
+                <input required className="input100" type="text" name="username" placeholder="User / Email" onChange={changed} />
                 <span className="focus-input100"></span>
                 <span className="symbol-input100">
                   <i><FontAwesomeIcon icon={faUser} aria-hidden="true" /></i>
@@ -82,7 +82,7 @@ const Login = () => {
               </div>
 
               <div className="wrap-input100 validate-input" data-validate="Password es requerida">
-                <input className="input100" type="password" name="password" placeholder="Password" onChange={changed} />
+                <input required className="input100" type="password" name="password" placeholder="Password" onChange={changed} />
                 <span className="focus-input100"></span>
                 <span className="symbol-input100">
                   <i > <FontAwesomeIcon icon={faLock} aria-hidden="true" /></i>
