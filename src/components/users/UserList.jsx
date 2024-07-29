@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from '../../helpers/Http';
 import useAuth from "../../hooks/useAuth";
+import dayjs from 'dayjs';
 
 const UserList = () => {
     const [users, setUsers] = useState([]); // Almacenar la lista de usuarios en el estado
@@ -16,7 +17,13 @@ const UserList = () => {
     }, []);
 
     const getAllList = async () => {
-
+        //formateo de fecha
+        let localeObject = {
+            nombre: 'es', // nombre Cadena
+            weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_'), // Array de días de la semana
+        } // Objeto de idioma Day.js, detallado a continuación
+        dayjs.locale(localeObject);
+      
         try {
             /* peitcion fecth
             const token = localStorage.getItem('token');
@@ -54,7 +61,7 @@ const UserList = () => {
             console.log('Usuario eliminado: ', request.data.deletedUser);
             if (request.data.status === 'success') {
                 // Actualizar con filter la lista de usuarios eliminando el usuario eliminado
-                setUsers(prevUsers => prevUsers.filter(user => user.id !== userId)); 
+                setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
                 alerts('Eliminación exitosa', 'Usuario eliminado correctamente', 'success');
             } else {
                 //setSaved('error');
@@ -71,13 +78,21 @@ const UserList = () => {
         <>
             <div>
                 <h2>Lista de usuarios que hacen uso del sistema</h2>
+                <div className="d-flex">
+                    <p className="ms-4">Nombre</p>
+                    <p className="ms-4">Apellido</p>
+                    <p className="ms-4">Rol</p>
+                    <p className="ms-4">Email</p>
+                    <p className="ms-4">Nombre de usuario</p>
+                    <p className="ms-4">Fecha de registro</p>
+                </div>
                 <ul>
                     {users.map((user, index) => (
-                        <li key={user.id}>
-                            {index + 1} {user.name} {user.lastName} - {user.role} - {user.email} - {user.createdAt}
+                        <li className='' key={user.id}>
+                            {index + 1} {user.name} {user.lastName} {user.role} {user.email} {user.userName} {dayjs(user.createdAt).format('dddd DD/MM/YYYY').toString()}
                             {
                                 user.id !== auth.id &&
-                                <button onClick={() => deleteUser(user.id)} className="btn bg-danger text-white fw-bold">
+                                <button onClick={() => deleteUser(user.id)} className="mx-3 btn bg-danger text-white fw-bold">
                                     Eliminar usuario
                                 </button>
                             }
