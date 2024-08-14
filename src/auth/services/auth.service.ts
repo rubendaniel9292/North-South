@@ -47,10 +47,10 @@ export class AuthService {
   //3: metodo para generacion del token
 
   public generateJWT = async (user: UserEntity): Promise<any> => {
-    const getUser = await this.userService.findUserById(user.id);
+    const getUser = await this.userService.findUserById(user.uuid);
     const payload: PayloadToken = {
       role: getUser.role,
-      sub: getUser.id,
+      sub: getUser.uuid,
     };
     // Eliminar la contraseña del usuario antes de devolverlo. funciona solo al probar en postman de ahi que sa necesario usar el reflector en main
     delete getUser.password;

@@ -68,7 +68,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid user');
     }
     //inyeccion de informacion de reques
-    req.idUser = user.id;
+    req.idUser = user.uuid;
     req.roleUser = user.role;
     //req['user'] = user;
     return true;

@@ -59,14 +59,14 @@ export class UserService {
   };
 
   //3:metodo para buscar usuarios por id SELECT * FROM users WHERE id = '31850ef1-7e45-4164-a97f-066fea0c1016';
-  public findUserById = async (id: string): Promise<UserEntity> => {
+  public findUserById = async (uuid: string): Promise<UserEntity> => {
     try {
       /* otra manera igual funciona
       const user: UserEntity = await this.userRepository
         .createQueryBuilder('user')
         .where({ id })
         .getOne();*/
-      const user = await this.userRepository.findOne({ where: { id } });
+      const user = await this.userRepository.findOne({ where: { uuid } });
 
       if (!user) {
         //se guarda el error

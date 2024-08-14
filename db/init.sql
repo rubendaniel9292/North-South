@@ -10,8 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Crear la tabla users si no existe-- Crear la tabla users si no existe
 -- Crear la tabla users si no existe
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
-    name VARCHAR(60) NOT NULL,
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
     first_name VARCHAR(60) NOT NULL,
     second_name VARCHAR(60),
     surname VARCHAR(60) NOT NULL,
@@ -25,7 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Insertar un usuario admin por defecto si no existe
-INSERT INTO users (name, surname, user_name, email, password, role)
+-- Insertar un usuario admin por defecto si no existe
+INSERT INTO users (first_name ,surname, user_name, email, password, role)
 VALUES ('Jose', 'Rivas', 'joserivas2', 'joserivas@ejemplo.com', crypt('Sk79^o&V@$qq', gen_salt('bf')), 'ADMIN')
 ON CONFLICT (user_name) DO NOTHING;-- Evita insertar si ya existe un usuario con ese username
 

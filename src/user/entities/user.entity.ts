@@ -6,10 +6,13 @@ import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'users' })
 export class UserEntity extends BaseEntity implements IUser {
+  firstName: string;
   @Column()
-  name: string;
+  secondName: string;
   @Column()
-  lastName: string;
+  surname: string;
+  @Column()
+  secondSurname: string;
   @Column({ unique: true })
   userName: string;
   @Column()

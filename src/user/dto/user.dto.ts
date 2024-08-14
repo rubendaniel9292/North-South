@@ -4,11 +4,17 @@ import { ROLES } from 'src/constants/roles';
 export class UserDTO {
   @IsNotEmpty()
   @IsString()
-  name: string;
+  firstName: string;
+
+  @IsString()
+  secondName: string;
 
   @IsNotEmpty()
   @IsString()
-  lastName: string;
+  surname: string;
+
+  @IsString()
+  secondSurname: string;
 
   @IsNotEmpty()
   @IsString()
