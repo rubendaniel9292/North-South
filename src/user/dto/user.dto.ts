@@ -6,6 +6,7 @@ export class UserDTO {
   @IsString()
   firstName: string;
 
+  @IsOptional()
   @IsString()
   secondName: string;
 
@@ -13,6 +14,7 @@ export class UserDTO {
   @IsString()
   surname: string;
 
+  @IsOptional()
   @IsString()
   secondSurname: string;
 
@@ -34,13 +36,21 @@ export class UserDTO {
 }
 
 export class UpdateUserDTO {
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  name: string;
+  firstName: string;
 
   @IsOptional()
   @IsString()
-  lastName: string;
+  secondName: string;
+
+  @IsOptional()
+  @IsString()
+  surname: string;
+
+  @IsOptional()
+  @IsString()
+  secondSurname: string;
 
   @IsOptional()
   @IsString()

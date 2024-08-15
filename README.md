@@ -124,5 +124,9 @@ Axios permite interceptar solicitudes y respuestas
 Axios proporciona una forma más fácil de cancelar solicitudes en comparación con Fetch
 tiempos de espera en Axios es más directo y fácil de manejar
 La sintaxis de Axios es más concisa y amigable
+
 #### npm i axios
 
+## Modulos a crear
+### Modulo de clientes.
+Se trabajara con las tablas estado civil, provincia, ciudad y clientes.
