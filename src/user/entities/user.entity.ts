@@ -1,5 +1,5 @@
 import { ROLES } from '../../constants/roles';
-import { BaseEntity } from '../../entities/base.entity';
+import { BaseEntity } from '../../config/base.entity';
 import { IUser } from '../../interface/user.interface';
 import { Column, Entity } from 'typeorm';
 import { Exclude } from 'class-transformer';

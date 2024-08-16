@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
-import { DataSourceConfig } from './entities/data.source';
+import { DataSourceConfig } from './config/data.source';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 //import { HttpModule } from '@nestjs/axios';
 //import { ProvidersModule } from './providers/providers.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from './auth/auth.module';
     TypeOrmModule.forRoot({ ...DataSourceConfig }),
     UserModule,
     AuthModule,
+    CustomersModule,
   ],
 })
 export default class AppModule {}

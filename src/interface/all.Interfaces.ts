@@ -1,5 +1,5 @@
 //interfaces para la entidad CLIENTE
-export interface IStatusCivil {
+export interface ICivilStatus {
   status: string;
 }
 
@@ -18,8 +18,9 @@ export interface ICustomer {
   secondSurname: string;
   birthdate: Date;
   email: string;
-  phoneNumber: string;
+  numberPhone: string;
   address: string;
+  personalData: boolean;
 }
 
 export interface IPolicyType {
@@ -51,6 +52,8 @@ export interface IAdvisor {
   surname: string;
   secondSurname: string;
   email: string;
+  numberPhone: string;
+  personalData: boolean;
 }
 
 export interface IPaymentMethod {
