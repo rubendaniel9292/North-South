@@ -25,7 +25,7 @@ PostgreSQL es un sistema de gestión de bases de datos relacional y orientado a 
 ### ejecutar mi migración 
 #### npm run m:run
 
-Después de ejecutar la migración, verificar los logs del scritp de la base de datos e ### Insertar manualmente los datos del scrtitp.
+Después de ejecutar la migración, verificar los logs del scritp de la base de datos e Insertar manualmente los datos del scrtitp.
 ### Conectar al Contenedor y Verificar el Script:
 #### docker exec -it north_south_pg_container /bin/bash
 #### ls /docker-entrypoint-initdb.d/
@@ -83,7 +83,7 @@ Es un framework de Node.js para construir aplicaciones del lado del servidor efi
 ### generación de servicios
 #### nest g s user/services/user --flat --no-spec
 ### generación de controladores
-#### nest g co entidad/controller/entidad --no-spec
+#### nest g co entidad/controller/entidad --flat --no-spec
 ### módulo @nestjs/config para la configuración de variables de entorno
 #### npm i --save @nestjs/config
 #### npm install @types/node --save-dev

@@ -14,11 +14,14 @@ export interface ICustomer {
   ci_ruc: string;
   firstName: string;
   secondName: string;
+  //status_id: number;
   surname: string;
   secondSurname: string;
   birthdate: Date;
   email: string;
   numberPhone: string;
+  //province_id: number;
+  //city_id: number;
   address: string;
   personalData: boolean;
 }

@@ -11,7 +11,7 @@ export class CityEntity extends IdEntity implements ICity {
   //RELACION VARIOS A UNO: VARIAS CIUDADES PERTENECEN A  UNA PROVINCIA
   @ManyToOne(() => ProvinceEntity, (province) => province.city, {
     cascade: ['update'], // Permite la cascada de actualización
-    onDelete: 'NO ACTION', // No permite la eliminación en cascada
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
     onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   //guardar la relacion manytoone con la tabla provincia
@@ -21,7 +21,7 @@ export class CityEntity extends IdEntity implements ICity {
   //en una ciudad pueden vivir muchos clientes
   @OneToMany(() => CustomersEntity, (customer) => customer.city, {
     cascade: ['update'], // Permite la cascada de actualización
-    onDelete: 'NO ACTION', // No permite la eliminación en cascada
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
     onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   customer: CustomersEntity[];

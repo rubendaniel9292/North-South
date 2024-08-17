@@ -15,7 +15,7 @@ import { CustomersModule } from './customers/customers.module';
       envFilePath: `.${process.env.NODE_ENV}.env`,
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({ ...DataSourceConfig }),
+    TypeOrmModule.forRoot({ ...DataSourceConfig, logging: true }),
     UserModule,
     AuthModule,
     CustomersModule,

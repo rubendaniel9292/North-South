@@ -50,7 +50,7 @@ WHERE id = '780a7470-f485-436e-816f-ce33c5cca75e';
 
 --1 estado civil
 CREATE TABLE IF NOT EXISTS civil_status (
-    id bigint primary key generated always as identity NOT NULL,  
+    id bigint primary key generated restart as identity NOT NULL,  
     status VARCHAR(20) NOT NULL unique
 );
 
@@ -62,7 +62,7 @@ SELECT * FROM civil_status;
 
 --2 provincia, relacion Uno a muchos 
 CREATE TABLE IF NOT EXISTS province (
-    id bigint primary key generated always as identity NOT NULL,
+    id bigint primary key generated restart as identity NOT NULL,
     province_name VARCHAR(255) NOT NULL unique
 );
 --insetar datos a la tabla provincia
@@ -97,7 +97,7 @@ SELECT id, province_name FROM province;
 	
 --Creacion de la tabla ciudad/canton
 CREATE TABLE IF NOT EXISTS city (
-    id bigint primary key generated always as identity NOT NULL, 
+    id bigint primary key generated restart as identity NOT NULL, 
     city_name VARCHAR(255) NOT NULL,
     province_id INTEGER NOT NULL,
     FOREIGN KEY (province_id) REFERENCES province(id) ON DELETE RESTRICT
@@ -402,7 +402,7 @@ ORDER BY city.city_name, province.province_name;
 
 --TABLA CLIENTES
 CREATE TABLE IF NOT EXISTS customers (
-    id bigint primary key generated always as identity NOT NULL,
+    id bigint primary key generated restart as identity NOT NULL,
 	ci_ruc VARCHAR(13) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
 	second_name VARCHAR(50),
@@ -412,7 +412,9 @@ CREATE TABLE IF NOT EXISTS customers (
 	birthdate DATE NOT NULL,
 	email VARCHAR(50) NOT NULL,
 	number_phone VARCHAR(20),
+    province_id INT NOT NULL,
 	city_id SERIAL NOT NULL,
+    personal_data BOOLEAN NOT NULL,
 	address VARCHAR(50) NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -425,10 +427,11 @@ CREATE TABLE IF NOT EXISTS customers (
 );
 
 -- Insertar datos de ejemplo
-INSERT INTO customers (ci_ruc, first_name, second_name, surname, second_surname, status_id, birthdate, email, number_phone, city_id, address) VALUES
-('0102030405', 'John', 'Alexander', 'Doe', '', 1, '1985-06-15', 'john.doe@example.com', '0987654321', 1, '123 Main St'), -- Cliente en Quito, soltero
-('0203040506', 'Jane', 'Elizabeth', 'Smith', '', 2, '1990-08-25', 'jane.smith@example.com', '0987654322', 2, '456 Elm St'), -- Cliente en Guayaquil, casada
-('0304050607', 'Michael', 'James', 'Johnson', '', 3, '1982-12-05', 'michael.johnson@example.com', '0987654323', 3, '789 Oak St'); -- Cliente en Cuenca, divorciado
+-- Insertar datos de ejemplo
+INSERT INTO customers (ci_ruc, first_name, second_name, surname, second_surname, status_id, birthdate, email, number_phone, province_id, city_id, personal_data, address) VALUES
+('0102030405', 'John', 'Alexander', 'Doe', '', 1, '1985-06-15', 'john.doe@example.com', '0987654321', 2,1, true, '123 Main St'),
+('0203040506', 'Jane', 'Elizabeth', 'Smith', '', 2, '1990-08-25', 'jane.smith@example.com', '0987654322', 2,2, true,'456 Elm St'),
+('0304050607', 'Michael', 'James', 'Johnson', '', 3, '1982-12-05', 'michael.johnson@example.com', '0987654323', 6, 3, true,'789 Oak St');
 
 --consulta de ejemplo para obtener la información completa del cliente
 SELECT 

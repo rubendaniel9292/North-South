@@ -11,7 +11,7 @@ export class ProvinceEntity extends IdEntity implements IProvince {
   //relacion uno a varios: una prvincia tiene varias ciudades
   @OneToMany(() => CityEntity, (city) => city.province, {
     cascade: ['update'], // Permite la cascada de actualización
-    onDelete: 'NO ACTION', // No permite la eliminación en cascada
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
     onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   city: CityEntity[];
@@ -19,7 +19,7 @@ export class ProvinceEntity extends IdEntity implements IProvince {
   //en una provincia pueden vivir muchos clientes
   @OneToMany(() => CustomersEntity, (customer) => customer.province, {
     cascade: ['update'], // Permite la cascada de actualización
-    onDelete: 'NO ACTION', // No permite la eliminación en cascada
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
     onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   customer: ProvinceEntity[];
