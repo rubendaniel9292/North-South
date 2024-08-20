@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 //import { HttpModule } from '@nestjs/axios';
 //import { ProvidersModule } from './providers/providers.module';
 import { CustomersModule } from './customers/customers.module';
+import { CompanyModule } from './company/company.module';
+import { CreditcardModule } from './creditcard/creditcard.module';
 
 @Module({
   imports: [
@@ -15,10 +17,12 @@ import { CustomersModule } from './customers/customers.module';
       envFilePath: `.${process.env.NODE_ENV}.env`,
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({ ...DataSourceConfig, logging: true }),
+    TypeOrmModule.forRoot({ ...DataSourceConfig }),
     UserModule,
     AuthModule,
     CustomersModule,
+    CompanyModule,
+    CreditcardModule,
   ],
 })
 export default class AppModule {}

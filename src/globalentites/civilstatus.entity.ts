@@ -9,6 +9,8 @@ export class CivilStatusEntity extends IdEntity implements ICivilStatus {
   @Column({ unique: true })
   status: string;
   //relacion uno a varios: un estado civil tiene  varias personas
-  @OneToMany(() => CustomersEntity, (customer) => customer.civil)
+  @OneToMany(() => CustomersEntity, (customer) => customer.civil, {
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
+  })
   customer: CustomersEntity[];
 }

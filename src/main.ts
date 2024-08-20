@@ -3,6 +3,7 @@ import AppModule from './app.module';
 import * as morgan from 'morgan';
 import { ConfigService } from '@nestjs/config';
 import { CORS } from './constants/cors';
+
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {

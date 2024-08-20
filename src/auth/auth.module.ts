@@ -1,14 +1,13 @@
-import { CustomersModule } from './../customers/customers.module';
 import { Module } from '@nestjs/common';
-import { AuthService } from './services/auth.service';
+import { CreditcardModule } from '@/creditcard/creditcard.module';
+import { CustomersModule } from '@/customers/customers.module';
+import { ProvidersModule } from '@/providers/providers.module';
+import { UserModule } from '@/user/user.module';
 import { AuthController } from './controller/auth.controller';
-import { UserModule } from 'src/user/user.module';
-//import { UserService } from 'src/user/services/user.service';
-import { ProvidersModule } from 'src/providers/providers.module';
-//import { CustomersService } from 'src/customers/services/customers.service';
+import { AuthService } from './services/auth.service';
 
 @Module({
-  imports: [UserModule, CustomersModule, ProvidersModule],
+  imports: [UserModule, CustomersModule, ProvidersModule, CreditcardModule],
   providers: [AuthService],
   controllers: [AuthController],
 })

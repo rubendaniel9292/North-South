@@ -45,7 +45,7 @@ export interface IBank {
 
 export interface ICreditCard {
   cardNumber: string;
-  expirationDate: string;
+  expirationDate: Date;
   code: string;
 }
 

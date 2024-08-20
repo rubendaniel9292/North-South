@@ -82,7 +82,7 @@ export class CustomersEntity extends IdEntity implements ICustomer {
   @JoinColumn({ name: 'province_id' })
   province: ProvinceEntity; //relacion*/
 
-  // Relación ManyToOne: Un cliente vive en una ciudad
+  // Relación ManyToOne: varios cliente vive en una ciudad
   @ManyToOne(() => CityEntity, (city) => city.customer, {
     cascade: ['update'], // Permite la cascada de actualización
     onDelete: 'RESTRICT', // No permite la eliminación en cascada
