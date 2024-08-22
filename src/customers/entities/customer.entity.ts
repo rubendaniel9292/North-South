@@ -1,3 +1,8 @@
+import { IdCustomEntity } from '@/config/id.custom.entity';
+import { CityEntity } from '@/globalentites/city.entity';
+import { CivilStatusEntity } from '@/globalentites/civilstatus.entity';
+import { ProvinceEntity } from '@/globalentites/provincie.entity';
+import { ICustomer } from '@/interface/all.Interfaces';
 import {
   Column,
   CreateDateColumn,
@@ -6,41 +11,13 @@ import {
   ManyToOne,
   UpdateDateColumn,
 } from 'typeorm';
-import { ICustomer } from '../../interface/all.Interfaces';
-import { IdEntity } from '../../config/id.entity';
-import { CivilStatusEntity } from '../../globalentites/civilstatus.entity';
-import { ProvinceEntity } from '../../globalentites/provincie.entity';
-import { CityEntity } from '../../globalentites/city.entity';
+
 //tabla cliente
 
 @Entity({ name: 'customers' })
-export class CustomersEntity extends IdEntity implements ICustomer {
-  @Column({ unique: true })
-  ci_ruc: string;
-
-  @Column()
-  firstName: string;
-
-  @Column({ nullable: true })
-  secondName: string;
-
-  @Column()
-  surname: string;
-
-  @Column({ nullable: true })
-  secondSurname: string;
-
+export class CustomersEntity extends IdCustomEntity implements ICustomer {
   @Column()
   status_id: number;
-
-  @Column()
-  birthdate: Date;
-
-  @Column({ unique: true })
-  email: string;
-
-  @Column()
-  numberPhone: string;
 
   @Column()
   province_id: number;
@@ -50,9 +27,6 @@ export class CustomersEntity extends IdEntity implements ICustomer {
 
   @Column()
   address: string;
-
-  @Column()
-  personalData: boolean;
 
   @CreateDateColumn({
     type: 'timestamp',
@@ -75,19 +49,29 @@ export class CustomersEntity extends IdEntity implements ICustomer {
 
   // Relación ManyToOne: Un cliente vive en una provincia
   @ManyToOne(() => ProvinceEntity, (province) => province.customer, {
-    cascade: ['update'], // Permite la cascada de actualización
     onDelete: 'RESTRICT', // No permite la eliminación en cascada
-    onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   @JoinColumn({ name: 'province_id' })
   province: ProvinceEntity; //relacion*/
 
   // Relación ManyToOne: varios cliente vive en una ciudad
   @ManyToOne(() => CityEntity, (city) => city.customer, {
-    cascade: ['update'], // Permite la cascada de actualización
     onDelete: 'RESTRICT', // No permite la eliminación en cascada
-    onUpdate: 'CASCADE', // Permite la actualización en cascada
   })
   @JoinColumn({ name: 'city_id' })
   city: CityEntity;
 }
+/*EXPLICACIONES DE CONSTRAINS
+ cascade: ['update']
+Si tienes una entidad CityEntity y realizas una operación save() en la entidad CustomersEntity q
+ue está relacionada con CityEntity, y además cascade: ['update'] está habilitado, 
+los cambios realizados en la entidad CustomersEntity podrían afectar a CityEntity 
+solo si la operación de actualización incluye modificar la entidad CityEntity en sí misma 
+(por ejemplo, cambiar una referencia a una nueva ciudad).
+
+onUpdate: 'CASCADE': Esta opción se usa para que, si cambias el valor de una clave primaria (id) en la tabla 
+referenciada (por ejemplo, en la tabla CityEntity), 
+dicho cambio se propague automáticamente a todas las tablas que tienen una relación con esa clave primaria. 
+Es poco común que los id cambien en la mayoría de las aplicaciones, 
+especialmente cuando son generados automáticamente y son valores numéricos únicos.
+*/

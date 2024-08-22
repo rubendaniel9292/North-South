@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { CustomersModule } from './customers/customers.module';
 import { CompanyModule } from './company/company.module';
 import { CreditcardModule } from './creditcard/creditcard.module';
+import { AdvisorModule } from './advisor/advisor.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CreditcardModule } from './creditcard/creditcard.module';
     CustomersModule,
     CompanyModule,
     CreditcardModule,
+    AdvisorModule,
   ],
 })
 export default class AppModule {}

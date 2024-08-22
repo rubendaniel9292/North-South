@@ -1,5 +1,7 @@
-import { UserDTO } from '../dto/user.dto';
-import { UserService } from './../services/user.service';
+import { Roles } from '@/auth/decorators/decorators';
+import { AuthGuard } from '@/auth/guards/auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
+
 import {
   Body,
   Controller,
@@ -10,9 +12,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
-import { Roles } from 'src/auth/decorators/decorators';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserDTO } from '../dto/user.dto';
+import { UserService } from '../services/user.service';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)

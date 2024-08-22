@@ -7,9 +7,12 @@ import {
   UpdateDateColumn,
   JoinColumn,
   ManyToOne,
+  //BeforeInsert,
+  //BeforeUpdate,
 } from 'typeorm';
 import { CardOptionsEntity } from './cardoptions.entity';
 import { BankEntity } from './bank.entity';
+//import { encrypt } from '@/helpers/encryption';
 @Entity({ name: 'credit_card' })
 export class CreditCardEntity extends IdEntity implements ICreditCard {
   @Column()
@@ -40,6 +43,21 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
     name: 'updated_at',
   })
   updatedAt: Date;
+  /*
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  encryptSensitiveData() {
+    this.cardNumber = encrypt(this.cardNumber);
+    this.code = encrypt(this.code);
+  }*/
+
+  /*
+  decryptSensitiveData() {
+    this.cardNumber = dencrypt(this.cardNumber);
+    this.code = decrypt(this.cardNumber);
+  */
+
   // Relación ManyToOne: Muchas tarjetas tienen un tipo
   @ManyToOne(() => CardOptionsEntity, (cardoption) => cardoption.creditcard, {
     onDelete: 'RESTRICT', // No permite la eliminación del tipo de tarjeta si está en uso

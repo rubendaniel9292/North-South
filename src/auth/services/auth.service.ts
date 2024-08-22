@@ -1,10 +1,11 @@
-import { UserService } from './../../user/services/user.service';
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt-updated';
 import * as jwt from 'jsonwebtoken';
-import { UserEntity } from 'src/user/entities/user.entity';
-import { PayloadToken } from '../../interface/auth.interfaces';
+
 import crypto from 'crypto';
+import { PayloadToken } from '@/interface/auth.interfaces';
+import { UserEntity } from '@/user/entities/user.entity';
+import { UserService } from '@/user/services/user.service';
 
 @Injectable()
 export class AuthService {

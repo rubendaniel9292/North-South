@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  //Delete,
-  //Get,
-  //Param,
-  Post,
-  UseGuards,
-  //UseGuards,
-  //UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { BankDTO } from '../dto/bank.dto';
 import { CardOptionDTO } from '../dto/cardptions.dto';
 import { CreditcardService } from '../services/creditcard.service';
@@ -16,10 +6,6 @@ import { AuthGuard } from '@/auth/guards/auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { CreditCardDTO } from '../dto/creditcard.dto';
-
-//import { AuthGuard } from 'src/auth/guards/auth.guard';
-//import { RolesGuard } from 'src/auth/guards/roles.guard';
-//import { Roles } from 'src/auth/decorators/decorators';
 
 @Controller('creditcard')
 @UseGuards(AuthGuard, RolesGuard)
@@ -30,7 +16,6 @@ export class CreditcardController {
   public async registerTypeCard(@Body() body: CardOptionDTO) {
     console.log('datos recibidos en el cotnrolador: ', body);
     const newCardType = await this.creditCarService.createCreditdCarType(body);
-
     console.log('Datos enviado al servicio: ', newCardType);
 
     if (newCardType) {
@@ -67,6 +52,18 @@ export class CreditcardController {
       return {
         status: 'success',
         newCard,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC') //Solo usuarios admin podran ver todos los usuarios
+  @Get('all-cards')
+  public async findAllCards() {
+    const allCards = await this.creditCarService.findAllCrards();
+    if (allCards) {
+      return {
+        status: 'success',
+        allCards,
       };
     }
   }

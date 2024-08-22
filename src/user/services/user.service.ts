@@ -50,7 +50,7 @@ export class UserService {
           message: 'No se encontró resultados',
         });
       }
-      //return { users, count };
+
       return users;
     } catch (error) {
       //se ejecuta el errir

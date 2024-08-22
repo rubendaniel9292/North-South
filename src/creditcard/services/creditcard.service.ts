@@ -8,9 +8,11 @@ import { CardOptionDTO } from '../dto/cardptions.dto';
 import { BankEntity } from '../entities/bank.entity';
 import { CreditCardEntity } from '../entities/credit.card.entity';
 import { CreditCardDTO } from '../dto/creditcard.dto';
+//import { EncryptDataCard } from '@/helpers/encryption';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class CreditcardService {
+export class CreditcardService /*extends EncryptDataCard */ {
   constructor(
     @InjectRepository(CardOptionsEntity)
     private readonly cardopstionsRepository: Repository<CardOptionsEntity>,
@@ -20,15 +22,20 @@ export class CreditcardService {
 
     @InjectRepository(CreditCardEntity)
     private readonly cardRepository: Repository<CreditCardEntity>,
-  ) {}
+    protected readonly configService: ConfigService,
+  ) {
+    // Pasar el repositorio al constructor de la clase base
+    //super(cardRepository, configService);
+  }
   //SERVICIO RELACIONADO CON TODO LO QUE TIENE VER CON LAS TARJETAS DE CREDITO O DEBITO
-  //1:metodo para registrar un tipo de tarjeta. por defecto se agregan varios en el scritp de la base de datos.
-  //se invocara este metodo desde el frontend en caso de que sea necesario añadir otro tipo, no funciona desde postman
+  //1:metodo para registrar un tipo de tarjeta y cifrarlo. por defecto se agregan varios en el scritp de la base de datos.
+  //por problemas con el desicfrado quedara pendiente
   public createCreditdCarType = async (
     body: CardOptionDTO,
   ): Promise<CardOptionsEntity> => {
     try {
       console.log('datos recibidos en el servicio: ', body);
+
       const newCardType = await this.cardopstionsRepository.save(body);
       console.log('datos guardados en la bd: ', newCardType);
       return newCardType;
@@ -42,6 +49,8 @@ export class CreditcardService {
   public createBank = async (body: BankDTO): Promise<BankEntity> => {
     try {
       console.log('datos recibidos en el servicio: ', body);
+      //llamar al metodo de encriptacion de los datos
+      //const newCard = await this.encryptDataCard.createCard(cardDTO);
       const newBank = await this.bankRepository.save(body);
       console.log('datos guardados en la bd: ', newBank);
       return newBank;
@@ -50,17 +59,107 @@ export class CreditcardService {
     }
   };
 
-  //3:metodo para registrar una tarjeta de credito o debito
-  //se invocara este metodo desde el frontend en caso de que sea necesario añadir otro banco, funciona correctamente desde postman
+  //3:metodo para registrar y encriptar tarjeta de credito o debito. quedara pendiente por problemas con el desencriptado
+  /*
   public createCrard = async (
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
-      console.log('datos recibidos en el servicio: ', body);
-      const newCard = await this.cardRepository.save(body);
+      // Encriptar solo el nombre y el code
+      console.log('Datos recibidos en el servicio antes del cifrado:', body);
+
+      const encryptedData = this.encryptData(body.cardNumber, body.code);
+      // Actualizar el objeto body con los datos cifrados
+      const encryptedBody = {
+        ...body,
+        cardNumber: encryptedData.cardNumber,
+        code: encryptedData.code,
+      };
+      console.log('Datos a guardar:', encryptedBody);
+
+      // Guardar los datos encriptados en la base de datos
+      const newCard = await this.cardRepository.save(encryptedBody);
+      console.log('datos guardados: ', newCard);
+
       console.log('datos guardados en la bd: ', newCard);
       return newCard;
     } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };*/
+  //3:metodo para registrar sin encriptar una tarjeta de credito o debito
+  public createCrard = async (
+    body: CreditCardDTO,
+  ): Promise<CreditCardEntity> => {
+    try {
+      // Encriptar solo el nombre y el code
+      console.log('Datos recibidos en el servicio antes del cifrado:', body);
+
+      // Guardar los datos encriptados en la base de datos
+      const newCard = await this.cardRepository.save(body);
+      console.log('datos guardados: ', newCard);
+
+      console.log('datos guardados en la bd: ', newCard);
+      return newCard;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //3:metodo para consultar y desencriptar las tarjetas de credito queda pendiente
+  /*
+  public findAllCrards = async (): Promise<CreditCardEntity[]> => {
+    try {
+      //this.decryptData()
+      const allCards: CreditCardEntity[] = await this.cardRepository.find();
+
+      if (allCards.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      // Desencriptar los datos de cada tarjeta
+
+      // Descifrar los datos de cada tarjeta
+      return allCards.map((card) => {
+        console.log(card);
+        // Pasar ambos valores a la función decryptData
+        const { cardNumber, code } = this.decryptData({
+          cardNumber: card.cardNumber,
+          code: card.code,
+        });
+        console.log(cardNumber, code);
+        return {
+          ...card,
+          cardNumber: cardNumber,
+          code: code,
+        };
+      });
+    } catch (error) {
+      //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };*/
+  //3:metodo para consultar y desencriptar
+  public findAllCrards = async (): Promise<CreditCardEntity[]> => {
+    try {
+      //this.decryptData()
+      const allCards: CreditCardEntity[] = await this.cardRepository.find();
+
+      if (allCards.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      return allCards;
+    } catch (error) {
+      //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
     }
   };

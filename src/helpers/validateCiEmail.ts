@@ -1,9 +1,7 @@
+import { CustomerDTO } from '@/customers/dto/customer.dto';
+import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { Injectable } from '@nestjs/common';
-
 import { InjectRepository } from '@nestjs/typeorm';
-import { CustomerDTO } from 'src/customers/dto/customer.dto';
-import { CustomersEntity } from 'src/customers/entities/customer.entity';
-
 import { Repository } from 'typeorm';
 import { ErrorManager } from './error.manager';
 
@@ -13,7 +11,7 @@ export class ValidateCiEmailService {
     @InjectRepository(CustomersEntity)
     protected readonly validateRepository: Repository<CustomersEntity>,
   ) {}
-  public validateCiEmail = async (body: CustomerDTO): Promise<void> => {
+  protected validateCiEmail = async (body: CustomerDTO): Promise<void> => {
     try {
       const existingCiRuc = await this.validateRepository.findOne({
         where: { ci_ruc: body.ci_ruc!.toLowerCase() },
