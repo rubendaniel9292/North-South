@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { CustomerDTO } from '../dto/customer.dto';
+
 import { Repository } from 'typeorm';
-import { ErrorManager } from 'src/helpers/error.manager';
+
+import { ErrorManager } from '@/helpers/error.manager';
 import { CustomersEntity } from '../entities/customer.entity';
-import { ValidateCiEmailService } from 'src/helpers/validateCiEmail';
+import { ValidateCiEmailService } from '@/helpers/validateCiEmail';
+import { CustomerDTO } from '../dto/customer.dto';
 
 @Injectable()
 export class CustomersService extends ValidateCiEmailService {

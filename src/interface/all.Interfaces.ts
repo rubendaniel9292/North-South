@@ -13,15 +13,12 @@ export interface ICity {
 export interface ICustomer {
   ci_ruc: string;
   firstName: string;
-  secondName: string;
-  //status_id: number;
+  secondName?: string;
   surname: string;
-  secondSurname: string;
+  secondSurname?: string;
   birthdate: Date;
   email: string;
   numberPhone: string;
-  //province_id: number;
-  //city_id: number;
   address: string;
   personalData: boolean;
 }
@@ -53,10 +50,12 @@ export interface ICreditCard {
 }
 
 export interface IAdvisor {
+  ci_ruc: string;
   firstName: string;
-  secondName: string;
+  secondName?: string;
   surname: string;
-  secondSurname: string;
+  secondSurname?: string;
+  birthdate: Date;
   email: string;
   numberPhone: string;
   personalData: boolean;

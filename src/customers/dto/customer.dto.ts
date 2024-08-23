@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
@@ -57,6 +58,7 @@ export class CustomerDTO {
 
   @IsNotEmpty()
   @IsBoolean()
+  @Transform(({ value }) => (value === 'true' ? true : value === 'false')) //transformando al fomarto correcto
   personalData: boolean;
 }
 export class UpDateCustomerDTO {
