@@ -11,16 +11,26 @@ import { HttpCustomService } from 'src/providers/http/http.service';
 import { BankEntity } from './entities/bank.entity';
 import { CreditCardEntity } from './entities/credit.card.entity';
 import { UserModule } from '@/user/user.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CreditCardStatusService } from '@/helpers/card.status';
+import { CardStatusEntity } from './entities/card.status.entity';
 //import { UserService } from '@/user/services/user.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CardOptionsEntity, BankEntity, CreditCardEntity]),
+    TypeOrmModule.forFeature([
+      CardOptionsEntity,
+      BankEntity,
+      CreditCardEntity,
+      CreditCardStatusService,
+      CardStatusEntity,
+    ]),
+    ScheduleModule.forRoot(), // Importa y configura ScheduleModule para tareas automaticas
     ProvidersModule,
     UserModule,
   ],
   controllers: [CreditcardController],
-  providers: [CreditcardService, HttpCustomService],
-  exports: [CreditcardService, TypeOrmModule],
+  providers: [CreditcardService, HttpCustomService, CreditCardStatusService],
+  exports: [CreditcardService, TypeOrmModule, CreditCardStatusService],
 })
 export class CreditcardModule {}

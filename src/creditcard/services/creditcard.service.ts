@@ -9,7 +9,9 @@ import { BankEntity } from '../entities/bank.entity';
 import { CreditCardEntity } from '../entities/credit.card.entity';
 import { CreditCardDTO } from '../dto/creditcard.dto';
 //import { EncryptDataCard } from '@/helpers/encryption';
-import { ConfigService } from '@nestjs/config';
+//import { ConfigService } from '@nestjs/config';
+//import { CardStatusEntity } from '../entities/card.status.entity';
+import { CreditCardStatusService } from '@/helpers/card.status';
 
 @Injectable()
 export class CreditcardService /*extends EncryptDataCard */ {
@@ -22,7 +24,8 @@ export class CreditcardService /*extends EncryptDataCard */ {
 
     @InjectRepository(CreditCardEntity)
     private readonly cardRepository: Repository<CreditCardEntity>,
-    protected readonly configService: ConfigService,
+    private readonly creditCardStatusService: CreditCardStatusService, // Inyectar el servicio existente
+    //protected readonly configService: ConfigService,
   ) {
     // Pasar el repositorio al constructor de la clase base
     //super(cardRepository, configService);
@@ -92,14 +95,21 @@ export class CreditcardService /*extends EncryptDataCard */ {
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
-      // Encriptar solo el nombre y el code
-      console.log('Datos recibidos en el servicio antes del cifrado:', body);
-
-      // Guardar los datos encriptados en la base de datos
+      // Convertir la fecha de expiración a Date si es una cadena
+      const expirationDate = new Date(body.expirationDate);
+      console.log('Datos recibidos en el servicio:', body);
+      // Verificar si la tarjeta ya está caducada
+      const currentDate = new Date();
+      if (expirationDate < currentDate) {
+        throw new Error('La tarjeta ya está caducada.');
+      }
+      // Reutilizar el método determineCardStatus para obtener el estado correcto
+      const determinedStatus =
+        await this.creditCardStatusService.determineCardStatus(expirationDate);
+      // Asignar el estado determinado al body de la tarjeta
+      body.card_status_id = determinedStatus.id;
+      // Guardar los datos de la tarjeta con el estado asignado
       const newCard = await this.cardRepository.save(body);
-      console.log('datos guardados: ', newCard);
-
-      console.log('datos guardados en la bd: ', newCard);
       return newCard;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -143,7 +153,7 @@ export class CreditcardService /*extends EncryptDataCard */ {
       throw ErrorManager.createSignatureError(error.message);
     }
   };*/
-  //3:metodo para consultar y desencriptar
+  //3:metodo para consultar las tarjetas
   public findAllCrards = async (): Promise<CreditCardEntity[]> => {
     try {
       //this.decryptData()

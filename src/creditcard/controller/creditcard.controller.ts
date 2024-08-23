@@ -6,7 +6,6 @@ import { AuthGuard } from '@/auth/guards/auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { CreditCardDTO } from '../dto/creditcard.dto';
-
 @Controller('creditcard')
 @UseGuards(AuthGuard, RolesGuard)
 export class CreditcardController {
@@ -67,4 +66,5 @@ export class CreditcardController {
       };
     }
   }
+  // endpoint de actualización de estados de tarjeta manualmente.
 }

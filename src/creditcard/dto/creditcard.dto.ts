@@ -29,6 +29,10 @@ export class CreditCardDTO {
   @IsNotEmpty()
   @IsInt()
   bank_id: number;
+
+  @IsOptional()
+  @IsInt()
+  card_status_id: number;
 }
 
 export class UpdateCreditCardDTO {
@@ -51,4 +55,8 @@ export class UpdateCreditCardDTO {
   @IsOptional()
   @IsInt()
   bank_id: number;
+
+  @IsOptional()
+  @IsInt()
+  card_status_id: number;
 }

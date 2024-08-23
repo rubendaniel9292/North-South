@@ -219,7 +219,7 @@ para autenticar y autorizar a los usuarios de tu API mediate la generación de u
 
 #### npm i jsonwebtoken
 
-## Axios (por implementarse)
+## Axios 
 
 Axios es un Cliente HTTP basado en promesas para node.js y el navegador. puede ejecutarse en el navegador y nodejs con el mismo código base. En el lado del servidor usa el modulo nativo http de node.js, mientras que en el lado del cliente (navegador) usa XMLHttpRequests.
 Ventajas frente a fetch:
@@ -231,8 +231,11 @@ La sintaxis de Axios es más concisa y amigable
 
 #### npm i axios
 
+### npm install node-cron
+
 ## Modulos a crear
 
 ### Modulo de clientes
 
 Se trabajara con las tablas estado civil, provincia, ciudad y clientes.
+

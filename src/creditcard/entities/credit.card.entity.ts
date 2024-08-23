@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { CardOptionsEntity } from './cardoptions.entity';
 import { BankEntity } from './bank.entity';
+import { CardStatusEntity } from './card.status.entity';
 //import { encrypt } from '@/helpers/encryption';
 @Entity({ name: 'credit_card' })
 export class CreditCardEntity extends IdEntity implements ICreditCard {
@@ -32,6 +33,9 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
 
   @Column()
   bank_id: number;
+
+  @Column()
+  card_status_id: number;
 
   @CreateDateColumn({
     type: 'timestamp',
@@ -71,4 +75,11 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
   })
   @JoinColumn({ name: 'bank_id' })
   bank: BankEntity;
+
+  // Relación ManyToOne: Muchas tarjetas tienen un estado
+  @ManyToOne(() => CardStatusEntity, (cardstatus) => cardstatus.creditcard, {
+    onDelete: 'RESTRICT', // No permite la eliminación del estado si está en uso
+  })
+  @JoinColumn({ name: 'card_status_id' })
+  cardstatus: CardStatusEntity;
 }

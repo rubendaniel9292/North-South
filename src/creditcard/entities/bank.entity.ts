@@ -1,5 +1,3 @@
-import { IdEntity } from '../../config/id.entity';
-import { IBank } from 'src/interface/all.Interfaces';
 import {
   Column,
   //CreateDateColumn,
@@ -9,6 +7,8 @@ import {
   //ManyToOne,
 } from 'typeorm';
 import { CreditCardEntity } from './credit.card.entity';
+import { IBank } from '@/interface/all.Interfaces';
+import { IdEntity } from '@/config/id.entity';
 
 @Entity({ name: 'bank' })
 export class BankEntity extends IdEntity implements IBank {

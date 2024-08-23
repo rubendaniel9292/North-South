@@ -42,6 +42,9 @@ export interface ICardOption {
 export interface IBank {
   bankName: string;
 }
+export interface ICardStatus {
+  cardStatusName: string;
+}
 
 export interface ICreditCard {
   cardNumber: string;
