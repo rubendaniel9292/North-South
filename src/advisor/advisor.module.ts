@@ -5,6 +5,8 @@ import { AdvisdorEntity } from './entity/advisor.entity';
 import { ProvidersModule } from '@/providers/providers.module';
 import { UserModule } from '@/user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpCustomService } from '@/providers/http/http.service';
+import { UserService } from '@/user/services/user.service';
 
 @Module({
   imports: [
@@ -12,7 +14,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ProvidersModule,
     UserModule,
   ],
-  providers: [AdvisorService],
+  providers: [AdvisorService, UserService, HttpCustomService],
   controllers: [AdvisorController],
   exports: [AdvisorService, TypeOrmModule],
 })

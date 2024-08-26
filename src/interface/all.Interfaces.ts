@@ -66,7 +66,7 @@ export interface IPaymentMethod {
 }
 
 export interface IPayment {
-  observations: string;
+  observations?: string;
 }
 
 export interface IPaymentFrequency {
@@ -77,13 +77,14 @@ export interface IPolicyStatus {
 }
 
 export interface IPolicy {
-  numberPolicy: string; // VARCHAR(50) NOT NULL UNIQUE
-  coverageAmount: number; // DECIMAL(10, 2) NOT NULL
-  agencyPercentage: number; // DECIMAL(5, 2) NOT NULL
-  advisorPercentage: number; // DECIMAL(5, 2) NOT NULL
-  policyValue: number; // DECIMAL(10, 2) NOT NULL
-  numberOfPayments: number; // INT NOT NULL
-  startDate: Date; // DATE NOT NULL
-  endDate: Date; // DATE NOT NULL
-  paymentsToAdvisor: number; // DECIMAL(10, 2) NOT NULL
+  numberPolicy: string; 
+  coverageAmount: number; 
+  agencyPercentage: number; 
+  advisorPercentage: number;
+  policyValue: number; 
+  numberOfPayments: number;
+  startDate: Date; 
+  endDate: Date; 
+  paymentsToAdvisor: number; 
+  observations?: string;
 }

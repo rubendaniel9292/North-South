@@ -10,6 +10,7 @@ import { CustomersModule } from './customers/customers.module';
 import { CompanyModule } from './company/company.module';
 import { CreditcardModule } from './creditcard/creditcard.module';
 import { AdvisorModule } from './advisor/advisor.module';
+import { PolicyModule } from './policy/policy.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdvisorModule } from './advisor/advisor.module';
     CompanyModule,
     CreditcardModule,
     AdvisorModule,
+    PolicyModule,
   ],
 })
 export default class AppModule {}

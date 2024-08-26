@@ -1,17 +1,15 @@
-//import { CustomerDTO } from '@/customers/dto/customer.dto';
 import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-//import { Repository } from 'typeorm';
 import { ErrorManager } from './error.manager';
 import { AdvisdorEntity } from '@/advisor/entity/advisor.entity';
-//import { AdvisdorEntity } from '@/advisor/entity/advisor.entity';
-
+import { CompanyEntity } from '@/company/entities/company.entity';
 @Injectable()
 export class ValidateCiEmailService {
   constructor(
     @InjectRepository(CustomersEntity)
     @InjectRepository(AdvisdorEntity)
+    @InjectRepository(CompanyEntity)
     protected readonly validateRepository: any,
   ) {}
   protected validateCiEmail = async (body: any): Promise<void> => {
@@ -23,7 +21,18 @@ export class ValidateCiEmailService {
       if (existingCiRuc) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
-          message: 'La cédula  ya está registrada',
+          message: 'La cédula o RUC ya está registrado',
+        });
+      }
+
+      const existingCompany = await this.validateRepository.findOne({
+        where: { companyName: body.companyName!.toLowerCase() },
+      });
+
+      if (existingCompany) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'La compañía ya está registrada',
         });
       }
       const existingEmail = await this.validateRepository.findOne({
