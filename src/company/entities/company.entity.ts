@@ -3,9 +3,9 @@ import { ICompany } from '@/interface/all.Interfaces';
 import { Column, Entity } from 'typeorm';
 @Entity({ name: 'company' })
 export class CompanyEntity extends IdEntity implements ICompany {
-  @Column()
+  @Column({ unique: true })
   companyName: string;
 
-  @Column()
+  @Column({ unique: true })
   ci_ruc: string;
 }

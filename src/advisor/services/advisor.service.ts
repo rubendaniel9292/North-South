@@ -2,11 +2,11 @@ import { AdvisdorEntity } from './../entity/advisor.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ValidateCiEmailService } from '@/helpers/validateCiEmail';
+import { ValidateEntity } from '@/helpers/validations';
 import { ErrorManager } from '@/helpers/error.manager';
 import { AdvisorDTO } from '../dto/advisor.dto';
 @Injectable()
-export class AdvisorService extends ValidateCiEmailService {
+export class AdvisorService extends ValidateEntity {
   constructor(
     @InjectRepository(AdvisdorEntity)
     private readonly advisdorRepository: Repository<AdvisdorEntity>,
@@ -21,7 +21,7 @@ export class AdvisorService extends ValidateCiEmailService {
       console.log('Valor recibido desde Postman:', body.personalData);
       // Convertir el valor de personalData a booleano
       //body.personalData = body.personalData === 'true' || body.personalData === true;
-      await this.validateCiEmail(body);
+      await this.validateInput(body, 'advisor');
       const newAdvisor = await this.advisdorRepository.save(body);
       console.log(body.personalData);
       //consulta futura para la eliminacion del usuario no se aconseja en produccion

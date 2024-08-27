@@ -6,11 +6,11 @@ import { Repository } from 'typeorm';
 
 import { ErrorManager } from '@/helpers/error.manager';
 import { CustomersEntity } from '../entities/customer.entity';
-import { ValidateCiEmailService } from '@/helpers/validateCiEmail';
+import { ValidateEntity } from '@/helpers/validations';
 import { CustomerDTO } from '../dto/customer.dto';
 
 @Injectable()
-export class CustomersService extends ValidateCiEmailService {
+export class CustomersService extends ValidateEntity {
   constructor(
     @InjectRepository(CustomersEntity)
     private readonly customerRepository: Repository<CustomersEntity>,
@@ -24,7 +24,7 @@ export class CustomersService extends ValidateCiEmailService {
   ): Promise<CustomersEntity> => {
     try {
       // Primero validamos cédula y correo
-      await this.validateCiEmail(body);
+      await this.validateInput(body, 'customer');
       const newCustomer = await this.customerRepository.save(body);
       //consulta futura para la eliminacion del usuario no se aconseja en produccion
       //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);

@@ -1,7 +1,7 @@
+import { ADMIN_KEY, PUBLIC_KEY, ROLES_KEY } from '@/constants/key-decorator';
+import { ROLES } from '@/constants/roles';
 import { SetMetadata } from '@nestjs/common';
-import { PUBLIC_KEY, ADMIN_KEY, ROLES_KEY } from 'src/constants/key-decorator';
 
-import { ROLES } from 'src/constants/roles';
 //el guard pueda leer los endponts dentro del controler
 export const PublicAcces = () => SetMetadata(PUBLIC_KEY, true);
 

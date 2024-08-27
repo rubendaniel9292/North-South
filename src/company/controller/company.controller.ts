@@ -8,13 +8,11 @@ import { CompanyDTO } from '../dto/company.dto';
 @Controller('company')
 @UseGuards(AuthGuard, RolesGuard)
 export class CompanyController {
-  constructor(private readonly companyCarService: CompanyService) {}
+  constructor(private readonly companyService: CompanyService) {}
   @Roles('ADMIN', 'BASIC')
   @Post('register-company')
   public async registerCompany(@Body() body: CompanyDTO) {
-    console.log('datos recibidos en el cotnrolador: ', body);
-    const newCompany = await this.companyCarService.createCompany(body);
-    console.log('Datos enviado al servicio: ', newCompany);
+    const newCompany = await this.companyService.createCompany(body);
 
     if (newCompany) {
       return {

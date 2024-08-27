@@ -41,7 +41,7 @@ export class CustomersEntity extends IdCustomEntity implements ICustomer {
 
   // Relación ManyToOne: Muchas personas tienen un estado civil
   @ManyToOne(() => CivilStatusEntity, (civil) => civil.customer, {
-    cascade: ['update'],
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
   })
   //guardar la relacion manytoone con la tabla civil status
   @JoinColumn({ name: 'status_id' })

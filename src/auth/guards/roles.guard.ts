@@ -1,3 +1,5 @@
+import { PUBLIC_KEY, ROLES_KEY, ADMIN_KEY } from '@/constants/key-decorator';
+import { ROLES } from '@/constants/roles';
 import {
   CanActivate,
   ExecutionContext,
@@ -5,8 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ADMIN_KEY, PUBLIC_KEY, ROLES_KEY } from 'src/constants/key-decorator';
-import { ROLES } from 'src/constants/roles';
+
 import { Request } from 'express';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class RolesGuard implements CanActivate {
     console.log(admin);
     //const { roleUser } = req['user']?.role; // Suponiendo que 'user' tiene la información del rol;
     const { roleUser } = req;
-    console.log('Role del usuario:', roleUser);
+    //console.log('Role del usuario:', roleUser);
     //validar sino le paso el decorar, le asigne que es el nivel mas basica execto a ciertas rutas o metodos
     if (roles === undefined) {
       //y sino hay niveles de administracion
