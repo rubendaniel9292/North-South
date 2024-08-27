@@ -6,6 +6,6 @@ export class PaymentFrequencyEntity
   extends IdEntity
   implements IPaymentFrequency
 {
-  @Column()
+  @Column({ unique: true })
   frequencyName: string;
 }
