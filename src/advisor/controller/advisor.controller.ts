@@ -11,7 +11,7 @@ export class AdvisorController {
   constructor(private readonly advisorService: AdvisorService) {}
   @Roles('ADMIN', 'BASIC')
   @Post('register')
-  public async registerUser(@Body() body: AdvisorDTO) {
+  public async registerAdvisor(@Body() body: AdvisorDTO) {
     const newAdvisor = await this.advisorService.createAdvisor(body);
     if (newAdvisor) {
       return {

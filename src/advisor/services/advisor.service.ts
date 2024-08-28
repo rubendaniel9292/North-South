@@ -1,4 +1,4 @@
-import { AdvisdorEntity } from './../entity/advisor.entity';
+import { AdvisorEntity } from './../entity/advisor.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,14 +8,14 @@ import { AdvisorDTO } from '../dto/advisor.dto';
 @Injectable()
 export class AdvisorService extends ValidateEntity {
   constructor(
-    @InjectRepository(AdvisdorEntity)
-    private readonly advisdorRepository: Repository<AdvisdorEntity>,
+    @InjectRepository(AdvisorEntity)
+    private readonly advisdorRepository: Repository<AdvisorEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(advisdorRepository);
   }
   //1:metodo para registrar un cliente
-  public createAdvisor = async (body: AdvisorDTO): Promise<AdvisdorEntity> => {
+  public createAdvisor = async (body: AdvisorDTO): Promise<AdvisorEntity> => {
     try {
       // Primero validamos cédula y correo
       console.log('Valor recibido desde Postman:', body.personalData);

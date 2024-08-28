@@ -77,14 +77,14 @@ export interface IPolicyStatus {
 }
 
 export interface IPolicy {
-  numberPolicy: string; 
-  coverageAmount: number; 
-  agencyPercentage: number; 
+  numberPolicy: string;
+  coverageAmount: number;
+  agencyPercentage: number;
   advisorPercentage: number;
-  policyValue: number; 
+  policyValue: number;
   numberOfPayments: number;
-  startDate: Date; 
-  endDate: Date; 
-  paymentsToAdvisor: number; 
+  startDate: Date;
+  endDate: Date;
+  paymentsToAdvisor: number;
   observations?: string;
 }

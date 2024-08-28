@@ -1,14 +1,17 @@
 import { IdCustomEntity } from '@/config/id.custom.entity';
+import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { CityEntity } from '@/globalentites/city.entity';
 import { CivilStatusEntity } from '@/globalentites/civilstatus.entity';
 import { ProvinceEntity } from '@/globalentites/provincie.entity';
 import { ICustomer } from '@/interface/all.Interfaces';
+import { PolicyEntity } from '@/policy/entities/policy.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -60,6 +63,21 @@ export class CustomersEntity extends IdCustomEntity implements ICustomer {
   })
   @JoinColumn({ name: 'city_id' })
   city: CityEntity;
+
+  // Relación OneToMany: Un cliente puede tener muchas pólizas
+  @OneToMany(() => PolicyEntity, (policy) => policy.customer)
+  policies: PolicyEntity[];
+
+  // Relación ManyToOne: Muchas tarjetas pertenecen a un solo cliente
+  @ManyToOne(() => CustomersEntity, (customer) => customer.creditCards, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'customers_id' })
+  customer: CustomersEntity;
+
+  // Relación OneToMany: Un cliente puede tener muchas tarjetas de crédito
+  @OneToMany(() => CreditCardEntity, (creditCard) => creditCard.customer)
+  creditCards: CreditCardEntity[];
 }
 /*EXPLICACIONES DE CONSTRAINS
  cascade: ['update']

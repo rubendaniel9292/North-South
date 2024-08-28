@@ -32,7 +32,7 @@ export class CreditCardDTO {
 
   @IsOptional()
   @IsInt()
-  card_status_id: number;
+  card_status_id?: number;
 }
 
 export class UpdateCreditCardDTO {
@@ -58,5 +58,5 @@ export class UpdateCreditCardDTO {
 
   @IsOptional()
   @IsInt()
-  card_status_id: number;
+  card_status_id?: number;
 }

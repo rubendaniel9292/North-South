@@ -7,12 +7,15 @@ import {
   UpdateDateColumn,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   //BeforeInsert,
   //BeforeUpdate,
 } from 'typeorm';
 import { CardOptionsEntity } from './cardoptions.entity';
 import { BankEntity } from './bank.entity';
 import { CardStatusEntity } from './card.status.entity';
+import { CustomersEntity } from '@/customers/entities/customer.entity';
+import { PolicyEntity } from '@/policy/entities/policy.entity';
 //import { encrypt } from '@/helpers/encryption';
 @Entity({ name: 'credit_card' })
 export class CreditCardEntity extends IdEntity implements ICreditCard {
@@ -47,20 +50,13 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
     name: 'updated_at',
   })
   updatedAt: Date;
-  /*
 
-  @BeforeInsert()
-  @BeforeUpdate()
-  encryptSensitiveData() {
-    this.cardNumber = encrypt(this.cardNumber);
-    this.code = encrypt(this.code);
-  }*/
-
-  /*
-  decryptSensitiveData() {
-    this.cardNumber = dencrypt(this.cardNumber);
-    this.code = decrypt(this.cardNumber);
-  */
+  // Relación ManyToOne: Muchas tarjetas pertenecen a un solo cliente
+  @ManyToOne(() => CustomersEntity, (customer) => customer.creditCards, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'customers_id' })
+  customer: CustomersEntity;
 
   // Relación ManyToOne: Muchas tarjetas tienen un tipo
   @ManyToOne(() => CardOptionsEntity, (cardoption) => cardoption.creditcard, {
@@ -82,4 +78,8 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
   })
   @JoinColumn({ name: 'card_status_id' })
   cardstatus: CardStatusEntity;
+
+  // Relación OneToMany: Una tarjeta puede estar asociada a varias pólizas
+  @OneToMany(() => PolicyEntity, (policy) => policy.creditCard)
+  policies: PolicyEntity[];
 }

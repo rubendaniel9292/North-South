@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdvisorService } from './services/advisor.service';
 import { AdvisorController } from './controller/advisor.controller';
-import { AdvisdorEntity } from './entity/advisor.entity';
+import { AdvisorEntity } from './entity/advisor.entity';
 import { ProvidersModule } from '@/providers/providers.module';
 import { UserModule } from '@/user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -10,7 +10,7 @@ import { UserService } from '@/user/services/user.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AdvisdorEntity]),
+    TypeOrmModule.forFeature([AdvisorEntity]),
     ProvidersModule,
     UserModule,
   ],

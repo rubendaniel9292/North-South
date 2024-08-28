@@ -44,6 +44,11 @@ export class CreditCardStatusService {
           where: { id: 3 }, //caucada
         }),
       ]);
+    if (!expiredStatus || !aboutToExpireStatus || !expiredStatus) {
+      console.error(
+        'El estado caducado no se encontró en la base de datos. Verificalos',
+      );
+    }
 
     console.log('Estados obtenidos:', {
       expiredStatus,

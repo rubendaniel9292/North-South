@@ -4,7 +4,9 @@ import {
   IsString,
   IsInt,
   IsDate,
+  IsNumber,
 } from 'class-validator';
+
 export class PolicyDTO {
   @IsNotEmpty()
   @IsString()
@@ -12,17 +14,50 @@ export class PolicyDTO {
 
   @IsNotEmpty()
   @IsInt()
+  policy_type_id: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  company_id: number;
+
+  @IsOptional()
+  @IsInt()
+  policy_status_id?: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  payment_frequency_id: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  advisor_id: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  payment_method_id: number;
+
+  @IsOptional()
+  @IsInt()
+  credit_card_id?: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  customers_id: number;
+
+  @IsNotEmpty()
+  @IsNumber({ maxDecimalPlaces: 2 })
   coverageAmount: number;
 
   @IsNotEmpty()
-  @IsInt()
+  @IsNumber({ maxDecimalPlaces: 2 })
   agencyPercentage: number;
 
   @IsNotEmpty()
-  @IsInt()
+  @IsNumber({ maxDecimalPlaces: 2 })
   advisorPercentage: number;
 
   @IsNotEmpty()
+  @IsNumber({ maxDecimalPlaces: 2 })
   policyValue: number;
 
   @IsNotEmpty()
@@ -38,16 +73,16 @@ export class PolicyDTO {
   endDate: Date;
 
   @IsNotEmpty()
-  @IsInt()
-  paymentsToAdvisor: number;
-
-  @IsNotEmpty()
-  @IsString()
-  observations: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  paymentsToAdvisor: number; // Igual que arriba
 
   @IsNotEmpty()
   @IsInt()
   numberOfPaymentsAdvisor: number;
+
+  @IsOptional()
+  @IsString()
+  observations: string;
 }
 
 export class UpdatePolicyDTO {
@@ -56,20 +91,51 @@ export class UpdatePolicyDTO {
   numberPolicy: string;
 
   @IsOptional()
-  @IsString()
   @IsInt()
+  policy_type_id: number;
+
+  @IsOptional()
+  @IsInt()
+  company_id: number;
+
+  @IsOptional()
+  @IsInt()
+  policy_status_id?: number;
+
+  @IsOptional()
+  @IsInt()
+  payment_frequency_id: number;
+
+  @IsOptional()
+  @IsInt()
+  advisor_id: number;
+
+  @IsOptional()
+  @IsInt()
+  payment_id: number;
+
+  @IsOptional()
+  @IsInt()
+  credit_card_id: number;
+
+  @IsOptional()
+  @IsInt()
+  customers_id: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
   coverageAmount: number;
 
   @IsOptional()
-  @IsInt()
+  @IsNumber({ maxDecimalPlaces: 2 })
   agencyPercentage: number;
 
   @IsOptional()
-  @IsInt()
+  @IsNumber({ maxDecimalPlaces: 2 })
   advisorPercentage: number;
 
-  @IsNotEmpty()
-  @IsInt()
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
   policyValue: number;
 
   @IsOptional()
@@ -85,14 +151,14 @@ export class UpdatePolicyDTO {
   endDate: Date;
 
   @IsOptional()
-  @IsInt()
-  paymentsToAdvisor: number;
-
-  @IsOptional()
-  @IsString()
-  observations: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  paymentsToAdvisor: number; // Igual que arriba
 
   @IsOptional()
   @IsInt()
   numberOfPaymentsAdvisor: number;
+
+  @IsOptional()
+  @IsString()
+  observations: string;
 }

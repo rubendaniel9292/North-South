@@ -62,6 +62,20 @@ export class ValidateEntity {
           });
         }
       }
+
+      if (entityType === 'policy') {
+        body.numberPolicy.toUpperCase();
+        const existingPolicy = await this.validateRepository.findOne({
+          where: { numberPolicy: body.numberPolicy?.toUpperCase() },
+        });
+
+        if (existingPolicy) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'La póliza ya está registrada',
+          });
+        }
+      }
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
