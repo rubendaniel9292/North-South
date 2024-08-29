@@ -39,4 +39,74 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+  //2:metodo para consultas todas las polizas
+  public getAllPolicies = async (): Promise<PolicyEntity[]> => {
+    try {
+      const policies = await this.policyRepository.find({
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'advisor',
+          'customer',
+          'paymentMethod',
+          'creditCard',
+          'creditCard.bank', // Asegúrate de incluir la relación con el banco,
+        ],
+        select: {
+          id: true,
+          numberPolicy: true,
+          coverageAmount: true,
+          agencyPercentage: true,
+          advisorPercentage: true,
+          policyValue: true,
+          numberOfPayments: true,
+          startDate: true,
+          endDate: true,
+          paymentsToAdvisor: true,
+          observations: true,
+          policyType: {
+            policyName: true,
+          },
+          policyStatus: {
+            statusName: true,
+          },
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          paymentFrequency: {
+            frequencyName: true,
+          },
+          company: {
+            companyName: true,
+          },
+          advisor: {
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+
+          paymentMethod: {
+            methodName: true,
+          },
+          creditCard: {
+            bank_id: true,
+            bank: {
+              bankName: true, // Asumiendo que el banco tiene un campo 'name'
+            },
+          },
+        },
+      });
+
+      return policies;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 }
