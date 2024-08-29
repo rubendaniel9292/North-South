@@ -14,7 +14,7 @@ export class AdvisorService extends ValidateEntity {
     // Pasar el repositorio al constructor de la clase base
     super(advisdorRepository);
   }
-  //1:metodo para registrar un cliente
+  //1:metodo para registrar un asesor
   public createAdvisor = async (body: AdvisorDTO): Promise<AdvisorEntity> => {
     try {
       // Primero validamos cédula y correo
@@ -30,6 +30,17 @@ export class AdvisorService extends ValidateEntity {
       console.log(newAdvisor);
       console.log('After Save:', newAdvisor.personalData);
       return newAdvisor;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2: metodo para buscar los asesores
+  public getAllAdvisors = async () => {
+    try {
+      const allAdvisors = await this.advisdorRepository.find();
+      console.log('Advisors found:', allAdvisors);
+      return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

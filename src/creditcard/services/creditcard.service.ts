@@ -157,7 +157,22 @@ export class CreditcardService /*extends EncryptDataCard */ {
   public findAllCrards = async (): Promise<CreditCardEntity[]> => {
     try {
       //this.decryptData()
-      const allCards: CreditCardEntity[] = await this.cardRepository.find();
+      const allCards: CreditCardEntity[] = await this.cardRepository.find({
+        relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
+        select: {
+          id: true,
+          cardNumber: true,
+          expirationDate: true,
+          code: true,
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+        },
+      });
 
       if (allCards.length === 0) {
         //se guarda el error

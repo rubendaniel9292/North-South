@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CompanyService } from '../services/company.service';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -18,6 +18,19 @@ export class CompanyController {
       return {
         status: 'success',
         newCompany,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-all-company')
+  public async getCompanies() {
+    const allCompanies = await this.companyService.getAllCompanies();
+
+    if (allCompanies) {
+      return {
+        status: 'success',
+        allCompanies,
       };
     }
   }

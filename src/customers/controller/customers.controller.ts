@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   //Delete,
   //Get,
   //Param,
@@ -20,13 +21,25 @@ export class CustomersController {
   constructor(private readonly customerService: CustomersService) {}
 
   @Roles('ADMIN', 'BASIC')
-  @Post('register')
-  public async registerUser(@Body() body: CustomerDTO) {
+  @Post('register-customer')
+  public async registerCustomer(@Body() body: CustomerDTO) {
     const newCustomer = await this.customerService.createCustomer(body);
     if (newCustomer) {
       return {
         status: 'success',
         newCustomer,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-all-customer')
+  public async getCustomer() {
+    const allCustomer = await this.customerService.getAllCustomers();
+    if (allCustomer) {
+      return {
+        status: 'success',
+        allCustomer,
       };
     }
   }

@@ -22,10 +22,17 @@ export class CompanyService extends ValidateEntity {
       await this.validateInput(body, 'company');
       const newCompany = await this.companyRepository.save(body);
       console.log(newCompany);
-      //consulta futura para la eliminacion del usuario no se aconseja en produccion
-      //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
 
       return newCompany;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //2: metodo para buscar las compañias asesoras
+  public getAllCompanies = async () => {
+    try {
+      const allCompany = await this.companyRepository.find();
+      return allCompany;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
