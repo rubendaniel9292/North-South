@@ -20,7 +20,7 @@ const PrivateLoyout = () => {
         return (
             <>
                 {//si existe el usuario cargar mostrar el index y sino que navegue a la parte publica
-                    auth.id ? <Index /> : <Navigate to='/login' />
+                    auth.uuid ? <Index /> : <Navigate to='/login' />
                 }
             </>
         )

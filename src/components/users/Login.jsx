@@ -37,7 +37,7 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(request.data.user));
       //setLoged('login');
       //redireccion 
-      alerts('Login exitoso', `Bienvenido/a ${request.data.user.name} ${request.data.user.lastName}`, 'success');
+      alerts('Login exitoso', `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`, 'success');
       setTimeout(() => {
         //setear datos en el para que redireciones y no entrar manualamente a /social
         setAuth(request.data.user);
@@ -60,7 +60,7 @@ const Login = () => {
 
   return (
     <>
-      <div className="limiter">
+      <div className="limiter ">
         <div className="container-login100">
           <div className="wrap-login100">
             <div className="login100-pic js-tilt" data-tilt>

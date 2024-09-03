@@ -22,7 +22,7 @@ const Index = () => {
           <div className="row">
             <div className="col-12">
               <nav className="navIndex d-flex align-items-center justify-content-end">
-                <h2 className='text-white h5'>Bienvenid@ {auth.name} {auth.lastName} al sistema de gestión de North South</h2>
+                <h2 className='text-white h5'>Bienvenid@ {auth.firstName} {auth.surname} al sistema de gestión de North South</h2>
                 <NavLink to='/management/logout' className="">
                   <i className='px-4 text-white h2'><FontAwesomeIcon icon={faPowerOff} /></i>
                 </NavLink>

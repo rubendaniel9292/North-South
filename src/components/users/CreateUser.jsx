@@ -1,6 +1,6 @@
 import UserFrom from "../../hooks/UserFrom";
 import alerts from "../../helpers/Alerts";
-import http from '../../helpers/Http';
+import http from "../../helpers/Http";
 const CreateUser = () => {
     const { form, changed } = UserFrom({});
     const saveUser = async (e) => {
@@ -53,18 +53,18 @@ const CreateUser = () => {
                                 type="text"
                                 className="form-control"
                                 id="name"
-                                name="name"
+                                name="firstName"
                                 onChange={changed}
                             />
                         </div>
                         <div className="mb-3 col-6">
-                            <label htmlFor="lastname" className="form-label">Apellidos</label>
+                            <label htmlFor="surname" className="form-label">Apellidos</label>
                             <input
                                 required
                                 type="text"
                                 className="form-control"
                                 id="lastname"
-                                name="lastName"
+                                name="surname"
                                 onChange={changed}
                             />
                         </div>

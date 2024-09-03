@@ -39,7 +39,7 @@ const AuthProvider = ({ children }) => {
             }
             //transofrmar los datos a un objeto de JS.
             const userObj = JSON.parse(user);//acceder al objeto user
-            const userId = userObj.id;//obtener el usuario identificado
+            const userId = userObj.uuid;//obtener el usuario identificado
             //peticion ajax al backend que compruebe el token y que me devuelva todos los datos de peril del usuario para tenerlos en el estado de auth
             const request = await fetch(Global.url + 'users/' + userId, {
                 method: 'GET',
@@ -60,7 +60,7 @@ const AuthProvider = ({ children }) => {
                 }
             }
             const data = await request.json();
-            //console.log('Datos del usuario:', data);
+            console.log('Datos del usuario:', data);
             setAuth(data);
             setLoading(false);
 

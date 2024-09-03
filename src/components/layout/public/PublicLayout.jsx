@@ -6,7 +6,7 @@ const PublicLayout = () => {
     const {auth} = useAuth();
     return (
         <div>
-            {!auth.id ?
+            {!auth.uuid ?
                 <Outlet/> : <Navigate to='/management'/>
             }
 
