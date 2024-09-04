@@ -188,4 +188,46 @@ export class CreditcardService /*extends EncryptDataCard */ {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //4:metodo para consultar los bancos
+  public findBanks = async (): Promise<BankEntity[]> => {
+    try {
+      //this.decryptData()
+      const allBanks: BankEntity[] = await this.bankRepository.find();
+
+      if (allBanks.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      return allBanks;
+    } catch (error) {
+      //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //5:metodo para consultar los tipos de tarjeta
+  public findCrardsOptions = async (): Promise<CardOptionsEntity[]> => {
+    try {
+      const allOptions: CardOptionsEntity[] =
+        await this.cardopstionsRepository.find();
+
+      if (allOptions.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      return allOptions;
+    } catch (error) {
+      //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 }

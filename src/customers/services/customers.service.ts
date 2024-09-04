@@ -68,7 +68,7 @@ LEFT JOIN
     civil_status cs ON c.status_id = cs.id;
 
       */
-      const customers = await this.customerRepository.find({
+      const customers: CustomersEntity[] = await this.customerRepository.find({
         /* Array de strings: para seleccionar campos específicos del objeto principal 
         y estás de acuerdo con traer todos los campos de las relaciones.
     select: [

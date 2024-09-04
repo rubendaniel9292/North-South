@@ -19,7 +19,8 @@ export class GlobaldataService {
   //1: metodo para obetener el listado de provincias
   public getAllProvinces = async (): Promise<ProvinceEntity[]> => {
     try {
-      const allProvinces = await this.provinceRepository.find();
+      const allProvinces: ProvinceEntity[] =
+        await this.provinceRepository.find();
       return allProvinces;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -29,7 +30,7 @@ export class GlobaldataService {
   //2: metodo para obetener el listado de ciudades o cantones
   public getAllCitys = async (): Promise<CityEntity[]> => {
     try {
-      const allCitys = await this.cityRepository.find({
+      const allCitys: CityEntity[] = await this.cityRepository.find({
         relations: ['province'],
         select: {
           cityName: true,
@@ -49,7 +50,7 @@ export class GlobaldataService {
   //2: metodo para obetener el listado de ciudades o cantones
   public getAllCivilStatus = async (): Promise<CivilStatusEntity[]> => {
     try {
-      const allStatus = await this.civilRepository.find();
+      const allStatus: CivilStatusEntity[] = await this.civilRepository.find();
       return allStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
