@@ -10,6 +10,8 @@ import Logout from "../components/users/Logout";
 import CreateCustomer from "../components/customer/CreateCustomer";
 import ListCustomer from "../components/customer/ListCustomer";
 import ListCreditCard from "../components/customer/ListCreditCard";
+import RegisterCreditCard from "../components/customer/RegisterCreditCard";
+import CreateBank from "../components/customer/CreateBank";
 
 const Routing = () => {
   return (
@@ -29,7 +31,9 @@ const Routing = () => {
             <Route path="user-list" element={<UserList />}></Route>
             <Route path="create-customer" element={<CreateCustomer />}></Route>
             <Route path="get-all-customer" element={<ListCustomer />}></Route>
+            <Route path="create-cards" element={<RegisterCreditCard/>}></Route>
             <Route path="get-all-cards" element={<ListCreditCard/>}></Route>
+            <Route path="create-bank" element={<CreateBank/>}></Route>
             <Route path="logout" element={<Logout />}></Route>
           </Route>
 

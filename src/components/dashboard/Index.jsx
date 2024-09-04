@@ -79,12 +79,12 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-cards"}>
                       Registro de tarjetas
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-bank"}>
                       Registro de bancos
                     </NavLink>
                   </li>
