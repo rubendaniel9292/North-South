@@ -1,4 +1,3 @@
-//import { Global } from "../../helpers/Global";
 import { useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
@@ -92,7 +91,7 @@ const UserList = () => {
               <th>Rol</th>
               <th>Email</th>
               <th>Username</th>
-              <th>Fecha de Creación</th>
+              <th>Fecha de Registro</th>
               <th>Acciones</th>
             </tr>
           </thead>

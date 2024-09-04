@@ -7,6 +7,7 @@ const UserFrom = (initialObj) => {
 
     const changed = ({ target }) => {
         const { name, value } = target;//Extrae nombre del campo del formulario el valor actual del campo del elemento del formulario que disparó el evento.
+      
         /*
         añadir nuevos valores dentro del formulario con el contenido que ya tuviera el form 
         mas clave y valor que quiero añadir.
@@ -14,10 +15,9 @@ const UserFrom = (initialObj) => {
          (...form) y sobrescribe o añade el campo representado por name con el valor value
         */
         setFrom({
-
             ...form, [name]: value
         })
-        console.log(form);
+        //console.log(form);
     }
     return { form, changed };
 

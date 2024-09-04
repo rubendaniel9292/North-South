@@ -27,9 +27,9 @@ const Login = () => {
     });
     const data = await request.json();*/
     const request= await http.post('auth/login', userToLogin);
-    console.log(request.data);
-    console.log(request);
-    console.log("Request status:", request.data.status);
+    //console.log(request.data);
+    //console.log(request);
+    //console.log("Request status:", request.data.status);
 
     //persistir los datos en el navegador 
     if (request.data.accessToken) {
