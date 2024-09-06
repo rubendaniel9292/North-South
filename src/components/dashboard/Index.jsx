@@ -6,6 +6,7 @@ import useAuth from "../../hooks/useAuth";
 
 const Index = () => {
   const { auth } = useAuth();
+  console.log(auth)
 
   // Verificar si auth es undefined antes de acceder a sus propiedades
   if (!auth) {
@@ -75,7 +76,7 @@ const Index = () => {
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  Gestión de tarjetas
+                  Gestión de Tarjetas
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
@@ -107,7 +108,7 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-policy"}>
                       Registro de Polizas
                     </NavLink>
                   </li>
@@ -130,12 +131,12 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-advisor"}>
                       Registro de Asesores
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-advisor"}>
                       Listado de Asesores
                     </NavLink>
                   </li>
@@ -148,16 +149,16 @@ const Index = () => {
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  Gestión de compañías
+                  Gestión de Compañías
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-companies"}>
                       Registro de Compañías
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-comapanies"}>
                       Listado de Compañias
                     </NavLink>
                   </li>

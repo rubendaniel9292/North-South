@@ -2,7 +2,8 @@ import UserFrom from "../../hooks/UserFrom";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState } from "react";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const RegisterCreditCard = () => {
   const { form, changed } = UserFrom({});
   const [customers, setCustomer] = useState([]);
@@ -59,12 +60,12 @@ const RegisterCreditCard = () => {
           "Tarjeta registrado registrado correctamente",
           "success"
         );
-        //document.querySelector("#user-form").reset();
+        document.querySelector("#user-form").reset();
       } else {
         //setSaved('error');
         alerts(
           "Error",
-          "Tarjeta no registrada correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.",
+          "Tarjeta no registrada correctamente. Verificar que no haya campos vacíos o que la tarjeta no esté caducada.",
           "error"
         );
       }
@@ -77,7 +78,7 @@ const RegisterCreditCard = () => {
     <>
       <div className="container-fluid">
         <form onSubmit={savedCard} id="user-form">
-          <div className="row pt-3">
+          <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
                 Cliente
@@ -189,8 +190,9 @@ const RegisterCreditCard = () => {
             </div>
 
             <div className="mt-4 col-3">
-              <button type="submit" className="btn btn-success">
+              <button type="submit" className="btn btn-success mt-2 fw-bold">
                 Registrar Tarjeta
+                <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>
             </div>
           </div>

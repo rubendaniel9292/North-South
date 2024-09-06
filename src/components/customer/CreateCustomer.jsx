@@ -2,6 +2,8 @@ import UserFrom from "../../hooks/UserFrom";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreateCustomer = () => {
   const { form, changed } = UserFrom({});
   const [statuses, setStatuses] = useState([]);
@@ -75,7 +77,7 @@ const CreateCustomer = () => {
         //setSaved('error');
         alerts(
           "Error",
-          "Usuario no registrado correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.",
+          "Cliente no registrado correctamente. Verificar que no haya campos vacios o duplicados",
           "error"
         );
       }
@@ -89,7 +91,7 @@ const CreateCustomer = () => {
     <>
       <div className="container-fluid">
         <form onSubmit={savedCustomer} id="user-form">
-          <div className="row pt-3">
+          <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="ci_ruc" className="form-label">
                 Número de cédula / RUC
@@ -272,7 +274,7 @@ const CreateCustomer = () => {
                 onChange={changed}
               />
             </div>
-            <div className="mb-3 col-3">
+            <div className="mb-3 col-3 ">
               <label htmlFor="flexRadioDefault7" className="form-label">
                 ¿El cliente acetpa el tratamiendo de datos personales?
               </label>
@@ -304,8 +306,9 @@ const CreateCustomer = () => {
               </div>
             </div>
             <div className="mt-4 col-3">
-              <button type="submit" className="btn btn-success">
+              <button type="submit" className="btn btn-success fw-bold">
                 Registrar cliente
+                <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
               </button>
             </div>
           </div>

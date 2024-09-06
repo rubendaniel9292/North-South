@@ -1,23 +1,25 @@
 import UserFrom from "../../hooks/UserFrom";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+
 const CreateBank = () => {
   const { form, changed } = UserFrom({});
-  const [setBanks] = useState([]);
+  //const [setBanks] = useState([]);
   const savedBank = async (e) => {
     e.preventDefault();
     let newBank = form;
     try {
-      const response = await http.post("creditcar/register-bank");
+      const response = await http.post("creditcard/register-bank", newBank);
+
       if (response.data.status === "success") {
         alerts(
           "Banco añadido",
           "El banco se ha añadido correctamente",
           "success"
         );
-        setBanks(newBank); // Actualiza la lista de bancos con el nuevo banco
-        //setShowNewBankForm(false); // Oculta el formulario después de añadir el banco
+        document.querySelector("#user-form").reset();
       } else {
         alerts("Error", "No se pudo añadir el banco", "error");
       }
@@ -48,8 +50,9 @@ const CreateBank = () => {
             </div>
 
             <div className="mt-4 col-3">
-              <button type="submit" className="btn btn-success">
+              <button type="submit" className="btn btn-success mt-2">
                 Registrar Banco
+                <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>
             </div>
           </div>

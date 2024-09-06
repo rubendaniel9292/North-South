@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 
 const ListCreditCard = () => {
   
-  const [cards, setCards] = useState([]); // Almacenar la lista de clientes en el estado
+  const [cards, setCards] = useState([]); 
 
   //const { auth } = useAuth();
 
