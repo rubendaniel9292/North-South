@@ -9,6 +9,8 @@ import { PolicyService } from './services/policy.service';
 import { PolicyController } from './controller/policy.controller';
 import { PolicyStatusEntity } from './entities/policy_status.entity';
 import { PolicyStatusService } from '@/helpers/policy.status';
+import { PolicyTypeEntity } from './entities/policy_type.entity';
+import { PaymentFrequencyEntity } from './entities/payment_frequency.entity';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { PolicyStatusService } from '@/helpers/policy.status';
       HttpCustomService,
       PolicyStatusEntity,
       PolicyStatusService,
+      PolicyTypeEntity,
+      PaymentFrequencyEntity,
     ]),
     ProvidersModule,
     UserModule,

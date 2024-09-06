@@ -1,3 +1,4 @@
+import { PolicyTypeEntity } from './../entities/policy_type.entity';
 import { ValidateEntity } from '@/helpers/validations';
 import { Injectable } from '@nestjs/common';
 import { PolicyEntity } from '../entities/policy.entity';
@@ -6,6 +7,7 @@ import { Repository } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyStatusService } from '@/helpers/policy.status';
+import { PaymentFrequencyEntity } from '../entities/payment_frequency.entity';
 
 @Injectable()
 export class PolicyService extends ValidateEntity {
@@ -13,6 +15,11 @@ export class PolicyService extends ValidateEntity {
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly policyStatusService: PolicyStatusService, // Inyectar el servicio existente
+
+    @InjectRepository(PolicyTypeEntity)
+    private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
+    @InjectRepository(PaymentFrequencyEntity)
+    private readonly policyFrecuencyRepository: Repository<PaymentFrequencyEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -42,7 +49,7 @@ export class PolicyService extends ValidateEntity {
   //2:metodo para consultas todas las polizas
   public getAllPolicies = async (): Promise<PolicyEntity[]> => {
     try {
-      const policies = await this.policyRepository.find({
+      const policies: PolicyEntity[] = await this.policyRepository.find({
         relations: [
           'policyType',
           'policyStatus',
@@ -105,6 +112,26 @@ export class PolicyService extends ValidateEntity {
       });
 
       return policies;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //3: metodo para obtener el listado de los tipos de poliza
+  public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
+    try {
+      const types: PolicyTypeEntity[] = await this.policyTypeRepository.find();
+      return types;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //3: metodo para obtener el listado de los tipos de poliza
+  public getFrecuencyPolicies = async (): Promise<PaymentFrequencyEntity[]> => {
+    try {
+      const frecuency: PaymentFrequencyEntity[] =
+        await this.policyFrecuencyRepository.find();
+      return frecuency;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

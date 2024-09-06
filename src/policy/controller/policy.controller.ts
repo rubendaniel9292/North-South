@@ -32,4 +32,27 @@ export class PolicyController {
       };
     }
   }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-types')
+  public async allTypesPolicy() {
+    const allTypePolicy = await this.policyService.getTypesPolicies();
+    if (allTypePolicy) {
+      return {
+        status: 'success',
+        allTypePolicy,
+      };
+    }
+  }
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-frecuency')
+  public async allFrecuency() {
+    const allFrecuency = await this.policyService.getFrecuencyPolicies();
+    if (allFrecuency) {
+      return {
+        status: 'success',
+        allFrecuency,
+      };
+    }
+  }
 }
