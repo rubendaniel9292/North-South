@@ -1,8 +1,8 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 const CreateUser = () => {
-    const { form, changed } = UserFrom({});
+    const { form, changed } = UserForm({});
     const saveUser = async (e) => {
         try {
             e.preventDefault();

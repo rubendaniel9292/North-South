@@ -1,13 +1,13 @@
 import img from '../../assets/img/img-01.png'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faUser } from '@fortawesome/free-solid-svg-icons';
-import UserFrom from '../../hooks/UserFrom';
+import UserForm from "../../hooks/UserForm";
 import alerts from '../../helpers/Alerts';
 import http from '../../helpers/Http';
 import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
-  const { form, changed } = UserFrom({});
+  const { form, changed } = UserForm({});
   const {setAuth } = useAuth();
   const loginUser = async (e) => {
     try {

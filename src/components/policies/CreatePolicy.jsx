@@ -1,80 +1,79 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreatePolicy = () => {
-  const { form, changed } = UserFrom({});
+  const [isLoading, setIsLoading] = useState(false);
+  const { form, changed } = UserForm();
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [frequencys, setFrecuency] = useState([]);
   const [customers, setCustomer] = useState([]);
   const [advisor, setAdvisor] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState([]);
+  const [policyValue, setPolicyValue] = useState(0);
+  const [advisorPercentage, setAdvisorPercentage] = useState(0);
+  const [advisorPayment, setAdvisorPayment] = useState(0);
+
   useEffect(() => {
-    const fetchTypePolicy = async () => {
+    const fetchData = async () => {
       try {
-        const response = await http.get("policy/get-types");
-        const data = response.data;
-        console.log(data);
-        setType(data.allTypePolicy);
+        const [
+          typeResponse,
+          companyResponse,
+          frecuencyResponse,
+          customerResponse,
+          advisorResponse,
+          paymentResponse,
+        ] = await Promise.all([
+          http.get("policy/get-types"),
+          http.get("company/get-all-company"),
+          http.get("policy/get-frecuency"),
+          http.get("customers/get-all-customer"),
+          http.get("advisor/get-all-advisor"),
+          http.get("policy/get-payment"),
+        ]);
+
+        setType(typeResponse.data.allTypePolicy);
+        setCompanies(companyResponse.data.allCompanies);
+        setFrecuency(frecuencyResponse.data.allFrecuency);
+        setCustomer(customerResponse.data.allCustomer);
+        setAdvisor(advisorResponse.data.allAdvisors);
+        setPaymentMethod(paymentResponse.data.allPayment);
       } catch (error) {
-        console.error("Error fetching type:", error);
-        alerts("Error", "Error fetching bank.", "error");
-      }
-    };
-    const fetchCompanies = async () => {
-      try {
-        const response = await http.get("company/get-all-company");
-        const data = response.data;
-        console.log(data);
-        setCompanies(data.allCompanies);
-      } catch (error) {
-        console.error("Error fetching type:", error);
-        alerts("Error", "Error fetching bank.", "error");
-      }
-    };
-    const fetchFrecuency = async () => {
-      try {
-        const response = await http.get("policy/get-frecuency");
-        const data = response.data;
-        console.log(data);
-        setFrecuency(data.allFrecuency);
-      } catch (error) {
-        console.error("Error fetching frecuency:", error);
-        alerts("Error", "Error fetching bank.", "error");
-      }
-    };
-    const fetchCustomer = async () => {
-      try {
-        const response = await http.get("customers/get-all-customer");
-        const data = response.data;
-        console.log(data);
-        setCustomer(data.allCustomer);
-      } catch (error) {
-        console.error("Error fetching customers:", error);
-        alerts("Error", "Error fetching customers.", "error");
+        alerts("Error", "Error fetching data.", "error");
       }
     };
 
-    const fetchAdvisor = async () => {
-        try {
-          const response = await http.get("advisor/get-all-advisor");
-          const data = response.data;
-          console.log(data);
-          setAdvisor(data.allAdvisors);
-        } catch (error) {
-          console.error("Error fetching advisor:", error);
-          alerts("Error", "Error fetching advisor.", "error");
-        }
-      };
-    fetchTypePolicy();
-    fetchCompanies();
-    fetchFrecuency();
-    fetchCustomer();
-    fetchAdvisor();
+    fetchData();
   }, []);
+  // Actualiza el valor de la póliza y recalcula el pago al asesor dinámicamente
+  const handlePolicyValueChange = (e) => {
+    const value = Number(e.target.value);
+    setPolicyValue(value);
+    changed(e); // Actualiza el formulario con los nuevos valores
+    calculateAdvisorPayment(value, advisorPercentage); // Recalcula el pago
+  };
+
+  // Actualiza el porcentaje del asesor y recalcula el pago dinámicamente
+  const handleAdvisorPercentageChange = (e) => {
+    const percentage = Number(e.target.value);
+    setAdvisorPercentage(percentage);
+    changed(e); // Actualiza el formulario con los nuevos valores
+    calculateAdvisorPayment(policyValue, percentage); // Recalcula el pago
+  };
+
+  // Calcula el pago al asesor
+  const calculateAdvisorPayment = (value, percentage) => {
+    const payment = (value * percentage) / 100;
+    setAdvisorPayment(payment); // Actualiza el valor calculado
+  };
+
   const savedPolicy = async (e) => {
+    setIsLoading(true);
+
     try {
       e.preventDefault();
       let newPolicy = form;
@@ -82,20 +81,22 @@ const CreatePolicy = () => {
       if (request.data.status === "success") {
         alerts(
           "Registro exitoso",
-          "Asesor registrado registrado correctamente",
+          "Póliza registrada correctamente",
           "success"
         );
         //document.querySelector("#user-form").reset();
       } else {
         alerts(
           "Error",
-          "Asesor no registrado correctamente. Verificar que no haya campos vacios o cedulas o correos duplicados",
+          "Póliza no registrado correctamente. Verificar que no haya campos vacios o cedulas o correos duplicados",
           "error"
         );
       }
     } catch (error) {
-      alerts("Error", "Error fetching users.", "error");
+      alerts("Error", "Error fetching policy.", "error");
       console.error("Error fetching asesor:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -167,7 +168,7 @@ const CreatePolicy = () => {
               onChange={changed}
             >
               <option value="" selected disabled>
-                Escoja una compañía
+                Escoja una frecuencia
               </option>
               {frequencys.map((frequency) => (
                 <option key={frequency.id} value={frequency.id}>
@@ -176,7 +177,6 @@ const CreatePolicy = () => {
               ))}
             </select>
           </div>
-
           <div className="mb-3 col-3">
             <label htmlFor="customers_id" className="form-label">
               Cliente Beneficiario
@@ -199,7 +199,6 @@ const CreatePolicy = () => {
               ))}
             </select>
           </div>
-
           <div className="mb-3 col-3">
             <label htmlFor="advisor_id" className="form-label">
               Asesor
@@ -223,9 +222,24 @@ const CreatePolicy = () => {
             </select>
           </div>
           <div className="mb-3 col-3">
-            <label htmlFor="" className="form-label">
+            <label htmlFor="payment_method_id" className="form-label">
               Metodo de Pago
             </label>
+            <select
+              className="form-select"
+              id="payment_method_id"
+              name="payment_method_id"
+              onChange={changed}
+            >
+              <option value="" selected disabled>
+                Escoja un método de pago
+              </option>
+              {paymentMethod.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.methodName}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="coverageAmount" className="form-label">
@@ -240,7 +254,6 @@ const CreatePolicy = () => {
               onChange={changed}
             />
           </div>
-
           <div className="mb-3 col-3">
             <label htmlFor="agencyPercentage" className="form-label">
               Procentaje de la Agencia
@@ -264,7 +277,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="advisorPercentage"
               name="advisorPercentage"
-              onChange={changed}
+              onChange={handleAdvisorPercentageChange} // Llamada a la función
             />
           </div>
 
@@ -278,7 +291,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="policyValue"
               name="policyValue"
-              onChange={changed}
+              onChange={handlePolicyValueChange} // Llamada a la función
             />
           </div>
           <div className="mb-3 col-3">
@@ -325,12 +338,14 @@ const CreatePolicy = () => {
               Pago al asesor
             </label>
             <input
+              readOnly
               required
               type="number"
               className="form-control"
               id="paymentsToAdvisor"
               name="paymentsToAdvisor"
-              onChange={changed}
+              value={advisorPayment} // Valor calculado dinámicamente
+              onChange={changed} // Llamada a la función
             />
           </div>
           <div className="mb-3 col-3">
@@ -361,8 +376,19 @@ const CreatePolicy = () => {
           </div>
 
           <div className="mt-4 col-3">
-            <button type="submit" className="btn btn-success fw-bold">
-              Registrar Póliza
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn btn-success fw-bold"
+            >
+              {isLoading ? (
+                <div className="spinner-border text-light" role="status">
+                  <span className="visually-hidden">Registrando</span>
+                </div>
+              ) : (
+                "Registrar Póliza"
+              )}
+
               <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
             </button>
           </div>

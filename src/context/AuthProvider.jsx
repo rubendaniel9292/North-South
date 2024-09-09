@@ -52,8 +52,6 @@ const AuthProvider = ({ children }) => {
           // Manejar el caso en que el token haya expirado
           console.warn("Token expirado, cerrando sesión");
           //vaciar el local storage pendiente
-          
-        
         } else {
           throw new Error("Error al obtener el perfil del usuario.");
         }

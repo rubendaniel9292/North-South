@@ -1,53 +1,41 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const RegisterCreditCard = () => {
-  const { form, changed } = UserFrom({});
+  const { form, changed } = UserForm({});
   const [customers, setCustomer] = useState([]);
   const [banks, setBanks] = useState([]);
   const [types, setTypes] = useState([]);
 
   useEffect(() => {
-    const fetchCustomer = async () => {
+    const fetchData = async () => {
       try {
-        const response = await http.get("customers/get-all-customer");
-        const data = response.data;
-        console.log(data);
-        setCustomer(data.allCustomer);
+        const [customerResponse, banksResponse, typesResponse] =
+          await Promise.all([
+            http.get("customers/get-all-customer"),
+            http.get("creditcard/all-banks"),
+            http.get("creditcard/all-types"),
+          ]);
+
+        const customersData = customerResponse.data?.allCustomer || [];
+        const banksData = banksResponse.data?.allBanks || [];
+        const typesData = typesResponse.data?.allTypes || [];
+
+        console.log(customersData, banksData, typesData);
+
+        setCustomer(customersData);
+        setBanks(banksData);
+        setTypes(typesData);
       } catch (error) {
-        console.error("Error fetching customers:", error);
-        alerts("Error", "Error fetching customers.", "error");
-      }
-    };
-    const fetchBanks = async () => {
-      try {
-        const response = await http.get("creditcard/all-banks");
-        const data = response.data;
-        console.log(data);
-        setBanks(data.allBanks);
-      } catch (error) {
-        console.error("Error fetching banks:", error);
-        alerts("Error", "Error fetching bank.", "error");
+        console.error("Error fetching data:", error);
+        alerts("Error", "Error fetching data.", "error");
       }
     };
 
-    const fetchTypes = async () => {
-      try {
-        const response = await http.get("creditcard/all-types");
-        const data = response.data;
-        console.log(data);
-        setTypes(data.allTypes);
-      } catch (error) {
-        console.error("Error fetching customers:", error);
-        alerts("Error", "Error fetching types.", "error");
-      }
-    };
-    fetchBanks();
-    fetchTypes();
-    fetchCustomer();
+    fetchData();
   }, []);
   const savedCard = async (e) => {
     try {
@@ -179,11 +167,7 @@ const RegisterCreditCard = () => {
                     {bank.bankName}
                   </option>
                 ))}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={''}
-                >
+                <button type="button" className="btn btn-primary" onClick={""}>
                   Añadir Banco
                 </button>
               </select>

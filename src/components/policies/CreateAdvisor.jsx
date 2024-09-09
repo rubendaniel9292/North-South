@@ -1,11 +1,11 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 //import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 export const CreateAdvisor = () => {
-    const { form, changed } = UserFrom({});
+    const { form, changed } = UserForm({});
     const savedAdvisor = async (e) => {
         try {
           e.preventDefault();

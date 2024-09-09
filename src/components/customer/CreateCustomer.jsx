@@ -1,16 +1,17 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreateCustomer = () => {
-  const { form, changed } = UserFrom({});
+  const { form, changed } = UserForm({});
   const [statuses, setStatuses] = useState([]);
   const [province, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
 
+  /* metod para obtener de la base de datos los datos para el select, valido si es solo un selet para un solo campo
   useEffect(() => {
     console.log("CreateCustomer component is rendering");
     const fetchStatuses = async () => {
@@ -57,10 +58,58 @@ const CreateCustomer = () => {
     setFilteredCities(filtered);
     changed(event);
   };
+  */
+  useEffect(() => {
+    /* Ejecuta todas las peticiones de manera concurrente, 
+    lo que reduce el tiempo de espera general
+     ya que no esperamos que termine una petición para empezar otra*/
+    const fetchData = async () => {
+      try {
+        const [statusesResponse, provincesResponse, citiesResponse] =
+          await Promise.all([
+            http.get("globaldata/civil-status"),
+            http.get("globaldata/get-provinces"),
+            http.get("globaldata/get-city"),
+          ]);
+
+        const statusesData = statusesResponse.data;
+        const provincesData = provincesResponse.data;
+        const citiesData = citiesResponse.data;
+        /*En lugar de lanzar una excepción, 
+          devuelve undefined si la propiedad no existe, lo que permite que el código continúe sin romperse.*/
+        if (statusesData?.allStatus) {
+          setStatuses(statusesData.allStatus);
+        }
+
+        if (provincesData?.allProvince) {
+          setProvinces(provincesData.allProvince);
+        }
+
+        if (citiesData?.allCitys) {
+          setCities(citiesData.allCitys);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        alerts("Error", "Error fetching data.", "error");
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleProvinceChange = (event) => {
+    const selectedProvinceId = event.target.value;
+
+    const filtered = cities.filter(
+      (city) => city.province && city.province.id === selectedProvinceId
+    );
+
+    setFilteredCities(filtered);
+    changed(event);
+  };
 
   const savedCustomer = async (e) => {
+    e.preventDefault();
     try {
-      e.preventDefault();
       let newCustomer = form;
       const request = await http.post(
         "customers/register-customer",

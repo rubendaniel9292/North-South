@@ -1,11 +1,11 @@
-import UserFrom from "../../hooks/UserFrom";
+import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 
 const CreateComapnies = () => {
-    const { form, changed } = UserFrom({});
+    const { form, changed } = UserForm({});
     const savedCompanies = async (e) => {
         e.preventDefault();
         let newCompany = form;
