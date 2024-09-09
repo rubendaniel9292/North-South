@@ -11,6 +11,7 @@ import { PolicyStatusEntity } from './entities/policy_status.entity';
 import { PolicyStatusService } from '@/helpers/policy.status';
 import { PolicyTypeEntity } from './entities/policy_type.entity';
 import { PaymentFrequencyEntity } from './entities/payment_frequency.entity';
+import { PaymentMethodEntity } from './entities/payment_method.entity';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PaymentFrequencyEntity } from './entities/payment_frequency.entity';
       PolicyStatusService,
       PolicyTypeEntity,
       PaymentFrequencyEntity,
+      PaymentMethodEntity,
     ]),
     ProvidersModule,
     UserModule,

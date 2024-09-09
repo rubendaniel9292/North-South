@@ -8,6 +8,7 @@ import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyStatusService } from '@/helpers/policy.status';
 import { PaymentFrequencyEntity } from '../entities/payment_frequency.entity';
+import { PaymentMethodEntity } from '../entities/payment_method.entity';
 
 @Injectable()
 export class PolicyService extends ValidateEntity {
@@ -20,6 +21,8 @@ export class PolicyService extends ValidateEntity {
     private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
     @InjectRepository(PaymentFrequencyEntity)
     private readonly policyFrecuencyRepository: Repository<PaymentFrequencyEntity>,
+    @InjectRepository(PaymentMethodEntity)
+    private readonly policyPaymentMethod: Repository<PaymentMethodEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -132,6 +135,17 @@ export class PolicyService extends ValidateEntity {
       const frecuency: PaymentFrequencyEntity[] =
         await this.policyFrecuencyRepository.find();
       return frecuency;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //4: metodo para obtener el listado de los metodos pago
+  public getPayment = async (): Promise<PaymentMethodEntity[]> => {
+    try {
+      const payment: PaymentMethodEntity[] =
+        await this.policyPaymentMethod.find();
+      return payment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

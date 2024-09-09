@@ -55,4 +55,16 @@ export class PolicyController {
       };
     }
   }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-payment')
+  public async allPayment() {
+    const allPayment = await this.policyService.getPayment();
+    if (allPayment) {
+      return {
+        status: 'success',
+        allPayment,
+      };
+    }
+  }
 }
