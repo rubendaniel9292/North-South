@@ -103,9 +103,20 @@ export class CreditcardService /*extends EncryptDataCard */ {
       if (expirationDate < currentDate) {
         throw new Error('La tarjeta ya está caducada.');
       }
+      // Verificar si ya existe una tarjeta con el mismo número asociada al cliente
+      const existingCard = await this.cardRepository.findOne({
+        where: {
+          cardNumber: body.cardNumber,
+          customers_id: body.customers_id, // Asegúrate de que `customer_id` esté presente en el DTO
+        },
+      });
+      if (existingCard) {
+        throw new Error('El cliente ya tiene una tarjeta con este número.');
+      }
       // Reutilizar el método determineCardStatus para obtener el estado correcto
       const determinedStatus =
         await this.creditCardStatusService.determineCardStatus(expirationDate);
+
       // Asignar el estado determinado al body de la tarjeta
       body.card_status_id = determinedStatus.id;
       // Guardar los datos de la tarjeta con el estado asignado
