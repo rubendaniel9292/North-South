@@ -1,21 +1,41 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreatePolicy = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { form, changed } = UserForm();
+  const { form, changed } = UserForm({});
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [frequencys, setFrecuency] = useState([]);
   const [customers, setCustomer] = useState([]);
   const [advisor, setAdvisor] = useState([]);
+  const [cards, setCards] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState([]);
-  const [policyValue, setPolicyValue] = useState(0);
-  const [advisorPercentage, setAdvisorPercentage] = useState(0);
-  const [advisorPayment, setAdvisorPayment] = useState(0);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+  // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
+  const calculateAdvisorPayment = useCallback(() => {
+    const value = Number(form.policyValue);
+    const percentage = Number(form.advisorPercentage);
+    if (!isNaN(value) && !isNaN(percentage)) {
+      const payment = (value * percentage) / 100;
+      changed({
+        target: {
+          name: "paymentsToAdvisor",
+          value: payment,
+        },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.policyValue, form.advisorPercentage]);
+  const handlePaymentMethodChange = (e) => {
+    const value = e.target.value;
+    setSelectedPaymentMethod(value); // Actualiza el estado con el nuevo método de pago seleccionado
+    changed(e); // Asegúrate de propagar el cambio al formulario
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,6 +47,7 @@ const CreatePolicy = () => {
           customerResponse,
           advisorResponse,
           paymentResponse,
+          creditCardResponse,
         ] = await Promise.all([
           http.get("policy/get-types"),
           http.get("company/get-all-company"),
@@ -34,6 +55,7 @@ const CreatePolicy = () => {
           http.get("customers/get-all-customer"),
           http.get("advisor/get-all-advisor"),
           http.get("policy/get-payment"),
+          http.get("creditcard/all-cards"),
         ]);
 
         setType(typeResponse.data.allTypePolicy);
@@ -42,6 +64,7 @@ const CreatePolicy = () => {
         setCustomer(customerResponse.data.allCustomer);
         setAdvisor(advisorResponse.data.allAdvisors);
         setPaymentMethod(paymentResponse.data.allPayment);
+        setCards(creditCardResponse.data.allCards);
       } catch (error) {
         alerts("Error", "Error fetching data.", "error");
       }
@@ -49,27 +72,12 @@ const CreatePolicy = () => {
 
     fetchData();
   }, []);
-  // Actualiza el valor de la póliza y recalcula el pago al asesor dinámicamente
-  const handlePolicyValueChange = (e) => {
-    const value = Number(e.target.value);
-    setPolicyValue(value);
-    changed(e); // Actualiza el formulario con los nuevos valores
-    calculateAdvisorPayment(value, advisorPercentage); // Recalcula el pago
-  };
 
-  // Actualiza el porcentaje del asesor y recalcula el pago dinámicamente
-  const handleAdvisorPercentageChange = (e) => {
-    const percentage = Number(e.target.value);
-    setAdvisorPercentage(percentage);
-    changed(e); // Actualiza el formulario con los nuevos valores
-    calculateAdvisorPayment(policyValue, percentage); // Recalcula el pago
-  };
+  useEffect(() => {
+    calculateAdvisorPayment();
+  }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
 
-  // Calcula el pago al asesor
-  const calculateAdvisorPayment = (value, percentage) => {
-    const payment = (value * percentage) / 100;
-    setAdvisorPayment(payment); // Actualiza el valor calculado
-  };
+  const option = "Escoja una opción";
 
   const savedPolicy = async (e) => {
     setIsLoading(true);
@@ -84,7 +92,7 @@ const CreatePolicy = () => {
           "Póliza registrada correctamente",
           "success"
         );
-        //document.querySelector("#user-form").reset();
+        document.querySelector("#user-form").reset();
       } else {
         alerts(
           "Error",
@@ -126,10 +134,9 @@ const CreatePolicy = () => {
               id="policy_type_id"
               name="policy_type_id"
               onChange={changed}
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja un tipo de póliza
-              </option>
+              <option disabled>{option}</option>
               {types.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.policyName}
@@ -146,10 +153,9 @@ const CreatePolicy = () => {
               id="company_id"
               name="company_id"
               onChange={changed}
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja una compañía
-              </option>
+              <option disabled>{option}</option>
               {companies.map((copmany) => (
                 <option key={copmany.id} value={copmany.id}>
                   {copmany.companyName}
@@ -166,10 +172,9 @@ const CreatePolicy = () => {
               id="payment_frequency_id"
               name="payment_frequency_id"
               onChange={changed}
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja una frecuencia
-              </option>
+              <option disabled>{option}</option>
               {frequencys.map((frequency) => (
                 <option key={frequency.id} value={frequency.id}>
                   {frequency.frequencyName}
@@ -186,10 +191,9 @@ const CreatePolicy = () => {
               id="customers_id"
               name="customers_id"
               onChange={changed}
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja un cliente
-              </option>
+              <option disabled>{option}</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {`${customer.firstName} ${customer.secondName || ""} ${
@@ -208,10 +212,9 @@ const CreatePolicy = () => {
               id="advisor_id"
               name="advisor_id"
               onChange={changed}
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja un Asesor
-              </option>
+              <option disabled>{option}</option>
               {advisor.map((item) => (
                 <option key={item.id} value={item.id}>
                   {`${item.firstName} ${item.secondName || ""} ${
@@ -229,11 +232,10 @@ const CreatePolicy = () => {
               className="form-select"
               id="payment_method_id"
               name="payment_method_id"
-              onChange={changed}
+              onChange={handlePaymentMethodChange} // Cambiado aquí
+              defaultValue={option}
             >
-              <option value="" selected disabled>
-                Escoja un método de pago
-              </option>
+              <option disabled>{option}</option>
               {paymentMethod.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.methodName}
@@ -241,6 +243,29 @@ const CreatePolicy = () => {
               ))}
             </select>
           </div>
+
+          {selectedPaymentMethod === "6" && (
+            <div className="mb-3 col-3">
+              <label htmlFor="credit_card_id" className="form-label">
+                Tarjeta de Crédito
+              </label>
+              <select
+                className="form-select"
+                id="credit_card_id"
+                name="credit_card_id"
+                onChange={changed}
+                defaultValue={option}
+                // Aquí puedes añadir onChange si necesitas manejar cambios en la selección
+              >
+                <option disabled>{option}</option>
+                {cards.map((card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.cardNumber} - {card.bank?.bankName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="mb-3 col-3">
             <label htmlFor="coverageAmount" className="form-label">
               Monto de Covertura
@@ -277,7 +302,8 @@ const CreatePolicy = () => {
               className="form-control"
               id="advisorPercentage"
               name="advisorPercentage"
-              onChange={handleAdvisorPercentageChange} // Llamada a la función
+              onChange={changed} // Llamada a la función
+              value={form.advisorPercentage}
             />
           </div>
 
@@ -291,7 +317,8 @@ const CreatePolicy = () => {
               className="form-control"
               id="policyValue"
               name="policyValue"
-              onChange={handlePolicyValueChange} // Llamada a la función
+              value={form.policyValue}
+              onChange={changed} // Llamada a la función
             />
           </div>
           <div className="mb-3 col-3">
@@ -335,7 +362,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="paymentsToAdvisor" className="form-label">
-              Pago al asesor
+              Pago de comisiones al asesor
             </label>
             <input
               readOnly
@@ -344,8 +371,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="paymentsToAdvisor"
               name="paymentsToAdvisor"
-              value={advisorPayment} // Valor calculado dinámicamente
-              onChange={changed} // Llamada a la función
+              value={form.paymentsToAdvisor}
             />
           </div>
           <div className="mb-3 col-3">
@@ -383,7 +409,7 @@ const CreatePolicy = () => {
             >
               {isLoading ? (
                 <div className="spinner-border text-light" role="status">
-                  <span className="visually-hidden">Registrando</span>
+                  <span className="visually-hidden">Registrando...</span>
                 </div>
               ) : (
                 "Registrar Póliza"

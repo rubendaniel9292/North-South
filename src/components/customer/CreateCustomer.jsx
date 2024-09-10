@@ -10,6 +10,7 @@ const CreateCustomer = () => {
   const [province, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   /* metod para obtener de la base de datos los datos para el select, valido si es solo un selet para un solo campo
   useEffect(() => {
@@ -98,7 +99,6 @@ const CreateCustomer = () => {
 
   const handleProvinceChange = (event) => {
     const selectedProvinceId = event.target.value;
-
     const filtered = cities.filter(
       (city) => city.province && city.province.id === selectedProvinceId
     );
@@ -106,8 +106,9 @@ const CreateCustomer = () => {
     setFilteredCities(filtered);
     changed(event);
   };
-
+  const option = "Escoja una opción";
   const savedCustomer = async (e) => {
+    setIsLoading(true);
     e.preventDefault();
     try {
       let newCustomer = form;
@@ -133,6 +134,9 @@ const CreateCustomer = () => {
     } catch (error) {
       alerts("Error", "Error fetching users.", "error");
       console.error("Error fetching users:", error);
+    }
+    finally {
+      setIsLoading(false);
     }
   };
 
@@ -264,10 +268,9 @@ const CreateCustomer = () => {
                 id="province_id"
                 name="province_id"
                 onChange={handleProvinceChange}
+                defaultValue={option}
               >
-                <option value="" selected disabled>
-                  Seleccione un provincia
-                </option>
+                <option disabled>{option}</option>
                 {province.map((province) => (
                   <option key={province.id} value={province.id}>
                     {province.provinceName}
@@ -284,10 +287,9 @@ const CreateCustomer = () => {
                 id="city_id"
                 name="city_id"
                 onChange={changed}
+                defaultValue={option}
               >
-                <option value="" selected disabled>
-                  Seleccione una ciudad o cantón
-                </option>
+                <option disabled>{option}</option>
                 {filteredCities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.cityName}
@@ -356,7 +358,13 @@ const CreateCustomer = () => {
             </div>
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success fw-bold">
-                Registrar cliente
+              {isLoading ? (
+                <div className="spinner-border text-light" role="status">
+                  <span className="visually-hidden">Registrando...</span>
+                </div>
+              ) : (
+                "Registrar Póliza"
+              )}
                 <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
               </button>
             </div>

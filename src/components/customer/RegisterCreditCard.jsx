@@ -9,6 +9,7 @@ const RegisterCreditCard = () => {
   const [customers, setCustomer] = useState([]);
   const [banks, setBanks] = useState([]);
   const [types, setTypes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,7 +38,9 @@ const RegisterCreditCard = () => {
 
     fetchData();
   }, []);
+  const option = "Escoja una opción";
   const savedCard = async (e) => {
+    setIsLoading(true);
     try {
       e.preventDefault();
       let newCard = form;
@@ -61,6 +64,9 @@ const RegisterCreditCard = () => {
       alerts("Error", "Error fetching cards.", "error");
       console.error("Error fetching cards:", error);
     }
+    finally {
+      setIsLoading(false);
+    }
   };
   return (
     <>
@@ -76,10 +82,9 @@ const RegisterCreditCard = () => {
                 id="customers_id"
                 name="customers_id"
                 onChange={changed}
+                defaultValue={option}
               >
-                <option value="" selected disabled>
-                  Escoja un cliente
-                </option>
+                <option disabled>{option}</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {`${customer.firstName} ${customer.secondName || ""} ${
@@ -138,10 +143,9 @@ const RegisterCreditCard = () => {
                 id="card_option_id"
                 name="card_option_id"
                 onChange={changed}
+                defaultValue={option}
               >
-                <option value="" selected disabled>
-                  Escoja un tipo de tarjeta
-                </option>
+                <option disabled>{option}</option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.cardName}
@@ -158,10 +162,9 @@ const RegisterCreditCard = () => {
                 id="bank_id"
                 name="bank_id"
                 onChange={changed}
+                defaultValue={option}
               >
-                <option value="" selected disabled>
-                  Escoja un Banco
-                </option>
+                 <option disabled>{option}</option>
                 {banks.map((bank) => (
                   <option key={bank.id} value={bank.id}>
                     {bank.bankName}
@@ -175,7 +178,13 @@ const RegisterCreditCard = () => {
 
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success mt-2 fw-bold">
-                Registrar Tarjeta
+              {isLoading ? (
+                <div className="spinner-border text-light" role="status">
+                  <span className="visually-hidden">Registrando...</span>
+                </div>
+              ) : (
+                "Registrar Póliza"
+              )}
                 <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>
             </div>

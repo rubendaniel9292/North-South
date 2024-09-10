@@ -4,8 +4,7 @@ import http from "../../helpers/Http";
 import dayjs from "dayjs";
 
 const ListCreditCard = () => {
-  
-  const [cards, setCards] = useState([]); 
+  const [cards, setCards] = useState([]);
 
   //const { auth } = useAuth();
 
@@ -18,11 +17,7 @@ const ListCreditCard = () => {
       if (response.data.status === "success") {
         setCards(response.data.allCards); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
       } else {
-        alerts(
-          "Error",
-          "No existen tarjetas registradas",
-          "error"
-        );
+        alerts("Error", "No existen tarjetas registradas", "error");
         console.error("Error fetching users:", response.message);
       }
     } catch (error) {

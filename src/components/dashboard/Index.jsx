@@ -6,8 +6,6 @@ import useAuth from "../../hooks/useAuth";
 
 const Index = () => {
   const { auth } = useAuth();
-  console.log(auth)
-
   // Verificar si auth es undefined antes de acceder a sus propiedades
   if (!auth) {
     // Manejar el caso donde auth es undefined, por ejemplo, mostrando un mensaje de error o tomando una acción predeterminada.
@@ -114,7 +112,7 @@ const Index = () => {
                   </li>
                   
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/"}>
+                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-policy"}>
                       Listado de Pólizas
                     </NavLink>
                   </li>

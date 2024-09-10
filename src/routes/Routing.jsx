@@ -17,6 +17,7 @@ import CreateComapnies from "../components/companies/CreateComapnies";
 import { CreateAdvisor } from "../components/policies/CreateAdvisor";
 import ListAdvisor from "../components/policies/ListAdvisor";
 import CreatePolicy from "../components/policies/CreatePolicy";
+import { ListPolicies } from "../components/policies/ListPolicies";
 
 const Routing = () => {
   return (
@@ -44,6 +45,7 @@ const Routing = () => {
             <Route path="create-advisor" element={<CreateAdvisor/>}></Route>
             <Route path="get-all-advisor" element={<ListAdvisor/>}></Route>
             <Route path="create-policy" element={<CreatePolicy/>}></Route>
+            <Route path="get-all-policy" element={<ListPolicies/>}></Route>
             <Route path="logout" element={<Logout />}></Route>
           </Route>
 
