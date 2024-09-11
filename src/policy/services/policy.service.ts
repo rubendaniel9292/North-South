@@ -79,9 +79,6 @@ export class PolicyService extends ValidateEntity {
           policyType: {
             policyName: true,
           },
-          policyStatus: {
-            statusName: true,
-          },
           customer: {
             ci_ruc: true,
             firstName: true,
@@ -113,13 +110,99 @@ export class PolicyService extends ValidateEntity {
           },
         },
       });
+      if (policies.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
 
       return policies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //3: metodo para obtener el listado de los tipos de poliza
+
+  //3:metodo para consultas todas las polizas
+  public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
+    try {
+      const policiesStatus: PolicyEntity[] = await this.policyRepository.find({
+        where: [
+          { policy_status_id: 3 }, // Estado: por vencer
+          { policy_status_id: 4 }, // Estado: vencida
+        ],
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'advisor',
+          'customer',
+          'paymentMethod',
+          'creditCard',
+          'creditCard.bank', // Asegúrate de incluir la relación con el banco,
+        ],
+        select: {
+          id: true,
+          numberPolicy: true,
+          coverageAmount: true,
+          agencyPercentage: true,
+          advisorPercentage: true,
+          policyValue: true,
+          numberOfPayments: true,
+          startDate: true,
+          endDate: true,
+          paymentsToAdvisor: true,
+          observations: true,
+          policyType: {
+            policyName: true,
+          },
+
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          paymentFrequency: {
+            frequencyName: true,
+          },
+          company: {
+            companyName: true,
+          },
+          advisor: {
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+
+          paymentMethod: {
+            methodName: true,
+          },
+          creditCard: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+        },
+      });
+      if (policiesStatus.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      return policiesStatus;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //4: metodo para obtener el listado de los tipos de poliza
   public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
     try {
       const types: PolicyTypeEntity[] = await this.policyTypeRepository.find();
@@ -129,7 +212,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //3: metodo para obtener el listado de los tipos de poliza
+  //5: metodo para obtener el listado de los tipos de poliza
   public getFrecuencyPolicies = async (): Promise<PaymentFrequencyEntity[]> => {
     try {
       const frecuency: PaymentFrequencyEntity[] =
@@ -140,7 +223,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //4: metodo para obtener el listado de los metodos pago
+  //6: metodo para obtener el listado de los metodos pago
   public getPayment = async (): Promise<PaymentMethodEntity[]> => {
     try {
       const payment: PaymentMethodEntity[] =

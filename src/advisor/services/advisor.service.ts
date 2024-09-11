@@ -39,7 +39,6 @@ export class AdvisorService extends ValidateEntity {
   public getAllAdvisors = async () => {
     try {
       const allAdvisors = await this.advisdorRepository.find();
-      console.log('Advisors found:', allAdvisors);
       return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

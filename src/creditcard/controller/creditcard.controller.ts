@@ -87,4 +87,16 @@ export class CreditcardController {
       };
     }
   }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('all-cards-expireds')
+  public async findCardsExpired() {
+    const allCardsExpired = await this.creditCardService.findCrardsExpired();
+    if (allCardsExpired) {
+      return {
+        status: 'success',
+        allCardsExpired,
+      };
+    }
+  }
 }

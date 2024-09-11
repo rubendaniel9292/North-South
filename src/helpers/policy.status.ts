@@ -48,12 +48,12 @@ export class PolicyStatusService {
         where: { id: 4 }, //por culminar
       }),
     ]);
-    /*
+
     console.log('Estados obtenidos:', {
-      culminada,
-      cancelled,
+      closeToCompletion,
+      completedStatus,
       activeStatus,
-    });*/
+    });
 
     if (endDate < currentDate) {
       return completedStatus; // La poliza ha culminado

@@ -32,6 +32,17 @@ export class PolicyController {
       };
     }
   }
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-all-policy-status')
+  public async allPolicyStatus() {
+    const policiesStatus = await this.policyService.getAllPoliciesStatus();
+    if (policiesStatus) {
+      return {
+        status: 'success',
+        policiesStatus,
+      };
+    }
+  }
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-types')

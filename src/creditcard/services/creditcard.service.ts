@@ -200,7 +200,48 @@ export class CreditcardService /*extends EncryptDataCard */ {
     }
   };
 
-  //4:metodo para consultar los bancos
+  //4:metodo para consultar las tarjetas expiradas o caducadas
+  public findCrardsExpired = async (): Promise<CreditCardEntity[]> => {
+    try {
+      //this.decryptData()
+      const allCardsExpired: CreditCardEntity[] =
+        await this.cardRepository.find({
+          where: [
+            { card_status_id: 2 }, // Estado: por caducar
+            { card_status_id: 3 }, // Estado: caducada
+          ],
+          relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
+          select: {
+            id: true,
+            cardNumber: true,
+            expirationDate: true,
+            code: true,
+            customer: {
+              ci_ruc: true,
+              firstName: true,
+              secondName: true,
+              surname: true,
+              secondSurname: true,
+            },
+          },
+        });
+
+      if (allCardsExpired.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      return allCardsExpired;
+    } catch (error) {
+      //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //5:metodo para consultar los bancos
   public findBanks = async (): Promise<BankEntity[]> => {
     try {
       //this.decryptData()
@@ -221,7 +262,7 @@ export class CreditcardService /*extends EncryptDataCard */ {
     }
   };
 
-  //5:metodo para consultar los tipos de tarjeta
+  //6:metodo para consultar los tipos de tarjeta
   public findCrardsOptions = async (): Promise<CardOptionsEntity[]> => {
     try {
       const allOptions: CardOptionsEntity[] =
