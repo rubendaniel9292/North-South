@@ -16,6 +16,24 @@ const CreatePolicy = () => {
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
+  const [filteredCard, setFilteredCard] = useState([]);
+
+  const handleCreditCard = (e) => {
+    const selectedCustomerId = e.target.value;
+    const selectedCustomer = customers.find(
+      (customer) => customer.id === selectedCustomerId
+    );
+    if (selectedCustomer) {
+      const customerCiRuc = selectedCustomer.ci_ruc;
+      const filteredCards = cards.filter(
+        (card) => card.customer.ci_ruc === customerCiRuc
+      );
+      setFilteredCard(filteredCards);
+    }
+    console.log("tarjetas del cliente", filteredCard);
+    changed(e);
+  };
+
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
     const value = Number(form.policyValue);
@@ -96,7 +114,7 @@ const CreatePolicy = () => {
       } else {
         alerts(
           "Error",
-          "Póliza no registrado correctamente. Verificar que no haya campos vacios o cedulas o correos duplicados",
+          "Póliza no registrada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
           "error"
         );
       }
@@ -190,7 +208,7 @@ const CreatePolicy = () => {
               className="form-select"
               id="customers_id"
               name="customers_id"
-              onChange={changed}
+              onChange={handleCreditCard}
               defaultValue={option}
             >
               <option disabled>{option}</option>
@@ -255,14 +273,21 @@ const CreatePolicy = () => {
                 name="credit_card_id"
                 onChange={changed}
                 defaultValue={option}
-                // Aquí puedes añadir onChange si necesitas manejar cambios en la selección
               >
-                <option disabled>{option}</option>
-                {cards.map((card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.cardNumber} - {card.bank?.bankName}
+                {filteredCard.length > 0 ? (
+                  <>
+                    <option disabled> {option}</option>
+                    {filteredCard.map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {card.cardNumber} - {card.bank?.bankName}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option className="bs-danger-bg-subtle">
+                    No hay tarjetas asociadas a este cliente. Registre una tarjeta o escoja otro método de pago
                   </option>
-                ))}
+                )}
               </select>
             </div>
           )}

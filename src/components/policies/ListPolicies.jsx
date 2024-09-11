@@ -14,6 +14,7 @@ export const ListPolicies = () => {
     try {
       const response = await http.get("policy/get-all-policy");
       if (response.data.status === "success") {
+        console.log(response);
         setPolicies(response.data.allPolicy);
       } else {
         alerts("Error", "No existen póilzas  registradas", "error");
@@ -37,7 +38,7 @@ export const ListPolicies = () => {
               <th>Cliente</th>
               <th>Compañía</th>
               <th>Tipo de Póliza</th>
-              <th>Estado</th>
+
               <th>Fecha de Inicio</th>
               <th>Fecha de Fin</th>
               <th>Método de Pago</th>
@@ -49,6 +50,7 @@ export const ListPolicies = () => {
               <th>Valor de la Póliza</th>
               <th>Número de Pagos</th>
               <th>Pagos de comisiones al asesor</th>
+              <th>Estado</th>
               <th>Observaciones</th>
               <th>Acciones</th>
             </tr>
@@ -65,7 +67,7 @@ export const ListPolicies = () => {
                 </td>
                 <td>{policy.company.companyName}</td>
                 <td>{policy.policyType.policyName}</td>
-                <td>{policy.policyStatus.statusName}</td>
+
                 <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
                 <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
                 <td>{policy.paymentMethod.methodName}</td>
@@ -82,6 +84,17 @@ export const ListPolicies = () => {
                 <td>{policy.policyValue}</td>
                 <td>{policy.numberOfPayments}</td>
                 <td>{policy.paymentsToAdvisor}</td>
+                <td
+                  className={
+                    policy.policyStatus.id == 4
+                      ? "bg-warning text-white fw-bold"
+                      : policy.policyStatus.id == 3
+                      ? "bg-danger text-white fw-bold"
+                      : "bg-success-subtle"
+                  }
+                >
+                  {policy.policyStatus.statusName}
+                </td>
                 <td>{policy.observations || "N/A"}</td>
                 <td>
                   <button className="btn btn-success text-white fw-bold">

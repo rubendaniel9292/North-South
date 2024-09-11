@@ -17,7 +17,7 @@ const CreateComapnies = () => {
 
       if (response.data.status === "success") {
         alerts(
-          "Compañía añadido",
+          "Compañía añadida",
           "La compañía se ha añadido correctamente",
           "success"
         );
@@ -35,7 +35,7 @@ const CreateComapnies = () => {
   return (
     <>
       <div className="container-fluid">
-        <h2>Registro de bancos</h2>
+        <h2>Registro de compañias</h2>
         <form onSubmit={savedCompanies} id="user-form">
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
@@ -53,7 +53,7 @@ const CreateComapnies = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
-                Nombre del banco
+                Nombre de la compañía
               </label>
               <input
                 required

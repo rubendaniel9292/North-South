@@ -15,6 +15,7 @@ const ListCreditCard = () => {
     try {
       const response = await http.get("creditcard/all-cards");
       if (response.data.status === "success") {
+        console.log('tarjetas de clientes: ',response.data);
         setCards(response.data.allCards); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
       } else {
         alerts("Error", "No existen tarjetas registradas", "error");
