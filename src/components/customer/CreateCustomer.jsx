@@ -122,7 +122,7 @@ const CreateCustomer = () => {
           "Cliente registrado registrado correctamente",
           "success"
         );
-        document.querySelector("#user-form").reset();
+        //document.querySelector("#user-form").reset();
       } else {
         //setSaved('error');
         alerts(

@@ -49,6 +49,7 @@ export const ListPolicies = () => {
               <th>Porcentaje del Asesor</th>
               <th>Valor de la Póliza</th>
               <th>Número de Pagos</th>
+              <th>Derecho de póliza</th>
               <th>Pagos de comisiones al asesor</th>
               <th>Estado</th>
               <th>Observaciones</th>
@@ -61,7 +62,7 @@ export const ListPolicies = () => {
                 <td>{index + 1}</td>
                 <td>{policy.numberPolicy}</td>
                 <td>
-                  {policy.customer.firstName} {policy.customer.secondName || ""}{" "}
+                  {policy.customer.firstName} {policy.customer.secondName || ""}
                   {policy.customer.surname}{" "}
                   {policy.customer.secondSurname || ""}
                 </td>
@@ -83,6 +84,7 @@ export const ListPolicies = () => {
                 <td>{policy.advisorPercentage}</td>
                 <td>{policy.policyValue}</td>
                 <td>{policy.numberOfPayments}</td>
+                <td>{policy.policyFee || "NO APLICA"}</td>
                 <td>{policy.paymentsToAdvisor}</td>
                 <td
                   className={

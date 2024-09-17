@@ -143,6 +143,7 @@ const Home = () => {
                     <th>Porcentaje del Asesor</th>
                     <th>Valor de la Póliza</th>
                     <th>Número de Pagos</th>
+                    <th>Derecho de póliza</th>
                     <th>Pagos de comisiones al asesor</th>
                     <th>Estado</th>
                     <th>Observaciones</th>
@@ -178,6 +179,7 @@ const Home = () => {
                       <td>{policy.advisorPercentage}</td>
                       <td>{policy.policyValue}</td>
                       <td>{policy.numberOfPayments}</td>
+                      <td>{policy.policyFee || "NO APLICA"}</td>
                       <td>{policy.paymentsToAdvisor}</td>
                       <td
                         className={

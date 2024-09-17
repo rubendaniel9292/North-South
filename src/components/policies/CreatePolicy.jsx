@@ -17,7 +17,7 @@ const CreatePolicy = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
   const [filteredCard, setFilteredCard] = useState([]);
-
+  //filtro de tarjeta por clienes
   const handleCreditCard = (e) => {
     const selectedCustomerId = e.target.value;
     const selectedCustomer = customers.find(
@@ -30,7 +30,7 @@ const CreatePolicy = () => {
       );
       setFilteredCard(filteredCards);
     }
-    console.log("tarjetas del cliente", filteredCard);
+    //console.log("tarjetas del cliente", filteredCard);
     changed(e);
   };
 
@@ -38,8 +38,9 @@ const CreatePolicy = () => {
   const calculateAdvisorPayment = useCallback(() => {
     const value = Number(form.policyValue);
     const percentage = Number(form.advisorPercentage);
-    if (!isNaN(value) && !isNaN(percentage)) {
-      const payment = (value * percentage) / 100;
+    const policyFee = Number(form.policyFee);
+    if (!isNaN(value) && !isNaN(percentage) && !isNaN(policyFee)) {
+      const payment = (value * percentage) / 100 - policyFee;
       changed({
         target: {
           name: "paymentsToAdvisor",
@@ -48,7 +49,7 @@ const CreatePolicy = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.policyValue, form.advisorPercentage]);
+  }, [form.policyValue, form.advisorPercentage, form.policyFee]);
   const handlePaymentMethodChange = (e) => {
     const value = e.target.value;
     setSelectedPaymentMethod(value); // Actualiza el estado con el nuevo método de pago seleccionado
@@ -84,7 +85,7 @@ const CreatePolicy = () => {
         setPaymentMethod(paymentResponse.data.allPayment);
         setCards(creditCardResponse.data.allCards);
       } catch (error) {
-        alerts("Error", "Error fetching data.", "error");
+        alerts("Error", "Error fetching data.", error);
       }
     };
 
@@ -120,7 +121,7 @@ const CreatePolicy = () => {
       }
     } catch (error) {
       alerts("Error", "Error fetching policy.", "error");
-      console.error("Error fetching asesor:", error);
+      console.error("Error fetching policy:", error);
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +286,8 @@ const CreatePolicy = () => {
                   </>
                 ) : (
                   <option className="bs-danger-bg-subtle">
-                    No hay tarjetas asociadas a este cliente. Registre una tarjeta o escoja otro método de pago
+                    No hay tarjetas asociadas a este cliente. Registre una
+                    tarjeta o escoja otro método de pago
                   </option>
                 )}
               </select>
@@ -343,6 +345,19 @@ const CreatePolicy = () => {
               id="policyValue"
               name="policyValue"
               value={form.policyValue}
+              onChange={changed} // Llamada a la función
+            />
+          </div>
+          <div className="mb-3 col-3">
+            <label htmlFor="policyFee" className="form-label">
+              Derecho de póliza (opcional)
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              id="policyFee"
+              name="policyFee"
+              value={form.policyFee}
               onChange={changed} // Llamada a la función
             />
           </div>

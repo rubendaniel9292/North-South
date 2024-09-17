@@ -82,7 +82,7 @@ const ListCustomer = () => {
                     .format("dddd DD/MM/YYYY")
                     .toString()}
                 </td>
-                <td>{customer.personalData === "true" ? "SÍ" : "NO"}</td>
+                <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
 
                 <td>
                   <button
