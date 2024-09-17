@@ -8,7 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CardOptionsEntity } from './entities/cardoptions.entity';
 import { CreditcardService } from './services/creditcard.service';
 import { HttpCustomService } from 'src/providers/http/http.service';
-import { BankEntity } from './entities/bank.entity';
+import { BankEntity } from '../config/bank.entity';
 import { CreditCardEntity } from './entities/credit.card.entity';
 import { UserModule } from '@/user/user.module';
 import { ScheduleModule } from '@nestjs/schedule';

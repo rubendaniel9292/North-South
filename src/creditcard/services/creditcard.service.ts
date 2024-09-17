@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
 import { BankDTO } from '../dto/bank.dto';
 import { CardOptionDTO } from '../dto/cardptions.dto';
-import { BankEntity } from '../entities/bank.entity';
+import { BankEntity } from '../../config/bank.entity';
 import { CreditCardEntity } from '../entities/credit.card.entity';
 import { CreditCardDTO } from '../dto/creditcard.dto';
 //import { EncryptDataCard } from '@/helpers/encryption';

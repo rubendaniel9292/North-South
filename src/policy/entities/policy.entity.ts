@@ -16,6 +16,7 @@ import { AdvisorEntity } from '@/advisor/entity/advisor.entity';
 import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { PaymentMethodEntity } from './payment_method.entity';
+import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ unique: true })
@@ -155,4 +156,12 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   })
   @JoinColumn({ name: 'credit_card_id' })
   creditCard: CreditCardEntity;
+
+  //muchas polizas pueden estar asociadas a una cuenta bancaria
+  @ManyToOne(() => BankAccountEntity, (bankAccount) => bankAccount.policies, {
+    nullable: true, // Si la relación es opcional
+    onDelete: 'SET NULL', // Opcional: Esto establece el campo en NULL si se elimina la cuenta
+  })
+  @JoinColumn({ name: 'bank_account_id' })
+  bankAccount: BankAccountEntity;
 }

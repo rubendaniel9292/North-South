@@ -89,3 +89,11 @@ export interface IPolicy {
   paymentsToAdvisor: number;
   observations?: string;
 }
+
+export interface IAccountType {
+  typeName: string;
+}
+export interface IBankAccount {
+  accountNumber: string;
+  observations?: string;
+}

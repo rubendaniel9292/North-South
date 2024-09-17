@@ -6,9 +6,10 @@ import {
   // JoinColumn,
   //ManyToOne,
 } from 'typeorm';
-import { CreditCardEntity } from './credit.card.entity';
+import { CreditCardEntity } from '../creditcard/entities/credit.card.entity';
 import { IBank } from '@/interface/all.Interfaces';
 import { IdEntity } from '@/config/id.entity';
+import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 
 @Entity({ name: 'bank' })
 export class BankEntity extends IdEntity implements IBank {
@@ -20,4 +21,10 @@ export class BankEntity extends IdEntity implements IBank {
     onDelete: 'RESTRICT', // No permite la eliminación en cascada
   })
   creditcard: CreditCardEntity[];
+
+  // Relación uno a varios: un banco emite muchas cuentas
+  @OneToMany(() => BankAccountEntity, (bankAccount) => bankAccount.bank, {
+    onDelete: 'RESTRICT', // No permite la eliminación en cascada
+  })
+  bankAccount: BankAccountEntity[];
 }

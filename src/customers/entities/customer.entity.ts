@@ -1,3 +1,4 @@
+import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 import { IdCustomEntity } from '@/config/id.custom.entity';
 import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { CityEntity } from '@/globalentites/city.entity';
@@ -78,6 +79,10 @@ export class CustomersEntity extends IdCustomEntity implements ICustomer {
   // Relación OneToMany: Un cliente puede tener muchas tarjetas de crédito
   @OneToMany(() => CreditCardEntity, (creditCard) => creditCard.customer)
   creditCards: CreditCardEntity[];
+
+  // Relación OneToMany: Un cliente puede tener muchas cuentas bancarias
+  @OneToMany(() => BankAccountEntity, (bankAccount) => bankAccount.customer)
+  bankAccount: BankAccountEntity[];
 }
 /*EXPLICACIONES DE CONSTRAINS
  cascade: ['update']

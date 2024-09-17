@@ -12,7 +12,7 @@ import {
   //BeforeUpdate,
 } from 'typeorm';
 import { CardOptionsEntity } from './cardoptions.entity';
-import { BankEntity } from './bank.entity';
+import { BankEntity } from '../../config/bank.entity';
 import { CardStatusEntity } from './card.status.entity';
 import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
