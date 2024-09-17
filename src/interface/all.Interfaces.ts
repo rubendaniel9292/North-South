@@ -82,6 +82,7 @@ export interface IPolicy {
   agencyPercentage: number;
   advisorPercentage: number;
   policyValue: number;
+  policyFee?: number;
   numberOfPayments: number;
   startDate: Date;
   endDate: Date;

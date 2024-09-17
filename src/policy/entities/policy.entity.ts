@@ -66,6 +66,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column()
   endDate: Date;
 
+  @Column('decimal', { precision: 12, scale: 2, nullable: true })
+  policyFee: number;
+
   @Column('decimal', { precision: 12, scale: 2 })
   paymentsToAdvisor: number;
 

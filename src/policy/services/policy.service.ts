@@ -75,6 +75,7 @@ export class PolicyService extends ValidateEntity {
           startDate: true,
           endDate: true,
           paymentsToAdvisor: true,
+          policyFee: true,
           observations: true,
           policyType: {
             policyName: true,
@@ -124,7 +125,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //3:metodo para consultas todas las polizas
+  //3:metodo para consultas todas las polizas en base al estadi
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
       const policiesStatus: PolicyEntity[] = await this.policyRepository.find({

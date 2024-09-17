@@ -62,7 +62,7 @@ export class AuthService {
         payload,
         secret:
           process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
-        expires: '1h',
+        expires: '9h',
       }),
       user: getUser,
     };

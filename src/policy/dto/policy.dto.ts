@@ -74,7 +74,11 @@ export class PolicyDTO {
 
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 2 })
-  paymentsToAdvisor: number; // Igual que arriba
+  paymentsToAdvisor: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  policyFee?: number;
 
   @IsNotEmpty()
   @IsInt()
@@ -82,7 +86,7 @@ export class PolicyDTO {
 
   @IsOptional()
   @IsString()
-  observations: string;
+  observations?: string;
 }
 
 export class UpdatePolicyDTO {

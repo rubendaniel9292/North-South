@@ -25,11 +25,14 @@ export class CustomersService extends ValidateEntity {
     try {
       // Primero validamos cédula y correo
       await this.validateInput(body, 'customer');
+      console.log('Datos recibidos en el backend:', body);
+      // Asegurarse de que personalData sea un booleano
+
       const newCustomer = await this.customerRepository.save(body);
       //consulta futura para la eliminacion del usuario no se aconseja en produccion
       //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
 
-      console.log(newCustomer);
+      console.log('Cliente guardado', newCustomer);
       return newCustomer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
