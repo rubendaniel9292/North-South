@@ -139,14 +139,8 @@ const Home = () => {
                     <th>Banco (si aplica)</th>
                     <th>Frecuencia de Pago</th>
                     <th>Monto de Cobertura</th>
-                    <th>Porcentaje de la Agencia</th>
-                    <th>Porcentaje del Asesor</th>
                     <th>Valor de la Póliza</th>
-                    <th>Número de Pagos</th>
-                    <th>Derecho de póliza</th>
-                    <th>Pagos de comisiones al asesor</th>
                     <th>Estado</th>
-                    <th>Observaciones</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -175,12 +169,7 @@ const Home = () => {
                       </td>
                       <td>{policy.paymentFrequency.frequencyName}</td>
                       <td>{policy.coverageAmount}</td>
-                      <td>{policy.agencyPercentage}</td>
-                      <td>{policy.advisorPercentage}</td>
                       <td>{policy.policyValue}</td>
-                      <td>{policy.numberOfPayments}</td>
-                      <td>{policy.policyFee || "NO APLICA"}</td>
-                      <td>{policy.paymentsToAdvisor}</td>
                       <td
                         className={
                           policy.policyStatus.id == 4
@@ -192,10 +181,9 @@ const Home = () => {
                       >
                         {policy.policyStatus.statusName}
                       </td>
-                      <td>{policy.observations || "N/A"}</td>
                       <td>
                         <button className="btn btn-success text-white fw-bold">
-                          Actualizar
+                          Ver información completa
                         </button>
                       </td>
                     </tr>

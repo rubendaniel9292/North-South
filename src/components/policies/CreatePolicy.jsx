@@ -13,12 +13,13 @@ const CreatePolicy = () => {
   const [customers, setCustomer] = useState([]);
   const [advisor, setAdvisor] = useState([]);
   const [cards, setCards] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-
   const [filteredCard, setFilteredCard] = useState([]);
+  const [filteredAccount, setFilteredAccount] = useState([]);
   //filtro de tarjeta por clienes
-  const handleCreditCard = (e) => {
+  const handleCard_Accunt = (e) => {
     const selectedCustomerId = e.target.value;
     const selectedCustomer = customers.find(
       (customer) => customer.id === selectedCustomerId
@@ -29,8 +30,13 @@ const CreatePolicy = () => {
         (card) => card.customer.ci_ruc === customerCiRuc
       );
       setFilteredCard(filteredCards);
+
+      const filteredAccount = accounts.filter(
+        (account) => account.customer.ci_ruc === customerCiRuc
+      );
+      setFilteredAccount(filteredAccount);
     }
-    //console.log("tarjetas del cliente", filteredCard);
+
     changed(e);
   };
 
@@ -50,6 +56,7 @@ const CreatePolicy = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.policyValue, form.advisorPercentage, form.policyFee]);
+
   const handlePaymentMethodChange = (e) => {
     const value = e.target.value;
     setSelectedPaymentMethod(value); // Actualiza el estado con el nuevo método de pago seleccionado
@@ -67,6 +74,7 @@ const CreatePolicy = () => {
           advisorResponse,
           paymentResponse,
           creditCardResponse,
+          accountResponse,
         ] = await Promise.all([
           http.get("policy/get-types"),
           http.get("company/get-all-company"),
@@ -75,6 +83,7 @@ const CreatePolicy = () => {
           http.get("advisor/get-all-advisor"),
           http.get("policy/get-payment"),
           http.get("creditcard/all-cards"),
+          http.get("bankaccount/get-all-account"),
         ]);
 
         setType(typeResponse.data.allTypePolicy);
@@ -84,6 +93,7 @@ const CreatePolicy = () => {
         setAdvisor(advisorResponse.data.allAdvisors);
         setPaymentMethod(paymentResponse.data.allPayment);
         setCards(creditCardResponse.data.allCards);
+        setAccounts(accountResponse.data.allBankAccounts);
       } catch (error) {
         alerts("Error", "Error fetching data.", error);
       }
@@ -209,7 +219,7 @@ const CreatePolicy = () => {
               className="form-select"
               id="customers_id"
               name="customers_id"
-              onChange={handleCreditCard}
+              onChange={handleCard_Accunt}
               defaultValue={option}
             >
               <option disabled>{option}</option>
@@ -262,6 +272,35 @@ const CreatePolicy = () => {
               ))}
             </select>
           </div>
+          {selectedPaymentMethod === "10" && (
+            <div className="mb-3 col-3">
+              <label htmlFor="account_type_id" className="form-label">
+                Cuenta Bancaria
+              </label>
+              <select
+                className="form-select"
+                id="account_type_id"
+                name="account_type_id"
+                onChange={changed}
+                defaultValue={option}
+              >
+                {filteredAccount.length > 0 ? (
+                  <>
+                    <option disabled> {option}</option>
+                    {filteredAccount.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.accountNumber} - {account.bank?.bankName}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option className="bs-danger-bg-subtle">
+                    No hay cuentas asociadas a este cliente.
+                  </option>
+                )}
+              </select>
+            </div>
+          )}
 
           {selectedPaymentMethod === "6" && (
             <div className="mb-3 col-3">
@@ -286,8 +325,7 @@ const CreatePolicy = () => {
                   </>
                 ) : (
                   <option className="bs-danger-bg-subtle">
-                    No hay tarjetas asociadas a este cliente. Registre una
-                    tarjeta o escoja otro método de pago
+                    No hay tarjetas asociadas a este cliente.
                   </option>
                 )}
               </select>

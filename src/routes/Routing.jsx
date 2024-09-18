@@ -18,6 +18,8 @@ import { CreateAdvisor } from "../components/policies/CreateAdvisor";
 import ListAdvisor from "../components/policies/ListAdvisor";
 import CreatePolicy from "../components/policies/CreatePolicy";
 import { ListPolicies } from "../components/policies/ListPolicies";
+import CreateBankAccount from "../components/customer/CreateBankAccount";
+import ListBankAccounts from "../components/customer/ListBankAccounts";
 
 const Routing = () => {
   return (
@@ -38,6 +40,8 @@ const Routing = () => {
             <Route path="create-customer" element={<CreateCustomer />}></Route>
             <Route path="get-all-customer" element={<ListCustomer />}></Route>
             <Route path="create-cards" element={<RegisterCreditCard/>}></Route>
+            <Route path="create-bankaccounts" element={<CreateBankAccount/>}></Route>
+            <Route path="list-bankaccounts" element={<ListBankAccounts/>}></Route>
             <Route path="get-all-cards" element={<ListCreditCard/>}></Route>
             <Route path="create-bank" element={<CreateBank/>}></Route>
             <Route path="create-companies" element={<CreateComapnies/>}></Route>

@@ -59,12 +59,13 @@ const Index = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-customer"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-customer"}
+                    >
                       Listado de clientes
                     </NavLink>
                   </li>
-                 
-                 
                 </ul>
               </div>
               <div className="py-2 dropdown">
@@ -78,19 +79,56 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-cards"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-cards"}
+                    >
                       Registro de tarjetas
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-bank"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-bank"}
+                    >
                       Registro de bancos
                     </NavLink>
                   </li>
 
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-cards"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-cards"}
+                    >
                       Listado de tarjetas
+                    </NavLink>
+                  </li>
+                </ul>
+              </div>
+              <div className="py-2 dropdown">
+                <button
+                  className="dropdown-toggle btnDas text-white  fw-bold"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  Gestión de cuentas bancarias
+                </button>
+                <ul className="dropdown-menu dropdown-toggle text-center">
+                  <li>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-bankaccounts"}
+                    >
+                      Registro de cuentas bancarias
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/list-bankaccounts"}
+                    >
+                      Listar cuentas bancarias
                     </NavLink>
                   </li>
                 </ul>
@@ -106,13 +144,19 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-policy"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-policy"}
+                    >
                       Registro de Polizas
                     </NavLink>
                   </li>
-                  
+
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-policy"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-policy"}
+                    >
                       Listado de Pólizas
                     </NavLink>
                   </li>
@@ -129,12 +173,18 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-advisor"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-advisor"}
+                    >
                       Registro de Asesores
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-advisor"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-advisor"}
+                    >
                       Listado de Asesores
                     </NavLink>
                   </li>
@@ -151,17 +201,21 @@ const Index = () => {
                 </button>
                 <ul className="dropdown-menu dropdown-toggle text-center">
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/create-companies"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/create-companies"}
+                    >
                       Registro de Compañías
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item text-white fw-bold"  to={"/management/get-all-comapanies"}>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-comapanies"}
+                    >
                       Listado de Compañias
                     </NavLink>
                   </li>
-                  
-                 
                 </ul>
               </div>
               {auth.role === "ADMIN" && (
