@@ -64,7 +64,7 @@ export class CreditcardService /*extends EncryptDataCard */ {
 
   //3:metodo para registrar y encriptar tarjeta de credito o debito. quedara pendiente por problemas con el desencriptado
   /*
-  public createCrard = async (
+  public createCard = async (
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {

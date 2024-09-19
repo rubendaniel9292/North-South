@@ -42,8 +42,6 @@ export class PolicyService extends ValidateEntity {
       // Asignar el estado determinado al body de la tarjeta
       body.policy_status_id = determinedStatus.id;
       const newPolicy = await this.policyRepository.save(body);
-      console.log(newPolicy);
-
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -61,8 +59,10 @@ export class PolicyService extends ValidateEntity {
           'advisor',
           'customer',
           'paymentMethod',
+          'bankAccount',
+          'bankAccount.bank',
           'creditCard',
-          'creditCard.bank', // Asegúrate de incluir la relación con el banco,
+          'creditCard.bank',
         ],
         select: {
           id: true,
@@ -99,26 +99,30 @@ export class PolicyService extends ValidateEntity {
             surname: true,
             secondSurname: true,
           },
-
           paymentMethod: {
             methodName: true,
+          },
+          bankAccount: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
           },
           creditCard: {
             bank_id: true,
             bank: {
-              bankName: true, // Asumiendo que el banco tiene un campo 'name'
+              bankName: true,
             },
           },
         },
       });
-      if (policies.length === 0) {
+      if (!policies || policies.length === 0) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-
       return policies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

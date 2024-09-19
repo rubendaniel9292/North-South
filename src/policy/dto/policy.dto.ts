@@ -40,6 +40,10 @@ export class PolicyDTO {
   @IsInt()
   credit_card_id?: number;
 
+  @IsOptional()
+  @IsInt()
+  bank_account_id?: number;
+
   @IsNotEmpty()
   @IsInt()
   customers_id: number;

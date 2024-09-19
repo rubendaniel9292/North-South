@@ -40,7 +40,7 @@ export class BankAccountEntity extends IdEntity implements IBankAccount {
   @JoinColumn({ name: 'account_type_id' })
   accountType: AccountTypeEntity;
 
-  // Relación ManyToOne: Muchas tarjetas están asociadas a un banco
+  // Relación ManyToOne: Muchas cuentas están asociadas a un banco
   @ManyToOne(() => BankEntity, (bank) => bank.bankAccount, {
     onDelete: 'RESTRICT', // No permite la eliminación del banco si está en uso
   })
