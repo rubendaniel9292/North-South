@@ -26,15 +26,22 @@ const CreatePolicy = () => {
     );
     if (selectedCustomer) {
       const customerCiRuc = selectedCustomer.ci_ruc;
-      const filteredCards = cards.filter(
-        (card) => card.customer.ci_ruc === customerCiRuc
-      );
-      setFilteredCard(filteredCards);
+      console.log("customerCiRuc:", customerCiRuc);
+      console.log("cards:", cards);
+      console.log("accounts:", accounts);
 
-      const filteredAccount = accounts.filter(
-        (account) => account.customer.ci_ruc === customerCiRuc
-      );
-      setFilteredAccount(filteredAccount);
+      if (cards && cards.length > 0) {
+        const filteredCards = cards.filter(
+          (card) => card.customer.ci_ruc === customerCiRuc
+        );
+        setFilteredCard(filteredCards);
+      }
+      if (accounts && accounts.length > 0) {
+        const filteredAccount = accounts.filter(
+          (account) => account.customer.ci_ruc === customerCiRuc
+        );
+        setFilteredAccount(filteredAccount);
+      }
     }
 
     changed(e);
@@ -279,8 +286,8 @@ const CreatePolicy = () => {
               </label>
               <select
                 className="form-select"
-                id="account_type_id"
-                name="account_type_id"
+                id="bank_account_id"
+                name="bank_account_id"
                 onChange={changed}
                 defaultValue={option}
               >

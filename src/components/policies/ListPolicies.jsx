@@ -74,10 +74,13 @@ export const ListPolicies = () => {
                 <td>{policy.paymentMethod.methodName}</td>
 
                 <td>
-                  {policy.creditCard && policy.creditCard.bank
+                  {policy.bankAccount && policy.bankAccount.bank
+                    ? policy.bankAccount.bank.bankName
+                    : policy.creditCard && policy.creditCard.bank
                     ? policy.creditCard.bank.bankName
                     : "NO APLICA"}
                 </td>
+
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>{policy.coverageAmount}</td>
                 <td>{policy.agencyPercentage}</td>

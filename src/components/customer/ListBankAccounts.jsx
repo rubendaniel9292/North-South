@@ -11,6 +11,7 @@ const ListBankAccounts = () => {
     try {
       const response = await http.get("bankaccount/get-all-account");
       if (response.data.status === "success") {
+        console.log('cuentas registradas: ', response.data)
         setAccounts(response.data.allBankAccounts); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
       } else {
         alerts("Error", "No existen tarjetas registradas", "error");

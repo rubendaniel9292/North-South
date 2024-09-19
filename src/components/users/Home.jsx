@@ -167,6 +167,11 @@ const Home = () => {
                           ? policy.creditCard.bank.bankName
                           : "NO APLICA"}
                       </td>
+                      <td>
+                        {policy.bankAccount && policy.bankAccount.bank
+                          ? policy.bankAccount.bank.bankName
+                          : "NO APLICA"}
+                      </td>
                       <td>{policy.paymentFrequency.frequencyName}</td>
                       <td>{policy.coverageAmount}</td>
                       <td>{policy.policyValue}</td>
