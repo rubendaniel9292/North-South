@@ -7,7 +7,6 @@ import {
   //Param,
   Post,
   UseGuards,
-  //UseGuards,
 } from '@nestjs/common';
 import { CustomersService } from '../services/customers.service';
 import { CustomerDTO } from '../dto/customer.dto';

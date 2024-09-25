@@ -1,4 +1,3 @@
-//interfaces para la entidad CLIENTE
 export interface ICivilStatus {
   status: string;
 }
@@ -65,10 +64,6 @@ export interface IPaymentMethod {
   methodName: string;
 }
 
-export interface IPayment {
-  observations?: string;
-}
-
 export interface IPaymentFrequency {
   frequencyName: string;
 }
@@ -95,5 +90,13 @@ export interface IAccountType {
 }
 export interface IBankAccount {
   accountNumber: string;
+  observations?: string;
+}
+export interface IPayment {
+  number_payment: string;
+  value: number;
+  credit?: number;
+  balance?: number;
+  total: number;
   observations?: string;
 }

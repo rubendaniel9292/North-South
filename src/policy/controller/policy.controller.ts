@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -75,6 +75,18 @@ export class PolicyController {
       return {
         status: 'success',
         allPayment,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-policy-id/:id')
+  public async policyID(@Param('id') id: number) {
+    const policyById = await this.policyService.findPolicyById(id);
+    if (policyById) {
+      return {
+        status: 'success',
+        policyById,
       };
     }
   }

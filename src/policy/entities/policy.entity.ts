@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { PolicyTypeEntity } from './policy_type.entity';
 import { PolicyStatusEntity } from './policy_status.entity';
@@ -17,6 +18,7 @@ import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { PaymentMethodEntity } from './payment_method.entity';
 import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
+import { PaymentEntity } from '@/payment/entity/payment.entity';
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ unique: true })
@@ -167,4 +169,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   })
   @JoinColumn({ name: 'bank_account_id' })
   bankAccount: BankAccountEntity;
+  //una poliza tiene varios pagos
+  @OneToMany(() => PaymentEntity, (payment) => payment.policies)
+  payments: PaymentEntity[];
 }

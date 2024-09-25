@@ -11,6 +11,7 @@ import { AdvisorModule } from './advisor/advisor.module';
 import { PolicyModule } from './policy/policy.module';
 import { GlobaldataModule } from './globaldata/globaldata.module';
 import { BankAccountModule } from './bankaccount/bankaccount.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BankAccountModule } from './bankaccount/bankaccount.module';
     PolicyModule,
     GlobaldataModule,
     BankAccountModule,
+    PaymentModule,
   ],
 })
 export default class AppModule {}

@@ -47,7 +47,7 @@ export class EncryptDataCard {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-
+  /*desencriptado verision anterior
   protected decryptData = (encryptedData: {
     cardNumber: string;
     code: string;
@@ -109,6 +109,32 @@ export class EncryptDataCard {
 
       return { cardNumber: decryptedCardNumber, code: decryptedCode };
     } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  */
+  protected decryptData = (encryptedData: {
+    cardNumber: string;
+    code: string;
+  }): { cardNumber: string; code: string } => {
+    try {
+      const decryptField = (field: string) => {
+        const [ivHex, encryptedHex] = field.split(':');
+        const iv = Buffer.from(ivHex, 'hex');
+        const encryptedData = Buffer.from(encryptedHex, 'hex');
+        const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv);
+        return Buffer.concat([
+          decipher.update(encryptedData),
+          decipher.final(),
+        ]).toString('utf8');
+      };
+
+      return {
+        cardNumber: decryptField(encryptedData.cardNumber),
+        code: decryptField(encryptedData.code),
+      };
+    } catch (error) {
+      console.error('Error en desencriptación:', error);
       throw ErrorManager.createSignatureError(error.message);
     }
   };

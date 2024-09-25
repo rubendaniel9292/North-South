@@ -21,6 +21,13 @@ export class GlobaldataService {
     try {
       const allProvinces: ProvinceEntity[] =
         await this.provinceRepository.find();
+      if (!allProvinces || allProvinces.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return allProvinces;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -41,6 +48,13 @@ export class GlobaldataService {
           },
         },
       });
+      if (!allCitys || allCitys.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return allCitys;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -51,6 +65,13 @@ export class GlobaldataService {
   public getAllCivilStatus = async (): Promise<CivilStatusEntity[]> => {
     try {
       const allStatus: CivilStatusEntity[] = await this.civilRepository.find();
+      if (!allStatus || allStatus.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return allStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

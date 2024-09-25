@@ -129,7 +129,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //3:metodo para consultas todas las polizas en base al estadi
+  //3:metodo para consultas todas las polizas en base al estado
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
       const policiesStatus: PolicyEntity[] = await this.policyRepository.find({
@@ -146,7 +146,9 @@ export class PolicyService extends ValidateEntity {
           'customer',
           'paymentMethod',
           'creditCard',
-          'creditCard.bank', // Asegúrate de incluir la relación con el banco,
+          'creditCard.bank',
+          'bankAccount',
+          'bankAccount.bank',
         ],
         select: {
           id: true,
@@ -193,9 +195,15 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
+          bankAccount: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
         },
       });
-      if (policiesStatus.length === 0) {
+      if (!policiesStatus || policiesStatus.length === 0) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -217,7 +225,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //5: metodo para obtener el listado de los tipos de poliza
+  //5: metodo para obtener el listado de las frecuencias
   public getFrecuencyPolicies = async (): Promise<PaymentFrequencyEntity[]> => {
     try {
       const frecuency: PaymentFrequencyEntity[] =
@@ -228,12 +236,29 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //6: metodo para obtener el listado de los metodos pago
+  //6: metodo para obtener el listado de los  pagos
   public getPayment = async (): Promise<PaymentMethodEntity[]> => {
     try {
       const payment: PaymentMethodEntity[] =
         await this.policyPaymentMethod.find();
       return payment;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //7: metodo para obtener las polizas mediante su id
+  public findPolicyById = async (id: number): Promise<PolicyEntity> => {
+    try {
+      const policyId = await this.policyRepository.findOne({ where: { id } });
+
+      if (!policyId) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      return policyId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
