@@ -20,6 +20,7 @@ import CreatePolicy from "../components/policies/CreatePolicy";
 import { ListPolicies } from "../components/policies/ListPolicies";
 import CreateBankAccount from "../components/customer/CreateBankAccount";
 import ListBankAccounts from "../components/customer/ListBankAccounts";
+import { ListPayment } from "../components/policies/ListPayment";
 
 const Routing = () => {
   return (
@@ -50,6 +51,7 @@ const Routing = () => {
             <Route path="get-all-advisor" element={<ListAdvisor/>}></Route>
             <Route path="create-policy" element={<CreatePolicy/>}></Route>
             <Route path="get-all-policy" element={<ListPolicies/>}></Route>
+            <Route path="get-all-payments" element={<ListPayment/>}></Route>
             <Route path="logout" element={<Logout />}></Route>
           </Route>
 

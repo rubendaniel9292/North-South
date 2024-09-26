@@ -160,6 +160,14 @@ const Index = () => {
                       Listado de Pólizas
                     </NavLink>
                   </li>
+                  <li>
+                    <NavLink
+                      className="dropdown-item text-white fw-bold"
+                      to={"/management/get-all-payments"}
+                    >
+                      Lista de pagos
+                    </NavLink>
+                  </li>
                 </ul>
               </div>
               <div className="py-2 dropdown">
