@@ -93,7 +93,7 @@ export interface IBankAccount {
   observations?: string;
 }
 export interface IPayment {
-  number_payment: string;
+  number_payment: number;
   value: number;
   credit?: number;
   balance?: number;

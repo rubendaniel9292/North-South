@@ -21,7 +21,7 @@ import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
-  @Column({ unique: true })
+  @Column()
   numberPolicy: string;
 
   @Column()

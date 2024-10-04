@@ -13,8 +13,8 @@ export class PaymentDTO implements IPayment {
   policy_id: number; // Este es el ID de la póliza con la que está relacionada
 
   @IsNotEmpty()
-  @IsString()
-  number_payment: string;
+  @IsInt()
+  number_payment: number;
 
   @IsNotEmpty()
   @IsNumber()

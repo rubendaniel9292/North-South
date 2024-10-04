@@ -87,9 +87,6 @@ export class PolicyService extends ValidateEntity {
             surname: true,
             secondSurname: true,
           },
-          paymentFrequency: {
-            frequencyName: true,
-          },
           company: {
             companyName: true,
           },
@@ -174,6 +171,7 @@ export class PolicyService extends ValidateEntity {
             secondSurname: true,
           },
           paymentFrequency: {
+            id: true,
             frequencyName: true,
           },
           company: {
@@ -219,6 +217,13 @@ export class PolicyService extends ValidateEntity {
   public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
     try {
       const types: PolicyTypeEntity[] = await this.policyTypeRepository.find();
+      if (!types) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return types;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -230,6 +235,13 @@ export class PolicyService extends ValidateEntity {
     try {
       const frecuency: PaymentFrequencyEntity[] =
         await this.policyFrecuencyRepository.find();
+      if (!frecuency) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return frecuency;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -241,6 +253,14 @@ export class PolicyService extends ValidateEntity {
     try {
       const payment: PaymentMethodEntity[] =
         await this.policyPaymentMethod.find();
+
+      if (!payment) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
       return payment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

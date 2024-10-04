@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   //Delete,
   //Get,
   //Param,
@@ -39,6 +40,17 @@ export class PaymentController {
       return {
         status: 'success',
         allPayments,
+      };
+    }
+  }
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-payment-id/:id')
+  public async getPaymentId(@Param('id') id: number) {
+    const paymentById = await this.paymentService.getPaymentsId(id);
+    if (paymentById) {
+      return {
+        status: 'success',
+        paymentById,
       };
     }
   }

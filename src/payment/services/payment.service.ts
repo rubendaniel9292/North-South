@@ -68,4 +68,21 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+  //3: metodo para obtener los pagos por id
+  public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
+    try {
+      const paymentId = await this.paymentRepository.findOne({ where: { id } });
+
+      if (!paymentId) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      return paymentId;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 }
