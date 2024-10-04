@@ -52,8 +52,9 @@ const CreatePolicy = () => {
     const value = Number(form.policyValue);
     const percentage = Number(form.advisorPercentage);
     const policyFee = Number(form.policyFee);
+    let payment = Number(form.payment) || 0;
     if (!isNaN(value) && !isNaN(percentage) && !isNaN(policyFee)) {
-      const payment = (value * percentage) / 100 - policyFee;
+      payment = (value * percentage) / 100 - policyFee;
       changed({
         target: {
           name: "paymentsToAdvisor",
@@ -65,8 +66,8 @@ const CreatePolicy = () => {
   }, [form.policyValue, form.advisorPercentage, form.policyFee]);
 
   const handlePaymentMethodChange = (e) => {
-    const value = e.target.value;
-    setSelectedPaymentMethod(value); // Actualiza el estado con el nuevo método de pago seleccionado
+    const paymentMetohd = e.target.value;
+    setSelectedPaymentMethod(paymentMetohd); // Actualiza el estado con el nuevo método de pago seleccionado
     changed(e); // Asegúrate de propagar el cambio al formulario
   };
 

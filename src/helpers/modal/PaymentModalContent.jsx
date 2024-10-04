@@ -1,119 +1,298 @@
-// ModalContent.js
 import PropTypes from "prop-types";
-const PaymetnModalContent = ({ policy, onClose }) => {
-  if (!policy) return console.error("Error al recibir el objeto", policy);
+import { useEffect, useState } from "react";
+import alerts from "../../helpers/Alerts";
+import http from "../../helpers/Http";
+import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+const PaymentModalContent = ({ policy, onClose, payment }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  // Manejar el caso de datos no disponibles, pero después de llamar a los hooks
+  const [isDataValid, setIsDataValid] = useState(true);
+
+  //const [payment, setPayment] = useState(null);
+
+  //const { form, changed } = UserForm({ balance: 0.0 });
+  const [form, setForm] = useState({
+    number_payment: 1,
+    //number_payment: payment?.number_payment,
+    value: 0,
+    balance: 0,
+    total: 0,
+    observations: "",
+  });
+  useEffect(() => {
+    console.log("Estado actualizado del formulario de pago:", form);
+  }, [form]);
+
+  // Actualizar el valor del formulario cuando se recibe el prop `payment`
+  useEffect(() => {
+    if (payment && payment.number_payment) {
+      setForm((prevForm) => ({
+        ...prevForm,
+        number_payment: payment.number_payment, // Actualiza el número de pago
+      }));
+    } else {
+      setForm((prevForm) => ({
+        ...prevForm,
+        number_payment: 1, // Valor por defecto si no hay datos de `payment`
+      }));
+    }
+  }, [payment]);
+
+  useEffect(() => {
+    if (!policy) {
+      console.error("Error al recibir el objeto", policy);
+      setIsDataValid(false);
+      return null;
+    }
+    const calculatePaymentValue = () => {
+      const paymentFrequency = Number(policy.payment_frequency_id);
+      console.log("frecuencia de pago: ", paymentFrequency);
+      let value = 0;
+
+      switch (paymentFrequency) {
+        case 1: // Pago mensual
+          value = (policy.policyValue / 12).toFixed(2);
+          break;
+        case 2: // Pago trimestral
+          value = (policy.policyValue / 4).toFixed(2);
+          break;
+        case 3: // Pago semestral
+          value = (policy.policyValue / 2).toFixed(2);
+          break;
+        default: // Pago anual
+          value = policy.policyValue;
+          break;
+      }
+      return value;
+    };
+
+    const value = calculatePaymentValue();
+    const credit = Number(form.credit) || 0;
+    const balance = (value - credit).toFixed(2);
+    const total = value - balance;
+    console.log(
+      "valor: ",
+      value,
+      "abono: ",
+      credit,
+      "saldo ",
+      balance,
+      "total ",
+      total
+    );
+    setForm((prevForm) => ({
+      ...prevForm,
+      policy_id: policy.id,
+      value: Number(value),
+      balance: Number(balance).toFixed(2),
+      total: Number(total),
+      //number_payment:payment?.number_payment
+    }));
+  }, [policy, form.credit]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prevForm) => {
+      const updatedForm = { ...prevForm, [name]: value };
+
+      if (name === "credit") {
+        const credit = Number(value) || 0;
+        const balance = Number(updatedForm.value) - credit;
+        updatedForm.balance = balance;
+        updatedForm.total = credit;
+      }
+
+      return updatedForm;
+    });
+  };
+
+  const savedPayment = async (e) => {
+    setIsLoading(true);
+
+    try {
+      e.preventDefault();
+      //let newPayment = form;
+      const newPayment = { ...form, policy_id: policy.id };
+      const request = await http.post("payment/register-payment", newPayment);
+      console.log(request.data);
+      if (request.data.status === "success") {
+        alerts("Registro exitoso", "Pago registrado correctamente", "success");
+        //document.querySelector("#user-form").reset();
+      } else {
+        alerts(
+          "Error",
+          "Pago no registrado correctamente. Verificar que no haya campos vacios o números de pago duplicados",
+          "error"
+        );
+      }
+    } catch (error) {
+      alerts("Error", "Error fetching policy.", "error");
+      console.error("Error fetching policy:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // Si los datos son inválidos, renderizar nada o un mensaje de error
+  if (!isDataValid) {
+    return <div>Error: Datos de póliza o frecuencia de pago no válidos.</div>;
+  }
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
-        <article className="modal-content text-center">
-          <div className="conten-title">
+        <article className="modal-content text-center px-5 py-5">
+          <div className="conten-title mb-2">
             <h3 className="h2 fw-bold">
               Póliza selecionada: {policy.numberPolicy}
             </h3>
+            <h2 className="h2 fw-bold">
+              Valor de la Póliza: {policy.policyValue}
+            </h2>
           </div>
-          <div className="d-flex justify-content-around">
-            <form onSubmit={""} id="user-form">
+          <div className="d-flex justify-content-around mt-5">
+            <form onSubmit={savedPayment} id="user-form">
               <div className="row">
-                <div className="mb-3 col-6">
-                  <label htmlFor="name" className="form-label">
-                    Nombres
+                <div className="mb-3 col-2">
+                  <label htmlFor="policy_id" className="form-label">
+                    Id de Póliza
                   </label>
                   <input
                     required
+                    type="number"
+                    className="form-control"
+                    id="policy_id"
+                    name="policy_id"
+                    onChange={handleChange}
+                    value={policy.id}
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-2">
+                  <label htmlFor="number_payment" className="form-label">
+                    Número de pago
+                  </label>
+                  <input
+                    required
+                    id="number_payment"
+                    type="number"
+                    className="form-control"
+                    name="number_payment"
+                    /*value={
+                      payment.number_payment ? payment.number_payment + 1 : 1
+                    }*/
+                    value={form.number_payment}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="mb-3 col-2">
+                  <label htmlFor="valueToPayment" className="form-label">
+                    Valor a pagar
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="value"
+                    name="value"
+                    step="0.01"
+                    value={Number(form.value).toFixed(2)} // Mostrar el valor calculado
+                    onChange={handleChange}
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-2">
+                  <label htmlFor="credit" className="form-label">
+                    Abono o Pago
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="credit"
+                    name="credit"
+                    step="0.01"
+                    value={form.credit}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="mb-3 col-2">
+                  <label htmlFor="balance" className="form-label">
+                    Saldo
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="balance"
+                    name="balance"
+                    step="0.01"
+                    value={form.balance}
+                    //onChange={handleChange }
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-2">
+                  <label htmlFor="total" className="form-label">
+                    Total pagado
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="total"
+                    name="total"
+                    value={form.total}
+                    step="0.01"
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-12">
+                  <label htmlFor="observations" className="form-label">
+                    Observaciones
+                  </label>
+                  <textarea
                     type="text"
                     className="form-control"
-                    id="name"
-                    name="firstName"
-                    onChange={""}
+                    id="observations"
+                    name="observations"
+                    onChange={handleChange}
                   />
                 </div>
-                <div className="mb-3 col-6">
-                  <label htmlFor="surname" className="form-label">
-                    Apellidos
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    className="form-control"
-                    id="lastname"
-                    name="surname"
-                    onChange={""}
-                  />
-                </div>
-                <div className="mb-3 col-6">
-                  <label htmlFor="username" className="form-label">
-                    Usuario
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    className="form-control"
-                    id="username"
-                    name="userName"
-                    onChange={""}
-                  />
-                </div>
-                <div className="mb-3 col-6">
-                  <label htmlFor="email" className="form-label">
-                    Email
-                  </label>
-                  <input
-                    required
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    name="email"
-                    onChange={""}
-                  />
-                </div>
-                <div className="mb-3 col-6">
-                  <label htmlFor="password" className="form-label">
-                    Contraseña
-                  </label>
-                  <input
-                    required
-                    type="password"
-                    className="form-control"
-                    id="password"
-                    name="password"
-                    onChange={""}
-                  />
-                </div>
-                <div className="mb-3 col-6">
-                  <label htmlFor="role" className="form-label">
-                    Seleccione un rol para el usuario
-                  </label>
-                  <select
-                    className="form-select"
-                    id="role"
-                    name="role"
-                    onChange={""}
-                  >
-                    {" "}
-                    <option value="" selected disabled>
-                      Seleccione un rol
-                    </option>
-                    <option value="ADMIN">Administrador</option>
-                    <option value="BASIC">Básico</option>
-                  </select>
-                </div>
-                <div className="mt-4 col-6">
+                <div className="mt-4 col-12">
                   <button
                     type="submit"
-                    onClick={onClose}
-                    id="btnc"
-                    className="btn  my-3 text-white fw-bold"
+                    disabled={isLoading}
+                    className="btn bg-success fw-bold text-white "
                   >
-                    Cerrar
+                    {isLoading ? (
+                      <div className="spinner-border text-light" role="status">
+                        <span className="visually-hidden">Registrando...</span>
+                      </div>
+                    ) : (
+                      "Registrar Pago"
+                    )}
+
+                    <FontAwesomeIcon
+                      className="mx-2 "
+                      icon={faFloppyDisk}
+                      beat
+                    />
                   </button>
                   <button
                     type="submit"
                     onClick={onClose}
                     id="btnc"
-                    className="btn bg-success my-3 text-white fw-bold"
+                    className="btn bg-danger mx-5 text-white fw-bold"
                   >
-                    Registrar pago
+                    Cerrar
+                    <FontAwesomeIcon
+                      className="mx-2"
+                      beat
+                      icon={faRectangleXmark}
+                    />
                   </button>
                 </div>
               </div>
@@ -125,12 +304,21 @@ const PaymetnModalContent = ({ policy, onClose }) => {
   );
 };
 // Validación de propiedades con PropTypes
-PaymetnModalContent.propTypes = {
+PaymentModalContent.propTypes = {
   policy: PropTypes.shape({
-    numberPolicy: PropTypes.string.isRequired,
-    // Aquí puedes agregar otras propiedades de la póliza si las tienes
+    id: PropTypes.number.isRequired,
+    numberPolicy: PropTypes.number.isRequired,
+    //number_payment: PropTypes.number.isRequired,
+    policyValue: PropTypes.number.isRequired,
+    //numberOfPayments: PropTypes.number.isRequired,
+    payment_frequency_id: PropTypes.number.isRequired,
+  }).isRequired,
+
+  payment: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    number_payment: PropTypes.number.isRequired,
   }).isRequired,
   onClose: PropTypes.func.isRequired,
 };
 
-export default PaymetnModalContent;
+export default PaymentModalContent;

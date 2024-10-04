@@ -14,10 +14,10 @@ export const ListPayment = () => {
     try {
       const response = await http.get("payment/get-all-payment");
       if (response.data.status === "success") {
-        console.log(response);
+        console.log(response.data);
         setPayments(response.data.allPayments);
       } else {
-        alerts("Error", "No existen póilzas  registradas", "error");
+        alerts("Error", "No existen pagos registrados", "error");
         console.error("Error fetching polizas:", response.message);
       }
     } catch (error) {

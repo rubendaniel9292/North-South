@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
   useEffect(() => {
-    console.log("Estado actualizado del formulario:", form);
+    console.log("Estado actualizado del formulario de pago:", form);
   }, [form]);
   /*
     es una función que toma un evento ({ target }) como argumento */
@@ -14,11 +14,11 @@ const UserForm = (initialObj) => {
     if (name === "personalData") {
       value === "true";
     }
+
     setForm({
       ...form,
       [name]: value,
     });
-    console.log(form);
   };
   return { form, changed };
 };

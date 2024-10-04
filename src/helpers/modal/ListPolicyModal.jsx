@@ -1,44 +1,20 @@
 import { useEffect, useState } from "react";
-import Modal from "../../helpers/modal/Modal";
-import alerts from "../../helpers/Alerts";
-import http from "../../helpers/Http";
+import Modal from "./Modal";
+import alerts from "../Alerts";
+import http from "../Http";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 export const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
-  const [payments, setPayments] = useState([]); // Estado para todos los pagos
-
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  const [paymentNumber, setPaymentNumber] = useState(1); // Estado para el número de pago
-  const [payment, setPayment] = useState({}); //estado para un pago especifico
 
   //conseguir la poliza por id
   const getPolicyById = async (policyId) => {
     try {
-      //const response = await http.get(`policy/get-policy-id/${policyId}`);
-      const response = await http.get(`policy/get-policy-id/${policyId}`);
+      const response = await http.get("policy/get-policy-id/" + policyId);
       if (response.data.status === "success") {
-        // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
-
-        // Segunda petición: obtener el pago por ID, solo si la póliza se encontró
-        const paymentResponse = await http.get(
-          `payment/get-payment-id/${policyId}`
-        );
-        //const paymentResponse = await http.get(`payment/get-all-payment`);
-        // Si hay pagos, incrementamos el número de pagos en 1 y setearlo en el estado
-        console.log(paymentResponse)
-        if (paymentResponse.data.status === "success") {
-          setPaymentNumber(paymentResponse.data.paymentById.number_payment + 1);
-          setPayment(paymentResponse.data.paymentById); // Almacenar el pago en el estado
-        } else {
-          // Si no hay pagos, establecer el número en 1
-          setPaymentNumber(paymentNumber);
-          setPayment(paymentResponse.data.paymentById);
-          setPayment({}); // Resetear el estado del pago
-        }
-
         openModal(policyId);
         console.log("respuesta de la peticion: ", response.data);
       } else {
@@ -56,7 +32,6 @@ export const ListPolicies = () => {
     }
     return null; // Devuelve null en caso de error
   };
-
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
     setShowModal(true);
@@ -98,6 +73,7 @@ export const ListPolicies = () => {
                 <th>Cliente</th>
                 <th>Compañía</th>
                 <th>Tipo de Póliza</th>
+
                 <th>Fecha de Inicio</th>
                 <th>Fecha de Fin</th>
                 <th>Método de Pago</th>
@@ -105,14 +81,13 @@ export const ListPolicies = () => {
                 <th>Frecuencia de Pago</th>
                 <th>Monto de Cobertura</th>
 
-                {/* CAMPOS A SEPARAR
                 <th>Porcentaje de la Agencia</th>
                 <th>Porcentaje del Asesor</th>
                 <th>Valor de la Póliza</th>
                 <th>Número de Pagos</th>
                 <th>Derecho de póliza</th>
                 <th>Pagos de comisiones al asesor</th>
-*/}
+
                 <th>Estado</th>
                 <th>Observaciones</th>
                 <th>Acciones</th>
@@ -143,17 +118,19 @@ export const ListPolicies = () => {
                       ? policy.creditCard.bank.bankName
                       : "NO APLICA"}
                   </td>
+
                   <td>{policy.paymentFrequency.frequencyName}</td>
+
                   <td>{policy.coverageAmount}</td>
 
-                  {/* CAMPOS A SEPARAR
                   <td>{policy.agencyPercentage}</td>
                   <td>{policy.advisorPercentage}</td>
                   <td>{policy.policyValue}</td>
                   <td>{policy.numberOfPayments}</td>
                   <td>{policy.policyFee || "NO APLICA"}</td>
+
                   <td>{policy.paymentsToAdvisor}</td>
-*/}
+
                   <td
                     className={
                       policy.policyStatus.id == 4
@@ -194,7 +171,6 @@ export const ListPolicies = () => {
             isOpen={showModal}
             onClose={closeModal}
             policy={policy}
-            payment={payment}
           ></Modal>
         )}
       </section>
