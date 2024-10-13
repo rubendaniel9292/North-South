@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
+import "@fontsource/roboto/500.css";
 import dayjs from "dayjs";
 const Home = () => {
   const [cards, setCards] = useState([]);

@@ -7,11 +7,11 @@ import "dayjs/locale/es";
 export const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
-  const [payments, setPayments] = useState([]); // Estado para todos los pagos
+  //const [payments, setPayments] = useState([]); // Estado para todos los pagos
 
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  const [paymentNumber, setPaymentNumber] = useState(1); // Estado para el número de pago
-  const [payment, setPayment] = useState({}); //estado para un pago especifico
+  //const [paymentNumber, setPaymentNumber] = useState(1); // Estado para el número de pago
+  //const [payment, setPayment] = useState({}); //estado para un pago especifico
 
   //conseguir la poliza por id
   const getPolicyById = async (policyId) => {
@@ -23,6 +23,7 @@ export const ListPolicies = () => {
         setPolicy(response.data.policyById);
 
         // Segunda petición: obtener el pago por ID, solo si la póliza se encontró
+        /*
         const paymentResponse = await http.get(
           `payment/get-payment-id/${policyId}`
         );
@@ -37,7 +38,7 @@ export const ListPolicies = () => {
           setPaymentNumber(paymentNumber);
           setPayment(paymentResponse.data.paymentById);
           setPayment({}); // Resetear el estado del pago
-        }
+        }*/
 
         openModal(policyId);
         console.log("respuesta de la peticion: ", response.data);
@@ -194,7 +195,7 @@ export const ListPolicies = () => {
             isOpen={showModal}
             onClose={closeModal}
             policy={policy}
-            payment={payment}
+            //payment={payment}
           ></Modal>
         )}
       </section>

@@ -1,3 +1,19 @@
+h1,
+h2,
+h3,
+th {
+    font-family: 'Roboto', sans-serif;
+    /* Peso 700 para negrita */
+}
+
+input,
+button,p, span {
+    font-family: 'Nunito', sans-serif;
+}
+
+
+
+/*Estilos para modal*/
 .modal-container {
     position: fixed;
     top: 0;
