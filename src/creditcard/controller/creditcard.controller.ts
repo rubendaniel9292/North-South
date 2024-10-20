@@ -43,7 +43,7 @@ export class CreditcardController {
   @Roles('ADMIN', 'BASIC')
   @Post('register-card')
   public async registerCard(@Body() body: CreditCardDTO) {
-    const newCard = await this.creditCardService.createCrard(body);
+    const newCard = await this.creditCardService.createCard(body);
 
     if (newCard) {
       return {
@@ -65,7 +65,7 @@ export class CreditcardController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC') //Solo usuarios admin podran ver todos los usuarios
+  @Roles('ADMIN', 'BASIC')
   @Get('all-types')
   public async findTypes() {
     const allTypes = await this.creditCardService.findCrardsOptions();

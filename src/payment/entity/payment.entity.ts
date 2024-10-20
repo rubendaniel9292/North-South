@@ -11,7 +11,7 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
 
 @Entity('payment_record')
 export class PaymentEntity extends IdEntity {
-  @Column({unique:true})
+  @Column()
   number_payment: number;
 
   @Column('decimal', { nullable: true, precision: 12, scale: 2 })

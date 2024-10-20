@@ -1,6 +1,12 @@
 
 # SISTEMA DE GESTIÓN DE CLIENTES DE NORTH-SOUTH
 
+### Lista detallada de las depedencias del proyecto
+#### npm outdated
+
+### Actualizar las dependencias del proyecto 
+#### npm update
+
 Tecnologías y Dependencias a usar para el desarrollo de API.
 
 ## POSTGRESQL (INSTALACIÓN EN EL SO O EN LA INSTANCIA ANTES DEL DESARROLLO O DESPLIEGUE DE LA APP)

@@ -8,13 +8,12 @@ import { CardOptionDTO } from '../dto/cardptions.dto';
 import { BankEntity } from '../../config/bank.entity';
 import { CreditCardEntity } from '../entities/credit.card.entity';
 import { CreditCardDTO } from '../dto/creditcard.dto';
-//import { EncryptDataCard } from '@/helpers/encryption';
-//import { ConfigService } from '@nestjs/config';
-//import { CardStatusEntity } from '../entities/card.status.entity';
+import { EncryptDataCard } from '@/helpers/encryption';
+import { ConfigService } from '@nestjs/config';
 import { CreditCardStatusService } from '@/helpers/card.status';
 
 @Injectable()
-export class CreditcardService /*extends EncryptDataCard */ {
+export class CreditcardService extends EncryptDataCard {
   constructor(
     @InjectRepository(CardOptionsEntity)
     private readonly cardopstionsRepository: Repository<CardOptionsEntity>,
@@ -25,20 +24,18 @@ export class CreditcardService /*extends EncryptDataCard */ {
     @InjectRepository(CreditCardEntity)
     private readonly cardRepository: Repository<CreditCardEntity>,
     private readonly creditCardStatusService: CreditCardStatusService, // Inyectar el servicio existente
-    //protected readonly configService: ConfigService,
+    protected readonly configService: ConfigService,
   ) {
     // Pasar el repositorio al constructor de la clase base
-    //super(cardRepository, configService);
+    super(cardRepository, configService);
   }
   //SERVICIO RELACIONADO CON TODO LO QUE TIENE VER CON LAS TARJETAS DE CREDITO O DEBITO
-  //1:metodo para registrar un tipo de tarjeta y cifrarlo. por defecto se agregan varios en el scritp de la base de datos.
-  //por problemas con el desicfrado quedara pendiente
+  //1:metodo para registrar un tipo de tarjeta por defecto se agregan varios en el scritp de la base de datos.
   public createCreditdCarType = async (
     body: CardOptionDTO,
   ): Promise<CardOptionsEntity> => {
     try {
       console.log('datos recibidos en el servicio: ', body);
-
       const newCardType = await this.cardopstionsRepository.save(body);
       console.log('datos guardados en la bd: ', newCardType);
       return newCardType;
@@ -63,35 +60,57 @@ export class CreditcardService /*extends EncryptDataCard */ {
   };
 
   //3:metodo para registrar y encriptar tarjeta de credito o debito. quedara pendiente por problemas con el desencriptado
-  /*
   public createCard = async (
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
-      // Encriptar solo el nombre y el code
       console.log('Datos recibidos en el servicio antes del cifrado:', body);
+      //1 Verificar si ya existe una tarjeta con el mismo número asociada al cliente
+      const existingCard = await this.cardRepository.findOne({
+        where: {
+          cardNumber: body.cardNumber,
+          customers_id: body.customers_id,
+        },
+      });
 
+      if (existingCard) {
+        throw new Error('El cliente ya tiene una tarjeta con este número.');
+      }
+      //2 Convertir la fecha de expiración a Date si es una cadena
+      const expirationDate = new Date(body.expirationDate);
+      // Verificar si la tarjeta ya está caducada
+      const currentDate = new Date();
+      if (expirationDate < currentDate) {
+        throw new Error('La tarjeta ya está caducada.');
+      }
+
+      //3 Reutilizar el método determineCardStatus para obtener el estado correcto
+      const determinedStatus =
+        await this.creditCardStatusService.determineCardStatus(expirationDate);
+
+      //4 Asignar el estado determinado al body de la tarjeta
+      body.card_status_id = determinedStatus.id;
+
+      //5 Encriptar solo el número de tarjeta y el código
       const encryptedData = this.encryptData(body.cardNumber, body.code);
-      // Actualizar el objeto body con los datos cifrados
+
+      //6 Actualizar el objeto body con los datos cifrados
       const encryptedBody = {
         ...body,
         cardNumber: encryptedData.cardNumber,
         code: encryptedData.code,
       };
-      console.log('Datos a guardar:', encryptedBody);
 
-      // Guardar los datos encriptados en la base de datos
+      //7 Guardar los datos encriptados en la base de datos
       const newCard = await this.cardRepository.save(encryptedBody);
-      console.log('datos guardados: ', newCard);
-
-      console.log('datos guardados en la bd: ', newCard);
       return newCard;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
-  };*/
+  };
   //3:metodo para registrar sin encriptar una tarjeta de credito o debito
-  public createCrard = async (
+  /*
+  public createCard = async (
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
@@ -125,14 +144,27 @@ export class CreditcardService /*extends EncryptDataCard */ {
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
-  };
+  };*/
 
-  //3:metodo para consultar y desencriptar las tarjetas de credito queda pendiente
-  /*
+  //4:metodo para consultar y desencriptar las tarjetas de credito
   public findAllCrards = async (): Promise<CreditCardEntity[]> => {
     try {
-      //this.decryptData()
-      const allCards: CreditCardEntity[] = await this.cardRepository.find();
+      const allCards: CreditCardEntity[] = await this.cardRepository.find({
+        relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
+        select: {
+          id: true,
+          cardNumber: true,
+          expirationDate: true,
+          code: true,
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+        },
+      });
 
       if (allCards.length === 0) {
         //se guarda el error
@@ -142,17 +174,13 @@ export class CreditcardService /*extends EncryptDataCard */ {
         });
       }
 
-      // Desencriptar los datos de cada tarjeta
-
-      // Descifrar los datos de cada tarjeta
+      // Desencriptar los datos de cada tarjeta y mantener las relaciones
       return allCards.map((card) => {
-        console.log(card);
         // Pasar ambos valores a la función decryptData
         const { cardNumber, code } = this.decryptData({
           cardNumber: card.cardNumber,
           code: card.code,
         });
-        console.log(cardNumber, code);
         return {
           ...card,
           cardNumber: cardNumber,
@@ -160,11 +188,11 @@ export class CreditcardService /*extends EncryptDataCard */ {
         };
       });
     } catch (error) {
-      //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
     }
-  };*/
-  //3:metodo para consultar las tarjetas
+  };
+  //4:metodo para consultar las tarjetas sin cifrado
+  /*
   public findAllCrards = async (): Promise<CreditCardEntity[]> => {
     try {
       //this.decryptData()
@@ -198,9 +226,9 @@ export class CreditcardService /*extends EncryptDataCard */ {
       //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
     }
-  };
+  };*/
 
-  //4:metodo para consultar las tarjetas expiradas o caducadas
+  //5:metodo para consultar las tarjetas expiradas o caducadas
   public findCrardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
       //this.decryptData()
@@ -241,7 +269,7 @@ export class CreditcardService /*extends EncryptDataCard */ {
     }
   };
 
-  //5:metodo para consultar los bancos
+  //6:metodo para consultar los bancos
   public findBanks = async (): Promise<BankEntity[]> => {
     try {
       //this.decryptData()
@@ -262,7 +290,7 @@ export class CreditcardService /*extends EncryptDataCard */ {
     }
   };
 
-  //6:metodo para consultar los tipos de tarjeta
+  //7:metodo para consultar los tipos de tarjeta
   public findCrardsOptions = async (): Promise<CardOptionsEntity[]> => {
     try {
       const allOptions: CardOptionsEntity[] =

@@ -30,9 +30,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
 
   // Configuración de variables de entorno
-  const port = configServices.get<number>('PORT');
+  //const port = configServices.get<number>('PORT');
 
-  console.log(port);
+  //console.log(port);
   //Configuración para permitir solicitudes desde diferentes dominios.
   app.enableCors(CORS);
 
