@@ -1,5 +1,11 @@
 # APP NORTH SOUTH PARA LA GESTION DE CLIENTES
 
+### Lista detallada de las depedencias del proyecto
+#### npm outdated
+
+### Actualizar las dependencias del proyecto 
+#### npm update
+
 ## DEPENDENCIAS USADAS EN LA APP
 
 ### PARA EL DOM 

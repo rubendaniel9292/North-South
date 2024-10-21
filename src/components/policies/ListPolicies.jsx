@@ -7,39 +7,18 @@ import "dayjs/locale/es";
 export const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
-  //const [payments, setPayments] = useState([]); // Estado para todos los pagos
-
+  const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  //const [paymentNumber, setPaymentNumber] = useState(1); // Estado para el número de pago
-  //const [payment, setPayment] = useState({}); //estado para un pago especifico
 
   //conseguir la poliza por id
-  const getPolicyById = async (policyId) => {
+  const getPolicyById = async (policyId, type) => {
     try {
       //const response = await http.get(`policy/get-policy-id/${policyId}`);
       const response = await http.get(`policy/get-policy-id/${policyId}`);
       if (response.data.status === "success") {
         // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
-
-        // Segunda petición: obtener el pago por ID, solo si la póliza se encontró
-        /*
-        const paymentResponse = await http.get(
-          `payment/get-payment-id/${policyId}`
-        );
-        //const paymentResponse = await http.get(`payment/get-all-payment`);
-        // Si hay pagos, incrementamos el número de pagos en 1 y setearlo en el estado
-        console.log(paymentResponse)
-        if (paymentResponse.data.status === "success") {
-          setPaymentNumber(paymentResponse.data.paymentById.number_payment + 1);
-          setPayment(paymentResponse.data.paymentById); // Almacenar el pago en el estado
-        } else {
-          // Si no hay pagos, establecer el número en 1
-          setPaymentNumber(paymentNumber);
-          setPayment(paymentResponse.data.paymentById);
-          setPayment({}); // Resetear el estado del pago
-        }*/
-
+        setModalType(type); // Establece el tipo de modal a mostrar
         openModal(policyId);
         console.log("respuesta de la peticion: ", response.data);
       } else {
@@ -126,9 +105,9 @@ export const ListPolicies = () => {
                   <td>{policy.numberPolicy}</td>
                   <td>
                     {policy.customer.firstName}{" "}
-                    {policy.customer.secondName || ""}
+                    {policy.customer.secondName || " "}{" "}
                     {policy.customer.surname}{" "}
-                    {policy.customer.secondSurname || ""}
+                    {policy.customer.secondSurname || " "}
                   </td>
                   <td>{policy.company.companyName}</td>
                   <td>{policy.policyType.policyName}</td>
@@ -168,14 +147,17 @@ export const ListPolicies = () => {
                   </td>
                   <td>{policy.observations || "N/A"}</td>
                   <td>
-                    <button className="btn btn-success text-white fw-bold my-1">
+                    <button
+                      className="btn btn-success text-white fw-bold my-1"
+                      onClick={() => getPolicyById(policy.id, "info")}
+                    >
                       Ver información completa
                     </button>
 
                     <button
                       key={index}
                       className="btn btn-success text-white fw-bold my-1"
-                      onClick={() => getPolicyById(policy.id)}
+                      onClick={() => getPolicyById(policy.id, "payment")}
                     >
                       Registrar Pago
                     </button>
@@ -195,7 +177,7 @@ export const ListPolicies = () => {
             isOpen={showModal}
             onClose={closeModal}
             policy={policy}
-            //payment={payment}
+            modalType={modalType} // Pasamos el tipo de modal a mostrar
           ></Modal>
         )}
       </section>

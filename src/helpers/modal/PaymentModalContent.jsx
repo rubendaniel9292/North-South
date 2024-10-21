@@ -68,21 +68,11 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
       }
       return value;
     };
-
     const value = calculatePaymentValue();
     const credit = Number(form.credit) || 0;
     const balance = (value - credit).toFixed(2);
     const total = value - balance;
-    console.log(
-      "valor: ",
-      value,
-      "abono: ",
-      credit,
-      "saldo ",
-      balance,
-      "total ",
-      total
-    );
+  
     setForm((prevForm) => ({
       ...prevForm,
       policy_id: policy.id,
@@ -143,7 +133,7 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-5">
-          <div className="conten-title mb-2">
+          <div className="conten-title mb-3">
             <h3 className="h2 fw-bold">
               Póliza selecionada: {policy.numberPolicy}
             </h3>
@@ -154,7 +144,7 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
           <div className="d-flex justify-content-around mt-5">
             <form onSubmit={savedPayment} id="user-form">
               <div className="row">
-                <div className="mb-3 col-2">
+                <div className="mb-4 col-2">
                   <label htmlFor="policy_id" className="form-label">
                     Id de Póliza
                   </label>

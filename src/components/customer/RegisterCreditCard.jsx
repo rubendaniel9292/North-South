@@ -44,7 +44,7 @@ const RegisterCreditCard = () => {
     try {
       e.preventDefault();
       let newCard = form;
-      const request = await http.post("creditcard/register-card", newCard);
+      const request = await http.post(`creditcard/register-card`, newCard);
       if (request.data.status === "success") {
         alerts(
           "Registro exitoso",
@@ -63,8 +63,7 @@ const RegisterCreditCard = () => {
     } catch (error) {
       alerts("Error", "Error fetching cards.", "error");
       console.error("Error fetching cards:", error);
-    }
-    finally {
+    } finally {
       setIsLoading(false);
     }
   };
@@ -164,27 +163,24 @@ const RegisterCreditCard = () => {
                 onChange={changed}
                 defaultValue={option}
               >
-                 <option disabled>{option}</option>
+                <option disabled>{option}</option>
                 {banks.map((bank) => (
                   <option key={bank.id} value={bank.id}>
                     {bank.bankName}
                   </option>
                 ))}
-                <button type="button" className="btn btn-primary" onClick={""}>
-                  Añadir Banco
-                </button>
               </select>
             </div>
 
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success mt-2 fw-bold">
-              {isLoading ? (
-                <div className="spinner-border text-light" role="status">
-                  <span className="visually-hidden">Registrando...</span>
-                </div>
-              ) : (
-                "Registrar Póliza"
-              )}
+                {isLoading ? (
+                  <div className="spinner-border text-light" role="status">
+                    <span className="visually-hidden">Registrando...</span>
+                  </div>
+                ) : (
+                  "Registrar Tarjeta"
+                )}
                 <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>
             </div>
