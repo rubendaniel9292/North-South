@@ -269,7 +269,70 @@ export class PolicyService extends ValidateEntity {
   //7: metodo para obtener las polizas mediante su id
   public findPolicyById = async (id: number): Promise<PolicyEntity> => {
     try {
-      const policyId = await this.policyRepository.findOne({ where: { id } });
+      const policyId = await this.policyRepository.findOne({
+        where: { id },
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'advisor',
+          'customer',
+          'paymentMethod',
+          'bankAccount',
+          'bankAccount.bank',
+          'creditCard',
+          'creditCard.bank',
+        ],
+        select: {
+          id: true,
+          numberPolicy: true,
+          coverageAmount: true,
+          agencyPercentage: true,
+          advisorPercentage: true,
+          policyValue: true,
+          numberOfPayments: true,
+          startDate: true,
+          endDate: true,
+          paymentsToAdvisor: true,
+          policyFee: true,
+          observations: true,
+          policyType: {
+            policyName: true,
+          },
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          company: {
+            companyName: true,
+          },
+          advisor: {
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          paymentMethod: {
+            methodName: true,
+          },
+          bankAccount: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+          creditCard: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+        },
+      });
 
       if (!policyId) {
         //se guarda el error
