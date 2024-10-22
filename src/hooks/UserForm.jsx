@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
+  /*
   useEffect(() => {
     console.log("Estado actualizado del formulario de pago:", form);
-  }, [form]);
+  }, [form]);*/
   /*
     es una función que toma un evento ({ target }) como argumento */
 

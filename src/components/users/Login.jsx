@@ -7,57 +7,93 @@ import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import useAuth from "../../hooks/useAuth";
+import { useEffect } from "react";
 
 const Login = () => {
   const { form, changed } = UserForm({});
   const { setAuth } = useAuth();
-  const loginUser = async (e) => {
-    try {
-      //prevenir atualziacion de pantalla
-      e.preventDefault();
-      //regoger datos del formulario
-      let userToLogin = form;
-      /*  peticion mediante fecth
-    console.log("Sending request to:", Global.url + 'auth/login');
-    peticion a la api 
-    const request = await fetch(Global.url + 'auth/login', {
-      method: 'POST',
-      body: JSON.stringify(userToLogin),//convertir a JSON string
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await request.json();*/
-      const request = await http.post("auth/login", userToLogin);
-      //console.log(request.data);
-      //console.log(request);
-      //console.log("Request status:", request.data.status);
 
-      //persistir los datos en el navegador
-      if (request.data.accessToken) {
-        localStorage.setItem("token", request.data.accessToken);
-        localStorage.setItem("user", JSON.stringify(request.data.user));
-        //setLoged('login');
-        //redireccion
-        alerts(
-          "Login exitoso",
-          `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`,
-          "success"
-        );
-        setTimeout(() => {
-          //setear datos en el para que redireciones y no entrar manualamente a /social
-          setAuth(request.data.user);
-          window.location.reload(); //realiza el navigate a public o private layout de manera automatica
-        }, 500);
-      } else {
-        //setLoged('error')
-        alerts("Error", "Usuario o contraseña incorrecta", "error");
-      }
-    } catch (error) {
-      //setError(error);
-      alerts("Error", "No se permiten campos vacios", "error");
-      console.error("Error fetching users:", error);
-    }
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  console.log(siteKey);
+
+  // Cargar el script de reCAPTCHA v3
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = `https://www.google.com/recaptcha/enterprise.js?render=6LczPmgqAAAAAJhvKdR0ugxEb_-lyyHDLQevOEF1`;
+
+    script.async = true;
+    document.body.appendChild(script);
+
+    //cleanup para evitar posibles duplicados en el futuro
+    /*React ejecutará primero la función de limpieza (si existe) antes de ejecutar el efecto nuevamente. 
+    Esto asegura que solo haya una instancia del script en el DOM en un momento dado. */
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Obtener el token de reCAPTCHA antes de enviar el formulario
+
+  const loginUser = async (e) => {
+    //prevenir atualziacion de pantalla
+    e.preventDefault();
+    window.grecaptcha.ready(() => {
+      window.grecaptcha
+        .execute("6LczPmgqAAAAAJhvKdR0ugxEb_-lyyHDLQevOEF1", {
+          action: "login",
+        })
+        .then(async (token) => {
+          //setCaptchaToken(token); // Guardar el token
+
+          // Continuar con el proceso de login solo después de obtener el token
+          let userToLogin = { ...form, captchaToken: token }; // Incluir el token en la petición
+          try {
+            //regoger datos del formulario
+            //let userToLogin = form;
+            /*  peticion mediante fecth
+        console.log("Sending request to:", Global.url + 'auth/login');
+        peticion a la api 
+        const request = await fetch(Global.url + 'auth/login', {
+          method: 'POST',
+          body: JSON.stringify(userToLogin),//convertir a JSON string
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await request.json();*/
+            const request = await http.post("auth/login", userToLogin);
+
+            //persistir los datos en el navegador
+            if (request.data.accessToken) {
+              localStorage.setItem("token", request.data.accessToken);
+              localStorage.setItem("user", JSON.stringify(request.data.user));
+              //setLoged('login');
+              //redireccion
+              alerts(
+                "Login exitoso",
+                `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`,
+                "success"
+              );
+              setTimeout(() => {
+                //setear datos en el para que redireciones y no entrar manualamente al dasboard
+                setAuth(request.data.user);
+                window.location.reload(); //realiza el navigate a public o private layout de manera automatica
+              }, 50);
+            } else {
+              //setLoged('error')
+              alerts("Error", "Usuario o contraseña incorrecta", "error");
+            }
+          } catch (error) {
+            // Cualquier otro error
+            alerts(
+              "Error",
+              "Ha ocurrido un error inesperado. Verifique no hayan campos vacíos e inténtalo de nuevo.",
+              "error"
+            );
+            console.error("Error fetching users:", error);
+          }
+        });
+    });
   };
 
   return (
@@ -70,9 +106,7 @@ const Login = () => {
             </div>
 
             <form className="login100-form validate-form" onSubmit={loginUser}>
-              <h1 className="d-block pb-5 w-100 text-center h1 lh-1">
-                Bienvenidos
-              </h1>
+              <h1 className="d-block pb-5  text-center h1 lh-1">Bienvenidos</h1>
 
               <div
                 className="wrap-input100 validate-input my-3"
