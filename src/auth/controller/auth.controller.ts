@@ -1,6 +1,7 @@
 import { AuthService } from './../services/auth.service';
 import { LoginDto } from '../dto/auth.dto';
 import {
+  BadRequestException,
   Body,
   Controller,
   Post,
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { PublicAcces } from '../decorators/decorators';
 import { AuthGuard } from '../guards/auth.guard';
+import { verifyRecaptcha } from '@/helpers/verifyRecaptcha';
 
 @Controller('auth')
 //guardian para los endpoints, se requeiere autorizacion con token para su ejecucion
@@ -18,7 +20,13 @@ export class AuthController {
   @PublicAcces()
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { username, password, captchaToken } = loginDto;
+
+    // Verificar reCAPTCHA antes de autenticar al usuario
+    const isHuman = await verifyRecaptcha(captchaToken);
+    if (!isHuman) {
+      throw new BadRequestException('Fallo en la verificación de reCAPTCHA.');
+    }
     const userValidate = await this.authServices.validateUser(
       username,
       password,

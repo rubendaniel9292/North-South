@@ -3,6 +3,7 @@ import AppModule from './app.module';
 import * as morgan from 'morgan';
 import { ConfigService } from '@nestjs/config';
 import { CORS } from './constants/cors';
+import helmet from 'helmet';
 
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 
@@ -14,6 +15,9 @@ async function bootstrap() {
   const configServices = app.get(ConfigService);
   // Establecer prefijo global para todas las rutas
   app.setGlobalPrefix('api');
+
+  // Implementar Helmet para seguridad HTTP
+  app.use(helmet()); // Aquí aplicas helmet a toda la app
 
   //para trabajar con los DTO (OBJETO DE TRASNFERENCIA DE DATOS)y poder validad la informacion en base a los controladores
   app.useGlobalPipes(
@@ -35,6 +39,11 @@ async function bootstrap() {
   //console.log(port);
   //Configuración para permitir solicitudes desde diferentes dominios.
   app.enableCors(CORS);
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Desactivar si React genera problemas con CSP
+    }),
+  );
 
   await app.listen(configServices.get('PORT'));
   console.log(`aplication running on: ${await app.getUrl()}`);

@@ -23,6 +23,7 @@ declare namespace NodeJS {
     JWT_SECRET: string;
     URL: string;
     PWD_CARD: string;
+    RECAPTCHA_SECRET_KEY: string;
     //POSTGRES_DB: string;
     //POSTGRES_USER: string;
     //POSTGRES_PASSWORD: string;
