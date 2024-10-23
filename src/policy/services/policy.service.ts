@@ -283,6 +283,7 @@ export class PolicyService extends ValidateEntity {
           'bankAccount.bank',
           'creditCard',
           'creditCard.bank',
+          'payments',
         ],
         select: {
           id: true,

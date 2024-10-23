@@ -7,7 +7,7 @@ export async function verifyRecaptcha(captchaToken: string): Promise<boolean> {
   try {
     const response = await axios.post(
       `https://www.google.com/recaptcha/api/siteverify`,
-      {},
+      null,
       {
         params: {
           secret: secretKey,
