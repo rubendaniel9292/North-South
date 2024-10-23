@@ -14,7 +14,7 @@ const Login = () => {
   const { setAuth } = useAuth();
 
   const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  console.log(siteKey);
+  console.log("site key:", siteKey);
 
   // Cargar el script de reCAPTCHA v3
   useEffect(() => {

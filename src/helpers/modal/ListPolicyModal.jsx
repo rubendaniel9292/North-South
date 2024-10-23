@@ -6,11 +6,12 @@ import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const ListPolicyModal = ({ policy, onClose }) => {
   if (!policy) return null;
+  console.log("info completa de la poliza: ", policy);
 
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
-        <article className="modal-content text-center px-5 py-5">
+        <article className="modal-content text-center px-5 py-4">
           <div className="conten-title mb-3">
             <h2 className="">Información completa de la póliza</h2>
           </div>
@@ -73,9 +74,48 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <td>{policy.numberOfPayments}</td>
                 <td>{policy.policyFee || "NO APLICA"}</td>
                 <td>{policy.paymentsToAdvisor}</td>
-                <td>{policy.policyStatus.statusName}</td>
+                <td
+                  className={
+                    policy.policyStatus.id == 4
+                      ? "bg-warning text-white fw-bold"
+                      : policy.policyStatus.id == 3
+                      ? "bg-danger text-white fw-bold"
+                      : "bg-success-subtle"
+                  }
+                >
+                  {policy.policyStatus.statusName}
+                </td>
                 <td>{policy.observations || "N/A"}</td>
               </tr>
+            </tbody>
+          </table>
+          <div className="conten-title mb-3">
+            <h3 className="">Hitorial de pagos</h3>
+          </div>
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Número de Pago</th>
+                <th>Valor</th>
+                <th>Abono</th>
+                <th>Saldo</th>
+                <th>Total</th>
+                <th>Fecha de pago</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {policy.payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td>{payment.number_payment}</td>
+                  <td>{payment.value || "0.00"}</td>
+                  <td>{payment.credit || "0.00"}</td>
+                  <td>{payment.balance || "0.00"}</td>
+                  <td>{payment.total}</td>
+                  <td>{dayjs(payment.startDate).format("DD/MM/YYYY")}</td>
+                  <td>{payment.observations || "N/A"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
@@ -84,10 +124,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
               type="submit"
               onClick={""}
               id="btnc"
-              className="btn bg-success mx-5 text-white fw-bold"
+              className="btn bg-success mx-5 text-white fw-bold "
             >
               Generar reporte PDF
-           
               <FontAwesomeIcon className="mx-2" beat icon={faFile} />
             </button>
 
@@ -171,12 +210,27 @@ ListPolicyModal.propTypes = {
     }),
     // Relación con policyStatus
     policyStatus: PropTypes.shape({
+      id: PropTypes.number.isRequired,
       statusName: PropTypes.string.isRequired,
     }).isRequired,
     // Relación con paymentFrequency
     paymentFrequency: PropTypes.shape({
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
+    // Validación del array de pagos dentro de 'policy'
+    payments: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.number.isRequired, // Si 'id' es numérico
+        number_payment: PropTypes.number.isRequired, // Número del pago dentro de la serie de pagos
+        value: PropTypes.string.isRequired, // Valor del pago (si llega como string)
+        credit: PropTypes.string.isRequired, // Crédito del pago (si llega como string)
+        balance: PropTypes.string.isRequired, // Balance restante (si llega como string)
+        total: PropTypes.string.isRequired, // Total del pago (si llega como string)
+        observations: PropTypes.string, // Puede ser null o string
+        createdAt: PropTypes.string.isRequired, // Fecha de creación (formato ISO string)
+        updatedAt: PropTypes.string.isRequired, // Fecha de actualización (formato ISO string)
+      })
+    ).isRequired, // Es obligatorio que haya pagos en este array
   }).isRequired,
 
   onClose: PropTypes.func.isRequired,

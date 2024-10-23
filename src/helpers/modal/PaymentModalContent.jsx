@@ -6,7 +6,7 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-const PaymentModalContent = ({ policy, onClose, payment }) => {
+const PaymentModalContent = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   // Manejar el caso de datos no disponibles, pero después de llamar a los hooks
   const [isDataValid, setIsDataValid] = useState(true);
@@ -15,23 +15,27 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
 
   //const { form, changed } = UserForm({ balance: 0.0 });
   const [form, setForm] = useState({
-    number_payment: 1,
-    //number_payment: payment?.number_payment,
+    //number_payment: 1,
+    number_payment: policy.payments.number_payment,
     value: 0,
     balance: 0,
     total: 0,
     observations: "",
   });
   useEffect(() => {
+    console.log("poliza recibida en el modal: ", policy);
     console.log("Estado actualizado del formulario de pago:", form);
-  }, [form]);
+  }, [form, policy]);
 
-  // Actualizar el valor del formulario cuando se recibe el prop `payment`
+  // Actualizar el número de pago cuando se recibe el prop `policy`
   useEffect(() => {
-    if (payment && payment.number_payment) {
+    if (policy && policy.payments) {
+      const lastPaymentNumber = policy.payments.length
+        ? policy.payments[policy.payments.length - 1].number_payment
+        : 0;
       setForm((prevForm) => ({
         ...prevForm,
-        number_payment: payment.number_payment, // Actualiza el número de pago
+        number_payment: lastPaymentNumber + 1, // Incrementar el último número de pago
       }));
     } else {
       setForm((prevForm) => ({
@@ -39,7 +43,7 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
         number_payment: 1, // Valor por defecto si no hay datos de `payment`
       }));
     }
-  }, [payment]);
+  }, [policy]);
 
   useEffect(() => {
     if (!policy) {
@@ -72,7 +76,7 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
     const credit = Number(form.credit) || 0;
     const balance = (value - credit).toFixed(2);
     const total = value - balance;
-  
+
     setForm((prevForm) => ({
       ...prevForm,
       policy_id: policy.id,
@@ -101,7 +105,6 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
 
   const savedPayment = async (e) => {
     setIsLoading(true);
-
     try {
       e.preventDefault();
       //let newPayment = form;
@@ -110,7 +113,10 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
       console.log(request.data);
       if (request.data.status === "success") {
         alerts("Registro exitoso", "Pago registrado correctamente", "success");
-        //document.querySelector("#user-form").reset();
+        document.querySelector("#user-form").reset();
+        setTimeout(() => {
+          onClose();
+        }, 500);
       } else {
         alerts(
           "Error",
@@ -165,13 +171,11 @@ const PaymentModalContent = ({ policy, onClose, payment }) => {
                   </label>
                   <input
                     required
+                    readOnly
                     id="number_payment"
                     type="number"
                     className="form-control"
                     name="number_payment"
-                    /*value={
-                      payment.number_payment ? payment.number_payment + 1 : 1
-                    }*/
                     value={form.number_payment}
                     onChange={handleChange}
                   />
@@ -298,16 +302,18 @@ PaymentModalContent.propTypes = {
   policy: PropTypes.shape({
     id: PropTypes.number.isRequired,
     numberPolicy: PropTypes.number.isRequired,
-    //number_payment: PropTypes.number.isRequired,
+    number_payment: PropTypes.number.isRequired,
     policyValue: PropTypes.number.isRequired,
-    //numberOfPayments: PropTypes.number.isRequired,
     payment_frequency_id: PropTypes.number.isRequired,
+
+    // Validación del array de pagos dentro de 'policy'
+    payments: PropTypes.arrayOf(
+      PropTypes.shape({
+        number_payment: PropTypes.number.isRequired,
+      })
+    ).isRequired, // Es obligatorio que haya pagos en este array
   }).isRequired,
 
-  payment: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    number_payment: PropTypes.number.isRequired,
-  }).isRequired,
   onClose: PropTypes.func.isRequired,
 };
 

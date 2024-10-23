@@ -15,6 +15,7 @@ export const ListPolicies = () => {
     try {
       //const response = await http.get(`policy/get-policy-id/${policyId}`);
       const response = await http.get(`policy/get-policy-id/${policyId}`);
+      console.log("poliza por id obtenida: ", response.data);
       if (response.data.status === "success") {
         // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
@@ -163,7 +164,7 @@ export const ListPolicies = () => {
                     </button>
 
                     <button className="btn btn-success text-white fw-bold my-1">
-                      Historial de pagos
+                      Renovar o actualizar póliza
                     </button>
                   </td>
                 </tr>
