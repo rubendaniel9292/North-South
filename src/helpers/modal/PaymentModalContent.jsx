@@ -139,14 +139,12 @@ const PaymentModalContent = ({ policy, onClose }) => {
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-5">
-          <div className="conten-title mb-3">
-            <h3 className="h2 fw-bold">
+          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
+            <h3 className="text-white fw-bold">
               Póliza selecionada: {policy.numberPolicy}
             </h3>
-            <h2 className="h2 fw-bold">
-              Valor de la Póliza: {policy.policyValue}
-            </h2>
           </div>
+          <h4 className=" fw-bold">Valor de la Póliza: {policy.policyValue}</h4>
           <div className="d-flex justify-content-around mt-5">
             <form onSubmit={savedPayment} id="user-form">
               <div className="row">

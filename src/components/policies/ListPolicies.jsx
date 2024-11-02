@@ -69,7 +69,7 @@ export const ListPolicies = () => {
   return (
     <>
       <section>
-        <div className="container-fluid">
+        <div className="container-fluid mt-2">
           <h2>Listado general de todas las póilzas</h2>
           <table className="table table-striped">
             <thead>

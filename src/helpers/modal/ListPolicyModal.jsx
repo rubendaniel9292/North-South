@@ -3,18 +3,81 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
+import alerts from "../../helpers/Alerts";
+import http from "../../helpers/Http";
+import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const ListPolicyModal = ({ policy, onClose }) => {
+  const [isLoading, setIsLoading] = useState(false);
   if (!policy) return null;
   console.log("info completa de la poliza: ", policy);
+  const generateReport = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      console.log("Generando PDF para póliza:", policy.numberPolicy);
+      /*
+      const response = await http.get(`policy/download-policy/${policy.id}`, {
+        responseType: "blob",
+        headers: {
+          Accept: "application/pdf",
+        },
+      });*/
+
+      const response = await http.post(
+        `generate-report-pdf/download-policy`,
+        policy,
+        {
+          responseType: "blob", //objeto Blob, que es la representación binaria del PDF.
+          headers: {
+            Accept: "application/pdf", //encabezado "Accept" para indicar que estás esperando una respuesta en formato PDF.
+          },
+          
+        }
+      );
+
+      console.log("Respuesta recibida:", response.status);
+
+      // Crear el nombre del archivo
+      const fileName = `poliza-${policy.numberPolicy}-test.pdf`;
+
+      // Crear un URL para el blob
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
+
+      // Crear elemento de descarga
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+
+      // Descargar el archivo
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      alerts("Éxito", "PDF de prueba generado correctamente", "success");
+    } catch (error) {
+      console.error("Error durante la generación del PDF:", error);
+      alerts("Error", "No se pudo generar el PDF de prueba", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
         <article className="modal-content text-center px-5 py-4">
-          <div className="conten-title mb-3">
-            <h2 className="">Información completa de la póliza</h2>
+          <div className="d-flex justify-content-center align-items-center conten-title mb-3 rounded">
+            <h3 className="text-white">
+              Información completa de la póliza {policy.numberPolicy}
+            </h3>
           </div>
+      
 
           <table className="table table-striped">
             <thead>
@@ -89,8 +152,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
               </tr>
             </tbody>
           </table>
-          <div className="conten-title mb-3">
-            <h3 className="">Hitorial de pagos</h3>
+          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
+            <h3 className="text-white">Historial de pagos</h3>
           </div>
           <table className="table table-striped">
             <thead>
@@ -112,33 +175,46 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   <td>{payment.credit || "0.00"}</td>
                   <td>{payment.balance || "0.00"}</td>
                   <td>{payment.total}</td>
-                  <td>{dayjs(payment.startDate).format("DD/MM/YYYY")}</td>
+                  <td>{dayjs(payment.createdAt).format("DD/MM/YYYY")}</td>
                   <td>{payment.observations || "N/A"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="modal-footer mt-4">
-            <button
-              type="submit"
-              onClick={""}
-              id="btnc"
-              className="btn bg-success mx-5 text-white fw-bold "
-            >
-              Generar reporte PDF
-              <FontAwesomeIcon className="mx-2" beat icon={faFile} />
-            </button>
+          <div className="d-flex justify-content-around mt-1">
+            <div className="">
+              <button
+                type="submit"
+                onClick={generateReport}
+                id="btnc"
+                className="btn bg-success mx-5 text-white fw-bold "
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="spinner-border text-light" role="status">
+                    <span className="visually-hidden">Registrando...</span>
+                  </div>
+                ) : (
+                  "Generar reporte PDF"
+                )}
+                <FontAwesomeIcon className="mx-2" beat icon={faFile} />
+              </button>
 
-            <button
-              type="submit"
-              onClick={onClose}
-              id="btnc"
-              className="btn bg-danger mx-5 text-white fw-bold"
-            >
-              Cerrar
-              <FontAwesomeIcon className="mx-2" beat icon={faRectangleXmark} />
-            </button>
+              <button
+                type="submit"
+                onClick={onClose}
+                id="btnc"
+                className="btn bg-danger mx-5 text-white fw-bold"
+              >
+                Cerrar
+                <FontAwesomeIcon
+                  className="mx-2"
+                  beat
+                  icon={faRectangleXmark}
+                />
+              </button>
+            </div>
           </div>
         </article>
       </div>
