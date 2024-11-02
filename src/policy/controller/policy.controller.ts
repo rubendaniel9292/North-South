@@ -8,7 +8,11 @@ import { PolicyService } from '../services/policy.service';
 @Controller('policy')
 @UseGuards(AuthGuard, RolesGuard)
 export class PolicyController {
-  constructor(private readonly policyService: PolicyService) {}
+  constructor(
+    private readonly policyService: PolicyService,
+    //private readonly pdfService: PdfService,
+  ) {}
+
   @Roles('ADMIN', 'BASIC')
   @Post('register-policy')
   public async registerPolicy(@Body() body: PolicyDTO) {

@@ -1,0 +1,79 @@
+export class PolicyReportDto {
+  id: string;
+  numberPolicy: string;
+  coverageAmount: string;
+  agencyPercentage: string;
+  advisorPercentage: string;
+  policyValue: string;
+  numberOfPayments: number;
+  startDate: Date;
+  endDate: Date;
+  policyFee: string;
+  paymentsToAdvisor: string;
+  observations?: string;
+
+  // Sub-objetos anidados dentro de la misma clase
+  policyType: {
+    policyName: string;
+  };
+
+  policyStatus: {
+    id: string;
+    statusName: string;
+  };
+
+  paymentFrequency: {
+    id: string;
+    frequencyName: string;
+  };
+
+  company: {
+    companyName: string;
+  };
+
+  advisor: {
+    firstName: string;
+    secondName?: string;
+    surname: string;
+    secondSurname?: string;
+  };
+
+  customer: {
+    ci_ruc: string;
+    firstName: string;
+    secondName?: string;
+    surname: string;
+    secondSurname?: string;
+  };
+
+  paymentMethod: {
+    methodName: string;
+  };
+
+  bankAccount?: {
+    bank_id: string;
+    bank: {
+      bankName: string;
+    };
+  };
+
+  creditCard?: {
+    bank_id: string;
+    bank: {
+      bankName: string;
+    };
+  };
+
+  payments: Array<{
+    id: string;
+    number_payment: number;
+    value: string;
+    credit: string;
+    balance: string;
+    total: string;
+    observations?: string;
+    policy_id: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}

@@ -12,6 +12,8 @@ import { PolicyStatusService } from '@/helpers/policy.status';
 import { PolicyTypeEntity } from './entities/policy_type.entity';
 import { PaymentFrequencyEntity } from './entities/payment_frequency.entity';
 import { PaymentMethodEntity } from './entities/payment_method.entity';
+//import { PdfService } from '@/helpers/pdf.report';
+import { GenerateReportPdfService } from '@/generate-report-pdf/services/generate-report-pdf.service';
 
 @Module({
   imports: [
@@ -28,7 +30,13 @@ import { PaymentMethodEntity } from './entities/payment_method.entity';
     ProvidersModule,
     UserModule,
   ],
-  providers: [PolicyService, HttpCustomService, PolicyStatusService],
+  providers: [
+    PolicyService,
+    HttpCustomService,
+    PolicyStatusService,
+    //PdfService, //para usar el helper
+    GenerateReportPdfService,
+  ],
   controllers: [PolicyController],
   exports: [PolicyService, TypeOrmModule, PolicyStatusService],
 })

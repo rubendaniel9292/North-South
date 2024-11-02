@@ -12,6 +12,7 @@ import { PolicyModule } from './policy/policy.module';
 import { GlobaldataModule } from './globaldata/globaldata.module';
 import { BankAccountModule } from './bankaccount/bankaccount.module';
 import { PaymentModule } from './payment/payment.module';
+import { GenerateReportPdfModule } from './generate-report-pdf/generate-report-pdf.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PaymentModule } from './payment/payment.module';
     GlobaldataModule,
     BankAccountModule,
     PaymentModule,
+    GenerateReportPdfModule,
   ],
 })
 export default class AppModule {}

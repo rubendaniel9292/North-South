@@ -33,7 +33,6 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column()
   policy_status_id: number;
 
-  @Column()
   payment_frequency_id: number;
 
   @Column()

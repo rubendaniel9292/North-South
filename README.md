@@ -245,3 +245,22 @@ La sintaxis de Axios es más concisa y amigable
 
 Se trabajara con las tablas estado civil, provincia, ciudad y clientes.
 
+## Para generacion de reportes
+
+### npm i puppeteer
+
+### sudo apt install -y \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libgbm1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libxkbcommon0 \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libnss3 \
+    libxshmfence1
