@@ -18,8 +18,8 @@ const ListCustomer = () => {
     try {
       const response = await http.get("customers/get-all-customer");
       if (response.data.status === "success") {
+        console.log("infomacion completa de clientes: ", response.data);
         setCustomer(response.data.allCustomer); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
-
       } else {
         alerts("Error", "No existen clientes registrados", "error");
         console.error("Error fetching users:", response.message);
@@ -30,7 +30,6 @@ const ListCustomer = () => {
       console.error("Error fetching users:", error);
     }
   };
-
 
   return (
     <>
@@ -49,7 +48,7 @@ const ListCustomer = () => {
               <th>Estado Civil</th>
               <th>Provincia</th>
               <th>Ciudad o Cantón</th>
-              <th>Fecha de nacimiento</th>          
+              <th>Fecha de nacimiento</th>
               <th>Teléfono</th>
               <th>Email</th>
               <th>Fecha de Registro</th>
@@ -70,11 +69,9 @@ const ListCustomer = () => {
                 <td>{customer.province.provinceName}</td>
                 <td>{customer.city.cityName}</td>
                 <td>
-                  {dayjs(customer.birthdate)
-                    .format("DD/MM/YYYY")
-                    .toString()}
+                  {dayjs(customer.birthdate).format("DD/MM/YYYY").toString()}
                 </td>
-             
+
                 <td>{customer.numberPhone}</td>
                 <td>{customer.email}</td>
                 <td>
@@ -87,9 +84,16 @@ const ListCustomer = () => {
                 <td>
                   <button
                     //onClick={() => deleteUser(user.uuid)}
-                    className="btn btn-success text-white fw-bold"
+                    className="btn btn-success text-white fw-bold my-1"
                   >
-                    Actualziar
+                    Actualziar Información
+                  </button>
+
+                  <button
+                    //onClick={() => deleteUser(user.uuid)}
+                    className="btn btn-success text-white fw-bold my-1"
+                  >
+                    Ver pólizas del cliente
                   </button>
                 </td>
               </tr>

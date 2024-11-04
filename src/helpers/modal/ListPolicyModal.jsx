@@ -32,7 +32,6 @@ const ListPolicyModal = ({ policy, onClose }) => {
           headers: {
             Accept: "application/pdf", //encabezado "Accept" para indicar que estás esperando una respuesta en formato PDF.
           },
-          
         }
       );
 
@@ -77,7 +76,6 @@ const ListPolicyModal = ({ policy, onClose }) => {
               Información completa de la póliza {policy.numberPolicy}
             </h3>
           </div>
-      
 
           <table className="table table-striped">
             <thead>
@@ -181,6 +179,31 @@ const ListPolicyModal = ({ policy, onClose }) => {
               ))}
             </tbody>
           </table>
+          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
+            <h3 className="text-white">Historial de renovaciones</h3>
+          </div>
+          {!policy.renovals ? (
+            <div className="my-1">
+              <span>Aun no se han registrado renovaciones</span>
+            </div>
+          ) : (
+            <><thead>
+                <tr className="table-header">
+                  <th>Numero de renovacion</th>
+                  <th>Fecha de renovacion</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead><tbody>
+                  {policy.renovals.map((renoval) => (
+                    <tr key={renoval.id}>
+                      <td>{renoval.renewalNumber}</td>
+                      <td>{renoval.total}</td>
+                      <td>{dayjs(renoval.createdAt).format("DD/MM/YYYY")}</td>
+                      <td>{renoval.observations || "N/A"}</td>
+                    </tr>
+                  ))}
+                </tbody></>
+          )}
 
           <div className="d-flex justify-content-around mt-1">
             <div className="">
@@ -307,6 +330,13 @@ ListPolicyModal.propTypes = {
         updatedAt: PropTypes.string.isRequired, // Fecha de actualización (formato ISO string)
       })
     ).isRequired, // Es obligatorio que haya pagos en este array
+    renovals: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        renewalNumber: PropTypes.string.isRequired,
+        createdAt: PropTypes.string.isRequired,
+      })
+    ),
   }).isRequired,
 
   onClose: PropTypes.func.isRequired,
