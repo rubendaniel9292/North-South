@@ -100,3 +100,9 @@ export interface IPayment {
   total: number;
   observations?: string;
 }
+
+export interface IRenewall {
+  renewalNumber?: number;
+  observations?: string;
+  //renewalDate?: Date;
+}

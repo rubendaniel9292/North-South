@@ -65,15 +65,22 @@ export class PolicyReportDto {
   };
 
   payments: Array<{
-    id: string;
+    id: number;
     number_payment: number;
     value: string;
     credit: string;
     balance: string;
     total: string;
     observations?: string;
-    policy_id: string;
+    policy_id: number;
     createdAt: Date;
     updatedAt: Date;
+  }>;
+  renovals: Array<{
+    id: string;
+    renewalNumber: string;
+    policy_id: string;
+    createdAt: Date;
+    observations: string;
   }>;
 }

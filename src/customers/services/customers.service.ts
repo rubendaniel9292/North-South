@@ -91,7 +91,7 @@ LEFT JOIN
   Objeto de selección: para cuando necesites un control 
   más detallado sobre qué campos de las relaciones quieres incluir en el resultado.
   */
-        relations: ['civil', 'city', 'province'],
+        relations: ['civil', 'city', 'province', 'policies'],
         select: {
           id: true,
           ci_ruc: true,

@@ -19,6 +19,7 @@ import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { PaymentMethodEntity } from './payment_method.entity';
 import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
+import { RenewalEntity } from './renewal.entity';
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ unique: true })
@@ -159,7 +160,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     onDelete: 'SET NULL', // Opcional: Esto establece el campo en NULL si se elimina la tarjeta
   })
   @JoinColumn({ name: 'credit_card_id' })
-  creditCard: CreditCardEntity;
+  creditCard?: CreditCardEntity;
 
   //muchas polizas pueden estar asociadas a una cuenta bancaria
   @ManyToOne(() => BankAccountEntity, (bankAccount) => bankAccount.policies, {
@@ -167,8 +168,17 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     onDelete: 'SET NULL', // Opcional: Esto establece el campo en NULL si se elimina la cuenta
   })
   @JoinColumn({ name: 'bank_account_id' })
-  bankAccount: BankAccountEntity;
+  bankAccount?: BankAccountEntity;
   //una poliza tiene varios pagos
-  @OneToMany(() => PaymentEntity, (payment) => payment.policies)
+  @OneToMany(() => PaymentEntity, (payment) => payment.policies, {
+    onDelete: 'CASCADE', //Si elimina una póliza, todas los pagos asociados también se eliminan automáticamente.
+  })
   payments: PaymentEntity[];
+
+  //una poliza tiene varias renovaciones
+  @OneToMany(() => RenewalEntity, (renewal) => renewal.policy, {
+    nullable: true,
+    onDelete: 'CASCADE', //Si elimina una póliza, todas las renovaciones asociadas también se eliminan automáticamente.
+  })
+  renewals?: RenewalEntity[]; // Hacemos que sea opcional usando el signo "?".
 }

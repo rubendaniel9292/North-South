@@ -77,7 +77,7 @@ th {
       </style>
     </head>
     <body>
-      <div class="policy-number conten-title">
+      <div class="conten-title">
         <h2>Reporte de Póliza N° ${policy.numberPolicy}</h2>
         <span>Fecha de generación: ${new Date().toLocaleDateString()}</span>
       </div>
@@ -185,6 +185,43 @@ th {
             .join('')}
         </tbody>
       </table>
+         <!-- Historial de penovaciones -->
+          ${
+            policy.renovals && policy.renovals.length > 0
+              ? `
+    <div class="conten-title">
+      <h2>Historial de Renovaciones</h2>
+    </div>
+    <table>
+      <thead>
+        <tr class="table-header">
+          <th>Número de Renovación</th>
+          <th>Fecha de Renovación</th>
+          <th>Observaciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${policy.renovals
+          .map(
+            (renoval) => `
+          <tr>
+            <td>${renoval.renewalNumber}</td>
+            <td>${new Date(renoval.createdAt).toISOString().slice(0, 10)}</td>
+            <td>${renoval.observations || 'N/A'}</td>
+          </tr>
+        `,
+          )
+          .join('')}
+      </tbody>
+    </table>
+  `
+              : `
+    <div class="conten-title">
+      <h2>Historial de Renovaciones</h2>
+      <span>Aún no se han registrado renovaciones</span>
+    </div>
+  `
+          }
     </body>
   </html>
 `;

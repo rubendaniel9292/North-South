@@ -63,6 +63,7 @@ export class PolicyService extends ValidateEntity {
           'bankAccount.bank',
           'creditCard',
           'creditCard.bank',
+          'renewals',
         ],
         select: {
           id: true,
@@ -284,6 +285,7 @@ export class PolicyService extends ValidateEntity {
           'creditCard',
           'creditCard.bank',
           'payments',
+          'renewals',
         ],
         select: {
           id: true,
