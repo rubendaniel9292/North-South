@@ -102,7 +102,7 @@ export interface IPayment {
 }
 
 export interface IRenewall {
-  renewalNumber?: number;
+  renewalNumber: number;
   observations?: string;
-  //renewalDate?: Date;
+  createdAt: Date;
 }

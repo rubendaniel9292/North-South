@@ -187,7 +187,7 @@ th {
       </table>
          <!-- Historial de penovaciones -->
           ${
-            policy.renovals && policy.renovals.length > 0
+            policy.renewals && policy.renewals.length > 0
               ? `
     <div class="conten-title">
       <h2>Historial de Renovaciones</h2>
@@ -201,13 +201,13 @@ th {
         </tr>
       </thead>
       <tbody>
-        ${policy.renovals
+        ${policy.renewals
           .map(
-            (renoval) => `
+            (renewal) => `
           <tr>
-            <td>${renoval.renewalNumber}</td>
-            <td>${new Date(renoval.createdAt).toISOString().slice(0, 10)}</td>
-            <td>${renoval.observations || 'N/A'}</td>
+            <td>${renewal.renewalNumber}</td>
+            <td>${new Date(renewal.createdAt).toISOString().slice(0, 10)}</td>
+            <td>${renewal.observations || 'N/A'}</td>
           </tr>
         `,
           )

@@ -180,5 +180,5 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     nullable: true,
     onDelete: 'CASCADE', //Si elimina una póliza, todas las renovaciones asociadas también se eliminan automáticamente.
   })
-  renewals?: RenewalEntity[]; // Hacemos que sea opcional usando el signo "?".
+  renewals: RenewalEntity[]; // Hacemos que sea opcional usando el signo "?".
 }

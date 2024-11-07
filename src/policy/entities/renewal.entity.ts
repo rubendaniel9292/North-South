@@ -6,14 +6,20 @@ import { PolicyEntity } from './policy.entity';
 
 @Entity('renewal')
 export class RenewalEntity extends IdEntity implements IRenewall {
-  @Column({ unique: true, nullable: true })
-  renewalNumber?: number;
+  @Column()
+  renewalNumber: number;
 
   @Column({
     type: 'timestamp',
     name: 'created_at',
   })
-  createdAt?: Date;
+  createdAt: Date;
+
+  @Column()
+  policy_id: number;
+
+  @Column({ nullable: true })
+  observations: string;
 
   //varias renovaciones pertenecen a una poliza
   @ManyToOne(() => PolicyEntity, (policy) => policy.renewals, {

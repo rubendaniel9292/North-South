@@ -4,6 +4,7 @@ import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
 import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyService } from '../services/policy.service';
+import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
 
 @Controller('policy')
 @UseGuards(AuthGuard, RolesGuard)
@@ -91,6 +92,17 @@ export class PolicyController {
       return {
         status: 'success',
         policyById,
+      };
+    }
+  }
+  @Roles('ADMIN', 'BASIC')
+  @Post('register-renewal')
+  public async createReneval(@Body() body: PolicyRenewalDTO) {
+    const newRenewal = await this.policyService.createReneval(body);
+    if (newRenewal) {
+      return {
+        status: 'success',
+        newPolicy: newRenewal,
       };
     }
   }

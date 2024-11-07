@@ -76,7 +76,7 @@ export class PolicyReportDto {
     createdAt: Date;
     updatedAt: Date;
   }>;
-  renovals: Array<{
+  renewals: Array<{
     id: string;
     renewalNumber: string;
     policy_id: string;

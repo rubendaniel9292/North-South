@@ -9,6 +9,8 @@ import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyStatusService } from '@/helpers/policy.status';
 import { PaymentFrequencyEntity } from '../entities/payment_frequency.entity';
 import { PaymentMethodEntity } from '../entities/payment_method.entity';
+import { RenewalEntity } from '../entities/renewal.entity';
+import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
 
 @Injectable()
 export class PolicyService extends ValidateEntity {
@@ -23,6 +25,8 @@ export class PolicyService extends ValidateEntity {
     private readonly policyFrecuencyRepository: Repository<PaymentFrequencyEntity>,
     @InjectRepository(PaymentMethodEntity)
     private readonly policyPaymentMethod: Repository<PaymentMethodEntity>,
+    @InjectRepository(RenewalEntity)
+    private readonly policyRenevalMethod: Repository<RenewalEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -345,6 +349,29 @@ export class PolicyService extends ValidateEntity {
         });
       }
       return policyId;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //8: metodo para registrar una renovacion de poliza
+  public createReneval = async (
+    body: PolicyRenewalDTO,
+  ): Promise<RenewalEntity> => {
+    try {
+      // validar si la póliza existe antes de registrar la renovacion
+      const policy = await this.policyRepository.findOne({
+        where: { id: body.policy_id },
+      });
+
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      const newReneval = await this.policyRenevalMethod.save(body);
+      return newReneval;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
