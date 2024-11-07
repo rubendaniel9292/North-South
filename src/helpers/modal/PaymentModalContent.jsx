@@ -148,7 +148,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
           <div className="d-flex justify-content-around mt-5">
             <form onSubmit={savedPayment} id="user-form">
               <div className="row">
-                <div className="mb-4 col-2">
+                <div className="mb-4 col-3">
                   <label htmlFor="policy_id" className="form-label">
                     Id de Póliza
                   </label>
@@ -163,7 +163,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="number_payment" className="form-label">
                     Número de pago
                   </label>
@@ -179,7 +179,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                   />
                 </div>
 
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="valueToPayment" className="form-label">
                     Valor a pagar
                   </label>
@@ -195,7 +195,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="credit" className="form-label">
                     Abono o Pago
                   </label>
@@ -210,7 +210,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     onChange={handleChange}
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="balance" className="form-label">
                     Saldo
                   </label>
@@ -226,7 +226,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="total" className="form-label">
                     Total pagado
                   </label>
@@ -241,7 +241,23 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-12">
+                
+                <div className="mb-3 col-3">
+                  <label htmlFor="balance" className="form-label">
+                    Fecha de pago
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    className="form-control"
+                    id="balance"
+                    name="balance"
+                    step="0.01"
+                    value={form.createdAt}
+                    onChange={handleChange }
+                  />
+                </div>
+                <div className="mb-3 col-3">
                   <label htmlFor="observations" className="form-label">
                     Observaciones
                   </label>

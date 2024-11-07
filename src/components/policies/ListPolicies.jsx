@@ -163,8 +163,11 @@ export const ListPolicies = () => {
                       Registrar Pago
                     </button>
 
-                    <button className="btn btn-success text-white fw-bold my-1">
-                      Renovar o actualizar póliza
+                    <button
+                      className="btn btn-success text-white fw-bold my-1"
+                      onClick={() => getPolicyById(policy.id, "renewal")}
+                    >
+                      Renovar póliza
                     </button>
                   </td>
                 </tr>

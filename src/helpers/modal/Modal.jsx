@@ -2,8 +2,16 @@ import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import PaymentModalContent from "./PaymentModalContent";
 import ListPolicyModal from "./ListPolicyModal";
+import RegisterRenewalsModal from "./RegisterRenewalsModal";
 
-export default function Modal({ isOpen, onClose, policy, payment, modalType }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  policy,
+  payment,
+  modalType,
+  renewal,
+}) {
   if (!isOpen) return null;
 
   return createPortal(
@@ -16,6 +24,12 @@ export default function Modal({ isOpen, onClose, policy, payment, modalType }) {
         />
       ) : modalType === "info" ? (
         <ListPolicyModal onClose={onClose} policy={policy} />
+      ) : modalType === "renewal" ? (
+        <RegisterRenewalsModal
+          onClose={onClose}
+          policy={policy}
+          renewal={renewal}
+        />
       ) : null}
     </div>,
 
@@ -28,4 +42,5 @@ Modal.propTypes = {
   policy: PropTypes.object.isRequired,
   payment: PropTypes.object.isRequired,
   modalType: PropTypes.string.isRequired,
+  renewal: PropTypes.object.isRequired,
 };
