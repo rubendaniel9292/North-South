@@ -18,7 +18,8 @@ import { GenerateReportPdfModule } from './generate-report-pdf/generate-report-p
   imports: [
     //lee y setea las variables de entorno
     ConfigModule.forRoot({
-      envFilePath: `.${process.env.NODE_ENV}.env`,
+      //envFilePath: `.${process.env.NODE_ENV}.env`,
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}.env`,
       isGlobal: true,
     }),
     TypeOrmModule.forRoot({ ...DataSourceConfig }),
