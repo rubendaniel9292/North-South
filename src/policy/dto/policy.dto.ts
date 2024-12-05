@@ -5,6 +5,7 @@ import {
   IsInt,
   IsDate,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 
 export class PolicyDTO {
@@ -91,6 +92,10 @@ export class PolicyDTO {
   @IsOptional()
   @IsString()
   observations?: string;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  renewalCommission: boolean;
 }
 
 export class UpdatePolicyDTO {

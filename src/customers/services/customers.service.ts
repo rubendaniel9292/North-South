@@ -39,7 +39,7 @@ export class CustomersService extends ValidateEntity {
     }
   };
 
-  // Método para obtener todos los clientes con las relaciones
+  //2: Método para obtener todos los clientes con las relaciones
   public getAllCustomers = async (): Promise<CustomersEntity[]> => {
     try {
       /* euivalente en sql a 
@@ -115,8 +115,58 @@ LEFT JOIN
           },
         },
       });
+      if (!customers) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
 
       return customers;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //:3 Método para obtener todos los clientes con las relaciones por id
+  public getCustomerById = async (id: number): Promise<CustomersEntity> => {
+    try {
+      const customer: CustomersEntity = await this.customerRepository.findOne({
+        where: { id },
+        relations: ['civil', 'city', 'province', 'policies'],
+        select: {
+          id: true,
+          ci_ruc: true,
+          firstName: true,
+          secondName: true,
+          surname: true,
+          secondSurname: true,
+          birthdate: true,
+          email: true,
+          numberPhone: true,
+          address: true,
+          personalData: true,
+          civil: {
+            status: true, // Solo selecciona el campo 'status', no el 'id'
+          },
+          city: {
+            cityName: true, // Selecciona solo el nombre de la ciudad
+          },
+          province: {
+            provinceName: true, // Selecciona solo el nombre de la provincia
+          },
+        },
+      });
+      if (!customer) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      return customer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

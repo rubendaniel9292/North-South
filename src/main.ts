@@ -17,11 +17,6 @@ async function bootstrap() {
     const keyPath = process.env.KEY_PATH;
     const certPath = process.env.CERT_PATH;
 
-    console.log('Rutas de certificados:', {
-      keyPath,
-      certPath,
-    });
-
     //2: Verificar la existencia de los archivos de certificados
     try {
       if (keyPath && certPath) {
@@ -55,12 +50,18 @@ async function bootstrap() {
     //3: Crear la aplicación NestJS
     const app = await NestFactory.create(AppModule);
 
+    console.log('Iniciando servidor...');
+
+    // Configuración de CORS
+    app.enableCors(CORS);
+
     // Redireccionamiento de HTTP a HTTPS
+
     app.use((req: Request, res: Response, next: NextFunction) => {
-      console.log(`Protocolo de solicitud: ${req.protocol}`);
-      console.log('CORS request:', req.headers.origin);
+      console.log('Middleware de redirección ejecutado');
       //si la coonexcion es https
       if (req.secure) {
+        console.log('iniciando seccion con HTTPS...');
         next();
       } else {
         console.log('Redirigiendo a HTTPS');
@@ -93,19 +94,18 @@ async function bootstrap() {
     const reflector = app.get(Reflector);
     app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
 
-    // Configuración de CORS
-    app.enableCors(CORS);
-
     // Obtener puerto
     const httpPort = process.env.PORT;
     const httpsPort = process.env.HTTPS_PORT;
 
     // Iniciar el servidor HTTP en paralelo con HTTPS
+
     await app.listen(httpPort);
-    console.log(`Servidor HTTP iniciado en puerto ${await app.getUrl()}`);
+    //console.log(`Servidor HTTP iniciado en puerto ${await app.getUrl()}`);
 
     if (httpsServerOptions) {
       // Crear servidor HTTPS
+      console.log('Configurando servidor HTTPS...');
       const httpsServer = https.createServer(
         httpsServerOptions,
         app.getHttpAdapter().getInstance(),
@@ -114,7 +114,7 @@ async function bootstrap() {
       // Iniciar servidor HTTPS
       await new Promise((resolve) => {
         httpsServer.listen(httpsPort, async () => {
-          console.log(`Servidor HTTPS iniciado en puerto ${httpsPort}`);
+          //console.log(`Servidor HTTPS iniciado en puerto ${httpsPort}`);
           resolve(true);
         });
       });

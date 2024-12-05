@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Insertar un usuario admin por defecto si no existe
 -- Insertar un usuario admin por defecto si no existe
 INSERT INTO users (first_name ,surname, user_name, email, password, role)
-VALUES ('Jose', 'Rivas', 'joserivas2', 'joserivas@ejemplo.com', crypt('Sk79^o&V@$qq', gen_salt('bf')), 'ADMIN')
+VALUES ('Jose', 'Rivas', 'joserivas2', 'joserivas@ejemplo.com', crypt('Sk79o&V@$qq', gen_salt('bf')), 'ADMIN')
 ON CONFLICT (user_name) DO NOTHING;-- Evita insertar si ya existe un usuario con ese username
 
 --LISTAR USUARIOS
@@ -87,7 +87,7 @@ INSERT INTO province (province_name) VALUES
 ('Pastaza'),
 ('Pichincha'),
 ('Santa Elena'),
-('Santo Domingo de Los DE LOS Tsáchilas'),
+('Santo Domingo de Los Tsáchilas'),
 ('Francisco de Orellana'),
 ('Tungurahua'),
 ('Zamora-Chinchipe');
@@ -466,7 +466,7 @@ INSERT INTO policy_type (policy_name) VALUES
     ('Vida Individual'),
     ('Vida Grupal'),
     ('Salud'),
-    ('Snversión'),
+    ('Inversión'),
     ('Incendio'),
     ('Responsabilidad Civil'),
     ('Vehículo');
@@ -481,7 +481,7 @@ CREATE TABLE IF NOT EXISTS company(
 );
 INSERT INTO company (company_name,ci_ruc) VALUES
     ('BMI Internacional','1312222222001'),
-    ('BMI Ecuadpr','1322222222001'),
+    ('BMI Ecuador','1322222222001'),
     ('BMI Salud','1332222222001');
 
 --opciones de tarteja
@@ -516,13 +516,27 @@ INSERT INTO bank (bank_name) VALUES
     ('Banco Internacional'),
     ('Banco Bolivariano'),
     ('Cooperativa JEP'),
+    ('Cooperativa Chibuelo'),
+    ('Cooperativa 23 De Julio'),
+    ('Cooperativa Calceta'),
+    ('Cooperativa Futuro La Menense'),
+    ('Cooperativa Vencedores Ltda'), 
     ('Cooperativa 29 de Octubre'),
     ('Banco Amazonas'),
     ('Banco General Rumiñahui'),
     ('Banco Solidario'),
+    ('Ba Ecuador'),
     ('Banco del Austro');
 
-
+-- Insert account types
+INSERT INTO account_type (type_name) VALUES
+    ('Ahorros'),
+    ('Corriente');
+--estado de la tarjeta
+INSERT INTO card_status (card_status_name) VALUES 
+('Vigente'),
+('Por Caducar'),
+('Caducada');
 --crear tabla tarjeta de credito sin cifrar 
 CREATE TABLE IF NOT EXISTS credit_card (
     id bigint primary key generated always as identity NOT NULL,

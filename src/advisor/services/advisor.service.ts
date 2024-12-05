@@ -22,7 +22,8 @@ export class AdvisorService extends ValidateEntity {
       // Convertir el valor de personalData a booleano
       //body.personalData = body.personalData === 'true' || body.personalData === true;
       await this.validateInput(body, 'advisor');
-      const newAdvisor = await this.advisdorRepository.save(body);
+      const newAdvisor: AdvisorEntity =
+        await this.advisdorRepository.save(body);
       console.log(body.personalData);
       //consulta futura para la eliminacion del usuario no se aconseja en produccion
       //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
@@ -38,7 +39,7 @@ export class AdvisorService extends ValidateEntity {
   //2: metodo para buscar los asesores
   public getAllAdvisors = async () => {
     try {
-      const allAdvisors = await this.advisdorRepository.find();
+      const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find();
       return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

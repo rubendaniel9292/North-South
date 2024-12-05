@@ -66,7 +66,9 @@ export class UserService {
         .createQueryBuilder('user')
         .where({ id })
         .getOne();*/
-      const user = await this.userRepository.findOne({ where: { uuid } });
+      const user: UserEntity = await this.userRepository.findOne({
+        where: { uuid },
+      });
 
       if (!user) {
         //se guarda el error

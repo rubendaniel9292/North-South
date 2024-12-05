@@ -1,8 +1,11 @@
 import axios from 'axios';
 //import { ErrorManager } from './error.manager';
 export async function verifyRecaptcha(captchaToken: string): Promise<boolean> {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY; // Clave secreta de reCAPTCHA
-  //const secretKey = '6LczPmgqAAAAAH95x7TvNS3VbJSTchN19aU3WEvY'; // Clave secreta de reCAPTCHA
+  if (!process.env.RECAPTCHA_SECRET_KEY) {
+    console.error('La clave secreta RECAPTCHA_SECRET_KEY no está definida.');
+  }
+
+  const secretKey = String(process.env.RECAPTCHA_SECRET_KEY);
 
   try {
     const response = await axios.post(

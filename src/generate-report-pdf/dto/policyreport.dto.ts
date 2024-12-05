@@ -11,6 +11,7 @@ export class PolicyReportDto {
   policyFee: string;
   paymentsToAdvisor: string;
   observations?: string;
+  renewalCommission: boolean;
 
   // Sub-objetos anidados dentro de la misma clase
   policyType: {

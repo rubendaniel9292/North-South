@@ -82,6 +82,7 @@ export class PolicyService extends ValidateEntity {
           paymentsToAdvisor: true,
           policyFee: true,
           observations: true,
+          renewalCommission: true,
           policyType: {
             policyName: true,
           },
@@ -164,6 +165,7 @@ export class PolicyService extends ValidateEntity {
           endDate: true,
           paymentsToAdvisor: true,
           observations: true,
+          renewalCommission: true,
           policyType: {
             policyName: true,
           },
@@ -274,7 +276,7 @@ export class PolicyService extends ValidateEntity {
   //7: metodo para obtener las polizas mediante su id
   public findPolicyById = async (id: number): Promise<PolicyEntity> => {
     try {
-      const policyId = await this.policyRepository.findOne({
+      const policyId: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
         relations: [
           'policyType',
@@ -303,6 +305,7 @@ export class PolicyService extends ValidateEntity {
           endDate: true,
           paymentsToAdvisor: true,
           policyFee: true,
+          renewalCommission: true,
           observations: true,
           policyType: {
             policyName: true,

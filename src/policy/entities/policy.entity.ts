@@ -34,6 +34,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column()
   policy_status_id: number;
 
+  @Column()
   payment_frequency_id: number;
 
   @Column()
@@ -84,6 +85,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ nullable: true })
   observations: string;
 
+  @Column({ type: 'boolean' })
+  renewalCommission: boolean;
+
   @CreateDateColumn({
     type: 'timestamp',
     name: 'created_at',
@@ -102,7 +106,8 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   })
   @JoinColumn({ name: 'policy_type_id' }) // Nombre de la columna que actúa como la clave foránea
   policyType: PolicyTypeEntity;
-  //relacion varios a uno: muchas polizas tienen un solo estadi
+
+  //relacion varios a uno: muchas polizas tienen un solo estado
 
   @ManyToOne(
     () => PolicyStatusEntity,

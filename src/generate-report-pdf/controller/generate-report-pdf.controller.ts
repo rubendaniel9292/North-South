@@ -95,6 +95,7 @@ th {
             <th>Método de Pago</th>
             <th>Banco (si aplica)</th>
             <th>Frecuencia de Pago</th>
+            <th> Comisión por renovación</th>
           </tr>
         </thead>
         <tbody>
@@ -114,6 +115,7 @@ th {
               }
             </td>
             <td>${policy.paymentFrequency.frequencyName}</td>
+            <td>${policy.renewalCommission === true ? 'SÍ' : 'NO'}</td>
           </tr>
         </tbody>
         <thead>
@@ -126,7 +128,7 @@ th {
             <th>Derecho de Póliza</th>
             <th>Pagos de comisiones al asesor</th>
             <th>Estado</th>
-            <th>Observaciones</th>
+            <th colSpan="2" scope="row">Observaciones</th>
           </tr>
         </thead>
         <tbody>
@@ -148,7 +150,7 @@ th {
               ${policy.policyStatus.statusName}
           </td>
             </td>
-            <td>${policy.observations || 'N/A'}</td>
+            <td colSpan="2" scope="row">${policy.observations || 'N/A'}</td>
           </tr>
         </tbody>
       </table>
@@ -165,7 +167,7 @@ th {
             <th>Saldo</th>
             <th>Total</th>
             <th>Fecha de pago</th>
-            <th>Observaciones</th>
+            <th colSpan="2" scope="row">Observaciones</th>
           </tr>
         </thead>
         <tbody>
@@ -179,7 +181,7 @@ th {
               <td>${payment.balance || '0.00'}</td>
               <td>${payment.total}</td>
               <td>${new Date(payment.createdAt).toISOString().slice(0, 10)}</td>
-              <td>${payment.observations || 'N/A'}</td>
+              <td colSpan="2" scope="row">${payment.observations || 'N/A'}</td>
             </tr>`,
             )
             .join('')}

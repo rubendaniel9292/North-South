@@ -4,7 +4,7 @@ import {
   Get,
   //Delete,
   //Get,
-  //Param,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -39,6 +39,17 @@ export class CustomersController {
       return {
         status: 'success',
         allCustomer,
+      };
+    }
+  }
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-customer-id/:id')
+  public async getCustomeId(@Param('id') id: number) {
+    const getCustomerById = await this.customerService.getCustomerById(id);
+    if (getCustomerById) {
+      return {
+        status: 'success',
+        getCustomerById,
       };
     }
   }

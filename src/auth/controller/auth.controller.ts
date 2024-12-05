@@ -20,9 +20,11 @@ export class AuthController {
   @PublicAcces()
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() loginDto: LoginDto) {
+    console.log('iniciando verificacion de token recapcha en el controlador');
     const { username, password, captchaToken } = loginDto;
-
+    //const { username, password } = loginDto;
     // Verificar reCAPTCHA antes de autenticar al usuario
+
     const isHuman = await verifyRecaptcha(captchaToken);
     if (!isHuman) {
       throw new BadRequestException('Fallo en la verificación de reCAPTCHA.');
