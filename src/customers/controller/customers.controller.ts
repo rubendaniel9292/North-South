@@ -45,11 +45,11 @@ export class CustomersController {
   @Roles('ADMIN', 'BASIC')
   @Get('get-customer-id/:id')
   public async getCustomeId(@Param('id') id: number) {
-    const getCustomerById = await this.customerService.getCustomerById(id);
-    if (getCustomerById) {
+    const customerById = await this.customerService.getCustomerById(id);
+    if (customerById) {
       return {
         status: 'success',
-        getCustomerById,
+        customerById,
       };
     }
   }

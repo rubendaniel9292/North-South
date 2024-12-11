@@ -134,7 +134,24 @@ LEFT JOIN
     try {
       const customer: CustomersEntity = await this.customerRepository.findOne({
         where: { id },
-        relations: ['civil', 'city', 'province', 'policies'],
+        relations: [
+          'civil',
+          'city',
+          'policies',
+          'province',
+          'policies.paymentFrequency',
+          'policies.company',
+          'policies.paymentMethod',
+          'policies.policyStatus',
+          'policies.policyType',
+          'policies.advisor',
+          'policies.bankAccount',
+          'policies.bankAccount.bank',
+          'policies.creditCard',
+          'policies.creditCard.bank',
+          'policies.payments',
+          'policies.renewals',
+        ],
         select: {
           id: true,
           ci_ruc: true,
@@ -147,14 +164,41 @@ LEFT JOIN
           numberPhone: true,
           address: true,
           personalData: true,
-          civil: {
-            status: true, // Solo selecciona el campo 'status', no el 'id'
-          },
           city: {
             cityName: true, // Selecciona solo el nombre de la ciudad
           },
           province: {
             provinceName: true, // Selecciona solo el nombre de la provincia
+          },
+          civil: {
+            status: true,
+          },
+          policies: {
+            id: true,
+            numberPolicy: true,
+            coverageAmount: true,
+            agencyPercentage: true,
+            advisorPercentage: true,
+            policyValue: true,
+            numberOfPayments: true,
+            startDate: true,
+            endDate: true,
+            paymentsToAdvisor: true,
+            policyFee: true,
+            renewalCommission: true,
+            observations: true,
+            bankAccount: {
+              bank_id: true,
+              bank: {
+                bankName: true,
+              },
+            },
+            creditCard: {
+              bank_id: true,
+              bank: {
+                bankName: true,
+              },
+            },
           },
         },
       });
