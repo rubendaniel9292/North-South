@@ -16,7 +16,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
   //const { form, changed } = UserForm({ balance: 0.0 });
   const [form, setForm] = useState({
     //number_payment: 1,
-    number_payment: policy.payments.number_payment,
+    number_payment: policy.payments.number_payment || 1,
     value: 0,
     balance: 0,
     total: 0,
@@ -123,6 +123,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
           "Pago no registrado correctamente. Verificar que no haya campos vacios o números de pago duplicados",
           "error"
         );
+       
       }
     } catch (error) {
       alerts("Error", "Error fetching policy.", "error");
@@ -252,9 +253,8 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     className="form-control"
                     id="balance"
                     name="balance"
-                    step="0.01"
                     value={form.createdAt}
-                    onChange={handleChange }
+                
                   />
                 </div>
                 <div className="mb-3 col-3">
@@ -314,7 +314,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
 // Validación de propiedades con PropTypes
 PaymentModalContent.propTypes = {
   policy: PropTypes.shape({
-    id: PropTypes.number.isRequired,
+    id: PropTypes.string.isRequired,
     numberPolicy: PropTypes.number.isRequired,
     number_payment: PropTypes.number.isRequired,
     policyValue: PropTypes.number.isRequired,

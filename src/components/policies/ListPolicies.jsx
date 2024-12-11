@@ -13,15 +13,15 @@ export const ListPolicies = () => {
   //conseguir la poliza por id
   const getPolicyById = async (policyId, type) => {
     try {
-      //const response = await http.get(`policy/get-policy-id/${policyId}`);
       const response = await http.get(`policy/get-policy-id/${policyId}`);
       console.log("poliza por id obtenida: ", response.data);
       if (response.data.status === "success") {
+        console.log('poliza obtenida: ', response.data.policyById)
         // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
         setModalType(type); // Establece el tipo de modal a mostrar
         openModal(policyId);
-        console.log("respuesta de la peticion: ", response.data);
+        console.log("respuesta de la peticion: ", response.data.policyById);
       } else {
         alerts(
           "Error",
@@ -85,15 +85,6 @@ export const ListPolicies = () => {
                 <th>Banco (si aplica)</th>
                 <th>Frecuencia de Pago</th>
                 <th>Monto de Cobertura</th>
-
-                {/* CAMPOS A SEPARAR
-                <th>Porcentaje de la Agencia</th>
-                <th>Porcentaje del Asesor</th>
-                <th>Valor de la Póliza</th>
-                <th>Número de Pagos</th>
-                <th>Derecho de póliza</th>
-                <th>Pagos de comisiones al asesor</th>
-*/}
                 <th>Estado</th>
                 <th>Observaciones</th>
                 <th>Acciones</th>
@@ -112,11 +103,9 @@ export const ListPolicies = () => {
                   </td>
                   <td>{policy.company.companyName}</td>
                   <td>{policy.policyType.policyName}</td>
-
                   <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
                   <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
                   <td>{policy.paymentMethod.methodName}</td>
-
                   <td>
                     {policy.bankAccount && policy.bankAccount.bank
                       ? policy.bankAccount.bank.bankName
@@ -126,15 +115,6 @@ export const ListPolicies = () => {
                   </td>
                   <td>{policy.paymentFrequency.frequencyName}</td>
                   <td>{policy.coverageAmount}</td>
-
-                  {/* CAMPOS A SEPARAR
-                  <td>{policy.agencyPercentage}</td>
-                  <td>{policy.advisorPercentage}</td>
-                  <td>{policy.policyValue}</td>
-                  <td>{policy.numberOfPayments}</td>
-                  <td>{policy.policyFee || "NO APLICA"}</td>
-                  <td>{policy.paymentsToAdvisor}</td>
-*/}
                   <td
                     className={
                       policy.policyStatus.id == 4
@@ -182,6 +162,7 @@ export const ListPolicies = () => {
             onClose={closeModal}
             policy={policy}
             modalType={modalType} // Pasamos el tipo de modal a mostrar
+            
           ></Modal>
         )}
       </section>

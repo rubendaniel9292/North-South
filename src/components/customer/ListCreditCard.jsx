@@ -42,7 +42,7 @@ const ListCreditCard = () => {
               <th>Primer Nombre</th>
               <th>Segundo Nombre</th>
               <th>Primer Apellido</th>
-              <th>Primer Segundo</th>
+              <th>Segundo Apellido</th>
               <th>Banco</th>
               <th>Tipo de tarjeta</th>
               <th>Estado</th>
@@ -81,7 +81,7 @@ const ListCreditCard = () => {
                     //onClick={() => deleteUser(user.uuid)}
                     className="btn btn-success text-white fw-bold"
                   >
-                    Actualziar
+                    Actualizar
                   </button>
                 </td>
               </tr>

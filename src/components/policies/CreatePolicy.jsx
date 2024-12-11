@@ -54,7 +54,7 @@ const CreatePolicy = () => {
     const policyFee = Number(form.policyFee);
     let payment = Number(form.payment) || 0;
     if (!isNaN(value) && !isNaN(percentage) && !isNaN(policyFee)) {
-      payment = (value * percentage) / 100 - policyFee;
+      payment = Number((value * percentage) / 100 - policyFee).toFixed(2);
       changed({
         target: {
           name: "paymentsToAdvisor",
@@ -124,6 +124,7 @@ const CreatePolicy = () => {
       let newPolicy = form;
       const request = await http.post("policy/register-policy", newPolicy);
       if (request.data.status === "success") {
+        console.log("Poliza registrada: ", request.data);
         alerts(
           "Registro exitoso",
           "Póliza registrada correctamente",
@@ -138,7 +139,11 @@ const CreatePolicy = () => {
         );
       }
     } catch (error) {
-      alerts("Error", "Error fetching policy.", "error");
+      alerts(
+        "Error",
+        "No se registró la póliza, revise los campos e intente nuevamente.",
+        "error"
+      );
       console.error("Error fetching policy:", error);
     } finally {
       setIsLoading(false);
@@ -341,7 +346,7 @@ const CreatePolicy = () => {
           )}
           <div className="mb-3 col-3">
             <label htmlFor="coverageAmount" className="form-label">
-              Monto de Covertura
+              Monto de Cobertura
             </label>
             <input
               required
@@ -406,6 +411,37 @@ const CreatePolicy = () => {
               value={form.policyFee}
               onChange={changed} // Llamada a la función
             />
+          </div>
+          <div className="mb-3 col-3 ">
+            <label htmlFor="flexRadioDefault7" className="form-label">
+              Comisión por renovación
+            </label>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="renewalCommission"
+                id="flexRadioDefault7"
+                value="true"
+                onChange={changed}
+              ></input>
+              <label className="form-check-label" htmlFor="flexRadioDefault8">
+                Si
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="renewalCommission"
+                id="flexRadioDefault8"
+                value="false"
+                onChange={changed}
+              ></input>
+              <label className="form-check-label" htmlFor="flexRadioDefault8">
+                No
+              </label>
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="numberOfPayments" className="form-label">

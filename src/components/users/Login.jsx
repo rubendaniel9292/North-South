@@ -4,25 +4,26 @@ import { faLock, faUser } from "@fortawesome/free-solid-svg-icons";
 import "@fontsource/roboto/900.css";
 import "@fontsource/nunito/700.css";
 import UserForm from "../../hooks/UserForm";
-import alerts from "../../helpers/Alerts";
+import Swal from "sweetalert2";
+import  alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import useAuth from "../../hooks/useAuth";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const { form, changed } = UserForm({});
   const { setAuth } = useAuth();
-
-  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  console.log("site key:", siteKey);
+  const navigate = useNavigate();
 
   // Cargar el script de reCAPTCHA v3
+
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = `https://www.google.com/recaptcha/enterprise.js?render=6LczPmgqAAAAAJhvKdR0ugxEb_-lyyHDLQevOEF1`;
-
+    script.src = `https://www.google.com/recaptcha/enterprise.js?render=6LcDZoYqAAAAAHcLxKKgxw9D7mNN2ELipm3XFIDl`;
     script.async = true;
     document.body.appendChild(script);
+
 
     //cleanup para evitar posibles duplicados en el futuro
     /*React ejecutará primero la función de limpieza (si existe) antes de ejecutar el efecto nuevamente. 
@@ -37,63 +38,78 @@ const Login = () => {
   const loginUser = async (e) => {
     //prevenir atualziacion de pantalla
     e.preventDefault();
-    window.grecaptcha.ready(() => {
-      window.grecaptcha
-        .execute("6LczPmgqAAAAAJhvKdR0ugxEb_-lyyHDLQevOEF1", {
-          action: "login",
-        })
-        .then(async (token) => {
-          //setCaptchaToken(token); // Guardar el token
+    try {
+      if (window.grecaptcha && typeof window.grecaptcha.ready === "function") {
+        //console.log("grecaptcha:", window.grecaptcha);
+        window.grecaptcha.ready(() => {
+          window.grecaptcha
+            .execute("6LcDZoYqAAAAAHcLxKKgxw9D7mNN2ELipm3XFIDl", {
+              action: "login",
+            })
+            .then(async (token) => {
+              //setCaptchaToken(token); // Guardar el token
+              //console.log("Token generado:", token);
 
-          // Continuar con el proceso de login solo después de obtener el token
-          let userToLogin = { ...form, captchaToken: token }; // Incluir el token en la petición
-          try {
-            //regoger datos del formulario
-            //let userToLogin = form;
-            /*  peticion mediante fecth
-        console.log("Sending request to:", Global.url + 'auth/login');
-        peticion a la api 
-        const request = await fetch(Global.url + 'auth/login', {
-          method: 'POST',
-          body: JSON.stringify(userToLogin),//convertir a JSON string
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await request.json();*/
-            const request = await http.post("auth/login", userToLogin);
+              // Continuar con el proceso de login solo después de obtener el token
+              let userToLogin = { ...form, captchaToken: token }; // Incluir el token en la petición
+              try {
+                //regoger datos del formulario
+                //let userToLogin = form;
+                const request = await http.post("auth/login", userToLogin);
 
-            //persistir los datos en el navegador
-            if (request.data.accessToken) {
-              localStorage.setItem("token", request.data.accessToken);
-              localStorage.setItem("user", JSON.stringify(request.data.user));
-              //setLoged('login');
-              //redireccion
-              alerts(
-                "Login exitoso",
-                `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`,
-                "success"
-              );
-              setTimeout(() => {
-                //setear datos en el para que redireciones y no entrar manualamente al dasboard
-                setAuth(request.data.user);
-                window.location.reload(); //realiza el navigate a public o private layout de manera automatica
-              }, 50);
-            } else {
-              //setLoged('error')
-              alerts("Error", "Usuario o contraseña incorrecta", "error");
-            }
-          } catch (error) {
-            // Cualquier otro error
-            alerts(
-              "Error",
-              "Ha ocurrido un error inesperado. Verifique no hayan campos vacíos e inténtalo de nuevo.",
-              "error"
-            );
-            console.error("Error fetching users:", error);
-          }
+                //persistir los datos en el navegador
+                if (request.data.accessToken) {
+                  localStorage.setItem("token", request.data.accessToken);
+                  localStorage.setItem(
+                    "user",
+                    JSON.stringify(request.data.user)
+                  );
+                  //setLoged('login');
+                  //redireccion
+                  alerts(
+                    "Login exitoso",
+                    `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`,
+                    "success"
+                  );
+                  setTimeout(() => {
+                    //setear datos en el para que redireciones y no entrar manualamente al dasboard
+                    setAuth(request.data.user);
+                    Swal.close();
+                    navigate("/management");
+                  }, 500);
+                } else {
+                  //setLoged('error')
+                  alerts("Error", "Usuario o contraseña incorrecta", "error");
+                }
+              } catch (error) {
+                // Cualquier otro error
+                console.error(
+                  "Error completo:",
+                  error.response || error.request || error
+                );
+                alerts("Error", `Error de conexión: ${error.message}`, "error");
+                console.error("Error fetching users:", error);
+              }
+            }).catch(error => {
+              console.error("Error generando token:", error);
+            });
         });
-    });
+      } else {
+        console.error("reCAPTCHA no está disponible.");
+      }
+    } catch (error) {
+      // Cualquier otro error
+      // Cualquier otro error
+      console.error(
+        "Error completo:",
+        error.response || error.request || error
+      );
+      alerts(
+        "Error",
+        `Error de recapcha o de conexión: ${error.message}`,
+        "error"
+      );
+    }
   };
 
   return (
@@ -154,25 +170,6 @@ const Login = () => {
                   Iniciar sesión
                 </button>
               </div>
-
-              {/*
-              <div className="text-center p-t-12">
-                <span className="txt1">
-                  Forgot
-                </span>
-                <a className="txt2" href="#">
-                  Username / Password?
-                </a>
-              </div>
-               
-
-              <div className="text-center p-t-136">
-                <a className="txt2" href="#">
-                  Crear tu cuenta
-                  <i className="fa fa-long-arrow-right m-l-5" aria-hidden="true"></i>
-                </a>
-              </div>
-              */}
             </form>
           </div>
         </div>

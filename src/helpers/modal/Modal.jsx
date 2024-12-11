@@ -3,44 +3,48 @@ import { createPortal } from "react-dom";
 import PaymentModalContent from "./PaymentModalContent";
 import ListPolicyModal from "./ListPolicyModal";
 import RegisterRenewalsModal from "./RegisterRenewalsModal";
+import CustomerModalContent from "./CustomerModalContent";
 
 export default function Modal({
   isOpen,
   onClose,
   policy,
-  payment,
   modalType,
-  renewal,
+  customerId,
 }) {
   if (!isOpen) return null;
 
+  const getModalContent = () => {
+    switch (modalType) {
+      case "payment":
+        return <PaymentModalContent onClose={onClose} policy={policy} />;
+      case "info":
+        return <ListPolicyModal onClose={onClose} policy={policy} />;
+      case "renewal":
+        return <RegisterRenewalsModal onClose={onClose} policy={policy} />;
+      case "customerId":
+        return (
+          <CustomerModalContent
+            onClose={onClose}
+            customerId={customerId}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return createPortal(
     <div className="modal-container d-flex justify-content-center align-items-center">
-      {modalType === "payment" ? (
-        <PaymentModalContent
-          onClose={onClose}
-          policy={policy}
-          payment={payment}
-        />
-      ) : modalType === "info" ? (
-        <ListPolicyModal onClose={onClose} policy={policy} />
-      ) : modalType === "renewal" ? (
-        <RegisterRenewalsModal
-          onClose={onClose}
-          policy={policy}
-          renewal={renewal}
-        />
-      ) : null}
+      {getModalContent()}
     </div>,
-
     document.body
   );
 }
 Modal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  policy: PropTypes.object.isRequired,
-  payment: PropTypes.object.isRequired,
+  policy: PropTypes.object,
   modalType: PropTypes.string.isRequired,
-  renewal: PropTypes.object.isRequired,
+  customerId: PropTypes.object.isRequired,
 };

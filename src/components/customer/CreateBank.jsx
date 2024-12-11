@@ -32,12 +32,12 @@ const CreateBank = () => {
   return (
     <>
       <div className="container-fluid">
-        <h2>Registro de bancos</h2>
+        <h2>Registro de bancos o cooperativas</h2>
         <form onSubmit={savedBank} id="user-form">
           <div className="row pt-3">
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
-                Nombre del banco
+                Nombre del banco o cooperativa
               </label>
               <input
                 required
@@ -50,7 +50,7 @@ const CreateBank = () => {
             </div>
 
             <div className="mt-4 col-3">
-              <button type="submit" className="btn btn-success mt-2">
+              <button type="submit" className="btn btn-success mt-2 fw-bold">
                 Registrar Banco
                 <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>

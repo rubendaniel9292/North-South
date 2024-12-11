@@ -25,8 +25,8 @@ const ListCompanies = () => {
     }
   };
   return (
-  <>
-   <div>
+    <>
+      <div>
         <h2>Lista de compañias aseguradoras</h2>
         <table className="table table-striped">
           <thead>
@@ -40,15 +40,15 @@ const ListCompanies = () => {
             {companies.map((company, index) => (
               <tr key={company.id}>
                 <td>{index + 1}</td>
-                <td>{company.ci_ruc}</td>
                 <td>{company.companyName}</td>
+                <td>{company.ci_ruc}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-  </>
-);
+    </>
+  );
 };
 
 export default ListCompanies;

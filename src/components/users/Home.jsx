@@ -19,8 +19,6 @@ const Home = () => {
         setCards(response.data.allCardsExpired); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
         setCardStatus(true);
       } else {
-        //alerts("Error", "No existen tarjetas registradas", "error");
-        console.error("Error fetching users:", response.message);
         setCardStatus(false);
       }
     } catch (error) {
@@ -51,10 +49,10 @@ const Home = () => {
   return (
     <>
       <div>
-        <h2>Listado de póilzas y tarjetas vencidas o por vencer</h2>
+        <h2>Listado de pólizas y tarjetas vencidas o por vencer</h2>
         <div className="my-3">
           {!cardStatus ? (
-            <h3>No hay tarjetas vencidas o por vencer actualemente</h3>
+            <h3>No hay tarjetas vencidas o por vencer actualmente</h3>
           ) : (
             <>
               <h3>Lista de tarjetas caducadas o por por caducar</h3>
@@ -122,7 +120,7 @@ const Home = () => {
         </div>
         <div className="my-3">
           {!policyStatus ? (
-            <h3>No hay pólizas termidas o por terminar actualemente</h3>
+            <h3>No hay pólizas terminadas o por terminar actualmente</h3>
           ) : (
             <>
               <h3>Listado de todas las póilzas terminadas o por terminar</h3>

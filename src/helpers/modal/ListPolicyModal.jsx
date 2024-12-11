@@ -10,20 +10,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   if (!policy) return null;
-  console.log("info completa de la poliza: ", policy);
+
   const generateReport = async (e) => {
     e.preventDefault();
     try {
       setIsLoading(true);
       console.log("Generando PDF para póliza:", policy.numberPolicy);
-      /*
-      const response = await http.get(`policy/download-policy/${policy.id}`, {
-        responseType: "blob",
-        headers: {
-          Accept: "application/pdf",
-        },
-      });*/
-
       const response = await http.post(
         `generate-report-pdf/download-policy`,
         policy,
@@ -61,7 +53,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
       alerts("Éxito", "PDF de prueba generado correctamente", "success");
     } catch (error) {
       console.error("Error durante la generación del PDF:", error);
-      alerts("Error", "No se pudo generar el PDF de prueba", "error");
+      alerts("Error", "No se pudo generar el PDF", "error");
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +81,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Método de Pago</th>
                 <th>Banco (si aplica)</th>
                 <th>Frecuencia de Pago</th>
+                <th> Comisión por renovación</th>
               </tr>
             </thead>
             <tbody>
@@ -110,6 +103,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     : "NO APLICA"}
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
+                <td>{policy.renewalCommission === true ? "SÍ" : "NO"}</td>
               </tr>
             </tbody>
 
@@ -123,7 +117,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Derecho de Póliza</th>
                 <th>Pagos de comisiones al asesor</th>
                 <th>Estado</th>
-                <th>Observaciones</th>
+                <th colSpan="2" scope="row">
+                  Observaciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -146,10 +142,14 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 >
                   {policy.policyStatus.statusName}
                 </td>
-                <td>{policy.observations || "N/A"}</td>
+
+                <td colSpan="2" scope="row">
+                  {policy.observations || "N/A"}
+                </td>
               </tr>
             </tbody>
           </table>
+          
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
             <h3 className="text-white">Historial de pagos</h3>
           </div>
@@ -251,7 +251,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
 ListPolicyModal.propTypes = {
   policy: PropTypes.shape({
-    id: PropTypes.number.isRequired,
+    //id: PropTypes.number.isRequired,
     numberPolicy: PropTypes.number.isRequired,
     coverageAmount: PropTypes.number,
     agencyPercentage: PropTypes.number,
@@ -263,6 +263,7 @@ ListPolicyModal.propTypes = {
     paymentsToAdvisor: PropTypes.number,
     policyFee: PropTypes.number,
     observations: PropTypes.string,
+    renewalCommission: PropTypes.boolean,
 
     // Relación con policyType
     policyType: PropTypes.shape({
@@ -321,6 +322,7 @@ ListPolicyModal.propTypes = {
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
     // Validación del array de pagos dentro de 'policy'
+
     payments: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.number.isRequired, // Si 'id' es numérico
