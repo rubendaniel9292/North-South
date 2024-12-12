@@ -51,8 +51,8 @@ const CustomerModalContent = ({ onClose, customerId }) => {
                 Pólizas a nombre de {customerId.firstName}{" "}
                 {customerId.secondName} {customerId.surname}{" "}
                 {customerId.secondSurname}
-                <h4>Cédula: {customerId.ci_ruc}</h4>
               </h3>
+              <h3 className="text-white">Cédula: {customerId.ci_ruc}</h3>
             </div>
 
             <table className="table table-striped">
@@ -68,6 +68,7 @@ const CustomerModalContent = ({ onClose, customerId }) => {
                   <th>Banco (si aplica)</th>
                   <th>Frecuencia de Pago</th>
                   <th> Comisión por renovación</th>
+                  <th>Número de renovaciones</th>
                 </tr>
               </thead>
 
@@ -93,18 +94,20 @@ const CustomerModalContent = ({ onClose, customerId }) => {
                     </td>
                     <td>{policy.paymentFrequency?.frequencyName || "N/A"}</td>
                     <td>{policy.renewalCommission ? "SÍ" : "NO"}</td>
+                    <td>{policy.renewals?.length || 0}</td>
                   </tr>
                 ))}
               </tbody>
 
               <thead>
                 <tr>
-                <th>Póliza correspondiente</th>
+                  <th>Póliza correspondiente</th>
                   <th>Monto de Cobertura</th>
                   <th>Porcentaje de la Agencia</th>
                   <th>Porcentaje del Asesor</th>
                   <th>Valor de la Póliza</th>
                   <th>Número de Pagos</th>
+                  <th>Pagos realizados</th>
                   <th>Derecho de Póliza</th>
                   <th>Pagos de comisiones al asesor</th>
                   <th>Estado</th>
@@ -117,12 +120,13 @@ const CustomerModalContent = ({ onClose, customerId }) => {
               <tbody>
                 {customerId.policies.map((policy) => (
                   <tr key={policy.id}>
-                     <td>{policy.numberPolicy}</td>
+                    <td>{policy.numberPolicy}</td>
                     <td>{policy.coverageAmount}</td>
                     <td>{policy.agencyPercentage}</td>
                     <td>{policy.advisorPercentage}</td>
                     <td>{policy.policyValue}</td>
                     <td>{policy.numberOfPayments}</td>
+                    <td>{policy.payments?.length || 0}</td>
                     <td>{policy.policyFee || "NO APLICA"}</td>
                     <td>{policy.paymentsToAdvisor}</td>
                     <td

@@ -149,7 +149,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
               </tr>
             </tbody>
           </table>
-          
+
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
             <h3 className="text-white">Historial de pagos</h3>
           </div>
