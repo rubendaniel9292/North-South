@@ -13,6 +13,7 @@ import { GlobaldataModule } from './globaldata/globaldata.module';
 import { BankAccountModule } from './bankaccount/bankaccount.module';
 import { PaymentModule } from './payment/payment.module';
 import { GenerateReportPdfModule } from './generate-report-pdf/generate-report-pdf.module';
+import { TurnstileModule } from './turnstile/turnstile.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { GenerateReportPdfModule } from './generate-report-pdf/generate-report-p
     BankAccountModule,
     PaymentModule,
     GenerateReportPdfModule,
+    TurnstileModule,
   ],
 })
 export default class AppModule {}

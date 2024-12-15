@@ -10,7 +10,11 @@ export class LoginDto {
   @IsString()
   password: string;
 
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
+
   @IsNotEmpty()
   @IsString()
-  captchaToken: string;
+  turnstileToken: string;
 }

@@ -5,9 +5,16 @@ import { ProvidersModule } from '@/providers/providers.module';
 import { UserModule } from '@/user/user.module';
 import { AuthController } from './controller/auth.controller';
 import { AuthService } from './services/auth.service';
+import { TurnstileModule } from '@/turnstile/turnstile.module';
 
 @Module({
-  imports: [UserModule, CustomersModule, ProvidersModule, CreditcardModule],
+  imports: [
+    UserModule,
+    CustomersModule,
+    ProvidersModule,
+    CreditcardModule,
+    TurnstileModule,
+  ],
   providers: [AuthService],
   controllers: [AuthController],
 })

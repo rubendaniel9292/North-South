@@ -6,6 +6,7 @@ export async function verifyRecaptcha(captchaToken: string): Promise<boolean> {
   }
 
   const secretKey = String(process.env.RECAPTCHA_SECRET_KEY);
+  console.log('clave secreta: ', secretKey);
 
   try {
     const response = await axios.post(
@@ -20,6 +21,7 @@ export async function verifyRecaptcha(captchaToken: string): Promise<boolean> {
     );
 
     const data = response.data;
+    console.log('response de la solicitud de recapcha: ', data);
 
     if (data.success && data.score > 0.5) {
       // El token es válido y tiene buena puntuación

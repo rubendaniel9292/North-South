@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { BankDTO } from '../dto/bank.dto';
 import { CardOptionDTO } from '../dto/cardptions.dto';
 import { CreditcardService } from '../services/creditcard.service';
@@ -55,7 +63,10 @@ export class CreditcardController {
 
   @Roles('ADMIN', 'BASIC')
   @Get('all-cards')
-  public async findAllCards() {
+  public async findAllCards(@Query('turnstileToken') turnstileToken: string) {
+    if (!turnstileToken) {
+      throw new BadRequestException('Token de Turnstile requerido');
+    }
     const allCards = await this.creditCardService.findAllCrards();
     if (allCards) {
       return {

@@ -101,7 +101,7 @@ async function bootstrap() {
     // Iniciar el servidor HTTP en paralelo con HTTPS
 
     await app.listen(httpPort);
-    //console.log(`Servidor HTTP iniciado en puerto ${await app.getUrl()}`);
+    console.log(`Servidor HTTP iniciado en puerto ${await app.getUrl()}`);
 
     if (httpsServerOptions) {
       // Crear servidor HTTPS
@@ -114,7 +114,7 @@ async function bootstrap() {
       // Iniciar servidor HTTPS
       await new Promise((resolve) => {
         httpsServer.listen(httpsPort, async () => {
-          //console.log(`Servidor HTTPS iniciado en puerto ${httpsPort}`);
+          console.log(`Servidor HTTPS iniciado en puerto ${httpsPort}`);
           resolve(true);
         });
       });

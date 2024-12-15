@@ -5,6 +5,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 //configuracion de nest para variables de entorno que remplaza a dotenv
 
 //lee y setea las variables de entorno
+
 ConfigModule.forRoot({
   envFilePath: `.${process.env.NODE_ENV}.env`,
   //envFilePath: `.env.${process.env.NODE_ENV || 'development'}.env`,
@@ -37,7 +38,7 @@ export const DataSourceConfig: DataSourceOptions = {
   false si aun no esta configurado el ssl en el servidor, true si ya esta configurado
   extra: {
     ssl: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: true,
     },
   },*/
   logging: false,

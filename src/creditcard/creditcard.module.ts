@@ -14,6 +14,7 @@ import { UserModule } from '@/user/user.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CreditCardStatusService } from '@/helpers/card.status';
 import { CardStatusEntity } from './entities/card.status.entity';
+import { TurnstileModule } from '@/turnstile/turnstile.module';
 //import { UserService } from '@/user/services/user.service';
 
 @Module({
@@ -24,6 +25,7 @@ import { CardStatusEntity } from './entities/card.status.entity';
       CreditCardEntity,
       CreditCardStatusService,
       CardStatusEntity,
+      TurnstileModule,
     ]),
     ScheduleModule.forRoot(), // Importa y configura ScheduleModule para tareas automaticas
     ProvidersModule,
