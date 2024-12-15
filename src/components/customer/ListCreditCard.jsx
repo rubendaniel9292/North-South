@@ -1,19 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
+import Turnstile from "react-turnstile";
 
 const ListCreditCard = () => {
   const [cards, setCards] = useState([]);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
-  //const { auth } = useAuth();
+  const siteKey = import.meta.env.VITE_REACT_APP_TURNSTILE_SITE_KEY;
 
-  useEffect(() => {
-    getAllCards();
-  }, []);
   const getAllCards = async () => {
+    if (!turnstileToken) {
+      alerts(
+        "Error",
+        "Debe completar la verificación de seguridad para listar las tarjetas",
+        "error"
+      );
+      return;
+    }
     try {
-      const response = await http.get("creditcard/all-cards");
+      const response = await http.get(
+        `creditcard/all-cards?turnstileToken=${turnstileToken}`
+      );
       if (response.data.status === "success") {
         setCards(response.data.allCards); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
       } else {
@@ -23,7 +32,7 @@ const ListCreditCard = () => {
     } catch (error) {
       //setError(error);
       alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error fetching users:", error);
+      console.error("Error fetching cards:", error);
     }
   };
 
@@ -31,6 +40,17 @@ const ListCreditCard = () => {
     <>
       <div>
         <h2>Lista de tarjetas</h2>
+        <div id="turnstile-container" className="my-3">
+          <Turnstile
+            sitekey={siteKey}
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken("")}
+            debug={true}
+          />
+        </div>
+        <button onClick={getAllCards} className="fw-bold btn btn-primary mt-2">
+          Cargar tarjetas
+        </button>
         <table className="table table-striped">
           <thead>
             <tr>
