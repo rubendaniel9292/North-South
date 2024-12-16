@@ -75,6 +75,17 @@ export class CreditcardController {
       };
     }
   }
+  @Roles('ADMIN', 'BASIC')
+  @Get('all-cards-rp')
+  public async findAllCardsRegpolicy() {
+    const allCards = await this.creditCardService.findAllCrards();
+    if (allCards) {
+      return {
+        status: 'success',
+        allCards,
+      };
+    }
+  }
 
   @Roles('ADMIN', 'BASIC')
   @Get('all-types')
