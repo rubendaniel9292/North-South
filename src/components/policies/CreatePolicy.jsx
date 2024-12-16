@@ -18,6 +18,7 @@ const CreatePolicy = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
+
   //filtro de tarjeta por clienes
   const handleCard_Accunt = (e) => {
     const selectedCustomerId = e.target.value;
@@ -68,7 +69,7 @@ const CreatePolicy = () => {
   const handlePaymentMethodChange = (e) => {
     const paymentMetohd = e.target.value;
     setSelectedPaymentMethod(paymentMetohd); // Actualiza el estado con el nuevo método de pago seleccionado
-    changed(e); // Asegúrate de propagar el cambio al formulario
+    changed(e);
   };
 
   useEffect(() => {
@@ -90,10 +91,9 @@ const CreatePolicy = () => {
           http.get("customers/get-all-customer"),
           http.get("advisor/get-all-advisor"),
           http.get("policy/get-payment"),
-          http.get("creditcard/all-cards"),
+          http.get(`creditcard/all-cards-rp`),
           http.get("bankaccount/get-all-account"),
         ]);
-
         setType(typeResponse.data.allTypePolicy);
         setCompanies(companyResponse.data.allCompanies);
         setFrecuency(frecuencyResponse.data.allFrecuency);
