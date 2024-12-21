@@ -81,7 +81,7 @@ const CreatePolicy = () => {
           frecuencyResponse,
           customerResponse,
           advisorResponse,
-          paymentResponse,
+          paymentMethodResponse,
           creditCardResponse,
           accountResponse,
         ] = await Promise.all([
@@ -90,7 +90,7 @@ const CreatePolicy = () => {
           http.get("policy/get-frecuency"),
           http.get("customers/get-all-customer"),
           http.get("advisor/get-all-advisor"),
-          http.get("policy/get-payment"),
+          http.get("policy/get-payment-method"),
           http.get(`creditcard/all-cards-rp`),
           http.get("bankaccount/get-all-account"),
         ]);
@@ -99,7 +99,7 @@ const CreatePolicy = () => {
         setFrecuency(frecuencyResponse.data.allFrecuency);
         setCustomer(customerResponse.data.allCustomer);
         setAdvisor(advisorResponse.data.allAdvisors);
-        setPaymentMethod(paymentResponse.data.allPayment);
+        setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
         setCards(creditCardResponse.data.allCards);
         setAccounts(accountResponse.data.allBankAccounts);
       } catch (error) {

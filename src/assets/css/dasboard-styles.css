@@ -9,7 +9,9 @@
   height: 89vh;
   /*border: 1px solid red;*/
 }
-
+textarea{
+  field-sizing: content;
+}
 .col-10 {
   box-sizing: border-box;
   border: 3px solid rgba(0, 0, 0, 0.5);

@@ -10,40 +10,84 @@ const PaymentModalContent = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   // Manejar el caso de datos no disponibles, pero después de llamar a los hooks
   const [isDataValid, setIsDataValid] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState([]);
 
-  //const [payment, setPayment] = useState(null);
 
-  //const { form, changed } = UserForm({ balance: 0.0 });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statusPaymentResponse] = await Promise.all([
+          http.get("payment/get-payment-status"),
+        ]);
+        setPaymentStatus(statusPaymentResponse.data.paymentStatus);
+      } catch (error) {
+        alerts("Error", "Error fetching data.", error);
+      }
+    };
+    fetchData();
+  }, []);
+
   const [form, setForm] = useState({
-    //number_payment: 1,
-    number_payment: policy.payments.number_payment || 1,
     value: 0,
     balance: 0,
     total: 0,
-    observations: "",
   });
   useEffect(() => {
     console.log("poliza recibida en el modal: ", policy);
     console.log("Estado actualizado del formulario de pago:", form);
   }, [form, policy]);
 
-  // Actualizar el número de pago cuando se recibe el prop `policy`
   useEffect(() => {
-    if (policy && policy.payments) {
+    if (policy) {
+
+
+
       const lastPaymentNumber = policy.payments.length
         ? policy.payments[policy.payments.length - 1].number_payment
         : 0;
+      console.log('valor del ultimo pago: ', Number(policy.payments.pending_value));
       setForm((prevForm) => ({
         ...prevForm,
         number_payment: lastPaymentNumber + 1, // Incrementar el último número de pago
+        pending_value: policy.policyValue,
+
       }));
     } else {
       setForm((prevForm) => ({
         ...prevForm,
         number_payment: 1, // Valor por defecto si no hay datos de `payment`
+        //pending_value: policy.policyValue - policy.payments.reduce((acc, payment) => acc + payment.pending_value, 0),
+        pending_value: policy.policyValue,
       }));
     }
-  }, [policy]);
+  }, [form.value, policy]);
+  useEffect(() => {
+    if (policy) {
+      // Obtener el último pago del arreglo
+      const lastPayment = policy.payments.length
+        ? policy.payments[policy.payments.length - 1]
+        : null;
+
+      // Extraer el número del último pago y el saldo pendiente
+      const lastPaymentNumber = lastPayment ? lastPayment.number_payment : 0;
+      const pendingValue = lastPayment ? Number(lastPayment.pending_value) : Number(policy.policyValue);
+
+
+      console.log('Último pago:', lastPayment);
+      console.log('Número del último pago:', lastPaymentNumber);
+      console.log('Saldo pendiente:', pendingValue);
+
+      // Actualizar el formulario
+      setForm((prevForm) => ({
+        ...prevForm,
+        //credit: 0, // Crédito por defecto
+        number_payment: lastPaymentNumber + 1, // Siguiente número de pago
+        pending_value: Number(pendingValue - prevForm.credit).toFixed(2), // Saldo pendiente del último pago
+
+      }));
+    }
+  }, [policy, form.credit]);
+
 
   useEffect(() => {
     if (!policy) {
@@ -52,8 +96,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
       return null;
     }
     const calculatePaymentValue = () => {
-      const paymentFrequency = Number(policy.payment_frequency_id);
-      console.log("frecuencia de pago: ", paymentFrequency);
+      const paymentFrequency = Number(policy.paymentFrequency.id);
       let value = 0;
 
       switch (paymentFrequency) {
@@ -70,12 +113,14 @@ const PaymentModalContent = ({ policy, onClose }) => {
           value = policy.policyValue;
           break;
       }
+      console.log("valor despues de la division:", value);
       return value;
     };
     const value = calculatePaymentValue();
     const credit = Number(form.credit) || 0;
     const balance = (value - credit).toFixed(2);
     const total = value - balance;
+    //const pendinValue =  Number(policy.payments.pending_value);
 
     setForm((prevForm) => ({
       ...prevForm,
@@ -83,23 +128,59 @@ const PaymentModalContent = ({ policy, onClose }) => {
       value: Number(value),
       balance: Number(balance).toFixed(2),
       total: Number(total),
-      //number_payment:payment?.number_payment
+      credit: Number(value),
+
     }));
   }, [policy, form.credit]);
 
+  const option = "Escoja una opción";
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prevForm) => {
-      const updatedForm = { ...prevForm, [name]: value };
-
       if (name === "credit") {
-        const credit = Number(value) || 0;
-        const balance = Number(updatedForm.value) - credit;
-        updatedForm.balance = balance;
-        updatedForm.total = credit;
-      }
+        // Si el campo está vacío
+        if (!value) {
+          const initialPendingValue = policy.payments.length
+            ? Number(policy.payments[policy.payments.length - 1].pending_value)
+            : Number(policy.policyValue);
 
-      return updatedForm;
+          return {
+            ...prevForm,
+            balance: prevForm.value.toFixed(2),
+            total: 0,
+            pending_value: initialPendingValue.toFixed(2),
+          };
+        }
+
+        const credit = Number(value);
+        const currentPendingValue = policy.payments.length
+          ? Number(policy.payments[policy.payments.length - 1].pending_value)
+          : Number(policy.policyValue);
+
+        // Validar que el crédito no sea mayor que el saldo pendiente
+        if (credit > currentPendingValue || credit > form.value) {
+          alerts("Error", "El pago no puede ser mayor al saldo pendiente o al valor a pagar", "error");
+          return prevForm;
+        }
+
+        const balance = Number(prevForm.value) - credit;
+
+        const newPendingValue = currentPendingValue - credit;
+
+        return {
+          ...prevForm,
+          credit: prevForm.value,
+          balance: balance.toFixed(2),
+          total: credit,
+          pending_value: newPendingValue.toFixed(2)
+        };
+      }
+      return {
+        ...prevForm,
+        [name]: value,
+
+      };
+
     });
   };
 
@@ -123,7 +204,6 @@ const PaymentModalContent = ({ policy, onClose }) => {
           "Pago no registrado correctamente. Verificar que no haya campos vacios o números de pago duplicados",
           "error"
         );
-       
       }
     } catch (error) {
       alerts("Error", "Error fetching policy.", "error");
@@ -149,7 +229,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
           <div className="d-flex justify-content-around mt-5">
             <form onSubmit={savedPayment} id="user-form">
               <div className="row">
-                <div className="mb-4 col-3">
+                <div className="mb-4  d-none">
                   <label htmlFor="policy_id" className="form-label">
                     Id de Póliza
                   </label>
@@ -182,6 +262,22 @@ const PaymentModalContent = ({ policy, onClose }) => {
 
                 <div className="mb-3 col-3">
                   <label htmlFor="valueToPayment" className="form-label">
+                    Saldo pendiente
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="valuep"
+                    name="valuep"
+                    step="0.01"
+                    value={Number(form.pending_value).toFixed(2)}
+                    onChange={handleChange}
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-3">
+                  <label htmlFor="valueToPayment" className="form-label">
                     Valor a pagar
                   </label>
                   <input
@@ -209,6 +305,8 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     step="0.01"
                     value={form.credit}
                     onChange={handleChange}
+                    readOnly
+
                   />
                 </div>
                 <div className="mb-3 col-3">
@@ -242,7 +340,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                
+
                 <div className="mb-3 col-3">
                   <label htmlFor="balance" className="form-label">
                     Fecha de pago
@@ -253,11 +351,31 @@ const PaymentModalContent = ({ policy, onClose }) => {
                     className="form-control"
                     id="balance"
                     name="balance"
+                    //value={form.createdAt ? form.createdAt.split('T')[0] : ''}
                     value={form.createdAt}
-                
+                  //readOnly
                   />
                 </div>
                 <div className="mb-3 col-3">
+                  <label htmlFor="status_payment_id" className="form-label">
+                    Estado del pago
+                  </label>
+                  <select
+                    className="form-select"
+                    id="status_payment_id"
+                    name="status_payment_id"
+                    onChange={handleChange}
+                    defaultValue={option}
+                  >
+                    <option disabled>{option}</option>
+                    {paymentStatus.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {`${item.statusNamePayment}`.trim()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3 col-12">
                   <label htmlFor="observations" className="form-label">
                     Observaciones
                   </label>
@@ -314,15 +432,20 @@ const PaymentModalContent = ({ policy, onClose }) => {
 // Validación de propiedades con PropTypes
 PaymentModalContent.propTypes = {
   policy: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    id: PropTypes.number.isRequired,
     numberPolicy: PropTypes.number.isRequired,
     number_payment: PropTypes.number.isRequired,
     policyValue: PropTypes.number.isRequired,
-    payment_frequency_id: PropTypes.number.isRequired,
+    startDate: PropTypes.string.isRequired,
+    paymentFrequency: PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      frequencyName: PropTypes.string.isRequired,
+    }).isRequired,
 
     // Validación del array de pagos dentro de 'policy'
     payments: PropTypes.arrayOf(
       PropTypes.shape({
+        pending_value: PropTypes.number.isRequired,
         number_payment: PropTypes.number.isRequired,
       })
     ).isRequired, // Es obligatorio que haya pagos en este array

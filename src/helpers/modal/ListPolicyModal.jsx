@@ -99,8 +99,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   {policy.bankAccount && policy.bankAccount.bank
                     ? policy.bankAccount.bank.bankName
                     : policy.creditCard && policy.creditCard.bank
-                    ? policy.creditCard.bank.bankName
-                    : "NO APLICA"}
+                      ? policy.creditCard.bank.bankName
+                      : "NO APLICA"}
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>{policy.renewalCommission === true ? "SÍ" : "NO"}</td>
@@ -136,8 +136,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     policy.policyStatus.id == 4
                       ? "bg-warning text-white fw-bold"
                       : policy.policyStatus.id == 3
-                      ? "bg-danger text-white fw-bold"
-                      : "bg-success-subtle"
+                        ? "bg-danger text-white fw-bold"
+                        : "bg-success-subtle"
                   }
                 >
                   {policy.policyStatus.statusName}
@@ -156,12 +156,14 @@ const ListPolicyModal = ({ policy, onClose }) => {
           <table className="table table-striped">
             <thead>
               <tr>
-                <th>Número de Pago</th>
+                <th>N° de Pago</th>
+                <th>Saldo Pendiente</th>
                 <th>Valor</th>
                 <th>Abono</th>
                 <th>Saldo</th>
                 <th>Total</th>
                 <th>Fecha de pago</th>
+                <th>Estado</th>
                 <th>Observaciones</th>
               </tr>
             </thead>
@@ -169,11 +171,24 @@ const ListPolicyModal = ({ policy, onClose }) => {
               {policy.payments.map((payment) => (
                 <tr key={payment.id}>
                   <td>{payment.number_payment}</td>
+                  <td>{payment.pending_value}</td>
                   <td>{payment.value || "0.00"}</td>
                   <td>{payment.credit || "0.00"}</td>
                   <td>{payment.balance || "0.00"}</td>
                   <td>{payment.total}</td>
                   <td>{dayjs(payment.createdAt).format("DD/MM/YYYY")}</td>
+
+                  <td
+                    className={
+                      payment.paymentStatus.id == 1
+                        ? "bg-warning"
+                        : payment.paymentStatus.id == 2
+                          ? "bg-success-subtle "
+                          : ""
+                    }
+                  >
+                    {payment.paymentStatus.statusNamePayment}
+                  </td>
                   <td>{payment.observations || "N/A"}</td>
                 </tr>
               ))}
@@ -251,10 +266,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
 ListPolicyModal.propTypes = {
   policy: PropTypes.shape({
-    //id: PropTypes.number.isRequired,
-    numberPolicy: PropTypes.number.isRequired,
-    coverageAmount: PropTypes.number,
-    agencyPercentage: PropTypes.number,
+    id: PropTypes.number.isRequired,
+    numberPolicy: PropTypes.string.isRequired,
+    coverageAmount: PropTypes.number.isRequired,
+    agencyPercentage: PropTypes.number.isRequired,
     advisorPercentage: PropTypes.number,
     policyValue: PropTypes.number.isRequired,
     numberOfPayments: PropTypes.number,
@@ -272,6 +287,7 @@ ListPolicyModal.propTypes = {
 
     // Relación con customer
     customer: PropTypes.shape({
+      id: PropTypes.number.isRequired,
       ci_ruc: PropTypes.string.isRequired,
       firstName: PropTypes.string.isRequired,
       secondName: PropTypes.string,
@@ -326,6 +342,7 @@ ListPolicyModal.propTypes = {
     payments: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.number.isRequired, // Si 'id' es numérico
+        pending_value: PropTypes.number.isRequired,
         number_payment: PropTypes.number.isRequired, // Número del pago dentro de la serie de pagos
         value: PropTypes.string.isRequired, // Valor del pago (si llega como string)
         credit: PropTypes.string.isRequired, // Crédito del pago (si llega como string)
@@ -333,6 +350,11 @@ ListPolicyModal.propTypes = {
         total: PropTypes.string.isRequired, // Total del pago (si llega como string)
         observations: PropTypes.string, // Puede ser null o string
         createdAt: PropTypes.string.isRequired, // Fecha de creación (formato ISO string)
+        status_payment_id: PropTypes.number.isRequired, // Estado del pago (si llega como string)
+        paymentStatus: PropTypes.shape({
+          id: PropTypes.number.isRequired, // Si 'id' es numérico
+          statusNamePayment: PropTypes.string.isRequired,
+        }).isRequired,
         updatedAt: PropTypes.string.isRequired, // Fecha de actualización (formato ISO string)
       })
     ).isRequired, // Es obligatorio que haya pagos en este array
@@ -341,7 +363,7 @@ ListPolicyModal.propTypes = {
         id: PropTypes.number.isRequired,
         renewalNumber: PropTypes.string.isRequired,
         createdAt: PropTypes.string.isRequired,
-      })
+      }).isRequired,
     ),
   }).isRequired,
 

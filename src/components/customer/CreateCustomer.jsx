@@ -119,7 +119,7 @@ const CreateCustomer = () => {
       if (request.data.status === "success") {
         alerts(
           "Registro exitoso",
-          "Cliente registrado registrado correctamente",
+          "Cliente registrado correctamente",
           "success"
         );
         //document.querySelector("#user-form").reset();

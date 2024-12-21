@@ -35,11 +35,13 @@ export const ListPayment = () => {
             <th>N°</th>
             <th>Número de Póliza</th>
             <th>Número de Pago</th>
-            <th>Valor</th>
+            <th>Valor Pendiente</th>
+            <th>Valor cancelado</th>
             <th>Abono</th>
             <th>Saldo</th>
             <th>Total</th>
             <th>Fecha de pago</th>
+            <th>Estado</th>
             <th>Observaciones</th>
             <th>Acciones</th>
           </tr>
@@ -50,17 +52,29 @@ export const ListPayment = () => {
               <td>{index + 1}</td>
               <td>{payment.policies.numberPolicy}</td>
               <td>{payment.number_payment}</td>
+              <td>{payment.pending_value}</td>
               <td>{payment.value || "0.00"}</td>
               <td>{payment.credit || "0.00"}</td>
               <td>{payment.balance || "0.00"}</td>
               <td>{payment.total}</td>
               <td>{dayjs(payment.startDate).format("DD/MM/YYYY")}</td>
+              <td
+                className={
+                  payment.paymentStatus.id == 1
+                    ? "bg-warning text-white fw-bold"
+                    : payment.paymentStatus.id == 2
+                      ? "bg-danger text-white fw-bold"
+                      : "bg-success-subtle"
+                }
+              >
+                {payment.paymentStatus.statusNamePayment}
+              </td>
               <td>{payment.observations || "N/A"}</td>
               <td>
                 <button className="btn btn-success text-white fw-bold">
                   Actualizar
                 </button>
-               
+
               </td>
 
             </tr>

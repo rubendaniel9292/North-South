@@ -100,7 +100,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
           <div className="d-flex justify-content-around mt-5">
             <form onSubmit={savedRenoval} id="user-form">
               <div className="row">
-                <div className="mb-4 col-4">
+                <div className="mb-4 col-4 d-none">
                   <label htmlFor="policy_id" className="form-label">
                     Id de Póliza
                   </label>
@@ -115,7 +115,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-4">
+                <div className="mb-3 col-6">
                   <label htmlFor="numberRenewal" className="form-label">
                     Número renovacion
                   </label>
@@ -131,7 +131,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
                   />
                 </div>
 
-                <div className="mb-3 col-4">
+                <div className="mb-3 col-6">
                   <label htmlFor="balance" className="form-label">
                     Fecha de renovacion
                   </label>
