@@ -264,3 +264,5 @@ Se trabajara con las tablas estado civil, provincia, ciudad y clientes.
     libpangocairo-1.0-0 \
     libnss3 \
     libxshmfence1
+### sudo PUPPETEER_CACHE_DIR=/root/.cache/puppeteer npx puppeteer browsers install chrome
+### npm install puppeteer puppeteer-core

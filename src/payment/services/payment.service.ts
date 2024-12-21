@@ -5,12 +5,17 @@ import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentDTO } from '../dto/payment.dto';
 import { PaymentEntity } from '../entity/payment.entity';
+import { PaymentStatusEntity } from '../entity/payment.status.entity';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+
+    @InjectRepository(PaymentStatusEntity)
+    private readonly paymentStatusRepository: Repository<PaymentStatusEntity>,
+
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
   ) {}
@@ -39,17 +44,8 @@ export class PaymentService {
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
       const payments: PaymentEntity[] = await this.paymentRepository.find({
-        relations: ['policies'],
+        relations: ['policies', 'paymentStatus'],
         select: {
-          id: true,
-          number_payment: true,
-          value: true,
-          total: true,
-          credit: true,
-          balance: true,
-          observations: true,
-          createdAt: true,
-          updatedAt: true,
           policies: {
             id: true,
             numberPolicy: true,
@@ -71,7 +67,16 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
-      const paymentId = await this.paymentRepository.findOne({ where: { id } });
+      const paymentId = await this.paymentRepository.findOne({
+        where: { id },
+        relations: ['policies', 'paymentStatus'],
+        select: {
+          policies: {
+            id: true,
+            numberPolicy: true,
+          },
+        },
+      });
 
       if (!paymentId) {
         //se guarda el error
@@ -81,6 +86,24 @@ export class PaymentService {
         });
       }
       return paymentId;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //4: metodo para obtener los estados de los pagos
+  public getPaymentStatus = async (): Promise<PaymentStatusEntity[]> => {
+    try {
+      const paymentStatus = await this.paymentStatusRepository.find();
+
+      if (!paymentStatus) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      return paymentStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

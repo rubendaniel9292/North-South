@@ -54,4 +54,16 @@ export class PaymentController {
       };
     }
   }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-payment-status')
+  public async getPaymentStatus() {
+    const paymentStatus = await this.paymentService.getPaymentStatus();
+    if (paymentStatus) {
+      return {
+        status: 'success',
+        paymentStatus,
+      };
+    }
+  }
 }

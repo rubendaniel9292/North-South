@@ -68,6 +68,7 @@ export class PolicyReportDto {
   payments: Array<{
     id: number;
     number_payment: number;
+    pending_value: number;
     value: string;
     credit: string;
     balance: string;
@@ -76,6 +77,10 @@ export class PolicyReportDto {
     policy_id: number;
     createdAt: Date;
     updatedAt: Date;
+    paymentStatus: {
+      id: number;
+      statusNamePayment: string;
+    };
   }>;
   renewals: Array<{
     id: string;

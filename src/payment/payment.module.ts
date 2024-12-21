@@ -7,9 +7,14 @@ import { PaymentEntity } from './entity/payment.entity';
 import { PaymentService } from './services/payment.service';
 import { PaymentController } from './controller/payment.controller';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
+import { PaymentStatusEntity } from './entity/payment.status.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PaymentEntity, PolicyEntity]), // Importa y configura ScheduleModule para tareas automaticas
+    TypeOrmModule.forFeature([
+      PaymentEntity,
+      PolicyEntity,
+      PaymentStatusEntity,
+    ]), // Importa y configura ScheduleModule para tareas automaticas
     ProvidersModule,
     UserModule,
   ],

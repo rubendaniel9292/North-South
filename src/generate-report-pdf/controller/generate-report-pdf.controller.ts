@@ -18,7 +18,6 @@ export class GenerateReportPdfController {
     @Res({ passthrough: true }) res: Response,
   ) {
     try {
-      console.log('objeto de poliza recibido en el controlador: ', policy);
       // Plantilla HTML básica
       const html = `
   <!DOCTYPE html>
@@ -32,12 +31,11 @@ export class GenerateReportPdfController {
           text-align: center;
         }
         h1,
-h2,
-h3,
-th {
-    font-family: 'Roboto', sans-serif;
-    /* Peso 700 para negrita */
-}  
+        h2,
+        h3,
+        th {
+        font-family: 'Roboto', sans-serif; 
+      }
         .conten-title {
          display: flex;
         flex-direction: column;
@@ -161,12 +159,14 @@ th {
       <table>
         <thead>
           <tr class="table-header">
-            <th>Número de Pago</th>
+            <th>N° de Pago</th>
+            <th>Saldo Pendiente</th>
             <th>Valor</th>
             <th>Abono</th>
             <th>Saldo</th>
             <th>Total</th>
             <th>Fecha de pago</th>
+            <th>Estado</th>
             <th colSpan="2" scope="row">Observaciones</th>
           </tr>
         </thead>
@@ -176,11 +176,21 @@ th {
               (payment) => `
             <tr>
               <td>${payment.number_payment}</td>
+              <td>${payment.pending_value}</td>
               <td>${payment.value || '0.00'}</td>
               <td>${payment.credit || '0.00'}</td>
               <td>${payment.balance || '0.00'}</td>
               <td>${payment.total}</td>
               <td>${new Date(payment.createdAt).toISOString().slice(0, 10)}</td>
+                <td
+                  class=${
+                    payment.paymentStatus.id == 1
+                      ? 'bg-warning'
+                      : 'bg-success-subtle '
+                  }
+                  >
+                    ${payment.paymentStatus.statusNamePayment}
+                  </td>
               <td colSpan="2" scope="row">${payment.observations || 'N/A'}</td>
             </tr>`,
             )
@@ -229,13 +239,11 @@ th {
 `;
 
       const pdfBuffer = await this.pdfService.generatePdf(html);
-
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=poliza-${policy.numberPolicy}-test.pdf`,
         'Content-Length': pdfBuffer.length,
       });
-
       return res.send(pdfBuffer);
     } catch (error) {
       console.error('Error generando PDF:', error);

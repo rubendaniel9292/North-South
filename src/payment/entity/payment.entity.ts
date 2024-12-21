@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { IdEntity } from '@/config/id.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
+import { PaymentStatusEntity } from './payment.status.entity';
 
 @Entity('payment_record')
 export class PaymentEntity extends IdEntity {
@@ -16,6 +17,9 @@ export class PaymentEntity extends IdEntity {
 
   @Column('decimal', { nullable: true, precision: 12, scale: 2 })
   value: number;
+
+  @Column('decimal', { nullable: true, precision: 12, scale: 2 })
+  pending_value: number;
 
   @Column('decimal', { nullable: true, precision: 12, scale: 2 })
   credit?: number;
@@ -32,10 +36,24 @@ export class PaymentEntity extends IdEntity {
   @Column()
   policy_id: number;
 
+  @Column()
+  status_payment_id: number;
+
   // Relación uno a varios, varios pagos pueden estar asociados a una poliza
   @ManyToOne(() => PolicyEntity, (policy) => policy.payments)
   @JoinColumn({ name: 'policy_id' })
   policies: PolicyEntity;
+
+  //Cada pago puede asociarse con un solo estado de pago
+  @ManyToOne(
+    () => PaymentStatusEntity,
+    (paymentStatus) => paymentStatus.payments,
+    {
+      onDelete: 'NO ACTION', // Previene que se borren los estados al eliminar pagos
+    },
+  )
+  @JoinColumn({ name: 'status_payment_id' })
+  paymentStatus: PaymentStatusEntity;
 
   @CreateDateColumn({
     type: 'timestamp',

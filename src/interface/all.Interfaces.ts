@@ -99,6 +99,7 @@ export interface IPayment {
   credit?: number;
   balance?: number;
   total: number;
+  status_payment_id: number;
   observations?: string;
 }
 

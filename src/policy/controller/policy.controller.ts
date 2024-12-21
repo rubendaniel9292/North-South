@@ -73,13 +73,13 @@ export class PolicyController {
   }
 
   @Roles('ADMIN', 'BASIC')
-  @Get('get-payment')
-  public async allPayment() {
-    const allPayment = await this.policyService.getPayment();
-    if (allPayment) {
+  @Get('get-payment-method')
+  public async allPaymentMetohd() {
+    const allPaymentMethod = await this.policyService.getPaymentMethod();
+    if (allPaymentMethod) {
       return {
         status: 'success',
-        allPayment,
+        allPaymentMethod,
       };
     }
   }

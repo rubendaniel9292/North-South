@@ -30,11 +30,12 @@ export class AuthController {
     );
 
     const { username, password, turnstileToken } = loginDto;
+    console.log(turnstileToken);
     //const { username, password } = loginDto;
     // Verificar reCAPTCHA antes de autenticar al usuario
     //console.log('token de  Turnstile: ', turnstileToken);
     /*
-
+  
     const isHuman = await verifyRecaptcha(captchaToken);
     console.log('2: acceso al helper de verificacion de capcha exitoso');
     if (!isHuman) {
@@ -42,7 +43,6 @@ export class AuthController {
     }*/
     // Verificar el captcha
     try {
-      //const ip = request.ip || request.headers['x-forwarded-for'] || ''; // Obtener IP opcionalmente
       await this.turnstileService.verifyToken(turnstileToken as string);
     } catch (error) {
       throw new BadRequestException('Fallo en la verificación de token');

@@ -20,6 +20,10 @@ export class PaymentDTO implements IPayment {
   @IsNumber()
   value: number;
 
+  @IsNotEmpty()
+  @IsInt()
+  status_payment_id: number;
+
   @IsNumber()
   @IsOptional()
   credit?: number;

@@ -62,6 +62,8 @@ export class PolicyService extends ValidateEntity {
           'company',
           'advisor',
           'customer',
+          'payments',
+          'payments.paymentStatus',
           'paymentMethod',
           'bankAccount',
           'bankAccount.bank',
@@ -148,10 +150,13 @@ export class PolicyService extends ValidateEntity {
           'advisor',
           'customer',
           'paymentMethod',
-          'creditCard',
-          'creditCard.bank',
           'bankAccount',
           'bankAccount.bank',
+          'creditCard',
+          'creditCard.bank',
+          'payments',
+          'payments.paymentStatus',
+          'renewals',
         ],
         select: {
           id: true,
@@ -256,7 +261,7 @@ export class PolicyService extends ValidateEntity {
   };
 
   //6: metodo para obtener el listado de los  pagos
-  public getPayment = async (): Promise<PaymentMethodEntity[]> => {
+  public getPaymentMethod = async (): Promise<PaymentMethodEntity[]> => {
     try {
       const payment: PaymentMethodEntity[] =
         await this.policyPaymentMethod.find();
@@ -291,6 +296,7 @@ export class PolicyService extends ValidateEntity {
           'creditCard',
           'creditCard.bank',
           'payments',
+          'payments.paymentStatus',
           'renewals',
         ],
         select: {
