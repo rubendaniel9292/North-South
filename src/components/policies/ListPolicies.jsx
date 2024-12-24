@@ -140,7 +140,7 @@ export const ListPolicies = () => {
                       className="btn btn-success text-white fw-bold my-1"
                       onClick={() => getPolicyById(policy.id, "payment")}
                     >
-                      Registrar Pago
+                      Actualizar Pago
                     </button>
 
                     <button
