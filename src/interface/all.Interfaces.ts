@@ -96,15 +96,19 @@ export interface IBankAccount {
 export interface IPayment {
   number_payment: number;
   value: number;
+  pending_value: number;
   credit?: number;
   balance?: number;
   total: number;
   status_payment_id: number;
   observations?: string;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface IRenewall {
   renewalNumber: number;
   observations?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }

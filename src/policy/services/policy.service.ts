@@ -11,13 +11,20 @@ import { PaymentFrequencyEntity } from '../entities/payment_frequency.entity';
 import { PaymentMethodEntity } from '../entities/payment_method.entity';
 import { RenewalEntity } from '../entities/renewal.entity';
 import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
+import { PaymentService } from '@/payment/services/payment.service'; // Asegúrate de importar el servicio de pagos
+import { PaymentDTO } from '@/payment/dto/payment.dto';
+import { PaymentEntity } from '@/payment/entity/payment.entity';
 
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
-    private readonly policyStatusService: PolicyStatusService, // Inyectar el servicio existente
+    private readonly policyStatusService: PolicyStatusService,
+
+    @InjectRepository(PaymentEntity) // Inyectar el servicio existente
+    private readonly paymentRepository: Repository<PaymentEntity>,
+    private readonly paymentService: PaymentService,
 
     @InjectRepository(PolicyTypeEntity)
     private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
@@ -32,6 +39,29 @@ export class PolicyService extends ValidateEntity {
     super(policyRepository);
   }
   //1:metodo para registrar una poliza
+  private calculatePaymentValue(
+    policyValue: number,
+    paymentFrequency: number,
+  ): number {
+    let valueToPay = 0;
+
+    switch (paymentFrequency) {
+      case 1: // Pago mensual
+        valueToPay = parseFloat((policyValue / 12).toFixed(2));
+        break;
+      case 2: // Pago trimestral
+        valueToPay = parseFloat((policyValue / 4).toFixed(2));
+        break;
+      case 3: // Pago semestral
+        valueToPay = parseFloat((policyValue / 2).toFixed(2));
+        break;
+      default: // Pago anual
+        valueToPay = policyValue;
+        break;
+    }
+
+    return valueToPay;
+  }
   public createPolicy = async (body: PolicyDTO): Promise<PolicyEntity> => {
     try {
       // Primero validamos cédula y correo
@@ -43,9 +73,33 @@ export class PolicyService extends ValidateEntity {
       // Reutilizar el método determinePolicyStatus para obtener el estado correcto
       const determinedStatus =
         await this.policyStatusService.determinePolicyStatus(endDate);
-      // Asignar el estado determinado al body de la tarjeta
+      // Asignar el estado determinado al body
       body.policy_status_id = determinedStatus.id;
       const newPolicy = await this.policyRepository.save(body);
+      console.log('newPolicy', newPolicy);
+
+      // Calcular el valor del pago según la frecuencia de pago y crear un pago inicial
+      const paymentFrequency = Number(newPolicy.payment_frequency_id);
+      const valueToPay = this.calculatePaymentValue(
+        newPolicy.policyValue,
+        paymentFrequency,
+      );
+      console.log(paymentFrequency, valueToPay);
+      const paymentData: PaymentDTO = {
+        policy_id: newPolicy.id,
+        number_payment: 1,
+        value: valueToPay,
+        pending_value: newPolicy.policyValue,
+        status_payment_id: 1,
+        credit: 0,
+        balance: valueToPay,
+        total: 0,
+        observations: '',
+        createdAt: newPolicy.startDate,
+        updatedAt: new Date(),
+      };
+      await this.paymentService.createPayment(paymentData);
+
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

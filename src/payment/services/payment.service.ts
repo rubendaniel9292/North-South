@@ -108,4 +108,26 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //5: metodo para actualizar el pago
+  public async updatePayment(
+    id: number,
+    updateData: Partial<PaymentDTO>,
+  ): Promise<PaymentEntity> {
+    try {
+      const payment = await this.paymentRepository.findOne({ where: { id } });
+      if (!payment) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró el pago',
+        });
+      }
+
+      Object.assign(payment, updateData);
+      const paymentUpdated = await this.paymentRepository.save(payment);
+      return paymentUpdated;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
 }

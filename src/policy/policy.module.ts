@@ -15,6 +15,9 @@ import { PaymentMethodEntity } from './entities/payment_method.entity';
 //import { PdfService } from '@/helpers/pdf.report';
 import { GenerateReportPdfService } from '@/generate-report-pdf/services/generate-report-pdf.service';
 import { RenewalEntity } from './entities/renewal.entity';
+import { PaymentStatusEntity } from '@/payment/entity/payment.status.entity';
+import { PaymentEntity } from '@/payment/entity/payment.entity';
+import { PaymentService } from '@/payment/services/payment.service';
 
 @Module({
   imports: [
@@ -28,15 +31,17 @@ import { RenewalEntity } from './entities/renewal.entity';
       PaymentFrequencyEntity,
       PaymentMethodEntity,
       RenewalEntity,
+      PaymentStatusEntity,
+      PaymentEntity,
     ]),
     ProvidersModule,
     UserModule,
   ],
   providers: [
     PolicyService,
+    PaymentService,
     HttpCustomService,
     PolicyStatusService,
-    //PdfService, //para usar el helper
     GenerateReportPdfService,
   ],
   controllers: [PolicyController],

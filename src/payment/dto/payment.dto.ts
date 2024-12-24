@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsNotEmpty,
   IsInt,
+  IsDate,
 } from 'class-validator';
 
 export class PaymentDTO implements IPayment {
@@ -39,4 +40,16 @@ export class PaymentDTO implements IPayment {
   @IsString()
   @IsOptional()
   observations?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  pending_value: number;
+
+  @IsNotEmpty()
+  @IsDate()
+  createdAt: Date;
+
+  @IsOptional()
+  @IsDate()
+  updatedAt?: Date;
 }

@@ -30,7 +30,7 @@ export class AuthController {
     );
 
     const { username, password, turnstileToken } = loginDto;
-    console.log(turnstileToken);
+    //console.log(turnstileToken);
     //const { username, password } = loginDto;
     // Verificar reCAPTCHA antes de autenticar al usuario
     //console.log('token de  Turnstile: ', turnstileToken);

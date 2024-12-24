@@ -7,6 +7,7 @@ import {
   //Get,
   //Param,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 
@@ -65,5 +66,21 @@ export class PaymentController {
         paymentStatus,
       };
     }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Put('update-payment/:id')
+  public async updatePayment(
+    @Param('id') id: number,
+    @Body() updateData: Partial<PaymentDTO>,
+  ) {
+    const updatedPayment = await this.paymentService.updatePayment(
+      id,
+      updateData,
+    );
+    return {
+      status: 'success',
+      updatedPayment,
+    };
   }
 }
