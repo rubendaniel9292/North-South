@@ -3,14 +3,27 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import "@fontsource/roboto/500.css";
 import dayjs from "dayjs";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleExclamation, faClock, faWallet, faCreditCard } from "@fortawesome/free-solid-svg-icons"
 const Home = () => {
   const [cards, setCards] = useState([]);
-  const [policies, setPolicies] = useState([]);
   const [cardStatus, setCardStatus] = useState(false);
+
+  const [allPolicies, setAllPolicies] = useState([]);
+  const [policy, setPolicy] = useState(false);
+
+  const [policies, setPolicies] = useState([]);
   const [policyStatus, setPolicyStatus] = useState(false);
+
+  const [payments, setPayments] = useState([]);
+  const [paymentStatus, setPaymenStatus] = useState(false);
+
+
   useEffect(() => {
     getAllCardsExpireds();
     getAllPoliciesStatus();
+    getAllPolicies();
+    getPaymenstByStatus();
   }, []);
   const getAllCardsExpireds = async () => {
     try {
@@ -18,6 +31,7 @@ const Home = () => {
       if (response.data.status === "success") {
         setCards(response.data.allCardsExpired); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
         setCardStatus(true);
+        console.log("Cards Data:", response.data.allCardsExpired); // Aquí puedes revisar la respuesta
       } else {
         setCardStatus(false);
       }
@@ -35,6 +49,7 @@ const Home = () => {
       if (response.data.status === "success") {
         setPolicies(response.data.policiesStatus);
         setPolicyStatus(true);
+        console.log("Policies Status Data:", response.data.policiesStatus); // Aquí puedes revisar la respuesta
       } else {
         console.error("Error fetching polizas:", response.message);
         setPolicyStatus(false);
@@ -46,10 +61,49 @@ const Home = () => {
     }
   };
 
+  const getAllPolicies = async () => {
+    try {
+      const response = await http.get("policy/get-all-policy");
+      if (response.data.status === "success") {
+        setAllPolicies(response.data.allPolicy);
+        setPolicy(true);
+        console.log("Policies Data:", response.data.allPolicy); // Aquí puedes revisar la respuesta
+      } else {
+        setPolicy(false);
+        console.error("Error fetching polizas:", response.message);
+      }
+    } catch (error) {
+      //setError(error);
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error fetching póilzas:", error);
+    }
+  };
+  const getPaymenstByStatus = async () => {
+    try {
+      const response = await http.get("payment/get-payment-1");
+      if (response.data.status === "success") {
+        setPayments(response.data.paymentByStatus);
+        setPaymenStatus(true);
+        console.log("Payments Data:", response.data.paymentByStatus); // Aquí puedes revisar la respuesta
+      } else {
+        setPaymenStatus(false);
+        console.error("Error fetching polizas:", response.message);
+      }
+    } catch (error) {
+      //setError(error);
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error fetching póilzas:", error);
+    }
+
+  }
+
+
   return (
     <>
-      <div>
-        <h2>Listado de pólizas y tarjetas vencidas o por vencer</h2>
+      <section>
+        <h2 className="py-2">Detalle de pagos, pólizas y tarjetas </h2>
+        <p className="py-1 fs-5">Coloque el cursor sobre el ícono correspondiente para saber más detalles </p>
+        {/* Aquí va el contenido de la página 
         <div className="my-3">
           {!cardStatus ? (
             <h3>No hay tarjetas vencidas o por vencer actualmente</h3>
@@ -97,8 +151,8 @@ const Home = () => {
                           card.cardstatus.id == 2
                             ? "bg-warning text-white fw-bold"
                             : card.cardstatus.id == 3
-                            ? "bg-danger text-white fw-bold"
-                            : ""
+                              ? "bg-danger text-white fw-bold"
+                              : ""
                         }
                       >
                         {card.cardstatus.cardStatusName}
@@ -165,8 +219,8 @@ const Home = () => {
                         {policy.bankAccount && policy.bankAccount.bank
                           ? policy.bankAccount.bank.bankName
                           : policy.creditCard && policy.creditCard.bank
-                          ? policy.creditCard.bank.bankName
-                          : "NO APLICA"}
+                            ? policy.creditCard.bank.bankName
+                            : "NO APLICA"}
                       </td>
                       <td>{policy.paymentFrequency.frequencyName}</td>
                       <td>{policy.coverageAmount}</td>
@@ -176,8 +230,8 @@ const Home = () => {
                           policy.policyStatus.id == 4
                             ? "bg-warning text-white fw-bold"
                             : policy.policyStatus.id == 3
-                            ? "bg-danger text-white fw-bold"
-                            : "bg-success-subtle"
+                              ? "bg-danger text-white fw-bold"
+                              : "bg-success-subtle"
                         }
                       >
                         {policy.policyStatus.statusName}
@@ -193,8 +247,65 @@ const Home = () => {
               </table>
             </>
           )}
+        </div>*/}
+        <div className="container-fluid text-center">
+          <div className="row align-items-start justify-center-between pt-3  gap-2 ">
+            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
+              <div className="p-4 text-center ">
+                <div className="d-inline-flex p-3 rounded-circle mb-3" style={{ backgroundColor: 'rgba(255, 193, 7, 0.1)' }}>
+                  <button className=""><FontAwesomeIcon size={24} style={{ color: '#ffc107' }} bounce icon={faCircleExclamation} /></button>
+                </div>
+                <h4 className="mb-3">Pólizas con pagos atrasados</h4>
+                {!paymentStatus ? (<p className="fs-4 fw-bold mb-0 " style={{ color: '#ffc107' }}>No hay pagos atrasados</p>) :
+                  (<p className="fs-1 fw-bold mb-0 " style={{ color: '#ffc107' }} >{payments.length}</p>)}
+
+              </div>
+            </div>
+
+            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
+              <div className="p-4 text-center ">
+                <div className="d-inline-flex p-3 rounded-circle mb-3" style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)' }}>
+                  <button> <FontAwesomeIcon size={24} style={{ color: '#ff3b30' }} icon={faClock} bounce /></button>
+
+                </div>
+                <h4 className="mb-3">Pólizas culminadas o culminar</h4>
+                {!policyStatus ? (<p className="fs-4 fw-bold mb-0 " style={{ color: '#ff3b30' }}>No hay pólizas </p>) :
+                  <p className="fs-1 fw-bold mb-0 " style={{ color: '#ff3b30' }}>{policies.length}</p>}
+              </div>
+            </div>
+
+            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
+              <div className="p-4 text-center ">
+                <div className="d-inline-flex p-3 rounded-circle mb-3" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)' }}>
+                  <button><FontAwesomeIcon size={24} style={{ color: '#34c759' }} icon={faWallet} bounce /></button>
+                </div>
+                <h4 className="mb-3">Pólizas Contratadas</h4>
+                {!policy ? (<p className="fs-4 fw-bold mb-0 " style={{ color: '#34c759' }}>No hay pólizas registardas</p>) :
+                  (<p className="fs-1 fw-bold mb-0 " style={{ color: '#34c759' }}>{allPolicies.length}</p>)}
+
+              </div>
+            </div>
+            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
+              <div className="p-4 text-center ">
+                <div className="d-inline-flex p-3 rounded-circle mb-3" style={{ backgroundColor: 'rgba(88, 86, 214, 0.1)' }}>
+                  <button><FontAwesomeIcon size={24} style={{ color: '#5856d6' }} icon={faCreditCard} bounce /></button>
+                </div>
+                <h4 className="mb-3">Tarjetas vencidas o por vencer</h4>
+                {!cardStatus ? (
+                  <p className="fs-4 fw-bold mb-0 " style={{ color: '#5856d6' }} >No hay tarjetas actualmete</p>) : (
+
+                  <p className="fs-1 fw-bold mb-0 " style={{ color: '#5856d6' }} >{cards.length}</p>)
+
+                }
+              </div>
+
+            </div>
+
+          </div>
+
+
         </div>
-      </div>
+      </section >
     </>
   );
 };

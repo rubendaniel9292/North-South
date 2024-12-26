@@ -62,9 +62,7 @@ export const ListPayment = () => {
                 className={
                   payment.paymentStatus.id == 1
                     ? "bg-warning text-white fw-bold"
-                    : payment.paymentStatus.id == 2
-                      ? "bg-danger text-white fw-bold"
-                      : "bg-success-subtle"
+                    : "bg-success-subtle"
                 }
               >
                 {payment.paymentStatus.statusNamePayment}
