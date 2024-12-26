@@ -18,6 +18,7 @@ import { RenewalEntity } from './entities/renewal.entity';
 import { PaymentStatusEntity } from '@/payment/entity/payment.status.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { PaymentService } from '@/payment/services/payment.service';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PaymentService } from '@/payment/services/payment.service';
       PaymentStatusEntity,
       PaymentEntity,
     ]),
+    ScheduleModule.forRoot(),
     ProvidersModule,
     UserModule,
   ],

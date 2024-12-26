@@ -57,6 +57,18 @@ export class PaymentController {
   }
 
   @Roles('ADMIN', 'BASIC')
+  @Get('get-payment-1')
+  public async getPaymentByStatus() {
+    const paymentByStatus = await this.paymentService.getPaymentsByStatus();
+    if (paymentByStatus) {
+      return {
+        status: 'success',
+        paymentByStatus,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
   @Get('get-payment-status')
   public async getPaymentStatus() {
     const paymentStatus = await this.paymentService.getPaymentStatus();

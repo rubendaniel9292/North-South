@@ -108,8 +108,36 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+  //5: metodo para obtener los pagos en base al estado
+  public getPaymentsByStatus = async (): Promise<PaymentEntity[]> => {
+    try {
+      const paymentsByStatus: PaymentEntity[] =
+        await this.paymentRepository.find({
+          where: [
+            { status_payment_id: 1 }, // Estado: atrazado
+          ],
+          relations: ['policies', 'paymentStatus'],
+          select: {
+            policies: {
+              id: true,
+              numberPolicy: true,
+            },
+          },
+        });
+      if (!paymentsByStatus || paymentsByStatus.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      return paymentsByStatus;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 
-  //5: metodo para actualizar el pago
+  //6: metodo para actualizar el pago
   public async updatePayment(
     id: number,
     updateData: Partial<PaymentDTO>,
