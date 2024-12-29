@@ -231,7 +231,6 @@ export class CreditcardService extends EncryptDataCard {
   //5:metodo para consultar las tarjetas expiradas o caducadas
   public findCrardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
-      //this.decryptData()
       const allCardsExpired: CreditCardEntity[] =
         await this.cardRepository.find({
           where: [
@@ -250,6 +249,7 @@ export class CreditcardService extends EncryptDataCard {
               secondName: true,
               surname: true,
               secondSurname: true,
+              numberPhone: true,
             },
           },
         });
@@ -261,8 +261,19 @@ export class CreditcardService extends EncryptDataCard {
           message: 'No se encontró resultados',
         });
       }
-
-      return allCardsExpired;
+      // Desencriptar los datos de cada tarjeta y mantener las relaciones
+      return allCardsExpired.map((card) => {
+        // Pasar ambos valores a la función decryptData
+        const { cardNumber, code } = this.decryptData({
+          cardNumber: card.cardNumber,
+          code: card.code,
+        });
+        return {
+          ...card,
+          cardNumber: cardNumber,
+          code: code,
+        };
+      });
     } catch (error) {
       //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);

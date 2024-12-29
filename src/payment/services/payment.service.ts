@@ -116,11 +116,37 @@ export class PaymentService {
           where: [
             { status_payment_id: 1 }, // Estado: atrazado
           ],
-          relations: ['policies', 'paymentStatus'],
+          relations: [
+            'policies',
+            'policies.customer',
+            'policies.company',
+            'policies.advisor',
+            'paymentStatus',
+          ],
           select: {
             policies: {
               id: true,
               numberPolicy: true,
+              policyType: {
+                id: true,
+                policyName: true,
+              },
+              customer: {
+                numberPhone: true,
+                firstName: true,
+                secondName: true,
+                surname: true,
+                secondSurname: true,
+              },
+              company: {
+                companyName: true,
+              },
+              advisor: {
+                firstName: true,
+                secondName: true,
+                surname: true,
+                secondSurname: true,
+              },
             },
           },
         });

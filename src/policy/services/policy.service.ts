@@ -76,7 +76,6 @@ export class PolicyService extends ValidateEntity {
       // Asignar el estado determinado al body
       body.policy_status_id = determinedStatus.id;
       const newPolicy = await this.policyRepository.save(body);
-      console.log('newPolicy', newPolicy);
 
       // Calcular el valor del pago según la frecuencia de pago y crear un pago inicial
       const paymentFrequency = Number(newPolicy.payment_frequency_id);
