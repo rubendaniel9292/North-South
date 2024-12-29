@@ -28,9 +28,8 @@ span {
         border-radius: 8px;
 
         .modal-content {
-            width: 55%;
+            width: 60%;
             min-height: 30%;
-
             .conten-title {
                 background-color: #5e72e4 !important;
                 height: 3.5rem;

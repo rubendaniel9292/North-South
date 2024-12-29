@@ -135,7 +135,7 @@ const ListCustomer = () => {
                 <td>
                   <button
                     //onClick={() => deleteUser(user.uuid)}
-                    className="btn btn-success text-white fw-bold my-1"
+                    className="btn btn-success text-white fw-bold my-1  w-100"
                     //onClick={() => getPolicyById(policy.id, "renewal")}
                   >
                     Actualziar Información
@@ -144,7 +144,7 @@ const ListCustomer = () => {
                   <button
                     //onClick={() => deleteUser(user.uuid)}
 
-                    className="btn btn-success text-white fw-bold my-1"
+                    className="btn btn-success text-white fw-bold my-1 w-100 "
                     onClick={() => getCustomerById(customer.id, "customerId")}
                   >
                     Ver pólizas

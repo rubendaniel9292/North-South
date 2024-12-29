@@ -4,6 +4,9 @@ import PaymentModalContent from "./PaymentModalContent";
 import ListPolicyModal from "./ListPolicyModal";
 import RegisterRenewalsModal from "./RegisterRenewalsModal";
 import CustomerModalContent from "./CustomerModalContent";
+import PolicyStatusModal from "./PolicyStatusModal";
+import CardsModal from "./CardsModal";
+import PaymentByStatusModal from "./PaymentByStatusModal";
 
 export default function Modal({
   isOpen,
@@ -11,6 +14,9 @@ export default function Modal({
   policy,
   modalType,
   customerId,
+  policies,
+  cards,
+  payments,
 }) {
   if (!isOpen) return null;
 
@@ -24,11 +30,13 @@ export default function Modal({
         return <RegisterRenewalsModal onClose={onClose} policy={policy} />;
       case "customerId":
         return (
-          <CustomerModalContent
-            onClose={onClose}
-            customerId={customerId}
-          />
+          <CustomerModalContent onClose={onClose} customerId={customerId} />
         );
+      case "policyByStatus":
+        return <PolicyStatusModal onClose={onClose} policies={policies} />;
+      case "cardsByStatus":
+        return <CardsModal onClose={onClose} cards={cards} />;
+      case "paymentByStatus": return <PaymentByStatusModal onClose={onClose} payments={payments} />;
       default:
         return null;
     }
@@ -45,6 +53,13 @@ Modal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   policy: PropTypes.object,
+  customerId: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+    PropTypes.object,
+  ]),
   modalType: PropTypes.string.isRequired,
-  customerId: PropTypes.object.isRequired,
+  policies: PropTypes.array.isRequired,
+  cards: PropTypes.array.isRequired,
+  payments: PropTypes.array.isRequired,
 };

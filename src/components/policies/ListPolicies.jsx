@@ -129,7 +129,7 @@ export const ListPolicies = () => {
                   <td>{policy.observations || "N/A"}</td>
                   <td>
                     <button
-                      className="btn btn-success text-white fw-bold my-1"
+                      className="btn btn-success text-white fw-bold my-1 w-100"
                       onClick={() => getPolicyById(policy.id, "info")}
                     >
                       Ver información completa
@@ -137,14 +137,14 @@ export const ListPolicies = () => {
 
                     <button
                       key={index}
-                      className="btn btn-success text-white fw-bold my-1"
+                      className="btn btn-success text-white fw-bold my-1 w-100"
                       onClick={() => getPolicyById(policy.id, "payment")}
                     >
                       Actualizar Pago
                     </button>
 
                     <button
-                      className="btn btn-success text-white fw-bold my-1"
+                      className="btn btn-success text-white fw-bold my-1 w-100"
                       onClick={() => getPolicyById(policy.id, "renewal")}
                     >
                       Renovar póliza

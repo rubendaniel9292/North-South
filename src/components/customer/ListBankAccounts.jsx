@@ -60,7 +60,7 @@ const ListBankAccounts = () => {
                 <td>
                   <button
                     //onClick={() => deleteUser(user.uuid)}
-                    className="btn btn-success text-white fw-bold"
+                    className="btn btn-success text-white fw-bold w-100"
                   >
                     Actualziar
                   </button>
