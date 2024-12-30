@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import "@fontsource/roboto/500.css";
@@ -28,14 +28,7 @@ const Home = () => {
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
 
-  useEffect(() => {
-    getAllCardsExpireds();
-    getAllPoliciesStatus();
-    getAllPolicies();
-    getPaymenstByStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const getAllCardsExpireds = async (type) => {
+  const getAllCardsExpireds = useCallback(async (type) => {
     try {
       const response = await http.get("creditcard/all-cards-expireds");
       if (response.data.status === "success") {
@@ -54,14 +47,13 @@ const Home = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching users:", error);
     }
-  };
+  }, []);
 
-  const getAllPoliciesStatus = async (type) => {
+  const getAllPoliciesStatus = useCallback(async (type) => {
     try {
       const response = await http.get("policy/get-all-policy-status");
       if (response.data.status === "success") {
         setPolicies(response.data.policiesStatus);
-        //setModalData(response.data.policiesStatus);
         setPolicyStatus(true);
         if (type === "policyByStatus") {
           setModalType(type); // Establece el tipo de modal a mostrar
@@ -75,9 +67,9 @@ const Home = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching póilzas:", error);
     }
-  };
+  }, []);
 
-  const getAllPolicies = async () => {
+  const getAllPolicies = useCallback(async () => {
     try {
       const response = await http.get("policy/get-all-policy");
       if (response.data.status === "success") {
@@ -90,13 +82,12 @@ const Home = () => {
     } catch (error) {
       console.error("Error fetching póilzas:", error);
     }
-  };
-  const getPaymenstByStatus = async (type) => {
+  }, []);
+  const getPaymenstByStatus = useCallback(async (type) => {
     try {
       //console.log("intentando obtener las polizas por estado");
       const response = await http.get("payment/get-payment-1");
       if (response.data.status === "success") {
-        console.log("Payments Data:", response.data.paymentByStatus);
         setPayments(response.data.paymentByStatus);
         setPaymentStatus(true);
         if (type === "paymentByStatus") {
@@ -111,8 +102,18 @@ const Home = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching póilzas:", error);
     }
-  };
-
+  }, []);
+  useEffect(() => {
+    getAllCardsExpireds();
+    getAllPoliciesStatus();
+    getAllPolicies();
+    getPaymenstByStatus();
+  }, [
+    getAllCardsExpireds,
+    getAllPoliciesStatus,
+    getAllPolicies,
+    getPaymenstByStatus,
+  ]);
   const openModal = () => {
     setShowModal(true);
   };

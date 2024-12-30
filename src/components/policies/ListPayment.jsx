@@ -1,16 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 export const ListPayment = () => {
   const [payments, setPayments] = useState([]);
-  useEffect(() => {
-    getAllPayments();
-  }, []);
+
   dayjs.locale("es");
 
-  const getAllPayments = async () => {
+  const getAllPayments = useCallback(async () => {
     try {
       const response = await http.get("payment/get-all-payment");
       if (response.data.status === "success") {
@@ -25,7 +23,11 @@ export const ListPayment = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching póilzas:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    getAllPayments();
+  }, [getAllPayments]);
   return (
     <>
       <h2>Listado geneneral de los pagos</h2>
@@ -72,9 +74,7 @@ export const ListPayment = () => {
                 <button className="btn btn-success text-white fw-bold">
                   Actualizar
                 </button>
-
               </td>
-
             </tr>
           ))}
         </tbody>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
@@ -11,7 +11,7 @@ const ListCustomer = () => {
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
 
-  const getCustomerById = async (customerId, type) => {
+  const getCustomerById = useCallback(async (customerId, type) => {
     try {
       const response = await http.get(
         `customers/get-customer-id/${customerId}`
@@ -52,7 +52,10 @@ const ListCustomer = () => {
       console.error("Error fetching customers:", error);
     }
     return null; // Devuelve null en caso de error
-  };
+  },[]);
+
+
+
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
     setShowModal(true);

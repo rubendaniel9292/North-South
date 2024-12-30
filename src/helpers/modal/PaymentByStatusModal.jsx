@@ -4,11 +4,22 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
+import generateReport from "../GenerateReportPDF";
 
 const PaymentByStatusModal = ({ payments, onClose }) => {
-  if (!payments) return null;
-  // eslint-disable-next-line no-unused-vars, react-hooks/rules-of-hooks
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!payments) return null;
+
+  const handleGenerateReport = (e) => {
+    e.preventDefault();
+    generateReport(
+      payments,
+      "generate-report-pdf/download-payment",
+      `data-report.pdf`,
+      setIsLoading
+    );
+  };
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -22,16 +33,16 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                 <th>N°</th>
                 <th>Número de póliza</th>
                 <th>Teléfono</th>
-                <th>Primer Nombre</th>
-                <th>Segundo Nombre</th>
-                <th>Primer Apellido</th>
-                <th>Segundo Apellido</th>
+                <th colSpan="4" scope="row">
+                  Cliente
+                </th>
                 <th>Compañía</th>
-                <th>Asesor</th>              
-                <th>Valor</th>
+                <th>Asesor</th>
                 <th>Valor Pendiente</th>
-                <th>Fecha de Creación</th>
-                <th>Estado del Pago</th>
+                <th>Valor de la Póliza</th>
+                <th>Saldo de Póliza</th>
+                <th>Fecha de pago</th>
+                <th>Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -41,7 +52,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                   <td>{payment.policies.numberPolicy}</td>
                   <td>{payment.policies.customer.numberPhone}</td>
                   <td>{payment.policies.customer.firstName}</td>
-                  <td>{payment.policies.customer.secondName}</td>
+                  <td> {payment.policies.customer.secondName}</td>
                   <td>{payment.policies.customer.surname}</td>
                   <td>{payment.policies.customer.secondSurname}</td>
                   <td>{payment.policies.company.companyName}</td>
@@ -49,21 +60,14 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                     {payment.policies.advisor.firstName}{" "}
                     {payment.policies.advisor.surname}
                   </td>
-                  <td
-                    className={
-                      payment.paymentStatus.id == 1
-                        ? "bg-warning text-white fw-bold"
-                        : payment.paymentStatus.id == 2
-                        ? "bg-danger text-white fw-bold"
-                        : ""
-                    }
-                  >
-                    {payment.paymentStatus.statusNamePayment}
-                  </td>
-                  <td>{payment.value}</td>
-                  <td>{payment.pending_value}</td>
+                  <td className="bg-warning text-white fw-bold">{payment.value}</td>
+                  <td>{payment.policies.policyValue}</td>
+                  <td >{payment.pending_value}</td>
                   <td>
                     {dayjs(payment.createdAt).format("MM/YYYY").toString()}
+                  </td>
+                  <td className={"bg-warning text-white fw-bold"}>
+                    {payment.paymentStatus.statusNamePayment}
                   </td>
                 </tr>
               ))}
@@ -73,7 +77,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
             <div className="">
               <button
                 type="submit"
-                // onClick={generateReport}
+                onClick={handleGenerateReport}
                 id="btnc"
                 className="btn bg-success mx-5 text-white fw-bold"
                 disabled={isLoading}
@@ -114,22 +118,15 @@ PaymentByStatusModal.propTypes = {
   payments: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
-      number_payment: PropTypes.number.isRequired,
       value: PropTypes.string.isRequired,
       pending_value: PropTypes.string.isRequired,
-      credit: PropTypes.string.isRequired,
-      balance: PropTypes.string.isRequired,
-      total: PropTypes.string.isRequired,
       observations: PropTypes.string,
-      policy_id: PropTypes.string.isRequired,
-      status_payment_id: PropTypes.string.isRequired,
       createdAt: PropTypes.string.isRequired,
-      updatedAt: PropTypes.string.isRequired,
       policies: PropTypes.shape({
-        id: PropTypes.string.isRequired,
         numberPolicy: PropTypes.string.isRequired,
+        policyValue: PropTypes.string.isRequired,
         customer: PropTypes.shape({
-          ci_ruc: PropTypes.string.isRequired,
+          numberPhone: PropTypes.string.isRequired,
           firstName: PropTypes.string.isRequired,
           secondName: PropTypes.string,
           surname: PropTypes.string.isRequired,

@@ -91,7 +91,7 @@ const PolicyStatusModal = ({ policies, onClose }) => {
 
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-              <button
+              <button  
                 type="submit"
                 //onClick={generateReport}
                 id="btnc"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 
@@ -7,7 +7,7 @@ const ListBankAccounts = () => {
   useEffect(() => {
     getAllAccounts();
   }, []);
-  const getAllAccounts = async () => {
+  const getAllAccounts = useCallback(async () => {
     try {
       const response = await http.get("bankaccount/get-all-account");
       if (response.data.status === "success") {
@@ -22,7 +22,7 @@ const ListBankAccounts = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching users:", error);
     }
-  };
+  }, []);
   return (
     <>
       <div>

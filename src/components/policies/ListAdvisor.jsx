@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
@@ -6,14 +6,12 @@ import "dayjs/locale/es";
 const ListAdvisor = () => {
   const [advisor, setAdvisor] = useState([]); // Almacenar la lista de clientes en el estado
 
-  //const { auth } = useAuth();
-
   useEffect(() => {
     getAllAdvisor();
   }, []);
 
   dayjs.locale("es");
-  const getAllAdvisor = async () => {
+  const getAllAdvisor = useCallback(async () => {
     try {
       const response = await http.get("advisor/get-all-advisor");
       if (response.data.status === "success") {
@@ -27,9 +25,11 @@ const ListAdvisor = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching asesores:", error);
     }
-  };
-  return (<>
-     <div>
+  }, []);
+
+  return (
+    <>
+      <div>
         <h2>Lista de clientes</h2>
 
         <table className="table table-striped">
@@ -41,7 +41,7 @@ const ListAdvisor = () => {
               <th>Segundo Nombre</th>
               <th>Primer Apellido</th>
               <th>Primer Segundo</th>
-              <th>Fecha de nacimiento</th>          
+              <th>Fecha de nacimiento</th>
               <th>Teléfono</th>
               <th>Email</th>
               <th>Fecha de Registro</th>
@@ -58,17 +58,11 @@ const ListAdvisor = () => {
                 <td>{item.secondName}</td>
                 <td>{item.surname}</td>
                 <td>{item.secondSurname}</td>
-                <td>
-                  {dayjs(item.birthdate)
-                    .format("DD/MM/YYYY")
-                    .toString()}
-                </td>
+                <td>{dayjs(item.birthdate).format("DD/MM/YYYY").toString()}</td>
                 <td>{item.numberPhone}</td>
                 <td>{item.email}</td>
                 <td>
-                  {dayjs(item.createdAt)
-                    .format("dddd DD/MM/YYYY")
-                    .toString()}
+                  {dayjs(item.createdAt).format("dddd DD/MM/YYYY").toString()}
                 </td>
                 <td>{item.personalData === "true" ? "SÍ" : "NO"}</td>
 
@@ -85,7 +79,8 @@ const ListAdvisor = () => {
           </tbody>
         </table>
       </div>
-  </>);
+    </>
+  );
 };
 
 export default ListAdvisor;

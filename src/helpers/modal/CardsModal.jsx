@@ -28,10 +28,7 @@ const CardsModal = ({ cards, onClose }) => {
                 <th>Número de tarjeta</th>
                 <th>Fecha de expiración</th>
                 <th>Cédula / RUC</th>
-                <th>Primer Nombre</th>
-                <th>Segundo Nombre</th>
-                <th>Primer Apellido</th>
-                <th>Primer Segundo</th>
+                <th colSpan="4" scope="row">Cliente</th>
                 <th>Numero Telefónico</th>
                 <th>Banco</th>
                 <th>Tipo de tarjeta</th>

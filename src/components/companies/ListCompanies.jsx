@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 
@@ -9,7 +9,7 @@ const ListCompanies = () => {
   useEffect(() => {
     getAllCompanies();
   }, []);
-  const getAllCompanies = async () => {
+  const getAllCompanies = useCallback(async () => {
     try {
       const response = await http.get("company/get-all-company");
       if (response.data.status === "success") {
@@ -23,7 +23,7 @@ const ListCompanies = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching users:", error);
     }
-  };
+  }, []);
   return (
     <>
       <div>

@@ -6,57 +6,19 @@ import { faFile } from "@fortawesome/free-solid-svg-icons";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useState } from "react";
+import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   if (!policy) return null;
-
-  const generateReport = async (e) => {
+  const handleGenerateReport = (e) => {
     e.preventDefault();
-    try {
-      setIsLoading(true);
-      console.log("Generando PDF para póliza:", policy.numberPolicy);
-      const response = await http.post(
-        `generate-report-pdf/download-policy`,
-        policy,
-        {
-          responseType: "blob", //objeto Blob, que es la representación binaria del PDF.
-          headers: {
-            Accept: "application/pdf", //encabezado "Accept" para indicar que estás esperando una respuesta en formato PDF.
-          },
-        }
-      );
-
-      console.log("Respuesta recibida:", response.status);
-
-      // Crear el nombre del archivo
-      const fileName = `poliza-${policy.numberPolicy}-test.pdf`;
-
-      // Crear un URL para el blob
-      const url = window.URL.createObjectURL(
-        new Blob([response.data], { type: "application/pdf" })
-      );
-
-      // Crear elemento de descarga
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName);
-
-      // Descargar el archivo
-      document.body.appendChild(link);
-      link.click();
-
-      // Limpiar
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      alerts("Éxito", "PDF de prueba generado correctamente", "success");
-    } catch (error) {
-      console.error("Error durante la generación del PDF:", error);
-      alerts("Error", "No se pudo generar el PDF", "error");
-    } finally {
-      setIsLoading(false);
-    }
+    generateReport(
+      policy,
+      "generate-report-pdf/download-policy",
+      `data-report.pdf`,
+      setIsLoading
+    );
   };
 
   return (
@@ -228,7 +190,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <div className="">
               <button
                 type="submit"
-                onClick={generateReport}
+                onClick={handleGenerateReport}
                 id="btnc"
                 className="btn bg-success mx-5 text-white fw-bold "
                 disabled={isLoading}

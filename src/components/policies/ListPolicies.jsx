@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Modal from "../../helpers/modal/Modal";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
@@ -11,12 +11,12 @@ export const ListPolicies = () => {
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
 
   //conseguir la poliza por id
-  const getPolicyById = async (policyId, type) => {
+  const getPolicyById = useCallback(async (policyId, type) => {
     try {
       const response = await http.get(`policy/get-policy-id/${policyId}`);
       console.log("poliza por id obtenida: ", response.data);
       if (response.data.status === "success") {
-        console.log('poliza obtenida: ', response.data.policyById)
+        console.log("poliza obtenida: ", response.data.policyById);
         // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
         setModalType(type); // Establece el tipo de modal a mostrar
@@ -36,7 +36,7 @@ export const ListPolicies = () => {
       console.error("Error fetching póilzas:", error);
     }
     return null; // Devuelve null en caso de error
-  };
+  }, []);
 
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
@@ -50,8 +50,9 @@ export const ListPolicies = () => {
   useEffect(() => {
     getAllPolicies();
   }, []);
+
   dayjs.locale("es");
-  const getAllPolicies = async () => {
+  const getAllPolicies = useCallback(async () => {
     try {
       const response = await http.get("policy/get-all-policy");
       if (response.data.status === "success") {
@@ -65,7 +66,7 @@ export const ListPolicies = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching póilzas:", error);
     }
-  };
+  }, []);
   return (
     <>
       <section>
@@ -162,7 +163,6 @@ export const ListPolicies = () => {
             onClose={closeModal}
             policy={policy}
             modalType={modalType} // Pasamos el tipo de modal a mostrar
-            
           ></Modal>
         )}
       </section>
