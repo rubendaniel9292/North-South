@@ -67,7 +67,7 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
-      const paymentId = await this.paymentRepository.findOne({
+      const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
         relations: ['policies', 'paymentStatus'],
         select: {
@@ -124,11 +124,15 @@ export class PaymentService {
             'paymentStatus',
           ],
           select: {
+            id: true,
+            value: true,
+            createdAt: true,
+            pending_value: true,
             policies: {
               id: true,
               numberPolicy: true,
+              policyValue: true,
               policyType: {
-                id: true,
                 policyName: true,
               },
               customer: {

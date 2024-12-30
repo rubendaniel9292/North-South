@@ -249,20 +249,25 @@ Se trabajara con las tablas estado civil, provincia, ciudad y clientes.
 
 ### npm i puppeteer
 
-### sudo apt install -y \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libgbm1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libxkbcommon0 \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libasound2 \
-    libpangocairo-1.0-0 \
-    libnss3 \
-    libxshmfence1
+### sudo apt-get update
+sudo apt-get install -y \
+  libx11-xcb1 \
+  libxcomposite1 \
+  libxdamage1 \
+  libxi6 \
+  libxtst6 \
+  libnss3 \
+  libxrandr2 \
+  libasound2 \
+  libatk1.0-0 \
+  libgtk-3-0 \
+  libxfixes3 \
+  libcups2 \
+  libdrm2 \
+  libgbm1 \
+  libpango-1.0-0 \
+  libpangocairo-1.0-0 \
+  libxshmfence1
+
 ### sudo PUPPETEER_CACHE_DIR=/root/.cache/puppeteer npx puppeteer browsers install chrome
 ### npm install puppeteer puppeteer-core

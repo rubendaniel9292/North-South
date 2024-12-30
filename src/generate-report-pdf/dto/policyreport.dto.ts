@@ -1,5 +1,4 @@
-export class PolicyReportDto {
-  id: string;
+export class PolicyReportDTO {
   numberPolicy: string;
   coverageAmount: string;
   agencyPercentage: string;

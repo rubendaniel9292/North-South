@@ -33,7 +33,7 @@ export class GenerateReportPdfService {
       // Cargamos el contenido HTML con opciones mejoradas
       await page.setContent(html, {
         waitUntil: ['domcontentloaded', 'networkidle0'],
-        timeout: 2000,
+        timeout: 5000,
       });
 
       // Configuración mejorada del PDF
