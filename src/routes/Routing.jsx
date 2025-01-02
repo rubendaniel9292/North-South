@@ -14,13 +14,13 @@ import RegisterCreditCard from "../components/customer/RegisterCreditCard";
 import CreateBank from "../components/customer/CreateBank";
 import ListCompanies from "../components/companies/ListCompanies";
 import CreateComapnies from "../components/companies/CreateComapnies";
-import { CreateAdvisor } from "../components/policies/CreateAdvisor";
+import  CreateAdvisor from "../components/policies/CreateAdvisor";
 import ListAdvisor from "../components/policies/ListAdvisor";
 import CreatePolicy from "../components/policies/CreatePolicy";
-import { ListPolicies } from "../components/policies/ListPolicies";
+import ListPolicies  from "../components/policies/ListPolicies";
 import CreateBankAccount from "../components/customer/CreateBankAccount";
 import ListBankAccounts from "../components/customer/ListBankAccounts";
-import { ListPayment } from "../components/policies/ListPayment";
+import  ListPayment from "../components/policies/ListPayment";
 
 const Routing = () => {
   return (

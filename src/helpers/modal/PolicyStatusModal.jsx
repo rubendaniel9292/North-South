@@ -28,7 +28,7 @@ const PolicyStatusModal = ({ policies, onClose }) => {
               <tr>
                 <th>N°</th>
                 <th>Número de Póliza</th>
-                <th>Cliente</th>
+                <th colSpan="2" scope="row">Cliente</th>
                 <th>Compañía</th>
                 <th>Tipo de Póliza</th>
                 <th>Fecha de Inicio</th>
@@ -48,9 +48,10 @@ const PolicyStatusModal = ({ policies, onClose }) => {
                   <td>{policy.numberPolicy}</td>
                   <td>
                     {policy.customer.firstName}{" "}
-                    {policy.customer.secondName || ""} {policy.customer.surname}{" "}
-                    {policy.customer.secondSurname || ""}
+                    {policy.customer.secondName || ""} 
                   </td>
+                  <td>{policy.customer.surname}{" "}
+                    {policy.customer.secondSurname || ""}</td>
                   <td>{policy.company.companyName}</td>
                   <td>{policy.policyType.policyName}</td>
 

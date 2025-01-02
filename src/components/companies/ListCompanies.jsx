@@ -26,9 +26,9 @@ const ListCompanies = () => {
   }, []);
   return (
     <>
-      <div>
-        <h2>Lista de compañias aseguradoras</h2>
-        <table className="table table-striped">
+      <div className="text-center py-2">
+        <h2 className="py-2">Lista de compañias aseguradoras</h2>
+        <table className="table table-striped py-2">
           <thead>
             <tr>
               <th>N°</th>

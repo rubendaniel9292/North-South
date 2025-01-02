@@ -3,8 +3,6 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
-import alerts from "../../helpers/Alerts";
-import http from "../../helpers/Http";
 import { useState } from "react";
 import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

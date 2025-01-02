@@ -4,7 +4,7 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-export const ListPolicies = () => {
+const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
@@ -70,14 +70,14 @@ export const ListPolicies = () => {
   return (
     <>
       <section>
-        <div className="container-fluid mt-2">
-          <h2>Listado general de todas las póilzas</h2>
-          <table className="table table-striped">
+        <div className="text-center py-2">
+          <h2 className="py-2">Listado general de todas las póilzas</h2>
+          <table className="table table-striped py-2">
             <thead>
               <tr>
                 <th>N°</th>
                 <th>Número de Póliza</th>
-                <th>Cliente</th>
+                <th colSpan="2" scope="row" >Cliente</th>
                 <th>Compañía</th>
                 <th>Tipo de Póliza</th>
                 <th>Fecha de Inicio</th>
@@ -99,6 +99,10 @@ export const ListPolicies = () => {
                   <td>
                     {policy.customer.firstName}{" "}
                     {policy.customer.secondName || " "}{" "}
+
+                  </td>
+                  <td>
+
                     {policy.customer.surname}{" "}
                     {policy.customer.secondSurname || " "}
                   </td>
@@ -169,3 +173,4 @@ export const ListPolicies = () => {
     </>
   );
 };
+export default ListPolicies;

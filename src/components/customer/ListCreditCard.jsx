@@ -38,7 +38,7 @@ const ListCreditCard = () => {
 
   return (
     <>
-      <div>
+      <div className="text-center py-2">
         <h2>Lista de tarjetas</h2>
         <div id="turnstile-container" className="my-3">
           <Turnstile
@@ -48,9 +48,15 @@ const ListCreditCard = () => {
             debug={true}
           />
         </div>
-        <button onClick={getAllCards} className="fw-bold btn btn-primary mt-2">
-          Cargar tarjetas
-        </button>
+        {cards.length === 0 ? (
+          <button
+            onClick={getAllCards}
+            className="fw-bold btn btn-primary mt-2"
+          >
+            Cargar tarjetas
+          </button>
+        ) : null}
+
         <table className="table table-striped">
           <thead>
             <tr>
@@ -59,10 +65,9 @@ const ListCreditCard = () => {
               <th>Código</th>
               <th>Fecha de expiración</th>
               <th>Cédula / RUC</th>
-              <th>Primer Nombre</th>
-              <th>Segundo Nombre</th>
-              <th>Primer Apellido</th>
-              <th>Segundo Apellido</th>
+              <th colSpan="4" scope="row">
+                Cliente
+              </th>
               <th>Banco</th>
               <th>Tipo de tarjeta</th>
               <th>Estado</th>
@@ -97,9 +102,17 @@ const ListCreditCard = () => {
                   {card.cardstatus.cardStatusName}
                 </td>
                 <td>
+                  {card.cardstatus.id == 2 || card.cardstatus.id == 3 ? (
+                    <button
+                      //onClick={() => deleteUser(user.uuid)}
+                      className="btn bg-danger  text-white fw-bold w-100 my-1"
+                    >
+                      Eliminar tarjeta
+                    </button>
+                  ) : null}
                   <button
                     //onClick={() => deleteUser(user.uuid)}
-                    className="btn btn-success text-white fw-bold w-100"
+                    className="btn btn-success text-white fw-bold w-100 my-1"
                   >
                     Actualizar
                   </button>

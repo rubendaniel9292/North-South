@@ -25,18 +25,15 @@ const ListBankAccounts = () => {
   }, []);
   return (
     <>
-      <div>
-        <h2>Lista de tarjetas</h2>
-        <table className="table table-striped">
+      <div className="text-center py-2">
+        <h2 className="py-2">Lista de tarjetas</h2>
+        <table className="table table-striped py-2">
           <thead>
             <tr>
               <th>N°</th>
               <th>Número de cuenta</th>
               <th>Cédula / RUC</th>
-              <th>Primer Nombre</th>
-              <th>Segundo Nombre</th>
-              <th>Primer Apellido</th>
-              <th>Primer Segundo</th>
+              <th colSpan="4" scope="row" >Cliente</th>
               <th>Banco</th>
               <th>Tipo de cuenta</th>
               <th>Observaciones</th>

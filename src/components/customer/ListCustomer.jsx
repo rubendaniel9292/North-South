@@ -87,18 +87,14 @@ const ListCustomer = () => {
 
   return (
     <>
-      <div>
-        <h2>Lista de clientes</h2>
-
-        <table className="table table-striped">
+      <div className="text-center py-2">
+        <h2 className="py-2">Listado general de clientes</h2>
+        <table className="table table-striped py-2">
           <thead>
             <tr>
               <th>N°</th>
               <th>Cédula / RUC</th>
-              <th>Primer Nombre</th>
-              <th>Segundo Nombre</th>
-              <th>Primer Apellido</th>
-              <th>Primer Segundo</th>
+              <th colSpan="4" scope="row" >Cliente</th>
               <th>Estado Civil</th>
               <th>Provincia</th>
               <th>Ciudad o Cantón</th>
@@ -141,7 +137,7 @@ const ListCustomer = () => {
                     className="btn btn-success text-white fw-bold my-1  w-100"
                     //onClick={() => getPolicyById(policy.id, "renewal")}
                   >
-                    Actualziar Información
+                    Actualizar Información
                   </button>
 
                   <button
