@@ -45,4 +45,17 @@ export class AdvisorService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+
+  //2: metodo para buscar los asesores
+  public getAdvisorBiId = async (id: number) => {
+    try {
+      const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
+        { where: { id } }
+      );
+      return advisorById;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 }

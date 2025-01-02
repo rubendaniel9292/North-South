@@ -1,3 +1,4 @@
+
 export interface ICivilStatus {
   status: string;
 }
@@ -111,4 +112,11 @@ export interface IRenewall {
   observations?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+export interface IAdvance{
+  receiptNumber: string;
+  advanceValue: number;
+  createdAt: Date;
+  observations?: string;
 }

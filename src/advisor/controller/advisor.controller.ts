@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AdvisorService } from '../services/advisor.service';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { AdvisorDTO } from '../dto/advisor.dto';
@@ -30,6 +30,19 @@ export class AdvisorController {
       return {
         status: 'success',
         allAdvisors,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-advisor/:id')
+  public async allAdvisor(@Param('id') id: number) {
+    console.log('entrando al controlador de advisor');
+    const advisorById = await this.advisorService.getAdvisorBiId(id);
+    if (advisorById) {
+      return {
+        status: 'success',
+        advisorById,
       };
     }
   }

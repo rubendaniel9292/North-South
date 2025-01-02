@@ -112,8 +112,8 @@ export class CreditcardController {
 
   @Roles('ADMIN', 'BASIC')
   @Get('all-cards-expireds')
-  public async findCardsExpired() {
-    const allCardsExpired = await this.creditCardService.findCrardsExpired();
+  public async findCardExpired() {
+    const allCardsExpired = await this.creditCardService.findCardsExpired();
     if (allCardsExpired) {
       return {
         status: 'success',

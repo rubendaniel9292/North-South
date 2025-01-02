@@ -229,7 +229,7 @@ export class CreditcardService extends EncryptDataCard {
   };*/
 
   //5:metodo para consultar las tarjetas expiradas o caducadas
-  public findCrardsExpired = async (): Promise<CreditCardEntity[]> => {
+  public findCardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
       const allCardsExpired: CreditCardEntity[] =
         await this.cardRepository.find({
