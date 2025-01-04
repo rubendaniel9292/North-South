@@ -377,6 +377,7 @@ export class PolicyService extends ValidateEntity {
             secondSurname: true,
           },
           company: {
+            id:true,  
             companyName: true,
           },
           advisor: {

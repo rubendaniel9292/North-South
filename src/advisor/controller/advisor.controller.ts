@@ -8,7 +8,7 @@ import { AuthGuard } from '@/auth/guards/auth.guard';
 @Controller('advisor')
 @UseGuards(AuthGuard, RolesGuard)
 export class AdvisorController {
-  constructor(private readonly advisorService: AdvisorService) {}
+  constructor(private readonly advisorService: AdvisorService) { }
   @Roles('ADMIN', 'BASIC')
   @Post('register-advisor')
   public async registerAdvisor(@Body() body: AdvisorDTO) {

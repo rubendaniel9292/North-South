@@ -8,6 +8,7 @@ import {
   //Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -57,9 +58,9 @@ export class PaymentController {
   }
 
   @Roles('ADMIN', 'BASIC')
-  @Get('get-payment-1')
-  public async getPaymentByStatus() {
-    const paymentByStatus = await this.paymentService.getPaymentsByStatus();
+  @Get('get-payment-by-status')
+  public async getPaymentByStatus(@Query('companyId') companyId?: number) {
+    const paymentByStatus = await this.paymentService.getPaymentsByStatus(companyId);
     if (paymentByStatus) {
       return {
         status: 'success',

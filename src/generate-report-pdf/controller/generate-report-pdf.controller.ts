@@ -330,10 +330,8 @@ export class GenerateReportPdfController {
             <th>Cliente</th>
              <th>Compañía</th>
             <th>Asesor</th>
-  
             <th>Valor de la Póliza</th>
               <th>Valor Pendiente</th>
-              <th>Saldo Pendiente</th>
             <th>Fecha de pago</th>
             <th>Estado</th>
           </tr>
@@ -356,7 +354,6 @@ export class GenerateReportPdfController {
             ${payment.policies.advisor.surname}
           </td>
          <td>${payment.policies.policyValue}</td>
-         <td>${payment.pending_value}</td>
           <td class="bg-warning text-white fw-bold">${payment.value}</td>
           <td>
             ${new Date(payment.createdAt).toISOString().slice(0, 10)}

@@ -18,7 +18,7 @@ export class PaymentService {
 
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
-  ) {}
+  ) { }
   //1: metodo para registrar un pago de poliza
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
     try {
@@ -109,13 +109,19 @@ export class PaymentService {
     }
   };
   //5: metodo para obtener los pagos en base al estado
-  public getPaymentsByStatus = async (): Promise<PaymentEntity[]> => {
+  public getPaymentsByStatus = async (companyId?: number): Promise<PaymentEntity[]> => {
     try {
+      // condiciones de búsqueda
+      const whereConditions: any = {
+        status_payment_id: 1 // Estado: atrasado
+      };
+      // Si se proporciona un companyId, añade la condición de la compañía
+      if (companyId) {
+        whereConditions['policies.company.id'] = companyId;
+      }
       const paymentsByStatus: PaymentEntity[] =
         await this.paymentRepository.find({
-          where: [
-            { status_payment_id: 1 }, // Estado: atrazado
-          ],
+          where: whereConditions,
           relations: [
             'policies',
             'policies.customer',
@@ -127,7 +133,6 @@ export class PaymentService {
             id: true,
             value: true,
             createdAt: true,
-            pending_value: true,
             policies: {
               id: true,
               numberPolicy: true,
@@ -143,6 +148,7 @@ export class PaymentService {
                 secondSurname: true,
               },
               company: {
+                id: true,
                 companyName: true,
               },
               advisor: {

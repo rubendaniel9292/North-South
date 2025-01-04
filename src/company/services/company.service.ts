@@ -15,7 +15,7 @@ export class CompanyService extends ValidateEntity {
     // Pasar el repositorio al constructor de la clase base
     super(companyRepository);
   }
-  //1:metodo para registrar un cliente
+  //1:metodo para registrar una compañia       
   public createCompany = async (body: CompanyDTO): Promise<CompanyEntity> => {
     try {
       // Primero validamos cédula o ruc
