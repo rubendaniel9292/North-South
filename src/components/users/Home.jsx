@@ -86,7 +86,7 @@ const Home = () => {
   const getPaymenstByStatus = useCallback(async (type) => {
     try {
       //console.log("intentando obtener las polizas por estado");
-      const response = await http.get("payment/get-payment-1");
+      const response = await http.get("payment/get-payment-by-status");
       if (response.data.status === "success") {
         setPayments(response.data.paymentByStatus);
         setPaymentStatus(true);
