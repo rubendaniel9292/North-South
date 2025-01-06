@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-//import { Cron } from '@nestjs/schedule';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PolicyStatusEntity } from '@/policy/entities/policy_status.entity';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class PolicyStatusService {
+export class PolicyStatusService implements OnModuleInit {
   constructor(
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     @InjectRepository(PolicyStatusEntity)
     private readonly policyStatusRepository: Repository<PolicyStatusEntity>,
-  ) {}
+  ) { }
+
 
   //1: Método para determinar el estado de la poliza basado en la fecha de culminacion
   async determinePolicyStatus(endDate: Date): Promise<PolicyStatusEntity> {
@@ -55,9 +55,9 @@ export class PolicyStatusService {
       activeStatus,
     });
 
-    if (endDate < currentDate) {
+    if (endDate.getTime() < currentDate.getTime()) {
       return completedStatus; // La poliza ha culminado
-    } else if (endDate >= currentMonthStart && endDate < nextMonthStart) {
+    } else if (endDate.getTime() >= currentMonthStart.getTime() && endDate.getTime() < nextMonthStart.getTime()) {
       return closeToCompletion; // La poliza esta por culminar
     } else {
       return activeStatus; // La poiliza esta activa o vigente
@@ -84,5 +84,11 @@ export class PolicyStatusService {
   //para probar la actualización sin esperar al cron.
   async testUpdatePolicyStatuses(): Promise<void> {
     await this.updatePolicyStatuses();
+  }
+
+  // Método que se ejecuta cada inicio del servidor
+  async onModuleInit(): Promise<void> {
+    console.log('Inicializando y actualizando estados de las pólizas...');
+    await this.updatePolicyStatuses(); // Llamar a la lógica para actualizar los estados
   }
 }

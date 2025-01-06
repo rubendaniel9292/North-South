@@ -36,11 +36,13 @@ export const DataSourceConfig: DataSourceOptions = {
   migrationsRun: true,
   /* solo para modo produccion: establecer una conexión segura (SSL) a la base de datos
   false si aun no esta configurado el ssl en el servidor, true si ya esta configurado
+  */
+  
   extra: {
     ssl: {
-      rejectUnauthorized: true,
+      rejectUnauthorized: false,
     },
-  },*/
+  },
   logging: false,
   namingStrategy: new SnakeNamingStrategy(),
 };

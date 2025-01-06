@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
@@ -6,13 +6,13 @@ import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { CardStatusEntity } from '@/creditcard/entities/card.status.entity';
 
 @Injectable()
-export class CreditCardStatusService {
+export class CreditCardStatusService implements OnModuleInit {
   constructor(
     @InjectRepository(CreditCardEntity)
     private readonly creditCardRepository: Repository<CreditCardEntity>,
     @InjectRepository(CardStatusEntity)
     private readonly cardStatusRepository: Repository<CardStatusEntity>,
-  ) {}
+  ) { }
 
   //1: Método para determinar el estado de la tarjeta basado en la fecha de expiración
   async determineCardStatus(expirationDate: Date): Promise<CardStatusEntity> {
@@ -56,11 +56,14 @@ export class CreditCardStatusService {
       activeStatus,
     });
 
-    if (expirationDate < currentMonthStart) {
+    /*El método getTime() devuelve 
+    la representación de la fecha en milisegundos desde el 1 de enero de 1970
+    Se asegura de que ambos valores sean precisos hasta el nivel de milisegundos, eliminando cualquier ambigüedad.*/
+    if (expirationDate.getTime() < currentDate.getTime()) {
       return expiredStatus; // La tarjeta ha caducado
     } else if (
-      expirationDate >= currentMonthStart &&
-      expirationDate < nextMonthStart
+      expirationDate.getTime() >= currentDate.getTime() &&
+      expirationDate.getTime() < nextMonthStart.getTime()
     ) {
       return aboutToExpireStatus; // La tarjeta está por caducar
     } else {
@@ -68,34 +71,44 @@ export class CreditCardStatusService {
     }
   }
 
-  @Cron('0 0 1 * *') // Ejecuta a medianoche el primer día de cada mes
+
   //@Cron('0 * * * *') // Ejecuta a minuto 0 de cada hora
+  @Cron('0 0 1 * *') // Ejecuta a medianoche el primer día de cada mes
   async updateCardStatuses(): Promise<void> {
     console.log('Actualizando estados de las tarjetas...');
     const creditCards = await this.creditCardRepository.find();
-    //const newStatus = await this.determineCardStatus(expirationDate);
 
     for (const card of creditCards) {
       const expirationDate = new Date(card.expirationDate);
-      const newStatus = await this.determineCardStatus(
-        new Date(card.expirationDate),
-      );
-      console.log(
-        `Tarjeta ID ${card.id}: Expiración ${expirationDate.toISOString()}, Estado actual ${card.card_status_id}, Nuevo estado ${newStatus.id}`,
-      );
-      if (card.card_status_id !== newStatus.id) {
+      const newStatus = await this.determineCardStatus(expirationDate);
+      if (newStatus && card.card_status_id !== newStatus.id) {
         console.log(
-          `Actualizando tarjeta con ID ${card.id} al estado ${newStatus.id}`,
+          `Actualizando tarjeta con ID ${card.id} del estado ${card.card_status_id} al estado ${newStatus.id}`,
         );
-        await this.creditCardRepository.update(card.id, {
-          card_status_id: newStatus.id,
-        });
+        try {
+          await this.creditCardRepository.update(card.id, {
+            card_status_id: newStatus.id,
+          });
+          console.log(`Tarjeta ID ${card.id} actualizada exitosamente.`);
+        } catch (error) {
+          console.error(`Error actualizando tarjeta con ID ${card.id}:`, error);
+        }
+      } else {
+        console.log(`Tarjeta ID ${card.id} ya está en el estado correcto.`);
       }
     }
+    console.log('Actualización de estados de las tarjetas completada.');
   }
+
   // este metodo puede ser llamado manualmente desde un controlador o consola
-  //para probar la actualización sin esperar al cron.
+  //para probar la actualización sin esperar al
   async testUpdateCardStatuses(): Promise<void> {
+    await this.updateCardStatuses();
+  }
+
+  // Método que se ejecutará cuando el módulo sea inicializado
+  async onModuleInit(): Promise<void> {
+    console.log('Módulo inicializado, actualizando estados de tarjetas...');
     await this.updateCardStatuses();
   }
 }
