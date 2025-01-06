@@ -68,24 +68,7 @@ const CardsModal = ({ cards, onClose }) => {
           </table>{" "}
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-              <button
-                type="submit"
-                //onClick={generateReport}
-                id="btnc"
-                className="btn bg-success mx-5 text-white fw-bold "
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">
-                      Generando reporte...
-                    </span>
-                  </div>
-                ) : (
-                  "Generar reporte PDF"
-                )}
-                <FontAwesomeIcon className="mx-2" beat icon={faFile} />
-              </button>
+
 
               <button
                 type="submit"

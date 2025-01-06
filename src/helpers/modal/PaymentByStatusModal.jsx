@@ -130,7 +130,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                 <option value="name">Buscar por nombre o apellido</option>
               </select>
               {searchByName && (
-                <div className="mb-3 mt-3">
+                <div className="mb-3 my-2">
                   <label htmlFor="nameQuery" className="form-label">
                     Nombre o Apellido
                   </label>

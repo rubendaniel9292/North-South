@@ -39,8 +39,12 @@ const PaymentModalContent = ({ policy, onClose }) => {
 
   useEffect(() => {
     if (policy) {
-      const lastPayment = policy.payments.length ? policy.payments[policy.payments.length - 1] : null;
-      const pendingValue = lastPayment ? Number(lastPayment.pending_value) : Number(policy.policyValue);
+      const lastPayment = policy.payments.length
+        ? policy.payments[policy.payments.length - 1]
+        : null;
+      const pendingValue = lastPayment
+        ? Number(lastPayment.pending_value)
+        : Number(policy.policyValue);
       const lastPaymentNumber = lastPayment ? lastPayment.number_payment : 1;
 
       setForm((prevForm) => ({
@@ -116,7 +120,11 @@ const PaymentModalContent = ({ policy, onClose }) => {
           : Number(policy.policyValue);
 
         if (credit > currentPendingValue || credit > form.value) {
-          alerts("Error", "El pago no puede ser mayor al saldo pendiente o al valor a pagar", "error");
+          alerts(
+            "Error",
+            "El pago no puede ser mayor al saldo pendiente o al valor a pagar",
+            "error"
+          );
           return prevForm;
         }
 
@@ -143,11 +151,20 @@ const PaymentModalContent = ({ policy, onClose }) => {
     try {
       e.preventDefault();
       const updatedPayment = { ...form, policy_id: policy.id };
-      const lastPaymentId = policy.payments.length ? policy.payments[policy.payments.length - 1].id : null;
-      const request = await http.put(`payment/update-payment/${lastPaymentId}`, updatedPayment);
+      const lastPaymentId = policy.payments.length
+        ? policy.payments[policy.payments.length - 1].id
+        : null;
+      const request = await http.put(
+        `payment/update-payment/${lastPaymentId}`,
+        updatedPayment
+      );
 
       if (request.data.status === "success") {
-        alerts("Actualización exitosa", "Pago actualizado correctamente", "success");
+        alerts(
+          "Actualización exitosa",
+          "Pago actualizado correctamente",
+          "success"
+        );
         document.querySelector("#user-form").reset();
         setTimeout(() => {
           onClose();
@@ -259,7 +276,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                   step="0.01"
                   value={form.credit}
                   onChange={handleChange}
-                //readOnly
+                  //readOnly
                 />
               </div>
               <div className="mb-3 col-3">
@@ -305,7 +322,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                   name="balance"
                   readOnly
                   //value={form.createdAt}
-                  value={form.createdAt ? form.createdAt.split('T')[0] : ''}
+                  value={form.createdAt ? form.createdAt.split("T")[0] : ""}
                 />
               </div>
               <div className="mb-3 col-3">
@@ -319,6 +336,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                   onChange={handleChange}
                   defaultValue={option}
                 >
+                  {" "}
                   <option disabled>{option}</option>
                   {paymentStatus.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -352,11 +370,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
                   ) : (
                     "Actualizar Pago"
                   )}
-                  <FontAwesomeIcon
-                    className="mx-2"
-                    icon={faFloppyDisk}
-                    beat
-                  />
+                  <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
                 </button>
                 <button
                   type="submit"
@@ -392,7 +406,6 @@ PaymentModalContent.propTypes = {
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
     payments: PropTypes.arrayOf(
-
       PropTypes.shape({
         id: PropTypes.number.isRequired,
         pending_value: PropTypes.number.isRequired,
