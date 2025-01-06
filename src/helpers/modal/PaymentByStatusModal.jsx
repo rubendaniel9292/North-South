@@ -14,6 +14,9 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
   const [filteredPayments, setFilteredPayments] = useState(payments);
   const [selectedCompanyId, setSelectedCompanyId] = useState("General");
 
+  const [searchByName, setSearchByName] = useState(false);
+  const [nameQuery, setNameQuery] = useState("");
+
   //console.log("polizas con pagos atarsados:", payments);
   //array de compañias
   useEffect(() => {
@@ -77,6 +80,27 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
       setIsLoading
     );
   };
+
+  // Handle name query change
+  useEffect(() => {
+    if (searchByName && nameQuery) {
+      const filtered = payments.filter((payment) =>
+        `${payment.policies.customer.firstName} ${payment.policies.customer.surname}`
+          .toLowerCase()
+          .includes(nameQuery.toLowerCase())
+      );
+      setFilteredPayments(filtered);
+    } else if (searchByName && !nameQuery) {
+      setFilteredPayments([]);
+    }
+  }, [nameQuery, searchByName, payments]);
+
+  const handleSelectionChange = (e) => {
+    const value = e.target.value;
+    setSelectedCompanyId(value);
+    setSearchByName(value === "name");
+    setNameQuery("");
+  };
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -85,7 +109,6 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
             <h3 className="text-white">Lista de pólizas por estado</h3>
           </div>
           <div className="d-flex justify-content-around my-1">
-    
             <div className="mb-3 col-4">
               <label htmlFor="company_id" className="form-label">
                 Por compañía o búsqueda general
@@ -95,7 +118,8 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                 id="company_id"
                 name="company_id"
                 value={selectedCompanyId}
-                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                //onChange={(e) => setSelectedCompanyId(e.target.value)}
+                onChange={handleSelectionChange}
               >
                 <option value="General">General</option>
                 {companies.map((copmany) => (
@@ -103,7 +127,22 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                     {copmany.companyName}
                   </option>
                 ))}
+                <option value="name">Buscar por nombre o apellido</option>
               </select>
+              {searchByName && (
+                <div className="mb-3 mt-3">
+                  <label htmlFor="nameQuery" className="form-label">
+                    Nombre o Apellido
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="nameQuery"
+                    value={nameQuery}
+                    onChange={(e) => setNameQuery(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           </div>
           <table className="table table-striped">
