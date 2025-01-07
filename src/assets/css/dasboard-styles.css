@@ -9,9 +9,19 @@
   height: 89vh;
   /*border: 1px solid red;*/
 }
-
+.bg-orange-400{
+  background-color: #ee940b;
+}
 textarea {
   field-sizing: content;
+}
+
+/* Aplica una altura mínima a todas las filas de la tabla */
+
+
+/* Asegúrate de que las celdas no tengan márgenes ni rellenos adicionales */
+table tbody td {
+  vertical-align: middle; 
 }
 
 .card{

@@ -6,10 +6,31 @@ import "dayjs/locale/es";
 import Modal from "../../helpers/modal/Modal";
 
 const ListCustomer = () => {
-  const [customerId, setCustomerId] = useState({}); // Almacenar un cliente de clientes en el estado
-  const [customer, setCustomer] = useState([]); // Almacenar la lista de clientes en el estado
+  const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
+  const [customers, setCustomers] = useState([]); // Almacenar la lista de clientes en el estado
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
+  const [nameQuery, setNameQuery] = useState(""); // Estado para almacenar la consulta de búsqueda por nombre
+  const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
+  const customersPerPage = 7; // Número de clientes por página
+
+  // Fetch all customers on component mount
+  useEffect(() => {
+    getAllCustomers();
+  }, []);
+
+  const getAllCustomers = useCallback(async () => {
+    try {
+      const response = await http.get("customers/get-all-customer");
+      if (response.data.status === "success") {
+        setCustomers(response.data.allCustomer);
+        console.log(response.data.allCustomer);
+      }
+    } catch (error) {
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error fetching customers:", error);
+    }
+  }, []);
 
   const getCustomerById = useCallback(async (customerId, type) => {
     try {
@@ -18,14 +39,11 @@ const ListCustomer = () => {
       );
 
       if (response.data.status === "success") {
-        // Póliza encontrada, la almacenamos en el estado
-        console.log("cliente obtenido:", response.data.customerById);
         const customer = response.data.customerById;
         if (!customer) {
           alerts("Error", "No existe cliente registrado con este ID", "error");
           return null;
         }
-        // Verificar si el cliente tiene la propiedad `policies` y si está vacía
         if (!customer.policies || customer.policies.length === 0) {
           alerts(
             "Información",
@@ -34,10 +52,9 @@ const ListCustomer = () => {
           );
           return null;
         }
-        setCustomerId(response.data.customerById);
-        setModalType(type); // Establece el tipo de modal a mostrar
-        openModal(customerId);
-        //setShowModal(true); // Abre el modal
+        setCustomerId(customer);
+        setModalType(type);
+        openModal();
       } else {
         alerts(
           "Error",
@@ -47,19 +64,16 @@ const ListCustomer = () => {
         console.error(response.message);
       }
     } catch (error) {
-      //setError(error);
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching customers:", error);
     }
-    return null; // Devuelve null en caso de error
-  },[]);
+    return null;
+  }, []);
 
-
-
-  // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
     setShowModal(true);
   };
+
   const closeModal = () => {
     setCustomerId(null);
     setShowModal(false);
@@ -67,34 +81,68 @@ const ListCustomer = () => {
 
   dayjs.locale("es");
 
-  useEffect(() => {
-    getAllCustomers();
-  }, []);
+  // Filtrar clientes en tiempo real basado en la consulta de búsqueda
+  const filteredCustomers = customers.filter((customer) => {
+    const fullName =
+      `${customer.firstName} ${customer.secondName} ${customer.surname} ${customer.secondSurname}`.toLowerCase();
+    return (
+      customer.ci_ruc.toLowerCase().includes(nameQuery.toLowerCase()) ||
+      fullName.includes(nameQuery.toLowerCase())
+    );
+  });
 
-  const getAllCustomers = async () => {
-    try {
-      const response = await http.get("customers/get-all-customer");
-      if (response.data.status === "success") {
-        setCustomer(response.data.allCustomer);
-        console.log(response.data);
-      }
-    } catch (error) {
-      //setError(error);
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error fetching users:", error);
-    }
-  };
+  // Obtener los clientes para la página actual
+  const indexOfLastCustomer = currentPage * customersPerPage;
+  const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
+  const currentCustomers = filteredCustomers.slice(
+    indexOfFirstCustomer,
+    indexOfLastCustomer
+  );
+
+  // Cambiar de página
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Generar números de página
+  const pageNumbers = [];
+  for (
+    let i = 1;
+    i <= Math.ceil(filteredCustomers.length / customersPerPage);
+    i++
+  ) {
+    pageNumbers.push(i);
+  }
 
   return (
     <>
-      <div className="text-center py-2">
+      <div className="text-center py-2 container-fluid">
         <h2 className="py-2">Listado general de clientes</h2>
-        <table className="table table-striped py-2">
+        <div className="row">
+          <div className="mb-3 col-5 py-2">
+            <h4 className="py-2">Total de clientes: {customers.length}</h4>
+          </div>
+          <div className="mb-3 col-5 py-2">
+            <div className="mb-3 my-2">
+              <label htmlFor="nameQuery" className="form-label fs-5">
+                Buscar cliente por Nombre, Apellido o CI/RUC
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="nameQuery"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <table className="table table-striped">
           <thead>
             <tr>
               <th>N°</th>
               <th>Cédula / RUC</th>
-              <th colSpan="4" scope="row" >Cliente</th>
+              <th colSpan="4" scope="row">
+                Cliente
+              </th>
               <th>Estado Civil</th>
               <th>Provincia</th>
               <th>Ciudad o Cantón</th>
@@ -102,64 +150,113 @@ const ListCustomer = () => {
               <th>Teléfono</th>
               <th>Email</th>
               <th>Fecha de Registro</th>
-              <th>Tratatamiento de datos personales</th>
+              <th>Tratamiento de datos personales</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {customer.map((customer, index) => (
-              <tr key={customer.id}>
-                <td>{index + 1}</td>
-                <td>{customer.ci_ruc}</td>
-                <td>{customer.firstName}</td>
-                <td>{customer.secondName}</td>
-                <td>{customer.surname}</td>
-                <td>{customer.secondSurname}</td>
-                <td>{customer.civil.status}</td>
-                <td>{customer.province.provinceName}</td>
-                <td>{customer.city.cityName}</td>
-                <td>
-                  {dayjs(customer.birthdate).format("DD/MM/YYYY").toString()}
-                </td>
-
-                <td>{customer.numberPhone}</td>
-                <td>{customer.email}</td>
-                <td>
-                  {dayjs(customer.createdAt)
-                    .format("dddd DD/MM/YYYY")
-                    .toString()}
-                </td>
-                <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
-
-                <td>
-                  <button
-                    //onClick={() => deleteUser(user.uuid)}
-                    className="btn btn-success text-white fw-bold my-1  w-100"
-                    //onClick={() => getPolicyById(policy.id, "renewal")}
-                  >
-                    Actualizar Información
-                  </button>
-
-                  <button
-                    //onClick={() => deleteUser(user.uuid)}
-
-                    className="btn btn-success text-white fw-bold my-1 w-100 "
-                    onClick={() => getCustomerById(customer.id, "customerId")}
-                  >
-                    Ver pólizas
-                  </button>
+            {currentCustomers.length === 0 ? (
+              <tr>
+                <td colSpan="15" className="text-center">
+                  Cliente no encontrado
                 </td>
               </tr>
-            ))}
+            ) : (
+              currentCustomers.map((customer, index) => (
+                <tr key={customer.id}>
+                  <td>{indexOfFirstCustomer + index + 1}</td>
+                  <td>{customer.ci_ruc}</td>
+                  <td>{customer.firstName}</td>
+                  <td>{customer.secondName}</td>
+                  <td>{customer.surname}</td>
+                  <td>{customer.secondSurname}</td>
+                  <td>{customer.civil?.status}</td>
+                  <td>{customer.province?.provinceName}</td>
+                  <td>{customer.city?.cityName}</td>
+                  <td>
+                    {dayjs(customer.birthdate).format("DD/MM/YYYY").toString()}
+                  </td>
+                  <td>{customer.numberPhone}</td>
+                  <td>{customer.email}</td>
+                  <td>
+                    {dayjs(customer.createdAt)
+                      .format("dddd DD/MM/YYYY")
+                      .toString()}
+                  </td>
+                  <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
+                  <td className="d-flex gap-2">
+                    <button className="btn btn-success text-white fw-bold my-1 w-100">
+                      Actualizar Información
+                    </button>
+                    {customer.policies.length >= 1 ? (
+                      <button
+                        className="btn btn-success text-white fw-bold  w-100"
+                        onClick={() =>
+                          getCustomerById(customer.id, "customerId")
+                        }
+                      >
+                        Ver pólizas
+                      </button>
+                    ) : (
+                      <div className="bg-orange-400 rounded  fw-bold w-100">
+                        <p>El cliente no registra pólzias</p>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+        {filteredCustomers.length > customersPerPage && (
+          <nav aria-label="page navigation example">
+            <ul className="pagination">
+              <li
+                className={`page-item${currentPage === 1 ? " disabled" : ""}`}
+              >
+                <button
+                  className="page-link"
+                  onClick={() => paginate(currentPage - 1)}
+                >
+                  Anterior
+                </button>
+              </li>
+              {pageNumbers.map((number) => (
+                <li
+                  key={number}
+                  className={`page-item${
+                    currentPage === number ? " active" : ""
+                  }`}
+                >
+                  <button
+                    onClick={() => paginate(number)}
+                    className="page-link"
+                  >
+                    {number}
+                  </button>
+                </li>
+              ))}
+              <li
+                className={`page-item${
+                  currentPage === pageNumbers.length ? " disabled" : ""
+                }`}
+              >
+                <button
+                  className="page-link"
+                  onClick={() => paginate(currentPage + 1)}
+                >
+                  Siguiente
+                </button>
+              </li>
+            </ul>
+          </nav>
+        )}
         {customerId && typeof customerId === "object" && (
-          // Renderiza el modal solo si policy tiene un valor
           <Modal
             isOpen={showModal}
             onClose={closeModal}
             customerId={customerId}
-            modalType={modalType} // Pasamos el tipo de modal a mostrar
+            modalType={modalType}
           ></Modal>
         )}
       </div>

@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import fs from 'fs';
+import fs from "fs";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  //base: "/",
+  /*
   server: {
     https: {
       key: fs.readFileSync('/home/certificados/localhost-privateKey.key'),
@@ -17,5 +17,5 @@ export default defineConfig({
         secure: false,
       },
     },
-  },
+  },*/
 });
