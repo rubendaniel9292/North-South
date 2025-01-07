@@ -24,6 +24,7 @@ declare namespace NodeJS {
     URL: string;
     PWD_CARD: string;
     RECAPTCHA_SECRET_KEY: string;
+    URL_ORIGIN: string;
     //POSTGRES_DB: string;
     //POSTGRES_USER: string;
     //POSTGRES_PASSWORD: string;

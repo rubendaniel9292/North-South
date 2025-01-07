@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 
 import { ErrorManager } from '@/helpers/error.manager';
 import { CustomersEntity } from '../entities/customer.entity';
@@ -40,9 +40,10 @@ export class CustomersService extends ValidateEntity {
   };
 
   //2: Método para obtener todos los clientes con las relaciones
-  public getAllCustomers = async (): Promise<CustomersEntity[]> => {
+  public getAllCustomers = async (search?: string): Promise<CustomersEntity[]> => {
     try {
       /* euivalente en sql a 
+      
       --consulta de ejemplo 2 asegurarte de que los registros se muestran incluso si alguna relación está rota o faltante
 SELECT 
     c.id,
@@ -71,9 +72,22 @@ LEFT JOIN
     civil_status cs ON c.status_id = cs.id;
 
       */
+      // Crea un array de condiciones de búsqueda
+      const whereConditions: any[] = [];
+
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push(
+          { firstName: searchCondition },
+          { surname: searchCondition },
+          { ci_ruc: searchCondition },
+          { secondSurname: searchCondition },
+          { secondName: searchCondition }
+        );
+      }
       const customers: CustomersEntity[] = await this.customerRepository.find({
         /* Array de strings: para seleccionar campos específicos del objeto principal 
-        y estás de acuerdo con traer todos los campos de las relaciones.
+        y  con traer todos los campos de las relaciones.
     select: [
     'id',
     'ci_ruc',
@@ -88,9 +102,10 @@ LEFT JOIN
     'personalData',
   ], */
         /*
-  Objeto de selección: para cuando necesites un control 
+  Objeto de selección: para  un control 
   más detallado sobre qué campos de las relaciones quieres incluir en el resultado.
   */
+        where: whereConditions.length > 0 ? whereConditions : undefined,
         relations: ['civil', 'city', 'province', 'policies'],
         select: {
           id: true,

@@ -6,6 +6,7 @@ import {
   //Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CustomersService } from '../services/customers.service';
@@ -33,8 +34,8 @@ export class CustomersController {
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-all-customer')
-  public async getCustomer() {
-    const allCustomer = await this.customerService.getAllCustomers();
+  public async getCustomer(@Query('search') search?: string) {
+    const allCustomer = await this.customerService.getAllCustomers(search);
     if (allCustomer) {
       return {
         status: 'success',
