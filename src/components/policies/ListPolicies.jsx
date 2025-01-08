@@ -3,13 +3,15 @@ import Modal from "../../helpers/modal/Modal";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
+import usePagination from "../../hooks/usePagination";
+import useSearch from "../../hooks/useSearch";
 import "dayjs/locale/es";
 const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-
+  const itemsPerPage = 5; // Número de asesor por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
@@ -50,6 +52,32 @@ const ListPolicies = () => {
   useEffect(() => {
     getAllPolicies();
   }, []);
+  /*
+  // Usar el hook personalizado para la búsqueda
+  const {
+    query,
+    setQuery,
+    filteredItems: filteredPolicy,
+  } = useSearch(policies, [
+    "ci_ruc",
+    "firstName",
+    "secondName",
+    "surname",
+    "secondSurname",
+  ]);
+  // Usar el hook personalizado para la paginación
+  const {
+    currentPage,
+    currentItems: currentPolicies,
+    totalPages,
+    paginate,
+  } = usePagination(filteredPolicy, itemsPerPage);
+
+  // Generar números de página
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
+  }*/
 
   dayjs.locale("es");
   const getAllPolicies = useCallback(async () => {
@@ -72,12 +100,34 @@ const ListPolicies = () => {
       <section>
         <div className="text-center py-2">
           <h2 className="py-2">Listado general de todas las póilzas</h2>
+          {/*<div className="row">
+            <div className="mb-3 col-5 py-2">
+              <h4 className="py-2">Total de clientes: {policies.length}</h4>
+            </div>
+            <div className="mb-3 col-5 py-2">
+              <div className="mb-3 my-2">
+                <label htmlFor="nameQuery" className="form-label fs-5">
+                  Buscar poliza de cliente por Nombre, Apellido o CI/RUC
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="nameQuery"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+            </div>
+          </div> */}
+
           <table className="table table-striped py-2">
             <thead>
               <tr>
                 <th>N°</th>
                 <th>Número de Póliza</th>
-                <th colSpan="2" scope="row" >Cliente</th>
+                <th colSpan="2" scope="row">
+                  Cliente
+                </th>
                 <th>Compañía</th>
                 <th>Tipo de Póliza</th>
                 <th>Fecha de Inicio</th>
@@ -99,10 +149,8 @@ const ListPolicies = () => {
                   <td>
                     {policy.customer.firstName}{" "}
                     {policy.customer.secondName || " "}{" "}
-
                   </td>
                   <td>
-
                     {policy.customer.surname}{" "}
                     {policy.customer.secondSurname || " "}
                   </td>
@@ -159,6 +207,49 @@ const ListPolicies = () => {
               ))}
             </tbody>
           </table>
+          {policies.length > itemsPerPage && (
+            <nav aria-label="page navigation example">
+              <ul className="pagination">
+                <li
+                  className={`page-item${currentPage === 1 ? " disabled" : ""}`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginate(currentPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                </li>
+                {pageNumbers.map((number) => (
+                  <li
+                    key={number}
+                    className={`page-item${
+                      currentPage === number ? " active" : ""
+                    }`}
+                  >
+                    <button
+                      onClick={() => paginate(number)}
+                      className="page-link"
+                    >
+                      {number}
+                    </button>
+                  </li>
+                ))}
+                <li
+                  className={`page-item${
+                    currentPage === pageNumbers.length ? " disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginate(currentPage + 1)}
+                  >
+                    Siguiente
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
         </div>
         {policy && typeof policy === "object" && (
           // Renderiza el modal solo si policy tiene un valor

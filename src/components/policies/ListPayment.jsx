@@ -3,7 +3,7 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
- const ListPayment = () => {
+const ListPayment = () => {
   const [payments, setPayments] = useState([]);
 
   dayjs.locale("es");
@@ -32,7 +32,7 @@ import "dayjs/locale/es";
     <>
       <h2>Listado geneneral de los pagos</h2>
       <table className="table table-striped">
-        <thead >
+        <thead>
           <tr>
             <th>N°</th>
             <th>Número de Póliza</th>
@@ -82,4 +82,4 @@ import "dayjs/locale/es";
     </>
   );
 };
- export default ListPayment;  
+export default ListPayment;

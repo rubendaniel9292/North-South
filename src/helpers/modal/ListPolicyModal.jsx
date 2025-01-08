@@ -6,9 +6,12 @@ import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import usePagination from "../../hooks/usePagination";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   if (!policy) return null;
+  const itemsPerPage = 5; // Número de items por página
+
   const handleGenerateReport = (e) => {
     e.preventDefault();
     generateReport(
@@ -18,6 +21,22 @@ const ListPolicyModal = ({ policy, onClose }) => {
       setIsLoading
     );
   };
+
+  // Usar el hook personalizado para la paginación de pagos
+  const {
+    currentPage: currentPaymentsPage,
+    currentItems: currentPayments,
+    totalPages: totalPaymentsPages,
+    paginate: paginatePayments,
+  } = usePagination(policy.payments, itemsPerPage);
+
+  // Usar el hook personalizado para la paginación de renovaciones
+  const {
+    currentPage: currentRenewalsPage,
+    currentItems: currentRenewals,
+    totalPages: totalRenewalsPages,
+    paginate: paginateRenewals,
+  } = usePagination(policy.renewals || [], itemsPerPage);
 
   return (
     <>
@@ -59,8 +78,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   {policy.bankAccount && policy.bankAccount.bank
                     ? policy.bankAccount.bank.bankName
                     : policy.creditCard && policy.creditCard.bank
-                      ? policy.creditCard.bank.bankName
-                      : "NO APLICA"}
+                    ? policy.creditCard.bank.bankName
+                    : "NO APLICA"}
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>{policy.renewalCommission === true ? "SÍ" : "NO"}</td>
@@ -96,8 +115,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     policy.policyStatus.id == 4
                       ? "bg-warning text-white fw-bold"
                       : policy.policyStatus.id == 3
-                        ? "bg-danger text-white fw-bold"
-                        : "bg-success-subtle"
+                      ? "bg-danger text-white fw-bold"
+                      : "bg-success-subtle"
                   }
                 >
                   {policy.policyStatus.statusName}
@@ -128,9 +147,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
               </tr>
             </thead>
             <tbody>
-              {policy.payments.map((payment) => (
+              {currentPayments.map((payment, index) => (
                 <tr key={payment.id}>
-                  <td>{payment.number_payment}</td>
+                  <td>{index + 1}</td>
                   <td>{payment.pending_value}</td>
                   <td>{payment.value || "0.00"}</td>
                   <td>{payment.credit || "0.00"}</td>
@@ -143,8 +162,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                       payment.paymentStatus.id == 1
                         ? "bg-warning"
                         : payment.paymentStatus.id == 2
-                          ? "bg-success-subtle "
-                          : ""
+                        ? "bg-success-subtle "
+                        : ""
                     }
                   >
                     {payment.paymentStatus.statusNamePayment}
@@ -154,34 +173,138 @@ const ListPolicyModal = ({ policy, onClose }) => {
               ))}
             </tbody>
           </table>
+          {totalPaymentsPages > 1 && (
+            <nav aria-label="Page navigation example">
+              <ul className="pagination">
+                <li
+                  className={`page-item${
+                    currentPaymentsPage === 1 ? " disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginatePayments(currentPaymentsPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                </li>
+                {Array.from(
+                  { length: totalPaymentsPages },
+                  (_, i) => i + 1
+                ).map((number) => (
+                  <li
+                    key={number}
+                    className={`page-item${
+                      currentPaymentsPage === number ? " active" : ""
+                    }`}
+                  >
+                    <button
+                      onClick={() => paginatePayments(number)}
+                      className="page-link"
+                    >
+                      {number}
+                    </button>
+                  </li>
+                ))}
+                <li
+                  className={`page-item${
+                    currentPaymentsPage === totalPaymentsPages
+                      ? " disabled"
+                      : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginatePayments(currentPaymentsPage + 1)}
+                  >
+                    Siguiente
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
             <h3 className="text-white">Historial de renovaciones</h3>
           </div>
-          {!policy.renewals ? (
-            <div className="my-1">
-              <span>Aun no se han registrado renovaciones</span>
-            </div>
-          ) : (
-            <>
-              <table className="table table-striped">
-                <thead>
-                  <tr className="table-header">
-                    <th>Numero de renovacion</th>
-                    <th>Fecha de renovacion</th>
-                    <th>Observaciones</th>
-                  </tr>
-                </thead>
+
+          <table className="table table-striped">
+            <thead>
+              <tr className="table-header">
+                <th>Numero de renovacion</th>
+                <th>Fecha de renovacion</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            {currentRenewals.length === 0 ? (
+              <tr>
+                <td colSpan="3" className="text-center">
+                  Aún no se han registrado renovaciones
+                </td>
+              </tr>
+            ) : (
+              <>
                 <tbody>
-                  {policy.renewals.map((renewal) => (
+                  {currentRenewals.map((renewal, index) => (
                     <tr key={renewal.id}>
+                      <td>{ index + 1}</td>
                       <td>{renewal.renewalNumber}</td>
                       <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>
                       <td>{renewal.observations || "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </>
+              </>
+            )}
+          </table>
+          {totalRenewalsPages > 1 && (
+            <nav aria-label="Page navigation example">
+              <ul className="pagination">
+                <li
+                  className={`page-item${
+                    currentRenewalsPage === 1 ? " disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginateRenewals(currentRenewalsPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                </li>
+                {Array.from(
+                  { length: totalRenewalsPages },
+                  (_, i) => i + 1
+                ).map((number) => (
+                  <li
+                    key={number}
+                    className={`page-item${
+                      currentRenewalsPage === number ? " active" : ""
+                    }`}
+                  >
+                    <button
+                      onClick={() => paginateRenewals(number)}
+                      className="page-link"
+                    >
+                      {number}
+                    </button>
+                  </li>
+                ))}
+                <li
+                  className={`page-item${
+                    currentRenewalsPage === totalRenewalsPages
+                      ? " disabled"
+                      : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginateRenewals(currentRenewalsPage + 1)}
+                  >
+                    Siguiente
+                  </button>
+                </li>
+              </ul>
+            </nav>
           )}
 
           <div className="d-flex justify-content-around mt-1">
@@ -323,7 +446,7 @@ ListPolicyModal.propTypes = {
         id: PropTypes.number.isRequired,
         renewalNumber: PropTypes.string.isRequired,
         createdAt: PropTypes.string.isRequired,
-      }).isRequired,
+      }).isRequired
     ),
   }).isRequired,
 

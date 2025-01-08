@@ -6,6 +6,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import generateReport from "../GenerateReportPDF";
 import http from "../../helpers/Http";
+import usePagination from "../../hooks/usePagination";
+
 const PaymentByStatusModal = ({ payments, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
@@ -16,6 +18,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
 
   const [searchByName, setSearchByName] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
+  const itemsPerPage = 10; // Número de items por página
 
   //console.log("polizas con pagos atarsados:", payments);
   //array de compañias
@@ -101,6 +104,13 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
     setSearchByName(value === "name");
     setNameQuery("");
   };
+  // Usar el hook personalizado para la paginación
+  const {
+    currentPage, // Página actual.
+    currentItems: currentPayments, // Elementos de la página actual.
+    totalPages, // Número total de páginas.
+    paginate, // Función para cambiar de página.
+  } = usePagination(filteredPayments, itemsPerPage);
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -163,7 +173,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredPayments.length === 0 ? (
+              {currentPayments.length === 0 ? (
                 <tr>
                   <td colSpan="13" className="text-center">
                     No se encontraron resultados
@@ -171,9 +181,9 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                 </tr>
               ) : (
                 <>
-                  {filteredPayments.map((payment, index) => (
+                  {currentPayments.map((payment, index) => (
                     <tr key={payment.id}>
-                      <td>{index + 1}</td>
+                      <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                       <td>{payment.policies.numberPolicy}</td>
                       <td>{payment.policies.customer.numberPhone}</td>
                       <td>{payment.policies.customer.firstName}</td>
@@ -248,6 +258,51 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
               </button>
             </div>
           </div>
+          {totalPages > 1 && (
+            <nav aria-label="Page navigation example">
+              <ul className="pagination">
+                <li
+                  className={`page-item${currentPage === 1 ? " disabled" : ""}`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginate(currentPage - 1)}
+                  >
+                    Anterior
+                  </button>
+                </li>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <li
+                      key={number}
+                      className={`page-item${
+                        currentPage === number ? " active" : ""
+                      }`}
+                    >
+                      <button
+                        onClick={() => paginate(number)}
+                        className="page-link"
+                      >
+                        {number}
+                      </button>
+                    </li>
+                  )
+                )}
+                <li
+                  className={`page-item${
+                    currentPage === totalPages ? " disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => paginate(currentPage + 1)}
+                  >
+                    Siguiente
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
         </article>
       </div>
     </>

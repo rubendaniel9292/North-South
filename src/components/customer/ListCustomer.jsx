@@ -5,14 +5,16 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import Modal from "../../helpers/modal/Modal";
 
+import usePagination from "../../hooks/usePagination";
+import useSearch from "../../hooks/useSearch";
+
 const ListCustomer = () => {
   const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
   const [customers, setCustomers] = useState([]); // Almacenar la lista de clientes en el estado
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  const [nameQuery, setNameQuery] = useState(""); // Estado para almacenar la consulta de búsqueda por nombre
-  const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
-  const customersPerPage = 7; // Número de clientes por página
+
+  const itemsPerPage = 5; // Número de asesor por página
 
   // Fetch all customers on component mount
   useEffect(() => {
@@ -81,34 +83,29 @@ const ListCustomer = () => {
 
   dayjs.locale("es");
 
-  // Filtrar clientes en tiempo real basado en la consulta de búsqueda
-  const filteredCustomers = customers.filter((customer) => {
-    const fullName =
-      `${customer.firstName} ${customer.secondName} ${customer.surname} ${customer.secondSurname}`.toLowerCase();
-    return (
-      customer.ci_ruc.toLowerCase().includes(nameQuery.toLowerCase()) ||
-      fullName.includes(nameQuery.toLowerCase())
-    );
-  });
-
-  // Obtener los clientes para la página actual
-  const indexOfLastCustomer = currentPage * customersPerPage;
-  const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
-  const currentCustomers = filteredCustomers.slice(
-    indexOfFirstCustomer,
-    indexOfLastCustomer
-  );
-
-  // Cambiar de página
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // Usar el hook personalizado para la búsqueda
+  const {
+    query,
+    setQuery,
+    filteredItems: filteredCustomers,
+  } = useSearch(customers, [
+    "ci_ruc",
+    "firstName",
+    "secondName",
+    "surname",
+    "secondSurname",
+  ]);
+  // Usar el hook personalizado para la paginación
+  const {
+    currentPage,
+    currentItems: currentCustomers,
+    totalPages,
+    paginate,
+  } = usePagination(filteredCustomers, itemsPerPage);
 
   // Generar números de página
   const pageNumbers = [];
-  for (
-    let i = 1;
-    i <= Math.ceil(filteredCustomers.length / customersPerPage);
-    i++
-  ) {
+  for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
 
@@ -129,8 +126,8 @@ const ListCustomer = () => {
                 type="text"
                 className="form-control"
                 id="nameQuery"
-                value={nameQuery}
-                onChange={(e) => setNameQuery(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
             </div>
           </div>
@@ -164,7 +161,7 @@ const ListCustomer = () => {
             ) : (
               currentCustomers.map((customer, index) => (
                 <tr key={customer.id}>
-                  <td>{indexOfFirstCustomer + index + 1}</td>
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td>{customer.ci_ruc}</td>
                   <td>{customer.firstName}</td>
                   <td>{customer.secondName}</td>
@@ -208,7 +205,7 @@ const ListCustomer = () => {
             )}
           </tbody>
         </table>
-        {filteredCustomers.length > customersPerPage && (
+        {filteredCustomers.length > itemsPerPage && (
           <nav aria-label="page navigation example">
             <ul className="pagination">
               <li
