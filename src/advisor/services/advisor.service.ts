@@ -1,7 +1,7 @@
 import { AdvisorEntity } from './../entity/advisor.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, } from 'typeorm';
 import { ValidateEntity } from '@/helpers/validations';
 import { ErrorManager } from '@/helpers/error.manager';
 import { AdvisorDTO } from '../dto/advisor.dto';
@@ -37,8 +37,22 @@ export class AdvisorService extends ValidateEntity {
   };
 
   //2: metodo para buscar los asesores
-  public getAllAdvisors = async () => {
+  public getAllAdvisors = async (search?: string) => {
+
     try {
+      // Crea un array de condiciones de búsqueda
+      const whereConditions: any[] = [];
+
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push(
+          { firstName: searchCondition },
+          { surname: searchCondition },
+          { ci_ruc: searchCondition },
+          { secondSurname: searchCondition },
+          { secondName: searchCondition }
+        );
+      }
       const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find();
       return allAdvisors;
     } catch (error) {
