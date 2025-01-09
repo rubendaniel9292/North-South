@@ -35,22 +35,26 @@ const CreatePolicy = () => {
   useEffect(() => {
     if (customerFromNav) {
       setSelectedCustomer(customerFromNav.id);
+
       // evento sintético para handleCard_Accunt
       const syntheticEvent = {
         target: {
           value: customerFromNav.id,
         },
       };
+
+      // Llamamos a handleCard_Accunt después de actualizar el estado
       handleCard_Accunt(syntheticEvent);
     }
-  }, [customerFromNav]);
+  }, [customerFromNav, customers, cards, accounts]);
 
   //handleSelectChange para manejar la selección manual
   const handleSelectChange = (event) => {
     handleCard_Accunt(event);
     if (isEditable) {
       setSelectedCustomer(event.target.value);
-    }
+    };
+    handleCard_Accunt(event);
   };
 
   //filtro de tarjeta por clienes
@@ -291,10 +295,7 @@ const CreatePolicy = () => {
               name="customers_id"
               //defaultValue={option}
               value={selectedCustomer} // Seleccionamos el cliente automáticamente o se setea en vacio
-              onChange={(e) => {
-                handleSelectChange(e);
-                handleCard_Accunt(e);
-              }}
+              onChange={handleSelectChange}
               disabled={!isEditable} // Deshabilitar el select si isEditable es false
             >
               <option disabled>{option}</option>
