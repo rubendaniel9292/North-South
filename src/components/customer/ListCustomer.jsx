@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, React } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import Modal from "../../helpers/modal/Modal";
-
+import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
 
@@ -14,7 +14,7 @@ const ListCustomer = () => {
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
 
-  const itemsPerPage = 5; // Número de asesor por página
+  const itemsPerPage = 7; // Número de asesor por página
 
   // Fetch all customers on component mount
   useEffect(() => {
@@ -182,12 +182,12 @@ const ListCustomer = () => {
                   </td>
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
                   <td className="d-flex gap-2">
-                    <button className="btn btn-success text-white fw-bold my-1 w-100">
+                    <button className="btn btn-success text-white fw-bold  w-100">
                       Actualizar Información
                     </button>
                     {customer.policies.length >= 1 ? (
                       <button
-                        className="btn btn-success text-white fw-bold  w-100"
+                        className="btn btn-primary text-white fw-bold  w-100"
                         onClick={() =>
                           getCustomerById(customer.id, "customerId")
                         }
@@ -195,9 +195,18 @@ const ListCustomer = () => {
                         Ver pólizas
                       </button>
                     ) : (
-                      <div className="bg-orange-400 rounded  fw-bold w-100">
-                        <p>El cliente no registra pólzias</p>
-                      </div>
+                      <>
+                        <NavLink
+                          to="/management/create-policy"
+                          state={{
+                            customer,
+                            isEditable: false,
+                          }}
+                          className="btn btn-secondary text-white fw-bold w-100"
+                        >
+                          Registrar póliza
+                        </NavLink>
+                      </>
                     )}
                   </td>
                 </tr>

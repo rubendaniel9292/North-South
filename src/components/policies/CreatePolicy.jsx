@@ -4,6 +4,8 @@ import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import PropTypes from "prop-types";
+import { useLocation } from "react-router-dom";
 const CreatePolicy = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({});
@@ -18,6 +20,38 @@ const CreatePolicy = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
+  const [paymentFrequencyValue, setPaymentFrequencyValue] = useState();
+
+  const location = useLocation();
+  // Obtenemos el cliente pasado por NavLink, si lo hay
+  const customerFromNav = location.state?.customer;
+  const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
+  // Estado inicial del cliente seleccionado
+
+  const option = "Escoja una opción";
+  const [selectedCustomer, setSelectedCustomer] = useState(option);
+
+  // Si hay un cliente pasado por NavLink, actualizamos el estado
+  useEffect(() => {
+    if (customerFromNav) {
+      setSelectedCustomer(customerFromNav.id);
+      // evento sintético para handleCard_Accunt
+      const syntheticEvent = {
+        target: {
+          value: customerFromNav.id,
+        },
+      };
+      handleCard_Accunt(syntheticEvent);
+    }
+  }, [customerFromNav]);
+
+  //handleSelectChange para manejar la selección manual
+  const handleSelectChange = (event) => {
+    handleCard_Accunt(event);
+    if (isEditable) {
+      setSelectedCustomer(event.target.value);
+    }
+  };
 
   //filtro de tarjeta por clienes
   const handleCard_Accunt = (e) => {
@@ -72,6 +106,28 @@ const CreatePolicy = () => {
     changed(e);
   };
 
+  // Maneja el cambio de frecuencia de pago
+  const handleFrequencyChange = (event) => {
+    const selectedFrequencyId = Number(event.target.value); // Obtén el ID de la frecuencia seleccionada
+    let value = 0;
+
+    switch (selectedFrequencyId) {
+      case 1: // Mensual
+        value = 12;
+        break;
+      case 2: // Trimestral
+        value = 4;
+        break;
+      case 3: // Semestral
+        value = 2;
+        break;
+      default: // Anual
+        value = 1;
+        break;
+    }
+
+    setPaymentFrequencyValue(value); // Actualiza el estado con el valor calculado
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -113,8 +169,6 @@ const CreatePolicy = () => {
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-
-  const option = "Escoja una opción";
 
   const savedPolicy = async (e) => {
     setIsLoading(true);
@@ -213,7 +267,10 @@ const CreatePolicy = () => {
               className="form-select"
               id="payment_frequency_id"
               name="payment_frequency_id"
-              onChange={changed}
+              onChange={(e) => {
+                handleFrequencyChange(e); // Llama la función para calcular el valor
+                changed; // Mantiene el manejo de cambios original
+              }}
               defaultValue={option}
             >
               <option disabled>{option}</option>
@@ -232,8 +289,13 @@ const CreatePolicy = () => {
               className="form-select"
               id="customers_id"
               name="customers_id"
-              onChange={handleCard_Accunt}
-              defaultValue={option}
+              //defaultValue={option}
+              value={selectedCustomer} // Seleccionamos el cliente automáticamente o se setea en vacio
+              onChange={(e) => {
+                handleSelectChange(e);
+                handleCard_Accunt(e);
+              }}
+              disabled={!isEditable} // Deshabilitar el select si isEditable es false
             >
               <option disabled>{option}</option>
               {customers.map((customer) => (
@@ -454,6 +516,8 @@ const CreatePolicy = () => {
               id="numberOfPayments"
               name="numberOfPayments"
               onChange={changed}
+              value={paymentFrequencyValue}
+              readOnly
             />
           </div>
           <div className="mb-3 col-3">
@@ -507,6 +571,8 @@ const CreatePolicy = () => {
               id="numberOfPaymentsAdvisor"
               name="numberOfPaymentsAdvisor"
               onChange={changed}
+              value={paymentFrequencyValue}
+              readOnly
             />
           </div>
 
@@ -544,6 +610,18 @@ const CreatePolicy = () => {
       </form>
     </>
   );
+};
+
+CreatePolicy.propTypes = {
+  customers: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      firstName: PropTypes.string.isRequired,
+      secondName: PropTypes.string,
+      surname: PropTypes.string.isRequired,
+      secondSurname: PropTypes.string,
+    })
+  ).isRequired,
 };
 
 export default CreatePolicy;

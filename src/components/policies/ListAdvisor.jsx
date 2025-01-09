@@ -157,7 +157,7 @@ const ListAdvisor = () => {
 
                     <button
                       onClick={() => getAvidorById(item.id, "advisor")}
-                      className="btn btn-success text-white fw-bold w-100 my-1"
+                      className="btn btn-primary text-white fw-bold w-100 my-1"
                     >
                       Registrar Anticipio
                     </button>
