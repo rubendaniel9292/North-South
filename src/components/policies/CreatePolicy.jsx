@@ -4,14 +4,13 @@ import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
-import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 const CreatePolicy = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({});
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [frequencys, setFrecuency] = useState([]);
+  const [frequency, setFrecuency] = useState([]);
   const [customers, setCustomer] = useState([]);
   const [advisor, setAdvisor] = useState([]);
   const [cards, setCards] = useState([]);
@@ -20,14 +19,14 @@ const CreatePolicy = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
-  const [paymentFrequencyValue, setPaymentFrequencyValue] = useState();
+  const [paymentFrequencyValue, setPaymentFrequencyValue] = useState(0);
 
   const location = useLocation();
   // Obtenemos el cliente pasado por NavLink, si lo hay
   const customerFromNav = location.state?.customer;
   const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
-  // Estado inicial del cliente seleccionado
 
+  // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
   const [selectedCustomer, setSelectedCustomer] = useState(option);
 
@@ -35,10 +34,18 @@ const CreatePolicy = () => {
   useEffect(() => {
     if (customerFromNav) {
       setSelectedCustomer(customerFromNav.id);
+      // Actualizar el form con el ID del cliente
+      changed({
+        target: {
+          name: "customers_id",
+          value: parseInt(customerFromNav.id),
+        },
+      });
 
       // evento sintético para handleCard_Accunt
       const syntheticEvent = {
         target: {
+          name: "customers_id",
           value: customerFromNav.id,
         },
       };
@@ -48,13 +55,20 @@ const CreatePolicy = () => {
     }
   }, [customerFromNav, customers, cards, accounts]);
 
-  //handleSelectChange para manejar la selección manual
-  const handleSelectChange = (event) => {
-    handleCard_Accunt(event);
+  //handleSelectChange para manejar la selección manual del cliente
+  const handleSelectChange = (e) => {
+    handleCard_Accunt(e);
     if (isEditable) {
-      setSelectedCustomer(event.target.value);
-    };
-    handleCard_Accunt(event);
+      setSelectedCustomer(e.target.value);
+      // Asegurar que se guarde como número
+      changed({
+        target: {
+          name: "customers_id",
+          value: parseInt(e.target.value),
+        },
+      });
+    }
+    handleCard_Accunt(e);
   };
 
   //filtro de tarjeta por clienes
@@ -111,26 +125,52 @@ const CreatePolicy = () => {
   };
 
   // Maneja el cambio de frecuencia de pago
-  const handleFrequencyChange = (event) => {
-    const selectedFrequencyId = Number(event.target.value); // Obtén el ID de la frecuencia seleccionada
-    let value = 0;
+  const handleFrequencyChange = (e) => {
+    const selectedFrequencyId = Number(e.target.value); // ID de la frecuencia seleccionada
 
+    /*
     switch (selectedFrequencyId) {
       case 1: // Mensual
-        value = 12;
+        calculatedPayments = 12;
         break;
       case 2: // Trimestral
-        value = 4;
+        calculatedPayments = 4;
         break;
       case 3: // Semestral
-        value = 2;
+        calculatedPayments = 2;
         break;
       default: // Anual
-        value = 1;
+        calculatedPayments = 1;
         break;
-    }
+    }*/
+    const frequencyMap = {
+      1: 12, // Mensual
+      2: 4, // Trimestral
+      3: 2, // Semestral
+      4: 1, // Anual (default)
+    };
+    const calculatedPayments = frequencyMap[selectedFrequencyId] || 1;
 
-    setPaymentFrequencyValue(value); // Actualiza el estado con el valor calculado
+    // Actualiza los campos relacionados en el formulario
+    changed([
+      {
+        name: "payment_frequency_id",
+        value: selectedFrequencyId,
+      },
+      {
+        name: "numberOfPayments",
+        value: calculatedPayments,
+      },
+      {
+        name: "numberOfPaymentsAdvisor",
+        value: calculatedPayments,
+      },
+    ]);
+
+    console.log("Frecuencia seleccionada:", selectedFrequencyId);
+    console.log("Número de pagos calculado:", calculatedPayments);
+
+    setPaymentFrequencyValue(calculatedPayments);
   };
   useEffect(() => {
     const fetchData = async () => {
@@ -175,10 +215,9 @@ const CreatePolicy = () => {
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
 
   const savedPolicy = async (e) => {
+    e.preventDefault();
     setIsLoading(true);
-
     try {
-      e.preventDefault();
       let newPolicy = form;
       const request = await http.post("policy/register-policy", newPolicy);
       if (request.data.status === "success") {
@@ -210,7 +249,7 @@ const CreatePolicy = () => {
 
   return (
     <>
-      <form onSubmit={savedPolicy} id="user-form">
+      <form onSubmit={savedPolicy} id="user-form"  className=" row needs-validation" novalidate>
         <div className="row pt-3 fw-bold">
           <div className="mb-3 col-3">
             <label htmlFor="numberPolicy" className="form-label">
@@ -223,8 +262,10 @@ const CreatePolicy = () => {
               id="numberPolicy"
               name="numberPolicy"
               onChange={changed}
-            />
+            />{" "}
+            <div class="invalid-feedback">Please choose a username.</div>
           </div>
+
           <div className="mb-3 col-3">
             <label htmlFor="policy_type_id" className="form-label">
               Tipo
@@ -271,14 +312,11 @@ const CreatePolicy = () => {
               className="form-select"
               id="payment_frequency_id"
               name="payment_frequency_id"
-              onChange={(e) => {
-                handleFrequencyChange(e); // Llama la función para calcular el valor
-                changed; // Mantiene el manejo de cambios original
-              }}
+              onChange={handleFrequencyChange}
               defaultValue={option}
             >
               <option disabled>{option}</option>
-              {frequencys.map((frequency) => (
+              {frequency.map((frequency) => (
                 <option key={frequency.id} value={frequency.id}>
                   {frequency.frequencyName}
                 </option>
@@ -516,7 +554,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="numberOfPayments"
               name="numberOfPayments"
-              onChange={changed}
+              //onChange={changed}
               value={paymentFrequencyValue}
               readOnly
             />
@@ -558,7 +596,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="paymentsToAdvisor"
               name="paymentsToAdvisor"
-              value={form.paymentsToAdvisor}
+              value={form.paymentsToAdvisor || 0}
             />
           </div>
           <div className="mb-3 col-3">
@@ -571,7 +609,7 @@ const CreatePolicy = () => {
               className="form-control"
               id="numberOfPaymentsAdvisor"
               name="numberOfPaymentsAdvisor"
-              onChange={changed}
+              //onChange={changed}
               value={paymentFrequencyValue}
               readOnly
             />
@@ -611,18 +649,6 @@ const CreatePolicy = () => {
       </form>
     </>
   );
-};
-
-CreatePolicy.propTypes = {
-  customers: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      firstName: PropTypes.string.isRequired,
-      secondName: PropTypes.string,
-      surname: PropTypes.string.isRequired,
-      secondSurname: PropTypes.string,
-    })
-  ).isRequired,
 };
 
 export default CreatePolicy;

@@ -11,7 +11,7 @@ const ListPolicies = () => {
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  const itemsPerPage = 5; // Número de asesor por página
+  const itemsPerPage = 10; // Número de asesor por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
@@ -52,7 +52,7 @@ const ListPolicies = () => {
   useEffect(() => {
     getAllPolicies();
   }, []);
-  /*
+  
   // Usar el hook personalizado para la búsqueda
   const {
     query,
@@ -77,7 +77,7 @@ const ListPolicies = () => {
   const pageNumbers = [];
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
-  }*/
+  }
 
   dayjs.locale("es");
   const getAllPolicies = useCallback(async () => {
@@ -180,9 +180,9 @@ const ListPolicies = () => {
                     {policy.policyStatus.statusName}
                   </td>
                   <td>{policy.observations || "N/A"}</td>
-                  <td>
+                  <td className="d-flex gap-2">
                     <button
-                      className="btn btn-success text-white fw-bold my-1 w-100"
+                      className="btn btn-primary text-white fw-bold my-1 w-100"
                       onClick={() => getPolicyById(policy.id, "info")}
                     >
                       Ver información completa
@@ -197,7 +197,7 @@ const ListPolicies = () => {
                     </button>
 
                     <button
-                      className="btn btn-success text-white fw-bold my-1 w-100"
+                      className="btn btn-secondary text-white fw-bold my-1 w-100"
                       onClick={() => getPolicyById(policy.id, "renewal")}
                     >
                       Renovar póliza
