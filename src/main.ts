@@ -1,3 +1,4 @@
+//import { xss } from 'xss-clean';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ClassSerializerInterceptor, ValidationPipe, INestApplication } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
@@ -8,12 +9,13 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import * as mongoSanitize from 'express-mongo-sanitize';
 // @ts-ignore
-import xss from 'xss-clean';
+import xss from 'express-xss-sanitizer';
 import * as hpp from 'hpp';
 import * as https from 'https';
 import { promises as fs } from 'fs';
 import { CORS } from './constants/cors';
 import AppModule from './app.module';
+
 
 //para registrar detalles importantes de cada solicitud, como IP, método HTTP y agente de usuario
 const logger = winston.createLogger({
@@ -113,8 +115,8 @@ async function setupSecurityMiddleware(app: INestApplication): Promise<void> {
   }));
 
   // Límite de tamaño para el body
-  app.use(express.json({ limit: '10kb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+  app.use(express.json({ limit: '15kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15kb' }));
 
   // Middlewares de seguridad adicionales
   app.use(mongoSanitize());
@@ -168,12 +170,12 @@ async function bootstrap() {
 
     app.setGlobalPrefix('api');
     app.use(morgan('combined'));
-    /*
+
     app.use((req: Request, res: Response, next: NextFunction) => {
       console.log('CORS Origin:', req.headers.origin);
       console.log('CORS Method:', req.method);
       next();
-    });*/
+    });
 
 
     // Middleware para manejar solicitudes OPTIONS
@@ -199,6 +201,7 @@ async function bootstrap() {
 
     // Configurar validación global de pipes
     //ayuda a garantizar que solo datos válidos y permitidos lleguen a los controladores para transformar y bloquear propiedades no deseadas
+    
     app.useGlobalPipes(new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -207,7 +210,9 @@ async function bootstrap() {
         enableImplicitConversion: true,
       },
       disableErrorMessages: process.env.NODE_ENV === 'production'
-    }));
+    }),
+
+    );
 
     // Configurar serialización
     const reflector = app.get(Reflector);
