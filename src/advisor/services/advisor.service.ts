@@ -5,11 +5,14 @@ import { Repository, Like, } from 'typeorm';
 import { ValidateEntity } from '@/helpers/validations';
 import { ErrorManager } from '@/helpers/error.manager';
 import { AdvisorDTO } from '../dto/advisor.dto';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+
 @Injectable()
 export class AdvisorService extends ValidateEntity {
   constructor(
     @InjectRepository(AdvisorEntity)
     private readonly advisdorRepository: Repository<AdvisorEntity>,
+    private readonly redisService: RedisModuleService
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(advisdorRepository);
@@ -40,6 +43,12 @@ export class AdvisorService extends ValidateEntity {
   public getAllAdvisors = async (search?: string) => {
 
     try {
+
+      // Verificar si los datos están en Redis
+      const cachedAllAdvisors = await this.redisService.get('allAdvisors');
+      if (cachedAllAdvisors) {
+        return JSON.parse(cachedAllAdvisors);
+      }
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
 
@@ -53,7 +62,18 @@ export class AdvisorService extends ValidateEntity {
           { secondName: searchCondition }
         );
       }
-      const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find();
+      const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find({
+        order: {
+          id: "DESC",
+        },
+        relations: ['advances', 'policies']
+      }
+      );
+      await this.redisService.set(
+        'allAdvisors',
+        JSON.stringify(allAdvisors),
+        32400,
+      ); // TTL de 9 horas
       return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -64,9 +84,14 @@ export class AdvisorService extends ValidateEntity {
   //2: metodo para buscar los asesores
   public getAdvisorBiId = async (id: number) => {
     try {
+      const cachedAdvisorById = await this.redisService.get('advisorById');
+      if (cachedAdvisorById) {
+        return JSON.parse(cachedAdvisorById);
+      }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
         { where: { id } }
       );
+      await this.redisService.set('advisorById', JSON.stringify(advisorById), 32400); // TTL de 9 horas
       return advisorById;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

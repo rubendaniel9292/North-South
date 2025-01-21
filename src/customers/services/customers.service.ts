@@ -1,19 +1,18 @@
 import { Injectable } from '@nestjs/common';
-
 import { InjectRepository } from '@nestjs/typeorm';
-
 import { Like, Repository } from 'typeorm';
-
 import { ErrorManager } from '@/helpers/error.manager';
 import { CustomersEntity } from '../entities/customer.entity';
 import { ValidateEntity } from '@/helpers/validations';
 import { CustomerDTO } from '../dto/customer.dto';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class CustomersService extends ValidateEntity {
   constructor(
     @InjectRepository(CustomersEntity)
     private readonly customerRepository: Repository<CustomersEntity>,
+    private readonly redisService: RedisModuleService,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(customerRepository);
@@ -33,6 +32,12 @@ export class CustomersService extends ValidateEntity {
       //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
 
       console.log('Cliente guardado', newCustomer);
+      // Guardar en Redis
+      await this.redisService.set(
+        `newCustomer:${newCustomer.id}`,
+        JSON.stringify(newCustomer),
+        32400,
+      );
       return newCustomer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -40,38 +45,15 @@ export class CustomersService extends ValidateEntity {
   };
 
   //2: Método para obtener todos los clientes con las relaciones
-  public getAllCustomers = async (search?: string): Promise<CustomersEntity[]> => {
+  public getAllCustomers = async (
+    search?: string,
+  ): Promise<CustomersEntity[]> => {
     try {
-      /* euivalente en sql a 
-      
-      --consulta de ejemplo 2 asegurarte de que los registros se muestran incluso si alguna relación está rota o faltante
-SELECT 
-    c.id,
-    c.ci_ruc,
-    c.first_name,
-    c.second_name,
-    c.surname,
-    c.second_surname,
-    cs.status,
-    c.birthdate,
-    c.email,
-    c.number_phone,
-    c.address,
-    c.personal_data,
-    ci.city_name,
-    p.province_name
-FROM 
-    customers c
-LEFT JOIN 
-    province pro ON c.province_id = pro.id
-LEFT JOIN 
-    city ci ON c.city_id = ci.id
-LEFT JOIN 
-    province p ON ci.province_id = p.id
-LEFT JOIN 
-    civil_status cs ON c.status_id = cs.id;
-
-      */
+      // Verificar si los datos están en Redis
+      const cachedCustomer = await this.redisService.get('customers');
+      if (cachedCustomer) {
+        return JSON.parse(cachedCustomer);
+      }
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
 
@@ -82,29 +64,18 @@ LEFT JOIN
           { surname: searchCondition },
           { ci_ruc: searchCondition },
           { secondSurname: searchCondition },
-          { secondName: searchCondition }
+          { secondName: searchCondition },
         );
       }
+
       const customers: CustomersEntity[] = await this.customerRepository.find({
-        /* Array de strings: para seleccionar campos específicos del objeto principal 
-        y  con traer todos los campos de las relaciones.
-    select: [
-    'id',
-    'ci_ruc',
-    'firstName',
-    'secondName',
-    'surname',
-    'secondSurname',
-    'birthdate',
-    'email',
-    'numberPhone',
-    'address',
-    'personalData',
-  ], */
         /*
-  Objeto de selección: para  un control 
-  más detallado sobre qué campos de las relaciones quieres incluir en el resultado.
-  */
+        Objeto de selección: para  un control 
+        más detallado sobre qué campos de las relaciones incluir en el resultado.
+        */
+        order: {
+          id: "DESC",
+        },
         where: whereConditions.length > 0 ? whereConditions : undefined,
         relations: ['civil', 'city', 'province', 'policies'],
         select: {
@@ -137,7 +108,12 @@ LEFT JOIN
           message: 'No se encontró resultados',
         });
       }
-
+      await this.redisService.set(
+        'customers',
+        JSON.stringify(customers),
+        32400,
+      ); // TTL de 9 horas
+      await this.redisService.del('customers');
       return customers;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -147,6 +123,10 @@ LEFT JOIN
   //:3 Método para obtener todos los clientes con las relaciones por id
   public getCustomerById = async (id: number): Promise<CustomersEntity> => {
     try {
+      const cachedCustomer = await this.redisService.get('customer');
+      if (cachedCustomer) {
+        return JSON.parse(cachedCustomer);
+      }
       const customer: CustomersEntity = await this.customerRepository.findOne({
         where: { id },
         relations: [
@@ -224,7 +204,7 @@ LEFT JOIN
           message: 'No se encontró resultados',
         });
       }
-
+      await this.redisService.set('customer', JSON.stringify(customer), 32400); // TTL de 9 horas
       return customer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

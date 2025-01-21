@@ -1,4 +1,3 @@
-//import { xss } from 'xss-clean';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ClassSerializerInterceptor, ValidationPipe, INestApplication } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
@@ -8,7 +7,6 @@ import * as winston from 'winston';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import * as mongoSanitize from 'express-mongo-sanitize';
-// @ts-ignore
 import xss from 'express-xss-sanitizer';
 import * as hpp from 'hpp';
 import * as https from 'https';
@@ -16,15 +14,17 @@ import { promises as fs } from 'fs';
 import { CORS } from './constants/cors';
 import AppModule from './app.module';
 
-
 //para registrar detalles importantes de cada solicitud, como IP, método HTTP y agente de usuario
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
-    winston.format.json()
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `${timestamp} [${level}]: ${message}`;
+    })
   ),
   transports: [
+    new winston.transports.Console(), // Mostrar logs en la consola
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/security.log', level: 'info' }),
     new winston.transports.File({ filename: 'logs/combined.log' })
@@ -43,7 +43,6 @@ const securityLoggingMiddleware = (req: Request, _res: Response, next: NextFunct
   });
   next();
 };
-
 
 // Middleware de sanitización personalizado para mitigar riesgos de inyección SQL o NoSQL.
 const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -161,25 +160,32 @@ async function bootstrap() {
   try {
     // Crear la aplicación NestJS
     const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'debug', 'log']
+      logger: ['error', 'warn', 'debug', 'log', 'verbose']
     });
+
 
     // Habilitar CORS
     app.enableCors(CORS);
 
 
     app.setGlobalPrefix('api');
-    app.use(morgan('combined'));
-
+    //app.use(morgan('combined'));
+    // Configurar Morgan para mostrar logs en la consola
+    app.use(morgan('combined', {
+      stream: {
+        write: (message) => {
+          logger.info(message.trim());
+        }
+      }
+    }))
+    /*
     app.use((req: Request, res: Response, next: NextFunction) => {
       console.log('CORS Origin:', req.headers.origin);
       console.log('CORS Method:', req.method);
       next();
-    });
-
-
+    });*/
     // Middleware para manejar solicitudes OPTIONS
-
+    /*
     interface RequestWithMethod extends Request {
       method: string;
     }
@@ -194,29 +200,32 @@ async function bootstrap() {
       } else {
         next();
       }
-    });
+    });*/
 
     // Configurar middlewares de seguridad
     setupSecurityMiddleware(app);
 
     // Configurar validación global de pipes
     //ayuda a garantizar que solo datos válidos y permitidos lleguen a los controladores para transformar y bloquear propiedades no deseadas
-    
+
+
     app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
+      //whitelist: true, // Elimina propiedades que no están en el DTO comentada porque no permite generar reporte
+      forbidNonWhitelisted: true, // Lanza un error si hay propiedades que no están en el DTO
+      transform: true, // Transforma los tipos de datos automáticamente
       transformOptions: {
         enableImplicitConversion: true,
       },
-      disableErrorMessages: process.env.NODE_ENV === 'production'
+      disableErrorMessages: process.env.NODE_ENV === 'production',//comentar de ser necesario para ver logs de error en prod
     }),
-
     );
+
 
     // Configurar serialización
     const reflector = app.get(Reflector);
     app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
+    //app.use(responseTime())
+
 
     // Configurar redirección HTTPS el servidor redirige tráfico HTTP a HTTPS
 
@@ -240,20 +249,21 @@ async function bootstrap() {
       }
     });
     /*
-        app.use((req: Request, res: Response, next: NextFunction) => {
-          console.log('Request Headers:', req.headers);
-          next();
-        });*/
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      console.log('Request Headers:', req.headers);
+      next();
+    });*/
 
 
     // Iniciar servidores
     const httpPort = process.env.PORT;
     const httpsPort = process.env.HTTPS_PORT;
-
     const httpsOptions = await loadHttpsCredentials();
+
 
     // Iniciar HTTP
     await app.listen(httpPort);
+    //console.log('LOG DE CONSOLE: APP INICIADA EN EL PUERTO ', httpPort)
     logger.info(`Servidor HTTP iniciado en puerto ${httpPort}`);
 
     // Iniciar HTTPS si hay certificados

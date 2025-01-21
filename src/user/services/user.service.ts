@@ -5,13 +5,18 @@ import { UserDTO } from '../dto/user.dto';
 import { DeleteResult, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt-updated';
 import { ErrorManager } from 'src/helpers/error.manager';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-  ) {}
+    private readonly redisService: RedisModuleService,
+  ) { }
+
+  
   //1:metodo para crear usuarios que haran usos del sistema
   public createUser = async (body: UserDTO): Promise<UserEntity> => {
     try {
@@ -29,7 +34,9 @@ export class UserService {
           message: 'El correo ya está registrado',
         });
       }
+
       const newUser = await this.userRepository.save(body);
+      await this.redisService.set(`newUser:${newUser.uuid}`, JSON.stringify(newUser), 32400);
       return newUser;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -39,6 +46,10 @@ export class UserService {
   //2:
   public findUsers = async (): Promise<UserEntity[]> => {
     try {
+      const cachedUsers = await this.redisService.get('users');
+      if (cachedUsers) {
+        return JSON.parse(cachedUsers);
+      }
       const users: UserEntity[] = await this.userRepository.find(); //obtener el listado de usuarios el equivalente en sql SELECT * FROM users;
       /*const [users, count] = await this.userRepository
         .createQueryBuilder()
@@ -50,7 +61,7 @@ export class UserService {
           message: 'No se encontró resultados',
         });
       }
-
+      await this.redisService.set('users', JSON.stringify(users), 32400); // TTL de 1 hora
       return users;
     } catch (error) {
       //se ejecuta el errir
@@ -66,6 +77,11 @@ export class UserService {
         .createQueryBuilder('user')
         .where({ id })
         .getOne();*/
+
+      const cachedUsers = await this.redisService.get('user');
+      if (cachedUsers) {
+        return JSON.parse(cachedUsers);
+      }
       const user: UserEntity = await this.userRepository.findOne({
         where: { uuid },
       });
@@ -77,6 +93,7 @@ export class UserService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('user', JSON.stringify(user), 32400); // TTL de 1 hora
       return user;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -113,6 +130,8 @@ export class UserService {
           message: 'No se pudo eliminar el usuario el usuario',
         });
       }
+      // Eliminar el usuario de Redis
+      await this.redisService.del(`user:${id}`);
       return user;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

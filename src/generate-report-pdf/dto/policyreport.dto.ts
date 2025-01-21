@@ -1,4 +1,5 @@
 export class PolicyReportDTO {
+  id?: string;
   numberPolicy: string;
   coverageAmount: string;
   agencyPercentage: string;
@@ -12,7 +13,6 @@ export class PolicyReportDTO {
   observations?: string;
   renewalCommission: boolean;
 
-  // Sub-objetos anidados dentro de la misma clase
   policyType: {
     policyName: string;
   };
@@ -28,6 +28,7 @@ export class PolicyReportDTO {
   };
 
   company: {
+    id?: string;
     companyName: string;
   };
 
@@ -74,6 +75,7 @@ export class PolicyReportDTO {
     total: string;
     observations?: string;
     policy_id: number;
+    status_payment_id?: string;
     createdAt: Date;
     updatedAt: Date;
     paymentStatus: {
@@ -81,6 +83,7 @@ export class PolicyReportDTO {
       statusNamePayment: string;
     };
   }>;
+
   renewals: Array<{
     id: string;
     renewalNumber: string;

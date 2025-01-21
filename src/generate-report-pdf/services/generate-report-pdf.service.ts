@@ -3,6 +3,7 @@ import * as puppeteer from 'puppeteer';
 
 @Injectable()
 export class GenerateReportPdfService {
+
   private readonly logger = new Logger(GenerateReportPdfService.name);
 
   async generatePdf(html: string): Promise<Buffer> {
@@ -57,6 +58,7 @@ export class GenerateReportPdfService {
       await browser.close();
       return Buffer.from(pdfBuffer);
     } catch (error) {
+      console.log(error)
       this.logger.error(`Error generando PDF: ${error.message}`, error.stack);
       throw new Error(`Error al generar PDF: ${error.message}`);
     } finally {

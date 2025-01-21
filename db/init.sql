@@ -483,6 +483,8 @@ INSERT INTO company (company_name,ci_ruc) VALUES
     ('BMI Internacional','1312222222001'),
     ('BMI Ecuador','1322222222001'),
     ('BMI Salud','1332222222001');
+    ('OLE LIFE','1342222222001');
+    ('MULTINATIONAL LIFE INSURANCE COMPANY','1362222222001');
 
 --opciones de tarteja
 CREATE TABLE IF NOT EXISTS card_options (
@@ -625,9 +627,8 @@ INSERT INTO payment_method (method_name) VALUES
     ('Efectivo'),
     ('Cheque'),
     ('Cheque Internacional'),
-    ('Tarjeta de crédito'),
+    ('Tarjeta de Crédito/Débito'),
     ('Contado'),
-    ('Tarjeta de Débito'),
     ('Otros');
 
 --Tabla Payment Esta tabla relacionará los métodos de pago con la opción de bancos opcional.

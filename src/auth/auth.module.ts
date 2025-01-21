@@ -9,6 +9,7 @@ import { TurnstileModule } from '@/turnstile/turnstile.module';
 
 @Module({
   imports: [
+  
     UserModule,
     CustomersModule,
     ProvidersModule,

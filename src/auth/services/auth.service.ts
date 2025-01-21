@@ -6,28 +6,56 @@ import crypto from 'crypto';
 import { PayloadToken } from '@/interface/auth.interfaces';
 import { UserEntity } from '@/user/entities/user.entity';
 import { UserService } from '@/user/services/user.service';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService, private readonly redisService: RedisModuleService) { }
   //1: metodo para validar el usuario. busca el usuario y compara las contraseñas
+  // Método para validar el usuario, busca el usuario y compara las contraseñas
   public validateUser = async (username: string, password: string) => {
-    const userByUsername = await this.userService.findAndCompare({
-      key: 'userName',
-      value: username,
-    });
-    const userByEmail = await this.userService.findAndCompare({
-      key: 'email',
-      value: username,
-    });
-    if (userByUsername) {
-      const match = await bcrypt.compare(password, userByUsername.password);
-      if (match) return userByUsername;
+    const cachedUser = await this.redisService.get(`user:${username}`);
+
+    if (cachedUser) {
+      const { password: cachedPassword, ...userWithoutPassword } = cachedUser; // Separar el usuario y la contraseña
+      const match = await bcrypt.compare(password, cachedPassword);
+      if (match) return userWithoutPassword; // Devuelve el usuario sin la contraseña
+    } else {
+      const userByUsername = await this.userService.findAndCompare({
+        key: 'userName',
+        value: username,
+      });
+      const userByEmail = await this.userService.findAndCompare({
+        key: 'email',
+        value: username,
+      });
+
+      if (userByUsername) {
+        const match = await bcrypt.compare(password, userByUsername.password);
+        if (match) {
+          await this.redisService.set(`user:${username}`, {
+            ...userByUsername,
+            password: userByUsername.password, // Almacenar la contraseña cifrada en Redis
+          }, 3600);
+          const { password, ...userWithoutPassword } = userByUsername;
+          return userWithoutPassword; // Devuelve el usuario sin la contraseña
+        }
+      }
+
+      if (userByEmail) {
+        const match = await bcrypt.compare(password, userByEmail.password);
+        if (match) {
+          await this.redisService.set(`user:${username}`, {
+            ...userByEmail,
+            password: userByEmail.password, // Almacenar la contraseña cifrada en Redis
+          }, 3600);
+          const { password, ...userWithoutPassword } = userByEmail;
+          return userWithoutPassword; // Devuelve el usuario sin la contraseña
+        }
+      }
     }
-    if (userByEmail) {
-      const match = await bcrypt.compare(password, userByEmail.password);
-      if (match) return userByEmail;
-    }
+
+    return null;
   };
 
   //2: metodo para general la firma del token, este sera aleatorio y rotativo

@@ -1,4 +1,4 @@
-import { Controller, Body, Res, UseGuards, Post } from '@nestjs/common';
+import { Controller, Body, Res, UseGuards, Post, Logger } from '@nestjs/common';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -10,15 +10,16 @@ import { PaymentReportDTO } from '../dto/paymentreport.dto';
 @Controller('generate-report-pdf')
 @UseGuards(AuthGuard, RolesGuard)
 export class GenerateReportPdfController {
-  constructor(private readonly pdfService: GenerateReportPdfService) {}
+  private readonly logger = new Logger(GenerateReportPdfController.name);
+  constructor(private readonly pdfService: GenerateReportPdfService) { }
   @Roles('ADMIN', 'BASIC')
   @Post('download-policy')
   public async downloadPdfPolicy(
     @Body() policy: PolicyReportDTO,
-
     @Res({ passthrough: true }) res: Response,
   ) {
     try {
+      this.logger.log("INICIANCO LA GENERNACION DEL PDF"); // Log para verificar el HTML generado
       // Plantilla HTML básica
       const html = `
   <!DOCTYPE html>
@@ -107,11 +108,10 @@ export class GenerateReportPdfController {
           <td>${new Date(policy.endDate).toISOString().slice(0, 10)}</td>
             <td>${policy.paymentMethod.methodName}</td>
             <td>
-              ${
-                policy.bankAccount?.bank?.bankName ||
-                policy.creditCard?.bank?.bankName ||
-                'NO APLICA'
-              }
+              ${policy.bankAccount?.bank?.bankName ||
+        policy.creditCard?.bank?.bankName ||
+        'NO APLICA'
+        }
             </td>
             <td>${policy.paymentFrequency.frequencyName}</td>
             <td>${policy.renewalCommission === true ? 'SÍ' : 'NO'}</td>
@@ -139,13 +139,12 @@ export class GenerateReportPdfController {
             <td>${policy.numberOfPayments}</td>
             <td>${policy.policyFee || 'NO APLICA'}</td>
             <td>${policy.paymentsToAdvisor}</td>
-              <td class="${
-                policy.policyStatus.id == '4'
-                  ? 'bg-warning'
-                  : policy.policyStatus.id == '3'
-                    ? 'bg-danger'
-                    : 'bg-success-subtle'
-              }">
+              <td class="${policy.policyStatus.id == '4'
+          ? 'bg-warning'
+          : policy.policyStatus.id == '3'
+            ? 'bg-danger'
+            : 'bg-success-subtle'
+        }">
               ${policy.policyStatus.statusName}
           </td>
             </td>
@@ -173,8 +172,8 @@ export class GenerateReportPdfController {
         </thead>
         <tbody>
           ${policy.payments
-            .map(
-              (payment) => `
+          .map(
+            (payment) => `
             <tr>
               <td>${payment.number_payment}</td>
               <td>${payment.pending_value}</td>
@@ -184,24 +183,22 @@ export class GenerateReportPdfController {
               <td>${payment.total}</td>
               <td>${new Date(payment.createdAt).toISOString().slice(0, 10)}</td>
                 <td
-                  class=${
-                    payment.paymentStatus.id == 1
-                      ? 'bg-warning'
-                      : 'bg-success-subtle '
-                  }
+                  class=${payment.paymentStatus.id == 1
+                ? 'bg-warning'
+                : 'bg-success-subtle '
+              }
                   >
                     ${payment.paymentStatus.statusNamePayment}
                   </td>
               <td colSpan="2" scope="row">${payment.observations || 'N/A'}</td>
             </tr>`,
-            )
-            .join('')}
+          )
+          .join('')}
         </tbody>
       </table>
          <!-- Historial de penovaciones -->
-          ${
-            policy.renewals && policy.renewals.length > 0
-              ? `
+          ${policy.renewals && policy.renewals.length > 0
+          ? `
     <div class="conten-title">
       <h2>Historial de Renovaciones</h2>
     </div>
@@ -215,30 +212,33 @@ export class GenerateReportPdfController {
       </thead>
       <tbody>
         ${policy.renewals
-          .map(
-            (renewal) => `
+            .map(
+              (renewal) => `
           <tr>
             <td>${renewal.renewalNumber}</td>
             <td>${new Date(renewal.createdAt).toISOString().slice(0, 10)}</td>
             <td>${renewal.observations || 'N/A'}</td>
           </tr>
         `,
-          )
-          .join('')}
+            )
+            .join('')}
       </tbody>
     </table>
   `
-              : `
+          : `
     <div class="conten-title">
       <h2>Historial de Renovaciones</h2>
       <span>Aún no se han registrado renovaciones</span>
     </div>
   `
-          }
+        }
     </body>
   </html>
 `;
-
+      //this.logger.log("HTML generado para el PDF:", html); // Log para verificar el HTML generado
+      console.log(html);
+      //console.log("datos de poliza recibidas en el controlador: ", policy)
+      //this.logger.log('Datos de póliza recibidos en el controlador:', policy); // Log para verificar los datos
       const pdfBuffer = await this.pdfService.generatePdf(html);
       res.set({
         'Content-Type': 'application/pdf',
@@ -248,6 +248,7 @@ export class GenerateReportPdfController {
       return res.send(pdfBuffer);
     } catch (error) {
       console.error('Error generando PDF:', error);
+      this.logger.error('Error generando PDF:', error.message); // Log para verificar el error
       res.status(500).send('Error generando el PDF');
     }
   }
@@ -338,8 +339,8 @@ export class GenerateReportPdfController {
         </thead>
          <tbody>
           ${payment
-            .map(
-              (payment: PaymentReportDTO, index: number) => `
+          .map(
+            (payment: PaymentReportDTO, index: number) => `
             <tr key=${payment.id}>
           <td>${index + 1}</td>
           <td>${payment.policies.numberPolicy}</td>
@@ -359,25 +360,25 @@ export class GenerateReportPdfController {
             ${new Date(payment.createdAt).toISOString().slice(0, 10)}
           </td>
           <td
-            class=${
-              payment.paymentStatus.id === '1'
+            class=${payment.paymentStatus.id === '1'
                 ? 'bg-warning text-white fw-bold'
                 : payment.paymentStatus.id === '2'
                   ? 'bg-danger text-white fw-bold'
                   : ''
-            }
+              }
           >
             ${payment.paymentStatus.statusNamePayment}
           </td>
             </tr>
           `,
-            )
+          )
 
-            .join('')}
+          .join('')}
         </tbody>
         </body>
       </html>
     `;
+      console.log('Datos de pagos recibidos en el controlador:', payment);
 
       const pdfBuffer = await this.pdfService.generatePdf(html);
       res.set({
@@ -388,6 +389,7 @@ export class GenerateReportPdfController {
       return res.send(pdfBuffer);
     } catch (error) {
       console.error('Error generando PDF:', error);
+
       res.status(500).send('Error generando el PDF');
     }
   }

@@ -6,6 +6,7 @@ import { BankEntity } from '../../config/bank.entity';
 import { BankAccountEntity } from '../entities/bank-account.entity';
 import { BankAccountDTO } from '../dto/bankaccount.dto';
 import { AccountTypeEntity } from '../entities/account-type.entity';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class BankAccountService {
@@ -18,7 +19,8 @@ export class BankAccountService {
 
     @InjectRepository(AccountTypeEntity)
     private readonly bankAccountTypeRepository: Repository<AccountTypeEntity>,
-  ) {}
+    private readonly redisService: RedisModuleService
+  ) { }
   //SERVICIO RELACIONADO CON TODO LO QUE TIENE VER CON LAS CUENTAS BANCARIAS
   //1:metodo para registrar una cuenta bancaria
   public createBankAccount = async (
@@ -37,6 +39,10 @@ export class BankAccountService {
 
       // Guardar los datos de la tarjeta con el estado asignado
       const newBankAccount = await this.bankAccountRepository.save(body);
+      await this.redisService.set(`newBankAccount:${newBankAccount.id}`, JSON.stringify(newBankAccount), 32400); // TTL de 1 hora
+
+      // Invalidar el caché de todas las cuentas bancarias para evitar inconsistencias
+      await this.redisService.del('allBankAccounts');
       return newBankAccount;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -45,6 +51,10 @@ export class BankAccountService {
   //2:metodo para consutlar todas las cuentas bancarias
   public findAllBankAccount = async (): Promise<BankAccountEntity[]> => {
     try {
+      const cachedBankAccounts = await this.redisService.get('allBankAccounts');
+      if (cachedBankAccounts) {
+        return JSON.parse(cachedBankAccounts);
+      }
       const allBankAccounts: BankAccountEntity[] =
         await this.bankAccountRepository.find({
           relations: ['customer', 'bank', 'accountType'],
@@ -67,6 +77,7 @@ export class BankAccountService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('allBanks', JSON.stringify(allBankAccounts), 32400); // TTL de 9 horas
       return allBankAccounts;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -76,7 +87,12 @@ export class BankAccountService {
   //3:metodo para consultar los bancos
   public findBanks = async (): Promise<BankEntity[]> => {
     try {
-      //this.decryptData()
+      // Verificar si los datos están en Redis
+      const cachedBanks = await this.redisService.get('allBanks');
+      if (cachedBanks) {
+        console.log('Datos obtenidos de Redis');
+        return JSON.parse(cachedBanks);
+      }
       const allBanks: BankEntity[] = await this.bankRepository.find();
 
       if (allBanks.length === 0) {
@@ -86,17 +102,21 @@ export class BankAccountService {
           message: 'No se encontró resultados',
         });
       }
-
+      await this.redisService.set('allBanks', JSON.stringify(allBanks), 32400); // TTL de 9 horas
+      console.log('Datos almacenados en Redis');
       return allBanks;
     } catch (error) {
       //se ejecuta el errir
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //4:metodo para consultar los bancos
+  //4:metodo para consultar los tipos de cuenta bancaria
   public findTypeAccounts = async (): Promise<AccountTypeEntity[]> => {
     try {
-      //this.decryptData()
+      const cachedTypeAccounts = await this.redisService.get('allTypeAccounts');
+      if (cachedTypeAccounts) {
+        return JSON.parse(cachedTypeAccounts);
+      }
       const allTypeAccounts: AccountTypeEntity[] =
         await this.bankAccountTypeRepository.find();
 
@@ -107,6 +127,7 @@ export class BankAccountService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('allTypeAccounts', JSON.stringify(allTypeAccounts), 32400); //
 
       return allTypeAccounts;
     } catch (error) {

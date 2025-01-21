@@ -6,6 +6,7 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentDTO } from '../dto/payment.dto';
 import { PaymentEntity } from '../entity/payment.entity';
 import { PaymentStatusEntity } from '../entity/payment.status.entity';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +19,7 @@ export class PaymentService {
 
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
+    private readonly redisService: RedisModuleService,
   ) { }
   //1: metodo para registrar un pago de poliza
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
@@ -35,6 +37,16 @@ export class PaymentService {
       }
 
       const newPayment = await this.paymentRepository.save(body);
+      // Guardar en Redis
+      await this.redisService.set(`newPayment:${newPayment.id}`, JSON.stringify(newPayment), 32400); // TTL de 1 hora
+
+      // Eliminar el caché de todos los pagos y pagos por compañía para evitar inconsistencias.
+      // Eliminar el caché de todos los pagos y pagos por compañía para evitar inconsistencias.
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+      if (policy.company?.id) {
+        await this.redisService.del(`paymentsByStatus:${policy.company.id}`);
+      }
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -43,6 +55,10 @@ export class PaymentService {
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
+      const cachedPayments = await this.redisService.get('payments');
+      if (cachedPayments) {
+        return JSON.parse(cachedPayments);
+      }
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         relations: ['policies', 'paymentStatus'],
         select: {
@@ -59,6 +75,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('payments', JSON.stringify(payments), 32400); // TTL de 1 hora
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -67,6 +84,10 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
+      const cachedPaymentsId = await this.redisService.get('paymentId');
+      if (cachedPaymentsId) {
+        return JSON.parse(cachedPaymentsId);
+      }
       const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
         relations: ['policies', 'paymentStatus'],
@@ -85,6 +106,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('paymentId', JSON.stringify(paymentId), 32400); // TTL de 1 hora
       return paymentId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -94,6 +116,11 @@ export class PaymentService {
   //4: metodo para obtener los estados de los pagos
   public getPaymentStatus = async (): Promise<PaymentStatusEntity[]> => {
     try {
+      const cachedPayments = await this.redisService.get('paymentStatus');
+      if (cachedPayments) {
+        return JSON.parse(cachedPayments);
+      }
+
       const paymentStatus = await this.paymentStatusRepository.find();
 
       if (!paymentStatus) {
@@ -103,6 +130,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set('paymentStatus', JSON.stringify(paymentStatus), 32400); // TTL de 1 hora
       return paymentStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -111,6 +139,13 @@ export class PaymentService {
   //5: metodo para obtener los pagos en base al estado
   public getPaymentsByStatus = async (companyId?: number): Promise<PaymentEntity[]> => {
     try {
+      const cacheKey = companyId ? `paymentsByStatus:${companyId}` : 'paymentsByStatus:general';
+      const cachedPayments = await this.redisService.get(cacheKey);
+
+      if (cachedPayments) {
+        return JSON.parse(cachedPayments);
+      }
+
       // condiciones de búsqueda
       const whereConditions: any = {
         status_payment_id: 1 // Estado: atrasado
@@ -167,6 +202,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      await this.redisService.set(cacheKey, JSON.stringify(paymentsByStatus), 32400); // TTL de 9 horaL de 1 hora
       return paymentsByStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -174,10 +210,10 @@ export class PaymentService {
   };
 
   //6: metodo para actualizar el pago
-  public async updatePayment(
+  public updatePayment = async (
     id: number,
     updateData: Partial<PaymentDTO>,
-  ): Promise<PaymentEntity> {
+  ): Promise<PaymentEntity> => {
     try {
       const payment = await this.paymentRepository.findOne({ where: { id } });
       if (!payment) {
@@ -189,9 +225,21 @@ export class PaymentService {
 
       Object.assign(payment, updateData);
       const paymentUpdated = await this.paymentRepository.save(payment);
+      // Limpiar todas las claves de caché relevantes
+      await this.redisService.del(`newPayment:${id}`);
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+      //await this.redisService.del(`policy:${payment.policies.id}`);
+
+      if (payment.policies?.company?.id) {
+        await this.redisService.del(`paymentsByStatus:${payment.policies.company.id}`);
+      }
+
       return paymentUpdated;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   }
+
+
 }

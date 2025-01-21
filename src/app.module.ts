@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { DataSourceConfig } from './config/data.source';
@@ -14,6 +14,8 @@ import { BankAccountModule } from './bankaccount/bankaccount.module';
 import { PaymentModule } from './payment/payment.module';
 import { GenerateReportPdfModule } from './generate-report-pdf/generate-report-pdf.module';
 import { TurnstileModule } from './turnstile/turnstile.module';
+import { RedisModuleModule } from './redis-module/redis-module.module';
+import { RedisModuleService } from './redis-module/services/redis-module.service';
 
 @Module({
   imports: [
@@ -36,6 +38,16 @@ import { TurnstileModule } from './turnstile/turnstile.module';
     PaymentModule,
     GenerateReportPdfModule,
     TurnstileModule,
+    RedisModuleModule,
   ],
 })
-export default class AppModule {}
+export default class AppModule implements OnModuleInit {
+  constructor(private readonly redisService: RedisModuleService) { }
+  
+
+  async onModuleInit() {
+    // Limpiar todos los datos de la caché al iniciar el servidor
+    
+    await this.redisService.flushAll();
+  }
+}

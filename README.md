@@ -207,6 +207,23 @@ Se utiliza para definir la estrategia de nombrado de columnas en la base de dato
 
 #### npm install @nestjs/typeorm typeorm pg
 
+## REDIS
+es una base de datos en memoria, de tipo clave-valor, que es utilizada como base de datos, caché y broker de mensajes. Es una estructura de datos avanzada que soporta varios tipos de datos como cadenas, listas, conjuntos, mapas ordenados, hiperloglogs, bitmaps y más. Redis es conocido por su alta performance, flexibilidad y soporte para operaciones atómicas. Aquí hay algunas de sus características principales:
+
+Almacenamiento en Memoria: Redis almacena sus datos en memoria, lo que lo hace extremadamente rápido.
+levatar el contenedor de redis
+#### npm i redis
+#### docker run --name redis -p 6379:6379 -d redis
+
+#### docker stop redis
+#### docker rm redis
+
+### Eliminar datos de redis en caso de ser necesiario
+#### redis-cli
+#### FLUSHALL
+#### exit
+
+
 ## CLASS-VALIDATOR
 
 Es una biblioteca de JavaScript/TypeScript utilizada para la validación de objetos basados en clasesEsta biblioteca permite definir reglas de validación en las propiedades de las clases utilizando decoradores, lo que facilita la validación de datos de entrada en aplicaciones web.

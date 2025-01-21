@@ -10,6 +10,14 @@ export class TurnstileService {
   constructor(private readonly configService: ConfigService) {
     this.SECRET_KEY = this.configService.get<string>('TURNSTILE_SECRET_KEY');
   }
+  /**
+   * comentarios JSDoc es una buena práctica que mejora la legibilidad, el mantenimiento y la usabilidad del código.
+   * Verifica el token de Turnstile utilizando la API de Cloudflare.
+   * @param token - El token proporcionado por el cliente.
+   * @param ip - (Opcional) La dirección IP del cliente.
+   * @returns {Promise<boolean>} - Retorna true si la verificación es exitosa.
+   * @throws {ErrorManager} - Lanza un error si la verificación falla.
+   */
   async verifyToken(token: string, ip?: string): Promise<boolean> {
     const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
     const formData = new FormData();
@@ -33,7 +41,7 @@ export class TurnstileService {
     } catch (error) {
       throw new ErrorManager({
         type: 'BAD_REQUEST',
-        message: 'No se pudo verificar el token',
+        message: 'No se pudo verificar el token TurstLine',
       });
     }
   }

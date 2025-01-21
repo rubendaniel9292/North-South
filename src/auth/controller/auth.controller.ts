@@ -21,7 +21,7 @@ export class AuthController {
   constructor(
     private readonly authServices: AuthService,
     private readonly turnstileService: TurnstileService,
-  ) {}
+  ) { }
   @PublicAcces()
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() loginDto: LoginDto) {
@@ -41,11 +41,13 @@ export class AuthController {
     if (!isHuman) {
       throw new BadRequestException('Fallo en la verificación de reCAPTCHA.');
     }*/
-    // Verificar el captcha
+    // Verificar el turnstileToken
     try {
       await this.turnstileService.verifyToken(turnstileToken as string);
     } catch (error) {
-      throw new BadRequestException('Fallo en la verificación de token');
+      console.error('**Fallo en la verificación de turnstileToken**')
+      throw new BadRequestException('Fallo en la verificación de turnstileToken');
+
     }
     const userValidate = await this.authServices.validateUser(
       username,
@@ -53,9 +55,11 @@ export class AuthController {
     );
     //si la contraseña es incorrecta genera un error,caso contrario se genera la firma del token
     if (!userValidate) {
+      console.error('**Usuario o contraseña incorrectos**')
       throw new UnauthorizedException('Data not valid');
     }
     const jwt = await this.authServices.generateJWT(userValidate);
+    console.error('Login exitoso...')
     return jwt;
   }
 }

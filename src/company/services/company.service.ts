@@ -5,12 +5,15 @@ import { CompanyDTO } from '../dto/company.dto';
 import { ErrorManager } from '@/helpers/error.manager';
 import { CompanyEntity } from '../entities/company.entity';
 import { ValidateEntity } from '@/helpers/validations';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class CompanyService extends ValidateEntity {
+
   constructor(
     @InjectRepository(CompanyEntity)
     private readonly companyRepository: Repository<CompanyEntity>,
+    private readonly redisService: RedisModuleService,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(companyRepository);
@@ -23,6 +26,12 @@ export class CompanyService extends ValidateEntity {
       const newCompany = await this.companyRepository.save(body);
       console.log(newCompany);
 
+      // Guardar en Redis
+      await this.redisService.set(`newCompany:${newCompany.id}`, JSON.stringify(newCompany), 32400); // TTL de 9 horas
+
+      // Invalidar el caché de todas las compañías para evitar inconsistencias
+      await this.redisService.del('allCompany');
+
       return newCompany;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -31,6 +40,10 @@ export class CompanyService extends ValidateEntity {
   //2: metodo para buscar las compañias asesoras
   public getAllCompanies = async () => {
     try {
+      const cachedCompany = await this.redisService.get('allCompany');
+      if (cachedCompany) {
+        return JSON.parse(cachedCompany);
+      }
       const allCompany = await this.companyRepository.find();
       return allCompany;
     } catch (error) {
