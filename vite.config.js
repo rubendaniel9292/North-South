@@ -7,12 +7,12 @@ export default defineConfig({
   /*
   server: {
     https: {
-      key: fs.readFileSync('/home/certificados/localhost-privateKey.key'),
-      cert: fs.readFileSync('/home/certificados/localhost.crt'),
+      key: fs.readFileSync("/home/certificados/localhost-privateKey.key"),
+      cert: fs.readFileSync("/home/certificados/localhost.crt"),
     },
     proxy: {
-      '/api': {
-        target: 'https://localhost', // Puerto HTTPS del backend
+      "/api": {
+        target: "https://localhost", // Puerto HTTPS del backend
         changeOrigin: true,
         secure: false,
       },

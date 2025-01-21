@@ -26,7 +26,9 @@ const CreateBankAccount = () => {
         const banksData = banksResponse.data?.allBanks || [];
         const typesData = typesResponse.data?.allTypeAccounts || [];
 
-        console.log(customersData, banksData, typesData);
+        console.log("Clientes:", customersData);
+        console.log("Bancos:", banksData);
+        console.log("Tipos de cuentas:", typesData);
 
         setCustomer(customersData);
         setBanks(banksData);

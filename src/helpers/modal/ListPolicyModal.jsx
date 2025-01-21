@@ -14,6 +14,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
   const handleGenerateReport = (e) => {
     e.preventDefault();
+    console.log("Generating report with policy data:", policy);
     generateReport(
       policy,
       "generate-report-pdf/download-policy",
@@ -60,7 +61,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Método de Pago</th>
                 <th>Banco (si aplica)</th>
                 <th>Frecuencia de Pago</th>
-                <th> Comisión por renovación</th>
+                <th>Comisión por renovación</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +95,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Valor de la Póliza</th>
                 <th>Número de Pagos</th>
                 <th>Derecho de Póliza</th>
-                <th>Pagos de comisiones al asesor</th>
+                <th>Comisiones al asesor</th>
                 <th>Estado</th>
                 <th colSpan="2" scope="row">
                   Observaciones
@@ -236,17 +237,18 @@ const ListPolicyModal = ({ policy, onClose }) => {
               </tr>
             </thead>
             {currentRenewals.length === 0 ? (
-              <tr>
-                <td colSpan="3" className="text-center">
-                  Aún no se han registrado renovaciones
-                </td>
-              </tr>
+              <tbody>
+                <tr>
+                  <td colSpan="3" className="text-center">
+                    Aún no se han registrado renovaciones
+                  </td>
+                </tr>
+              </tbody>
             ) : (
               <>
                 <tbody>
-                  {currentRenewals.map((renewal, index) => (
+                  {currentRenewals.map((renewal) => (
                     <tr key={renewal.id}>
-                      <td>{ index + 1}</td>
                       <td>{renewal.renewalNumber}</td>
                       <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>
                       <td>{renewal.observations || "N/A"}</td>
@@ -349,28 +351,26 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
 ListPolicyModal.propTypes = {
   policy: PropTypes.shape({
-    id: PropTypes.number.isRequired,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
     numberPolicy: PropTypes.string.isRequired,
-    coverageAmount: PropTypes.number.isRequired,
-    agencyPercentage: PropTypes.number.isRequired,
-    advisorPercentage: PropTypes.number,
-    policyValue: PropTypes.number.isRequired,
+    coverageAmount: PropTypes.string.isRequired,
+    agencyPercentage: PropTypes.string.isRequired,
+    advisorPercentage: PropTypes.string,
+    policyValue: PropTypes.string.isRequired,
     numberOfPayments: PropTypes.number,
     startDate: PropTypes.string, // o PropTypes.instanceOf(Date) si es un objeto Date
     endDate: PropTypes.string,
-    paymentsToAdvisor: PropTypes.number,
-    policyFee: PropTypes.number,
+    paymentsToAdvisor: PropTypes.string,
+    policyFee: PropTypes.string,
     observations: PropTypes.string,
-    renewalCommission: PropTypes.boolean,
+    renewalCommission: PropTypes.bool,
 
-    // Relación con policyType
     policyType: PropTypes.shape({
       policyName: PropTypes.string.isRequired,
     }).isRequired,
 
-    // Relación con customer
     customer: PropTypes.shape({
-      id: PropTypes.number.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       ci_ruc: PropTypes.string.isRequired,
       firstName: PropTypes.string.isRequired,
       secondName: PropTypes.string,
@@ -378,12 +378,11 @@ ListPolicyModal.propTypes = {
       secondSurname: PropTypes.string,
     }).isRequired,
 
-    // Relación con company
     company: PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       companyName: PropTypes.string.isRequired,
     }).isRequired,
 
-    // Relación con advisor
     advisor: PropTypes.shape({
       firstName: PropTypes.string.isRequired,
       secondName: PropTypes.string,
@@ -391,59 +390,64 @@ ListPolicyModal.propTypes = {
       secondSurname: PropTypes.string,
     }).isRequired,
 
-    // Relación con paymentMethod
     paymentMethod: PropTypes.shape({
       methodName: PropTypes.string.isRequired,
     }).isRequired,
 
-    // Relación con bankAccount y su relación anidada bank
     bankAccount: PropTypes.shape({
-      bank_id: PropTypes.number.isRequired,
+      bank_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       bank: PropTypes.shape({
         bankName: PropTypes.string.isRequired,
       }).isRequired,
     }),
 
-    // Relación con creditCard y su relación anidada bank
     creditCard: PropTypes.shape({
-      bank_id: PropTypes.number.isRequired,
+      bank_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       bank: PropTypes.shape({
         bankName: PropTypes.string.isRequired,
       }).isRequired,
     }),
-    // Relación con policyStatus
+
     policyStatus: PropTypes.shape({
-      id: PropTypes.number.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       statusName: PropTypes.string.isRequired,
     }).isRequired,
-    // Relación con paymentFrequency
+
     paymentFrequency: PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
-    // Validación del array de pagos dentro de 'policy'
 
     payments: PropTypes.arrayOf(
       PropTypes.shape({
-        id: PropTypes.number.isRequired, // Si 'id' es numérico
-        pending_value: PropTypes.number.isRequired,
-        number_payment: PropTypes.number.isRequired, // Número del pago dentro de la serie de pagos
-        value: PropTypes.string.isRequired, // Valor del pago (si llega como string)
-        credit: PropTypes.string.isRequired, // Crédito del pago (si llega como string)
-        balance: PropTypes.string.isRequired, // Balance restante (si llega como string)
-        total: PropTypes.string.isRequired, // Total del pago (si llega como string)
-        observations: PropTypes.string, // Puede ser null o string
-        createdAt: PropTypes.string.isRequired, // Fecha de creación (formato ISO string)
-        status_payment_id: PropTypes.number.isRequired, // Estado del pago (si llega como string)
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired, // Hacer opcional y permitir string o number
+        pending_value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired,
+        number_payment: PropTypes.number.isRequired,
+        value: PropTypes.string.isRequired,
+        credit: PropTypes.string.isRequired,
+        balance: PropTypes.string.isRequired,
+        total: PropTypes.string.isRequired,
+        observations: PropTypes.string,
+        createdAt: PropTypes.string.isRequired,
+        status_payment_id: PropTypes.oneOfType([
+          PropTypes.string,
+          PropTypes.number,
+        ]).isRequired, // Hacer opcional y permitir string o number
         paymentStatus: PropTypes.shape({
-          id: PropTypes.number.isRequired, // Si 'id' es numérico
+          id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+            .isRequired, // Hacer opcional y permitir string o number
           statusNamePayment: PropTypes.string.isRequired,
         }).isRequired,
-        updatedAt: PropTypes.string.isRequired, // Fecha de actualización (formato ISO string)
+        updatedAt: PropTypes.string.isRequired,
       })
-    ).isRequired, // Es obligatorio que haya pagos en este array
+    ).isRequired,
+
     renewals: PropTypes.arrayOf(
       PropTypes.shape({
-        id: PropTypes.number.isRequired,
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired, // Hacer opcional y permitir string o number
         renewalNumber: PropTypes.string.isRequired,
         createdAt: PropTypes.string.isRequired,
       }).isRequired

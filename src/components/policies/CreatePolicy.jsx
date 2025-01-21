@@ -80,7 +80,7 @@ const CreatePolicy = () => {
     if (selectedCustomer) {
       const customerCiRuc = selectedCustomer.ci_ruc;
       console.log("customerCiRuc:", customerCiRuc);
-      console.log("cards:", cards);
+      console.log("cards:", cards.cardNumber);
       console.log("accounts:", accounts);
 
       if (cards && cards.length > 0) {
@@ -249,7 +249,7 @@ const CreatePolicy = () => {
 
   return (
     <>
-      <form onSubmit={savedPolicy} id="user-form"  className=" row needs-validation" novalidate>
+      <form onSubmit={savedPolicy} id="user-form">
         <div className="row pt-3 fw-bold">
           <div className="mb-3 col-3">
             <label htmlFor="numberPolicy" className="form-label">
@@ -263,7 +263,7 @@ const CreatePolicy = () => {
               name="numberPolicy"
               onChange={changed}
             />{" "}
-            <div class="invalid-feedback">Please choose a username.</div>
+            
           </div>
 
           <div className="mb-3 col-3">
@@ -386,7 +386,7 @@ const CreatePolicy = () => {
               ))}
             </select>
           </div>
-          {selectedPaymentMethod === "10" && (
+          {selectedPaymentMethod === "9" && (
             <div className="mb-3 col-3">
               <label htmlFor="account_type_id" className="form-label">
                 Cuenta Bancaria

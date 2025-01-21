@@ -19,15 +19,26 @@ export default function Modal({
   cards,
   payments,
   advisorId,
+  onPaymentUpdate,
 }) {
   if (!isOpen) return null;
 
   const getModalContent = () => {
     switch (modalType) {
       case "payment":
-        return <PaymentModalContent onClose={onClose} policy={policy} />;
+        return (
+          <PaymentModalContent
+            onClose={onClose}
+            policy={policy} //onPaymentUpdate={onPaymentUpdate}
+          />
+        );
       case "info":
-        return <ListPolicyModal onClose={onClose} policy={policy} />;
+        return (
+          <ListPolicyModal
+            onClose={onClose}
+            policy={policy} //onPaymentUpdate={onPaymentUpdate}
+          />
+        );
       case "renewal":
         return <RegisterRenewalsModal onClose={onClose} policy={policy} />;
       case "customerId":
@@ -40,7 +51,8 @@ export default function Modal({
         return <CardsModal onClose={onClose} cards={cards} />;
       case "paymentByStatus":
         return <PaymentByStatusModal onClose={onClose} payments={payments} />;
-      case  "advisor": return <RegisterAdvanceModal onClose={onClose} advisorId={advisorId} />;
+      case "advisor":
+        return <RegisterAdvanceModal onClose={onClose} advisorId={advisorId} />;
       default:
         return null;
     }
@@ -67,4 +79,5 @@ Modal.propTypes = {
   cards: PropTypes.array.isRequired,
   payments: PropTypes.array.isRequired,
   advisorId: PropTypes.object.isRequired,
+  //onPaymentUpdate: PropTypes.func,
 };

@@ -6,7 +6,7 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-const PaymentModalContent = ({ policy, onClose }) => {
+const PaymentModalContent = ({ policy, onClose, onPaymentUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataValid, setIsDataValid] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState([]);
@@ -160,15 +160,18 @@ const PaymentModalContent = ({ policy, onClose }) => {
       );
 
       if (request.data.status === "success") {
+        // Llamar después de actualizar exitosamente
         alerts(
           "Actualización exitosa",
           "Pago actualizado correctamente",
           "success"
         );
+
         document.querySelector("#user-form").reset();
         setTimeout(() => {
           onClose();
         }, 500);
+        //await onPaymentUpdate();
       } else {
         alerts(
           "Error",
@@ -414,6 +417,7 @@ PaymentModalContent.propTypes = {
     ).isRequired,
   }).isRequired,
   onClose: PropTypes.func.isRequired,
+  //onPaymentUpdate: PropTypes.func,
 };
 
 export default PaymentModalContent;

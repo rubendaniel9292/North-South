@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import useAuth from "../../hooks/useAuth";
@@ -18,7 +18,7 @@ const UserList = () => {
   //formateo de fecha
   dayjs.locale("es");
 
-  const getAllList = async () => {
+  const getAllList = useCallback(async () => {
     try {
       /* peitcion fecth
             const token = localStorage.getItem('token');
@@ -32,7 +32,7 @@ const UserList = () => {
       //const data = await request.json();
       //Peticion con axios: mas entendible mantenible y robusto
       const request = await http.get("users/all");
-      console.log("usuarios del sistema: ", request);
+      console.log("usuarios del sistema: ", request.data.users);
       if (request.data.status === "success") {
         setUsers(request.data.users); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
         console.log("usuarios del sistema: ", request);
@@ -47,7 +47,7 @@ const UserList = () => {
     } finally {
       //setLoading(false);
     }
-  };
+  }, []);
   const deleteUser = async (userId) => {
     try {
       //peticion mediante axios

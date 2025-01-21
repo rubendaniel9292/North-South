@@ -6,6 +6,7 @@ const http = axios.create({
     headers: {
         'Content-Type': 'application/json'
     },
+    withCredentials: true, // Enviar cookies/sesiones
 });
 /*HELPER para las solicitudes mendante axios  */
 // Interceptor para añadir el token a todas las solicitudes

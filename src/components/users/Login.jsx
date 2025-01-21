@@ -21,8 +21,6 @@ const Login = () => {
   const siteKey = import.meta.env.VITE_REACT_APP_TURNSTILE_SITE_KEY;
   //console.log('calve secreta: ', siteKey);
 
-
-
   const loginUser = async (e) => {
     e.preventDefault();
 
@@ -113,7 +111,7 @@ const Login = () => {
                 </i>
               </span>
             </div>
-            <div id="turnstile-container" className="my-3" >
+            <div id="turnstile-container" className="my-3">
               <Turnstile
                 sitekey={siteKey}
                 onVerify={(token) => setTurnstileToken(token)}

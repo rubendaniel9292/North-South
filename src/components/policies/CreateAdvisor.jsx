@@ -20,7 +20,7 @@ const CreateAdvisor = () => {
               "Asesor registrado registrado correctamente",
               "success"
             );
-            //document.querySelector("#user-form").reset();
+            document.querySelector("#user-form").reset();
           } else {
             alerts(
               "Error",
@@ -146,19 +146,6 @@ const CreateAdvisor = () => {
           />
         </div>
 
-        <div className="mb-3 col-3">
-          <label htmlFor="text" className="form-label">
-            Dirección
-          </label>
-          <input
-            required
-            type="text"
-            className="form-control"
-            id="address"
-            name="address"
-            onChange={changed}
-          />
-        </div>
         <div className="mb-3 col-3 ">
           <label htmlFor="flexRadioDefault7" className="form-label">
             ¿El asesor acetpa el tratamiendo de datos personales?

@@ -40,11 +40,15 @@ const ListPolicies = () => {
     return null; // Devuelve null en caso de error
   }, []);
 
+  // Función para recargar la póliza específica
+
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
     setShowModal(true);
   };
-  const closeModal = () => {
+  //closeModal para recibir un parámetro opcional de actualización
+  
+  const closeModal = async () => {
     setPolicy(null);
     setShowModal(false);
   };
@@ -52,7 +56,7 @@ const ListPolicies = () => {
   useEffect(() => {
     getAllPolicies();
   }, []);
-  
+
   // Usar el hook personalizado para la búsqueda
   const {
     query,
@@ -257,7 +261,8 @@ const ListPolicies = () => {
             isOpen={showModal}
             onClose={closeModal}
             policy={policy}
-            modalType={modalType} // Pasamos el tipo de modal a mostrar
+            modalType={modalType} 
+
           ></Modal>
         )}
       </section>

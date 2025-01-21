@@ -14,8 +14,8 @@ const ListBankAccounts = () => {
         console.log('cuentas registradas: ', response.data)
         setAccounts(response.data.allBankAccounts); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
       } else {
-        alerts("Error", "No existen tarjetas registradas", "error");
-        console.error("Error fetching users:", response.message);
+        alerts("Error", "No existen cuentas registradas", "error");
+        console.error("Error fetching:", response.message);
       }
     } catch (error) {
       //setError(error);
@@ -26,7 +26,7 @@ const ListBankAccounts = () => {
   return (
     <>
       <div className="text-center py-2">
-        <h2 className="py-2">Lista de tarjetas</h2>
+        <h2 className="py-2">Lista de cuentas bancarias</h2>
         <table className="table table-striped py-2">
           <thead>
             <tr>

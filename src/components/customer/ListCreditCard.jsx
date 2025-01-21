@@ -1,6 +1,7 @@
 import { useState } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
+
 import dayjs from "dayjs";
 import Turnstile from "react-turnstile";
 
@@ -101,7 +102,7 @@ const ListCreditCard = () => {
                 >
                   {card.cardstatus.cardStatusName}
                 </td>
-                <td>
+                <td className="d-flex gap-2">
                   {card.cardstatus.id == 2 || card.cardstatus.id == 3 ? (
                     <button
                       //onClick={() => deleteUser(user.uuid)}

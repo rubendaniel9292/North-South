@@ -43,7 +43,6 @@ const ListAdvisor = () => {
       if (response.data.status === "success") {
         setAdvisor(response.data.allAdvisors); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
         console.log(response.data.allAdvisors);
-        //openModal(advisorId);
       } else {
         alerts("Error", "No existen asesores registrados", "error");
         console.error("Error fetching asesores:", response.message);
@@ -150,17 +149,24 @@ const ListAdvisor = () => {
                   </td>
                   <td>{item.personalData === "true" ? "SÍ" : "NO"}</td>
 
-                  <td>
+                  <td className="d-flex gap-2">
                     <button className="btn btn-success text-white fw-bold w-100 my-1">
                       Actualizar
                     </button>
-
-                    <button
-                      onClick={() => getAvidorById(item.id, "advisor")}
-                      className="btn btn-primary text-white fw-bold w-100 my-1"
-                    >
-                      Registrar Anticipio
-                    </button>
+                    {item.policies.length > 0 ? (
+                      <button
+                        onClick={() => getAvidorById(item.id, "advisor")}
+                        className="btn btn-primary text-white fw-bold w-100 my-1"
+                      >
+                        Registrar Anticipio
+                      </button>
+                    ) : (
+                      <div
+                        className="btn btn-secondary disabled text-white fw-bold w-100 my-1"
+                      >
+                        No se registran polizas vendidas
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))
@@ -213,7 +219,6 @@ const ListAdvisor = () => {
       </div>
 
       {advisorId && typeof advisorId === "object" && (
-        // Renderiza el modal solo si policy tiene un valor
         <Modal
           isOpen={showModal}
           onClose={closeModal}
