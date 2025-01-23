@@ -6,7 +6,7 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-const PaymentModalContent = ({ policy, onClose, onPaymentUpdate }) => {
+const PaymentModalContent = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataValid, setIsDataValid] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState([]);

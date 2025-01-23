@@ -122,7 +122,9 @@ const CreateCustomer = () => {
           "Cliente registrado correctamente",
           "success"
         );
-        //document.querySelector("#user-form").reset();
+        setTimeout(() => {
+          onClose();
+        }, 500);
       } else {
         //setSaved('error');
         alerts(
@@ -134,8 +136,7 @@ const CreateCustomer = () => {
     } catch (error) {
       alerts("Error", "Error fetching users.", "error");
       console.error("Error fetching users:", error);
-    }
-    finally {
+    } finally {
       setIsLoading(false);
     }
   };
@@ -358,13 +359,13 @@ const CreateCustomer = () => {
             </div>
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success fw-bold">
-              {isLoading ? (
-                <div className="spinner-border text-light" role="status">
-                  <span className="visually-hidden">Registrando...</span>
-                </div>
-              ) : (
-                "Registrar Póliza"
-              )}
+                {isLoading ? (
+                  <div className="spinner-border text-light" role="status">
+                    <span className="visually-hidden">Registrando...</span>
+                  </div>
+                ) : (
+                  "Registrar Cliente"
+                )}
                 <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
               </button>
             </div>

@@ -7,7 +7,7 @@ import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
-
+import UpdateCustomerModal from "../../helpers/modal/UpdateCustomerModal";
 const ListCustomer = () => {
   const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
   const [customers, setCustomers] = useState([]); // Almacenar la lista de clientes en el estado
@@ -19,10 +19,12 @@ const ListCustomer = () => {
   // Fetch all customers on component mount
   useEffect(() => {
     getAllCustomers();
+    
   }, []);
 
   const getAllCustomers = useCallback(async () => {
     try {
+      handleCustomerUpdated();
       const response = await http.get("customers/get-all-customer");
       if (response.data.status === "success") {
         setCustomers(response.data.allCustomer);
@@ -39,6 +41,7 @@ const ListCustomer = () => {
       const response = await http.get(
         `customers/get-customer-id/${customerId}`
       );
+      console.log("CLIENTE SELECIONADO ID:", customerId);
 
       if (response.data.status === "success") {
         const customer = response.data.customerById;
@@ -46,14 +49,7 @@ const ListCustomer = () => {
           alerts("Error", "No existe cliente registrado con este ID", "error");
           return null;
         }
-        if (!customer.policies || customer.policies.length === 0) {
-          alerts(
-            "Información",
-            "El cliente aún no tiene pólizas contratadas",
-            "warning"
-          );
-          return null;
-        }
+
         setCustomerId(customer);
         setModalType(type);
         openModal();
@@ -79,6 +75,13 @@ const ListCustomer = () => {
   const closeModal = () => {
     setCustomerId(null);
     setShowModal(false);
+  };
+  const handleCustomerUpdated = (customerUpdated) => {
+    setCustomers((prevCustomers) =>
+      prevCustomers.map((customer) =>
+        customer.id === customerUpdated.id ? customerUpdated : customer
+      )
+    );
   };
 
   dayjs.locale("es");
@@ -148,6 +151,7 @@ const ListCustomer = () => {
               <th>Email</th>
               <th>Fecha de Registro</th>
               <th>Tratamiento de datos personales</th>
+              <th>Dirección</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -181,19 +185,38 @@ const ListCustomer = () => {
                       .toString()}
                   </td>
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
+                  <td>{customer.address}</td>
+
                   <td className="d-flex gap-2">
-                    <button className="btn btn-success text-white fw-bold  w-100">
+                    <button
+                      className="btn btn-success text-white fw-bold  w-100"
+                      onClick={() =>
+                        getCustomerById(customer.id, "updateCustomer")
+                      }
+                    >
                       Actualizar Información
                     </button>
-                    {customer.policies.length >= 1 ? (
-                      <button
-                        className="btn btn-primary text-white fw-bold  w-100"
-                        onClick={() =>
-                          getCustomerById(customer.id, "customerId")
-                        }
-                      >
-                        Ver pólizas
-                      </button>
+                    {customer.policies && customer.policies.length >= 1 ? (
+                      <>
+                        <button
+                          className="btn btn-primary text-white fw-bold  w-100"
+                          onClick={() =>
+                            getCustomerById(customer.id, "customerId")
+                          }
+                        >
+                          Ver pólizas
+                        </button>
+                        <NavLink
+                          to="/management/create-policy"
+                          state={{
+                            customer,
+                            isEditable: false,
+                          }}
+                          className="btn btn-secondary text-white fw-bold w-100"
+                        >
+                          Registrar póliza
+                        </NavLink>
+                      </>
                     ) : (
                       <>
                         <NavLink
@@ -263,6 +286,7 @@ const ListCustomer = () => {
             onClose={closeModal}
             customerId={customerId}
             modalType={modalType}
+            onCustomerUpdated={handleCustomerUpdated} // Pasar el callback al modal
           ></Modal>
         )}
       </div>

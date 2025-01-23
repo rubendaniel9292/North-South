@@ -8,6 +8,7 @@ import PolicyStatusModal from "./PolicyStatusModal";
 import CardsModal from "./CardsModal";
 import PaymentByStatusModal from "./PaymentByStatusModal";
 import RegisterAdvanceModal from "./RegisterAdvanceModal";
+import UpdateCustomerModal from "./UpdateCustomerModal";
 
 export default function Modal({
   isOpen,
@@ -19,7 +20,7 @@ export default function Modal({
   cards,
   payments,
   advisorId,
-  onPaymentUpdate,
+  onCustomerUpdated,
 }) {
   if (!isOpen) return null;
 
@@ -53,6 +54,10 @@ export default function Modal({
         return <PaymentByStatusModal onClose={onClose} payments={payments} />;
       case "advisor":
         return <RegisterAdvanceModal onClose={onClose} advisorId={advisorId} />;
+      case "updateCustomer":
+        return (
+          <UpdateCustomerModal onClose={onClose} customerId={customerId} onCustomerUpdated={onCustomerUpdated} />
+        );
       default:
         return null;
     }
@@ -79,5 +84,6 @@ Modal.propTypes = {
   cards: PropTypes.array.isRequired,
   payments: PropTypes.array.isRequired,
   advisorId: PropTypes.object.isRequired,
-  //onPaymentUpdate: PropTypes.func,
+  //updateCustomer: PropTypes.object.isRequired,
+   onCustomerUpdated: PropTypes.func.isRequired,
 };
