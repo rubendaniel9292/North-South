@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  north_south_pg_container:
+    image: postgres:16.3
+    container_name: north_south_pg_container
+    restart: always
+    environment:
+      POSTGRES_DB: bd_north_south
+      POSTGRES_USER: user_north_south
+      POSTGRES_PASSWORD: 2ugYRUJHGfh3
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports: 
+      - 5432:5432
+    networks:
+      - north_south_network
+
+  redis_container:
+    image: redis:latest
+    container_name: redis_container
+    ports:
+      - 6379:6379
+    restart: always
+    volumes:
+      - redisdata:/data
+    networks:
+      - north_south_network
+
+networks:
+  north_south_network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:

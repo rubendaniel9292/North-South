@@ -236,7 +236,7 @@ export class GenerateReportPdfController {
   </html>
 `;
       //this.logger.log("HTML generado para el PDF:", html); // Log para verificar el HTML generado
-      console.log(html);
+      //console.log(html);
       //console.log("datos de poliza recibidas en el controlador: ", policy)
       //this.logger.log('Datos de póliza recibidos en el controlador:', policy); // Log para verificar los datos
       const pdfBuffer = await this.pdfService.generatePdf(html);
@@ -378,7 +378,7 @@ export class GenerateReportPdfController {
         </body>
       </html>
     `;
-      console.log('Datos de pagos recibidos en el controlador:', payment);
+      //console.log('Datos de pagos recibidos en el controlador:', payment);
 
       const pdfBuffer = await this.pdfService.generatePdf(html);
       res.set({

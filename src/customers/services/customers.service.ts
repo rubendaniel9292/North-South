@@ -91,12 +91,15 @@ export class CustomersService extends ValidateEntity {
           address: true,
           personalData: true,
           civil: {
+            id: true,
             status: true, // Solo selecciona el campo 'status', no el 'id'
           },
           city: {
+            id: true,
             cityName: true, // Selecciona solo el nombre de la ciudad
           },
           province: {
+            id: true,
             provinceName: true, // Selecciona solo el nombre de la provincia
           },
         },
@@ -123,7 +126,7 @@ export class CustomersService extends ValidateEntity {
   //:3 Método para obtener todos los clientes con las relaciones por id
   public getCustomerById = async (id: number): Promise<CustomersEntity> => {
     try {
-      const cachedCustomer = await this.redisService.get('customer');
+      const cachedCustomer = await this.redisService.get(`customer:${id}`);
       if (cachedCustomer) {
         return JSON.parse(cachedCustomer);
       }
@@ -160,12 +163,15 @@ export class CustomersService extends ValidateEntity {
           address: true,
           personalData: true,
           city: {
+            id: true,
             cityName: true, // Selecciona solo el nombre de la ciudad
           },
           province: {
+            id: true,
             provinceName: true, // Selecciona solo el nombre de la provincia
           },
           civil: {
+            id: true,
             status: true,
           },
           policies: {
@@ -205,9 +211,59 @@ export class CustomersService extends ValidateEntity {
         });
       }
       await this.redisService.set('customer', JSON.stringify(customer), 32400); // TTL de 9 horas
+      console.log("CLIENTE SELECIONADO:", customer);
       return customer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //4: Método para actualizar un cliente  
+  public updateCustomer = async (
+    id: number,
+    updateData: Partial<CustomersEntity>,
+  ): Promise<CustomersEntity> => {
+    try {
+      const customer = await this.customerRepository.findOne({ where: { id } });
+      console.log('Datos recibidos en el backend:', updateData);
+      if (!customer) {
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: 'No se encontró el cliente',
+        });
+      }
+      // Validar y asignar solo las propiedades permitidas de updateData
+      Object.assign(customer, updateData);
+
+      // Limpiar todas las claves de caché relevantes
+      await this.redisService.del(`customer:${id}`);
+      await this.redisService.del('customers');
+
+      // Guardar el cliente actualizado en la base de datos
+      const customerUpdated = await this.customerRepository.save(customer);
+
+      await this.redisService.set(
+        `customerUpdated:${customerUpdated.id}`,
+        JSON.stringify(customerUpdated),
+        32400,
+      );
+
+        // Actualizar caché con los datos más recientes
+        await this.redisService.set(
+          `customer:${id}`,
+          JSON.stringify(customerUpdated),
+          32400,
+        );
+        await this.redisService.set(
+          `customerUpdated:${customerUpdated.id}`,
+          JSON.stringify(customerUpdated),
+          32400,
+        );
+      console.log('Cliente actualizado:', customerUpdated);
+      return customerUpdated;
+
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
 }

@@ -6,11 +6,12 @@ import {
   //Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { CustomersService } from '../services/customers.service';
-import { CustomerDTO } from '../dto/customer.dto';
+import { CustomerDTO, UpDateCustomerDTO } from '../dto/customer.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/decorators';
@@ -18,7 +19,7 @@ import { Roles } from 'src/auth/decorators/decorators';
 @Controller('customers')
 @UseGuards(AuthGuard, RolesGuard)
 export class CustomersController {
-  constructor(private readonly customerService: CustomersService) {}
+  constructor(private readonly customerService: CustomersService) { }
 
   @Roles('ADMIN', 'BASIC')
   @Post('register-customer')
@@ -51,6 +52,19 @@ export class CustomersController {
       return {
         status: 'success',
         customerById,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Put('update-customer-id/:id')
+  public async updateCustomer(@Body() updateData: UpDateCustomerDTO, @Param('id') id: number) {
+    const customerUpdated = await this.customerService.updateCustomer(id,
+      updateData,);
+    if (customerUpdated) {
+      return {
+        status: 'success',
+        customerUpdated,
       };
     }
   }
