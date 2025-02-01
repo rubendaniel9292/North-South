@@ -11,7 +11,7 @@ const ListPolicies = () => {
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-  const itemsPerPage = 10; // Número de asesor por página
+  const itemsPerPage = 5; // Número de asesor por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
@@ -40,6 +40,39 @@ const ListPolicies = () => {
     return null; // Devuelve null en caso de error
   }, []);
 
+  //metodo de prueba de registro de pago de poliza
+  /*
+  const registerPaymentTest = useCallback(async () => {
+    try {
+      const response = await http.post(`payment/manual-process-payments`);
+      console.log("respuesta de la peticion: ", response.data);
+      if (response.data.status === "success") {
+        alerts("Pago registrado", response.data.message, "success");
+      } else {
+        alerts("Error", response.data.message, "error");
+        console.error("Error registering payment:", response.data.message);
+      }
+    } catch (error) {
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error registering payment:", error);
+    }
+  }, []);*/
+  const registerPaymentTest = useCallback(async () => {
+    try {
+      const response = await http.post(`payment/manual-process-payments`);
+      console.log("respuesta de la peticion: ", response.data);
+
+      if (response.data.status === "success") {
+        alerts("Pago registrado", response.data.message, "success");
+        console.log("Pagos creados:", response.data.data.createdPayments); // Mostrar detalles
+      } else {
+        alerts("Error", response.data.message, "error");
+      }
+    } catch (error) {
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error registering payment:", error);
+    }
+  }, []);
   // Función para recargar la póliza específica
 
   // Abrir modal y obtener la póliza seleccionada
@@ -47,7 +80,7 @@ const ListPolicies = () => {
     setShowModal(true);
   };
   //closeModal para recibir un parámetro opcional de actualización
-  
+
   const closeModal = async () => {
     setPolicy(null);
     setShowModal(false);
@@ -63,6 +96,7 @@ const ListPolicies = () => {
     setQuery,
     filteredItems: filteredPolicy,
   } = useSearch(policies, [
+    "numberPolicy",
     "ci_ruc",
     "firstName",
     "secondName",
@@ -89,8 +123,9 @@ const ListPolicies = () => {
       const response = await http.get("policy/get-all-policy");
       if (response.data.status === "success") {
         setPolicies(response.data.allPolicy);
+        console.log("TODAS LAS POLIZAS: ", response.data.allPolicy);
       } else {
-        alerts("Error", "No existen póilzas  registradas", "error");
+        //alerts("Error", "No existen póilzas  registradas", "error");
         console.error("Error fetching polizas:", response.message);
       }
     } catch (error) {
@@ -104,14 +139,14 @@ const ListPolicies = () => {
       <section>
         <div className="text-center py-2">
           <h2 className="py-2">Listado general de todas las póilzas</h2>
-          {/*<div className="row">
+          <div className="row">
             <div className="mb-3 col-5 py-2">
-              <h4 className="py-2">Total de clientes: {policies.length}</h4>
+              <h4 className="py-2">Total de pólizas: {policies.length}</h4>
             </div>
             <div className="mb-3 col-5 py-2">
               <div className="mb-3 my-2">
                 <label htmlFor="nameQuery" className="form-label fs-5">
-                  Buscar poliza de cliente por Nombre, Apellido o CI/RUC
+                  Buscar poliza por número de póliza
                 </label>
                 <input
                   type="text"
@@ -121,10 +156,17 @@ const ListPolicies = () => {
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-            </div>
-          </div> */}
 
-          <table className="table table-striped py-2">
+              <button
+                className="btn btn-danger text-white fw-bold my-1 w-100"
+                onClick={() => registerPaymentTest()}
+              >
+                Probador manual de registro de pago
+              </button>
+            </div>
+          </div>
+
+          <table className="table table-striped py-1">
             <thead>
               <tr>
                 <th>N°</th>
@@ -146,72 +188,80 @@ const ListPolicies = () => {
               </tr>
             </thead>
             <tbody>
-              {policies.map((policy, index) => (
-                <tr key={policy.id}>
-                  <td>{index + 1}</td>
-                  <td>{policy.numberPolicy}</td>
-                  <td>
-                    {policy.customer.firstName}{" "}
-                    {policy.customer.secondName || " "}{" "}
-                  </td>
-                  <td>
-                    {policy.customer.surname}{" "}
-                    {policy.customer.secondSurname || " "}
-                  </td>
-                  <td>{policy.company.companyName}</td>
-                  <td>{policy.policyType.policyName}</td>
-                  <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
-                  <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
-                  <td>{policy.paymentMethod.methodName}</td>
-                  <td>
-                    {policy.bankAccount && policy.bankAccount.bank
-                      ? policy.bankAccount.bank.bankName
-                      : policy.creditCard && policy.creditCard.bank
-                      ? policy.creditCard.bank.bankName
-                      : "NO APLICA"}
-                  </td>
-                  <td>{policy.paymentFrequency.frequencyName}</td>
-                  <td>{policy.coverageAmount}</td>
-                  <td
-                    className={
-                      policy.policyStatus.id == 4
-                        ? "bg-warning text-white fw-bold"
-                        : policy.policyStatus.id == 3
-                        ? "bg-danger text-white fw-bold"
-                        : "bg-success-subtle"
-                    }
-                  >
-                    {policy.policyStatus.statusName}
-                  </td>
-                  <td>{policy.observations || "N/A"}</td>
-                  <td className="d-flex gap-2">
-                    <button
-                      className="btn btn-primary text-white fw-bold my-1 w-100"
-                      onClick={() => getPolicyById(policy.id, "info")}
-                    >
-                      Ver información completa
-                    </button>
-
-                    <button
-                      key={index}
-                      className="btn btn-success text-white fw-bold my-1 w-100"
-                      onClick={() => getPolicyById(policy.id, "payment")}
-                    >
-                      Actualizar Pago
-                    </button>
-
-                    <button
-                      className="btn btn-secondary text-white fw-bold my-1 w-100"
-                      onClick={() => getPolicyById(policy.id, "renewal")}
-                    >
-                      Renovar póliza
-                    </button>
+              {currentPolicies.length === 0 ? (
+                <tr>
+                  <td colSpan="15" className="text-center">
+                    Poliza no encontrada
                   </td>
                 </tr>
-              ))}
+              ) : (
+                currentPolicies.map((policy, index) => (
+                  <tr key={policy.id}>
+                    <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                    <td>{policy.numberPolicy}</td>
+                    <td>
+                      {policy.customer.firstName}{" "}
+                      {policy.customer.secondName || " "}{" "}
+                    </td>
+                    <td>
+                      {policy.customer.surname}{" "}
+                      {policy.customer.secondSurname || " "}
+                    </td>
+                    <td>{policy.company.companyName}</td>
+                    <td>{policy.policyType.policyName}</td>
+                    <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
+                    <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
+                    <td>{policy.paymentMethod.methodName}</td>
+                    <td>
+                      {policy.bankAccount && policy.bankAccount.bank
+                        ? policy.bankAccount.bank.bankName
+                        : policy.creditCard && policy.creditCard.bank
+                        ? policy.creditCard.bank.bankName
+                        : "NO APLICA"}
+                    </td>
+                    <td>{policy.paymentFrequency.frequencyName}</td>
+                    <td>{policy.coverageAmount}</td>
+                    <td
+                      className={
+                        policy.policyStatus.id == 4
+                          ? "bg-warning text-white fw-bold"
+                          : policy.policyStatus.id == 3
+                          ? "bg-danger text-white fw-bold"
+                          : "bg-success-subtle"
+                      }
+                    >
+                      {policy.policyStatus.statusName}
+                    </td>
+                    <td>{policy.observations || "N/A"}</td>
+                    <td className="d-flex gap-2">
+                      <button
+                        className="btn btn-primary text-white fw-bold my-1 w-100"
+                        onClick={() => getPolicyById(policy.id, "info")}
+                      >
+                        Ver información completa
+                      </button>
+
+                      <button
+                        key={index}
+                        className="btn btn-success text-white fw-bold my-1 w-100"
+                        onClick={() => getPolicyById(policy.id, "payment")}
+                      >
+                        Actualizar Pago
+                      </button>
+
+                      <button
+                        className="btn btn-secondary text-white fw-bold my-1 w-100"
+                        onClick={() => getPolicyById(policy.id, "renewal")}
+                      >
+                        Renovar póliza
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          {policies.length > itemsPerPage && (
+          {filteredPolicy.length > itemsPerPage && (
             <nav aria-label="page navigation example">
               <ul className="pagination">
                 <li
@@ -261,8 +311,7 @@ const ListPolicies = () => {
             isOpen={showModal}
             onClose={closeModal}
             policy={policy}
-            modalType={modalType} 
-
+            modalType={modalType}
           ></Modal>
         )}
       </section>

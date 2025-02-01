@@ -136,6 +136,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
           <table className="table table-striped">
             <thead>
               <tr>
+                <th>Orden</th>
                 <th>N° de Pago</th>
                 <th>Saldo Pendiente</th>
                 <th>Valor</th>
@@ -148,9 +149,14 @@ const ListPolicyModal = ({ policy, onClose }) => {
               </tr>
             </thead>
             <tbody>
-              {currentPayments.map((payment, index) => (
+              {currentPayments
+                .slice(0, policy.numberOfPayments) // Mostrar solo los pagos permitidos
+                .map((payment, index) => (
                 <tr key={payment.id}>
-                  <td>{index + 1}</td>
+                  <td>
+                    {(currentPaymentsPage - 1) * itemsPerPage + index + 1}
+                  </td>
+                  <td>{payment.number_payment}</td>
                   <td>{payment.pending_value}</td>
                   <td>{payment.value || "0.00"}</td>
                   <td>{payment.credit || "0.00"}</td>
@@ -249,6 +255,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <tbody>
                   {currentRenewals.map((renewal) => (
                     <tr key={renewal.id}>
+                      <td>
+                        {(currentRenewalsPage - 1) * itemsPerPage + index + 1}
+                      </td>
+
                       <td>{renewal.renewalNumber}</td>
                       <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>
                       <td>{renewal.observations || "N/A"}</td>

@@ -30,30 +30,29 @@ const PaymentModalContent = ({ policy, onClose }) => {
     balance: 0,
     total: 0,
     createdAt: policy.startDate,
+    number_payment: 1,
+    pending_value: 0,
+    credit: 0,
+    policy_id: policy.id,
+    status_payment_id: "",
+    observations: "",
   });
 
   useEffect(() => {
-    console.log("poliza recibida en el modal: ", policy);
-    console.log("Estado actualizado del formulario de pago:", form);
-  }, [form, policy]);
-
-  useEffect(() => {
     if (policy) {
-      const lastPayment = policy.payments.length
-        ? policy.payments[policy.payments.length - 1]
-        : null;
-      const pendingValue = lastPayment
-        ? Number(lastPayment.pending_value)
-        : Number(policy.policyValue);
-      const lastPaymentNumber = lastPayment ? lastPayment.number_payment : 1;
+      const lastPayment = policy.payments[policy.payments.length - 1];
 
-      setForm((prevForm) => ({
-        ...prevForm,
-        number_payment: lastPaymentNumber, // Mantener el número de pago actual
-        pending_value: pendingValue - Number(form.credit),
-      }));
+      // Calcular próximo número de pago
+      const nextPaymentNumber = lastPayment ? lastPayment.number_payment : 1;
+
+      setForm({
+        ...form,
+        number_payment: nextPaymentNumber,
+        //pending_value:lastPayment.pending_value - Number(form.credit) || policy.policyValue - Number(form.credit),
+        pending_value: lastPayment?.pending_value - Number(form.credit),
+      });
     }
-  }, [form.credit, policy]);
+  }, [policy, form.credit]);
 
   useEffect(() => {
     if (!policy) {
@@ -61,12 +60,13 @@ const PaymentModalContent = ({ policy, onClose }) => {
       setIsDataValid(false);
       return null;
     }
+
     const calculatePaymentValue = () => {
       const paymentFrequency = Number(policy.paymentFrequency.id);
       let value = 0;
 
       switch (paymentFrequency) {
-        case 1: // Pago mensual
+        case 1:
           value = (policy.policyValue / 12).toFixed(2);
           break;
         case 2: // Pago trimestral
@@ -75,10 +75,23 @@ const PaymentModalContent = ({ policy, onClose }) => {
         case 3: // Pago semestral
           value = (policy.policyValue / 2).toFixed(2);
           break;
+        case 5: // Otro pago
+          //condición que asegura que el número de pagos es válido antes de proceder al cálculo
+          if (policy.numberOfPayments && policy.numberOfPayments > 0) {
+            value = (policy.policyValue / policy.numberOfPayments).toFixed(2);
+          } else {
+            console.error("Número de pagos inválido.");
+          }
+          break;
+
         default: // Pago anual
-          value = policy.policyValue;
+          value = Number(policy.policyValue).toFixed(2);
           break;
       }
+      console.log(
+        `Valor calculado para frecuencia ${paymentFrequency}: ${value}`
+      );
+
       return value;
     };
     const value = calculatePaymentValue();
@@ -86,6 +99,9 @@ const PaymentModalContent = ({ policy, onClose }) => {
     const balance = (value - credit).toFixed(2);
     const total = value - balance;
 
+    console.log(
+      `Form values - Value: ${value}, Credit: ${credit}, Balance: ${balance}, Total: ${total}`
+    );
     setForm((prevForm) => ({
       ...prevForm,
       policy_id: policy.id,
@@ -172,6 +188,17 @@ const PaymentModalContent = ({ policy, onClose }) => {
           onClose();
         }, 500);
         //await onPaymentUpdate();
+        // Verificar si se han completado todos los pagos
+        if (
+          form.pending_value <= 0 &&
+          form.number_payment >= policy.numberOfPayments
+        ) {
+          alerts(
+            "Pagos Completados",
+            "Todos los pagos para esta póliza han sido completados.",
+            "success"
+          );
+        }
       } else {
         alerts(
           "Error",
@@ -404,6 +431,7 @@ PaymentModalContent.propTypes = {
     number_payment: PropTypes.number.isRequired,
     policyValue: PropTypes.number.isRequired,
     startDate: PropTypes.string.isRequired,
+    numberOfPayments: PropTypes.number.isRequired,
     paymentFrequency: PropTypes.shape({
       id: PropTypes.number.isRequired,
       frequencyName: PropTypes.string.isRequired,
@@ -413,6 +441,7 @@ PaymentModalContent.propTypes = {
         id: PropTypes.number.isRequired,
         pending_value: PropTypes.number.isRequired,
         number_payment: PropTypes.number.isRequired,
+        value: PropTypes.number.isRequired,
       })
     ).isRequired,
   }).isRequired,
