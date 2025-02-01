@@ -273,6 +273,14 @@ INSERT INTO city (city_name, province_id) VALUES
 ('Shushufindi', 17),
 ('Sucumbíos', 17);
 
+--ciudades del paztaza
+INSERT INTO city (city_name, province_id) VALUES
+('Arajuno', 18),
+('Mera', 18),
+('Pastaza', 18),
+('Santa Clara', 18);
+
+
 --ciudades de pichincha
 INSERT INTO city (city_name, province_id) VALUES
 ('Quito', 19),
@@ -394,7 +402,8 @@ INSERT INTO payment_frequency (frequency_name) VALUES
     ('Mensual'),
     ('Trimestral'),
     ('Semestral'),
-    ('Anual');
+    ('Anual'),
+     ('Otro');
 
 -- 12: ESTADOS DE LA POLIZA
 INSERT INTO policy_status (status_name) VALUES

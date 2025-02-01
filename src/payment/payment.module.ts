@@ -9,6 +9,7 @@ import { PaymentController } from './controller/payment.controller';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentStatusEntity } from './entity/payment.status.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PaymentSchedulerService } from '@/helpers/registerPayment';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -19,9 +20,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     ScheduleModule.forRoot(), // Importa y configura ScheduleModule para tareas automaticas
     ProvidersModule,
     UserModule,
+    
+
   ],
-  providers: [PaymentService, HttpCustomService],
+  providers: [PaymentService, HttpCustomService, PaymentSchedulerService],
   exports: [PaymentService, TypeOrmModule],
   controllers: [PaymentController],
 })
-export class PaymentModule {}
+export class PaymentModule { }

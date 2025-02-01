@@ -22,6 +22,64 @@ export class PaymentService {
     private readonly redisService: RedisModuleService,
   ) { }
   //1: metodo para registrar un pago de poliza
+  /*
+    public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
+      try {
+  
+        const policy = await this.getPolicyWithPayments(body.policy_id);
+  
+        if (!policy) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'No se encontró resultados',
+          });
+        }
+  
+        // Calcular el número de pago correcto
+        const numberPayment = policy.payments.length + 1;
+  
+        // Calcular el nuevo valor pendiente
+        const lastPayment = policy.payments[policy.payments.length - 1];
+        const newPendingValue = lastPayment.pending_value - body.value;
+  
+        if (newPendingValue < 0) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'El valor pendiente no puede ser negativo',
+          });
+        }
+  
+  
+        // Crear el nuevo pago con el número de pago calculado
+        const newPayment = this.paymentRepository.create({
+          ...body,
+          number_payment: numberPayment,
+          pending_value: newPendingValue,
+        });
+  
+        await this.paymentRepository.save(newPayment);
+  
+        //const newPayment = await this.paymentRepository.save(body);
+        // Guardar en Redis
+  
+        await this.redisService.set(
+          `newPayment:${newPayment.id}`,
+          JSON.stringify(newPayment),
+          32400,
+        ); // TTL de 1 hora
+  
+        // Eliminar el caché de todos los pagos y pagos por compañía para evitar inconsistencias.
+        await this.redisService.del('payments');
+        await this.redisService.del('paymentsByStatus:general');
+        if (policy.company?.id) {
+          await this.redisService.del(`paymentsByStatus:${policy.company.id}`);
+        }
+        console.log(`nuevo pago creado:${newPayment}`);
+        return newPayment;
+      } catch (error) {
+        throw ErrorManager.createSignatureError(error.message);
+      }
+    };*/
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
     try {
       // validar si la póliza existe antes de registrar el pago.
@@ -37,6 +95,7 @@ export class PaymentService {
       }
 
       const newPayment = await this.paymentRepository.save(body);
+      /*
       // Guardar en Redis
       await this.redisService.set(`newPayment:${newPayment.id}`, JSON.stringify(newPayment), 32400); // TTL de 1 hora
 
@@ -46,25 +105,37 @@ export class PaymentService {
       await this.redisService.del('paymentsByStatus:general');
       if (policy.company?.id) {
         await this.redisService.del(`paymentsByStatus:${policy.company.id}`);
-      }
+      }*/
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
+      /*
       const cachedPayments = await this.redisService.get('payments');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
-      }
+      }*/
       const payments: PaymentEntity[] = await this.paymentRepository.find({
-        relations: ['policies', 'paymentStatus'],
+        order: {
+          id: 'DESC',
+        },
+        relations: [
+          'policies',
+          'paymentStatus',
+          'policies.paymentFrequency',
+          'policies.payments',
+        ],
         select: {
           policies: {
             id: true,
             numberPolicy: true,
+            //payment_frequency_id: true,
           },
         },
       });
@@ -75,7 +146,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('payments', JSON.stringify(payments), 32400); // TTL de 1 hora
+      //await this.redisService.set('payments', JSON.stringify(payments), 32400); // TTL de 1 hora
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -84,10 +155,11 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
+      /*
       const cachedPaymentsId = await this.redisService.get('paymentId');
       if (cachedPaymentsId) {
         return JSON.parse(cachedPaymentsId);
-      }
+      }*/
       const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
         relations: ['policies', 'paymentStatus'],
@@ -106,7 +178,13 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('paymentId', JSON.stringify(paymentId), 32400); // TTL de 1 hora
+      /*
+      await this.redisService.set(
+        'paymentId',
+        JSON.stringify(paymentId),
+        32400,
+      ); // TTL de 1 hora
+      */
       return paymentId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -130,16 +208,24 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('paymentStatus', JSON.stringify(paymentStatus), 32400); // TTL de 1 hora
+      await this.redisService.set(
+        'paymentStatus',
+        JSON.stringify(paymentStatus),
+        32400,
+      ); // TTL de 1 hora
       return paymentStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
   //5: metodo para obtener los pagos en base al estado
-  public getPaymentsByStatus = async (companyId?: number): Promise<PaymentEntity[]> => {
+  public getPaymentsByStatus = async (
+    companyId?: number,
+  ): Promise<PaymentEntity[]> => {
     try {
-      const cacheKey = companyId ? `paymentsByStatus:${companyId}` : 'paymentsByStatus:general';
+      const cacheKey = companyId
+        ? `paymentsByStatus:${companyId}`
+        : 'paymentsByStatus:general';
       const cachedPayments = await this.redisService.get(cacheKey);
 
       if (cachedPayments) {
@@ -148,7 +234,7 @@ export class PaymentService {
 
       // condiciones de búsqueda
       const whereConditions: any = {
-        status_payment_id: 1 // Estado: atrasado
+        status_payment_id: 1, // Estado: atrasado
       };
       // Si se proporciona un companyId, añade la condición de la compañía
       if (companyId) {
@@ -202,7 +288,11 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(cacheKey, JSON.stringify(paymentsByStatus), 32400); // TTL de 9 horaL de 1 hora
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(paymentsByStatus),
+        32400,
+      ); // TTL de 9 horaL de 1 hora
       return paymentsByStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -223,23 +313,131 @@ export class PaymentService {
         });
       }
 
+      // Calcular el nuevo valor pendiente
+      const newPendingValue = payment.pending_value - updateData.value;
+
+      if (newPendingValue < 0) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'El valor pendiente no puede ser negativo',
+        });
+      }
       Object.assign(payment, updateData);
       const paymentUpdated = await this.paymentRepository.save(payment);
       // Limpiar todas las claves de caché relevantes
+      /*
       await this.redisService.del(`newPayment:${id}`);
       await this.redisService.del('payments');
       await this.redisService.del('paymentsByStatus:general');
-      //await this.redisService.del(`policy:${payment.policies.id}`);
+      await this.redisService.del(`policy:${payment.policies.id}`);
 
       if (payment.policies?.company?.id) {
         await this.redisService.del(`paymentsByStatus:${payment.policies.company.id}`);
-      }
+      }*/
 
       return paymentUpdated;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
+  };
+
+  // 7: Nuevo método para obtener póliza con pagos actualizados
+  public async getPolicyWithPayments(id: number): Promise<PolicyEntity> {
+    try {
+      /*
+      const cacheKey = `policy:${id}:withPayments`;
+      const cachedPolicy = await this.redisService.get(cacheKey);
+
+      if (cachedPolicy) {
+        return JSON.parse(cachedPolicy);
+      }*/
+
+      const policy = await this.policyRepository.findOne({
+        where: { id },
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'advisor',
+          'customer',
+          'paymentMethod',
+          'bankAccount',
+          'bankAccount.bank',
+          'creditCard',
+          'creditCard.bank',
+          'payments',
+          'payments.paymentStatus',
+          'renewals',
+        ],
+        select: {
+          id: true,
+          numberPolicy: true,
+          coverageAmount: true,
+          agencyPercentage: true,
+          advisorPercentage: true,
+          policyValue: true,
+          numberOfPayments: true,
+          startDate: true,
+          endDate: true,
+          paymentsToAdvisor: true,
+          policyFee: true,
+          renewalCommission: true,
+          observations: true,
+          policyType: {
+            policyName: true,
+          },
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          company: {
+            id: true,
+            companyName: true,
+          },
+          advisor: {
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          paymentMethod: {
+            methodName: true,
+          },
+          bankAccount: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+          creditCard: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+        },
+        order: {
+          payments: {
+            number_payment: 'ASC',
+          },
+        },
+      });
+
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró la póliza',
+        });
+      }
+
+      //await this.redisService.set(cacheKey, JSON.stringify(policy), 32400); // TTL de 9 horas
+      return policy;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
   }
-
-
 }

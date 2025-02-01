@@ -326,7 +326,6 @@ export class CreditcardService extends EncryptDataCard {
         });
       }
       await this.redisService.set('allBanks', JSON.stringify(allBanks), 32400); // TTL de 9 horas
-      console.log('Datos almacenados en Redis');
       return allBanks;
     } catch (error) {
       //se ejecuta el errir

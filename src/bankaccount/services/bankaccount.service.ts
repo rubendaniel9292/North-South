@@ -90,7 +90,7 @@ export class BankAccountService {
       // Verificar si los datos están en Redis
       const cachedBanks = await this.redisService.get('allBanks');
       if (cachedBanks) {
-        console.log('Datos obtenidos de Redis');
+        console.log('Datos obtenidos de Redis', cachedBanks);;
         return JSON.parse(cachedBanks);
       }
       const allBanks: BankEntity[] = await this.bankRepository.find();
@@ -104,6 +104,7 @@ export class BankAccountService {
       }
       await this.redisService.set('allBanks', JSON.stringify(allBanks), 32400); // TTL de 9 horas
       console.log('Datos almacenados en Redis');
+      console.log("listado de bancos: ", allBanks);
       return allBanks;
     } catch (error) {
       //se ejecuta el errir

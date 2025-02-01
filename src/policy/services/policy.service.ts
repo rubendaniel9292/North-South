@@ -1,9 +1,9 @@
 import { PolicyTypeEntity } from './../entities/policy_type.entity';
 import { ValidateEntity } from '@/helpers/validations';
-import { Injectable } from '@nestjs/common';
+import { Body, Injectable } from '@nestjs/common';
 import { PolicyEntity } from '../entities/policy.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyStatusService } from '@/helpers/policy.status';
@@ -40,13 +40,13 @@ export class PolicyService extends ValidateEntity {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
   }
-  //1:metodo para registrar una poliza
   private calculatePaymentValue(
     policyValue: number,
     paymentFrequency: number,
+    numberOfPayments?: number,
   ): number {
     let valueToPay = 0;
-
+    console.log("numero de pagos ", numberOfPayments);
     switch (paymentFrequency) {
       case 1: // Pago mensual
         valueToPay = parseFloat((policyValue / 12).toFixed(2));
@@ -57,6 +57,13 @@ export class PolicyService extends ValidateEntity {
       case 3: // Pago semestral
         valueToPay = parseFloat((policyValue / 2).toFixed(2));
         break;
+      case 5: // otro pago
+        if (numberOfPayments) {
+          valueToPay = parseFloat((policyValue / numberOfPayments).toFixed(2));
+        } else {
+          throw new Error("Number of payments is required for payment frequency 5");
+        }
+        break;
       default: // Pago anual
         valueToPay = policyValue;
         break;
@@ -64,12 +71,11 @@ export class PolicyService extends ValidateEntity {
 
     return valueToPay;
   }
+  //1:metodo para registrar una poliza
+
   public createPolicy = async (body: PolicyDTO): Promise<PolicyEntity> => {
     try {
-      // Primero validamos cédula y correo
 
-      // Convertir el valor de personalData a booleano
-      //body.personalData = body.personalData === 'true' || body.personalData === true;
       await this.validateInput(body, 'policy');
       const endDate = new Date(body.endDate);
 
@@ -81,16 +87,24 @@ export class PolicyService extends ValidateEntity {
       body.policy_status_id = determinedStatus.id;
       const newPolicy = await this.policyRepository.save(body);
 
+      const policyValue = Number(newPolicy.policyValue);
+      if (isNaN(policyValue)) {
+        throw new Error("Valor calculado de pago invalido");
+      }
+
       // Calcular el valor del pago según la frecuencia de pago y crear un pago inicial
       const paymentFrequency = Number(newPolicy.payment_frequency_id);
-      const valueToPay = this.calculatePaymentValue(
-        newPolicy.policyValue,
-        paymentFrequency,
-      );
+      const numberOfPayments = paymentFrequency === 5 ? Number(body?.numberOfPayments) : undefined;
+
+      const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, numberOfPayments);
       console.log(paymentFrequency, valueToPay);
+      // Verifica que valueToPay sea un número válido
+      if (isNaN(valueToPay)) {
+        throw new Error("Valor calculado de pago invalido");
+      }
       const paymentData: PaymentDTO = {
         policy_id: newPolicy.id,
-        number_payment: 1,
+        number_payment: 1, // Este valor será actualizado en createPayment
         value: valueToPay,
         pending_value: newPolicy.policyValue,
         status_payment_id: 1,
@@ -101,9 +115,11 @@ export class PolicyService extends ValidateEntity {
         createdAt: newPolicy.startDate,
         updatedAt: new Date(),
       };
+
+      
       await this.paymentService.createPayment(paymentData);
       // Guardar en Redis
-      await this.redisService.set(`newPolicy:${newPolicy.id}`, JSON.stringify(newPolicy), 32400); // TTL de 1 hora
+      //await this.redisService.set(`newPolicy:${newPolicy.id}`, JSON.stringify(newPolicy), 32400); // TTL de 1 hora
       /*
       Invalidar la caché es eliminar o marcar como obsoletos los datos almacenados en la caché 
       para asegurar que se obtengan datos actualizados.
@@ -112,21 +128,36 @@ export class PolicyService extends ValidateEntity {
        Después de cualquier actualización en la base de datos o en eventos específicos 
        que afecten los datos en caché
       */
-      await this.redisService.del('policies');
-      console.log(newPolicy)
+      //await this.redisService.del('policies');
+      //console.log("nueva poliza registrada: ", newPolicy)
       return newPolicy;
+
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
   //2:metodo para consultas todas las polizas
-  public getAllPolicies = async (): Promise<PolicyEntity[]> => {
+  public getAllPolicies = async (search?: string,): Promise<PolicyEntity[]> => {
     try {
+      /*
       const cachedPolicies = await this.redisService.get('policies');
       if (cachedPolicies) {
         return JSON.parse(cachedPolicies);
+      }*/
+
+      // Crea un array de condiciones de búsqueda en este caso por nu  mero de poliza
+      const whereConditions: any[] = [];
+
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push(
+          { numberPolicy: searchCondition },
+        );
       }
       const policies: PolicyEntity[] = await this.policyRepository.find({
+        order: {
+          id: "DESC",
+        },
         relations: [
           'policyType',
           'policyStatus',
@@ -200,10 +231,10 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('policies', JSON.stringify(policies), 32400); // TTL de 1 hora
-      console.log(policies)
+      //await this.redisService.set('policies', JSON.stringify(policies), 32400); // TTL de 1 hora
+      //console.log(policies)
       return policies;
-     
+
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -211,10 +242,11 @@ export class PolicyService extends ValidateEntity {
   //3:metodo para consultas todas las polizas en base al estado
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
+      /*
       const cachedPolicies = await this.redisService.get('policiesStatus');
       if (cachedPolicies) {
         return JSON.parse(cachedPolicies);
-      }
+      }*/
       const policiesStatus: PolicyEntity[] = await this.policyRepository.find({
         where: [
           { policy_status_id: 3 }, // Estado: por vencer
@@ -298,7 +330,7 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('policiesStatus', JSON.stringify(policiesStatus), 32400); // TTL de 1 hora
+      //await this.redisService.set('policiesStatus', JSON.stringify(policiesStatus), 32400); // TTL de 1 hora
       return policiesStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -477,7 +509,8 @@ export class PolicyService extends ValidateEntity {
 
       const newReneval = await this.policyRenevalMethod.save(body);
       // Guardar en Redis
-      await this.redisService.set(`newReneval:${newReneval.id}`, JSON.stringify(newReneval), 32400);
+      
+      //await this.redisService.set(`newReneval:${newReneval.id}`, JSON.stringify(newReneval), 32400);
       return newReneval;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

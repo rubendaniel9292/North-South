@@ -17,11 +17,15 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/decorators';
 import { PaymentService } from '../services/payment.service';
 import { PaymentDTO } from '../dto/payment.dto';
+import { PaymentSchedulerService } from '@/helpers/registerPayment';
 
 @Controller('payment')
 @UseGuards(AuthGuard, RolesGuard)
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly paymentSchedulerService: PaymentSchedulerService
+  ) { }
   @Roles('ADMIN', 'BASIC')
   @Post('register-payment')
   public async registerPayment(@Body() body: PaymentDTO) {
@@ -95,5 +99,36 @@ export class PaymentController {
       status: 'success',
       updatedPayment,
     };
+  }
+  //controlador para el registro manual de pagos
+  /*
+  @Roles('ADMIN', 'BASIC')
+  @Post('manual-process-payments')
+  async manualProcessPayments() {
+    await this.paymentSchedulerService.manualProcessPayments();
+    return {
+      status: 'success',
+      message: 'Pago manual procesado manualmente',
+    };
+
+    //return { status: 'success', message: 'Pago manual procesado manualmente' };
+  }*/
+  @Roles('ADMIN', 'BASIC')
+  @Post('manual-process-payments')
+  async manualProcessPayments() {
+    try {
+      const result = await this.paymentSchedulerService.manualProcessPayments();
+      return {
+        status: 'success',
+        message: 'Pago manual procesado correctamente',
+        data: result, // Incluir detalles de los pagos creados
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: 'Error al procesar pagos manualmente',
+        error: error.message,
+      };
+    }
   }
 }

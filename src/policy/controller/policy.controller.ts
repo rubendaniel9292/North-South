@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -12,7 +12,7 @@ export class PolicyController {
   constructor(
     private readonly policyService: PolicyService,
     //private readonly pdfService: PdfService,
-  ) {}
+  ) { }
 
   @Roles('ADMIN', 'BASIC')
   @Post('register-policy')
@@ -28,8 +28,8 @@ export class PolicyController {
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-all-policy')
-  public async allPolicy() {
-    const allPolicy = await this.policyService.getAllPolicies();
+  public async allPolicy(@Query('search') search?: string) {
+    const allPolicy = await this.policyService.getAllPolicies(search);
     if (allPolicy) {
       return {
         status: 'success',

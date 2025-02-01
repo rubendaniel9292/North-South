@@ -44,7 +44,7 @@ export class PaymentEntity extends IdEntity {
   @JoinColumn({ name: 'policy_id' })
   policies: PolicyEntity;
 
-  //Cada pago puede asociarse con un solo estado de pago
+  // Cada pago puede asociarse con un solo estado de pago
   @ManyToOne(
     () => PaymentStatusEntity,
     (paymentStatus) => paymentStatus.payments,
