@@ -166,8 +166,6 @@ async function bootstrap() {
 
     // Habilitar CORS
     app.enableCors(CORS);
-
-
     app.setGlobalPrefix('api');
     //app.use(morgan('combined'));
     // Configurar Morgan para mostrar logs en la consola
@@ -207,7 +205,6 @@ async function bootstrap() {
 
     // Configurar validación global de pipes
     //ayuda a garantizar que solo datos válidos y permitidos lleguen a los controladores para transformar y bloquear propiedades no deseadas
-
 
     app.useGlobalPipes(new ValidationPipe({
       //whitelist: true, // Elimina propiedades que no están en el DTO comentada porque no permite generar reporte
@@ -254,12 +251,10 @@ async function bootstrap() {
       next();
     });*/
 
-
     // Iniciar servidores
     const httpPort = process.env.PORT;
     const httpsPort = process.env.HTTPS_PORT;
     const httpsOptions = await loadHttpsCredentials();
-
 
     // Iniciar HTTP
     await app.listen(httpPort);

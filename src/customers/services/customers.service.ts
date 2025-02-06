@@ -22,22 +22,15 @@ export class CustomersService extends ValidateEntity {
     body: CustomerDTO,
   ): Promise<CustomersEntity> => {
     try {
-      // Primero validamos cédula y correo
+      // Primero validaR cédula y correo
       await this.validateInput(body, 'customer');
       console.log('Datos recibidos en el backend:', body);
-      // Asegurarse de que personalData sea un booleano
-
       const newCustomer = await this.customerRepository.save(body);
-      //consulta futura para la eliminacion del usuario no se aconseja en produccion
-      //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
 
       console.log('Cliente guardado', newCustomer);
-      // Guardar en Redis
-      await this.redisService.set(
-        `newCustomer:${newCustomer.id}`,
-        JSON.stringify(newCustomer),
-        32400,
-      );
+      // Invalida la caché de la lista de clientes
+      await this.redisService.del('customers');
+
       return newCustomer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -50,6 +43,7 @@ export class CustomersService extends ValidateEntity {
   ): Promise<CustomersEntity[]> => {
     try {
       // Verificar si los datos están en Redis
+
       const cachedCustomer = await this.redisService.get('customers');
       if (cachedCustomer) {
         return JSON.parse(cachedCustomer);
@@ -90,6 +84,9 @@ export class CustomersService extends ValidateEntity {
           numberPhone: true,
           address: true,
           personalData: true,
+          province_id: true,
+          status_id: true,
+          city_id: true,
           civil: {
             id: true,
             status: true, // Solo selecciona el campo 'status', no el 'id'
@@ -104,19 +101,20 @@ export class CustomersService extends ValidateEntity {
           },
         },
       });
-      if (!customers) {
+      if (!customers.length) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
+
       await this.redisService.set(
         'customers',
         JSON.stringify(customers),
         32400,
       ); // TTL de 9 horas
-      await this.redisService.del('customers');
+
       return customers;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -126,6 +124,7 @@ export class CustomersService extends ValidateEntity {
   //:3 Método para obtener todos los clientes con las relaciones por id
   public getCustomerById = async (id: number): Promise<CustomersEntity> => {
     try {
+
       const cachedCustomer = await this.redisService.get(`customer:${id}`);
       if (cachedCustomer) {
         return JSON.parse(cachedCustomer);
@@ -162,6 +161,9 @@ export class CustomersService extends ValidateEntity {
           numberPhone: true,
           address: true,
           personalData: true,
+          province_id: true,
+          status_id: true,
+          city_id: true,
           city: {
             id: true,
             cityName: true, // Selecciona solo el nombre de la ciudad
@@ -210,7 +212,8 @@ export class CustomersService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('customer', JSON.stringify(customer), 32400); // TTL de 9 horas
+
+      await this.redisService.set(`customer:${id}`, JSON.stringify(customer), 32400);
       console.log("CLIENTE SELECIONADO:", customer);
       return customer;
     } catch (error) {
@@ -234,32 +237,21 @@ export class CustomersService extends ValidateEntity {
       }
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(customer, updateData);
+      // Guardar el cliente actualizado en la base de datos
+      const customerUpdated = await this.customerRepository.save(customer);
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`customer:${id}`);
       await this.redisService.del('customers');
 
-      // Guardar el cliente actualizado en la base de datos
-      const customerUpdated = await this.customerRepository.save(customer);
-
+      // Actualizar caché con los datos más recientes
       await this.redisService.set(
-        `customerUpdated:${customerUpdated.id}`,
+        `customer:${id}`,
         JSON.stringify(customerUpdated),
         32400,
       );
 
-        // Actualizar caché con los datos más recientes
-        await this.redisService.set(
-          `customer:${id}`,
-          JSON.stringify(customerUpdated),
-          32400,
-        );
-        await this.redisService.set(
-          `customerUpdated:${customerUpdated.id}`,
-          JSON.stringify(customerUpdated),
-          32400,
-        );
-      console.log('Cliente actualizado:', customerUpdated);
+      //console.log('Cliente actualizado:', customerUpdated);
       return customerUpdated;
 
     } catch (error) {

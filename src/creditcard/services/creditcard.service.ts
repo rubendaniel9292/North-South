@@ -161,7 +161,6 @@ export class CreditcardService extends EncryptDataCard {
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
-
       const allCards: CreditCardEntity[] = await this.cardRepository.find({
         relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
         select: {

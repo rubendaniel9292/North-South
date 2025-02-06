@@ -177,44 +177,21 @@ export class PaymentSchedulerService implements OnModuleInit {
 
       // Calcular nuevo saldo pendiente
       const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
-      //const newPendingValue = lastPayment.pending_value - lastPayment.value;
-      const newPendingValue = lastPayment.pending_value;
+      console.log('Último pago registrado:', lastPayment);
+      const newPendingValue = lastPayment.pending_value - payment.value;
+
+
       if (newPendingValue < 0) {
         console.log('El valor pendiente no puede ser negativo. No se crearán más pagos.');
         return;
       }
-      /*
-            const newPayment: PaymentDTO = {
-              policy_id: payment.policy_id,
-              number_payment: maxNumberPayment + 1,
-              pending_value: newPendingValue >= 0 ? newPendingValue : 0,
-              value: payment.value,
-              credit: 0,
-              balance: payment.balance,
-              total: 0,
-              status_payment_id: 1, // Estado por defecto (ej: "Pendiente")
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };*/
-      /*
-      const newPayment: PaymentDTO = {
-        policy_id: payment.policy_id,
-        number_payment: maxNumberPayment + 1, // Este valor será actualizado en createPayment
-        value: payment.value,
-        pending_value: newPendingValue >= 0 ? newPendingValue : 0,
-        status_payment_id: 1,
-        credit: 0,
-        balance: payment.balance,
-        total: 0,
-        observations: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };*/
 
+      console.log('Nuevo valor de pago antes del registro:', newPendingValue);
       const newPayment: PaymentDTO = {
         policy_id: payment.policy_id,
         number_payment: maxNumberPayment + 1,
-        pending_value: newPendingValue >= 0 ? newPendingValue : 0,
+        //pending_value: newPendingValue >= 0 ? newPendingValue : 0,
+        pending_value: newPendingValue,
         value: payment.value,
         credit: 0,
         balance: payment.value,
