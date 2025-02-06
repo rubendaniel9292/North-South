@@ -68,10 +68,16 @@ export class AuthService {
     payload: jwt.JwtPayload;
     secret: string;
     expires: number | string;
-  }) {
+  })
+
+    : string {
     //toma el payload, lo codifica como JSON y lo firma utilizando el algoritmo especificado y el secret
-    return jwt.sign(payload, secret, { expiresIn: expires });
+    //return jwt.sign(payload, secret, { expiresIn: expires });
+    return jwt.sign(payload, secret, {
+      expiresIn: expires,
+    } as jwt.SignOptions);
   }
+
 
   //3: metodo para generacion del token
 

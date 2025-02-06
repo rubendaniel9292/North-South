@@ -223,7 +223,6 @@ async function bootstrap() {
     app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
     //app.use(responseTime())
 
-
     // Configurar redirección HTTPS el servidor redirige tráfico HTTP a HTTPS
 
     app.use((req: Request, res: Response, next: NextFunction) => {
