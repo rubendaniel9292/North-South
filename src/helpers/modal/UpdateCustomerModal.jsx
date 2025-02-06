@@ -10,14 +10,29 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 
 const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
-  const { form, changed } = UserForm({});
+  const { form, changed, setForm } = UserForm({
+    ci_ruc: customerId.ci_ruc,
+    firstName: customerId.firstName,
+    secondName: customerId.secondName,
+    surname: customerId.surname,
+    secondSurname: customerId.secondSurname,
+    email: customerId.email,
+    numberPhone: customerId.numberPhone,
+    birthdate: customerId.birthdate,
+    address: customerId.address,
+    province_id: customerId.province_id,
+    city_id: customerId.city_id,
+    status_id: Number(customerId.status_id),
+    personalData:
+      customerId.personalData === true || customerId.personalData === "true",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [statuses, setStatuses] = useState([]);
   const [province, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
   if (!customerId) return null;
-  console.log("cliente seleccionado", customerId);
+  console.log("CLIENTE SELECIONADO EN EN MODAL: ", customerId);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -28,27 +43,16 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
             http.get("globaldata/get-city"),
           ]);
 
-        const statusesData = statusesResponse.data;
-        const provincesData = provincesResponse.data;
-        const citiesData = citiesResponse.data;
+        setStatuses(statusesResponse.data?.allStatus);
+        setProvinces(provincesResponse.data?.allProvince);
 
-        if (statusesData?.allStatus) {
-          setStatuses(statusesData.allStatus);
-        }
-
-        if (provincesData?.allProvince) {
-          setProvinces(provincesData.allProvince);
-        }
-
-        if (citiesData?.allCitys) {
-          // Filtrar ciudades iniciales según provincia actual del cliente
-          const initialFilteredCities = citiesData.allCitys.filter(
-            (city) =>
-              city.province && city.province.id === customerId.province_id
+        if (citiesResponse.data?.allCitys) {
+          setCities(citiesResponse.data.allCitys);
+          // Filtrar ciudades iniciales según provincia del cliente
+          const initialFilteredCities = citiesResponse.data.allCitys.filter(
+            (city) => city.province?.id === customerId.province?.id
           );
-          console.log("ciudad filtrada del cliente", initialFilteredCities);
           setFilteredCities(initialFilteredCities);
-          setCities(citiesData.allCitys);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -56,17 +60,32 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
       }
     };
     fetchData();
-  }, []);
-  // Initialize form with customerId data
+  }, [customerId.province?.id, customerId.city?.id, setForm]);
+  //useEffect para que el estado se actualice cada vez que se abra el modal o cambie el customerId
+  useEffect(() => {
+    if (customerId) {
+      setForm((prev) => ({
+        ...prev,
+        status_id: customerId.status_id,
+      }));
+    }
+  }, [customerId]);
 
   const handleProvinceChange = (event) => {
     const selectedProvinceId = event.target.value;
-    const filtered = cities.filter(
-      (city) => city.province && city.province.id === selectedProvinceId
-    );
 
-    setFilteredCities(filtered);
-    changed(event);
+    // Filtrar ciudades de la provincia seleccionada
+    const citiesOfProvince = cities.filter(
+      (city) => city.province?.id === selectedProvinceId
+    );
+    setFilteredCities(citiesOfProvince);
+
+    // Actualizar el formulario con la nueva provincia y la primera ciudad
+    setForm((prevForm) => ({
+      ...prevForm,
+      province_id: selectedProvinceId,
+      city_id: citiesOfProvince[0]?.id,
+    }));
   };
 
   const option = "Escoja una opción";
@@ -78,7 +97,8 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
     setIsLoading(true);
     e.preventDefault();
     try {
-      let newCustomer = form;
+      //let newCustomer = form;
+      let newCustomer = { ...form };
       const request = await http.put(
         `customers/update-customer-id/${customerId.id}`,
         newCustomer
@@ -224,15 +244,23 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     Estado Civil
                   </label>
                   {statuses.map((status) => (
-                    <div className="form-check col-4" key={status.id}>
+                    <div
+                      className="form-check col-4"
+                      key={`${status.id}-${form.status_id}`}
+                    >
                       <input
                         className="form-check-input"
                         type="radio"
                         name="status_id"
                         id={`status-${status.id}`}
-                        value={status.id}
-                        checked={form.status_id || customerId.status_id} // Persist radio value
-                        onChange={changed}
+                        value={Number(status.id)}
+                        checked={Number(form.status_id) === Number(status.id)}
+                        onChange={(e) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            status_id: Number(e.target.value),
+                          }));
+                        }}
                       />
                       <label
                         className="form-check-label"
@@ -252,11 +280,22 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="province_id"
                     name="province_id"
                     onChange={handleProvinceChange}
-                    value={form.province_id || customerId.province_id} // Persist select value
+                    //value={form.province_id || customerId.province_id} // Persist select value
+                    //value={form.province_id || ""} // Persist select value
+
+                    value={
+                      Number(form.province_id) !== undefined
+                        ? Number(form.province_id)
+                        : Number(customerId.province_id)
+                    }
+                    //value={form.province_id || customerId.province?.id || ""}
                   >
                     <option disabled>{option}</option>
                     {province.map((province) => (
-                      <option key={province.id} value={province.id}>
+                      <option
+                        key={Number(province.id)}
+                        value={Number(province.id)}
+                      >
                         {province.provinceName}
                       </option>
                     ))}
@@ -271,14 +310,18 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="city_id"
                     name="city_id"
                     onChange={changed}
-                    defaultValue={form.city_id || customerId.city_id}
-                    selected={form.city_id || customerId.city_id}
-                    value={form.city_id || customerId.city_id} // Persist select value
+                    /*
+                    value={
+                      Number(form.city_id) !== undefined
+                        ? Number(form.city_id)
+                        : Number(customerId.city_id)
+                    }*/
+                    value={Number(form.city_id) === Number(customerId.city_id)}
                   >
                     <option disabled>{option}</option>
 
                     {filteredCities.map((city) => (
-                      <option key={city.id} value={city.id}>
+                      <option key={Number(city.id)} value={Number(city.id)}>
                         {city.cityName}
                       </option>
                     ))}
@@ -310,17 +353,28 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                       className="form-check-input"
                       type="radio"
                       name="personalData"
-                      id="flexRadioDefault7"
-                      //value="true"
+                      id="flexRadioSi"
+                      value="true"
+                      /*
+                      checked={
+                        form.personalData === "true" ||
+                        (!form.personalData && customerId.personalData === true)
+                      }
+                      /*
+                      onChange={(e) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          personalData: e.target.value,
+                        }));
+                      }}*/
 
-                      //checked={form.personalData? form.personalData === "true": customerId.personalData === "true"} // Persist radio value
                       onChange={changed}
-                      value={true}
-                      checked={customerId.personalData || true}
+                      checked={form.personalData === true}
+                      //checked={customerId.personalData || true}
                     ></input>
                     <label
                       className="form-check-label"
-                      htmlFor="flexRadioDefault8"
+                      htmlFor="flexRadioDefault7"
                     >
                       Si
                     </label>
@@ -330,16 +384,25 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                       className="form-check-input"
                       type="radio"
                       name="personalData"
-                      id="flexRadioDefault8"
-                      value={false}
+                      id="flexRadioNo"
+                      value="false" // String para consistencia con el evento onChange
+                      checked={form.personalData === false}
+                      /*
+                      checked={
+                        form.personalData === "false" ||
+                        (!form.personalData &&
+                          customerId.personalData === false)
+                      }
+                      /*
+                      onChange={(e) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          personalData: e.target.value,
+                        }));
+                      }}*/
                       onChange={changed}
-                      //checked={form.personalData? form.personalData === "true": customerId.personalData === "true"} // Persist radio value
-                      checked={customerId.personalData || false}
                     ></input>
-                    <label
-                      className="form-check-label"
-                      htmlFor="flexRadioDefault8"
-                    >
+                    <label className="form-check-label" htmlFor="flexRadioNo">
                       No
                     </label>
                   </div>
@@ -359,46 +422,39 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                   />
                 </div>
                 <div className="d-flex justify-content-around mt-4">
-                  <div className="">
-                    <button
-                      type="submit"
-                      id="btnc"
-                      className="btn bg-success mx-5 text-white fw-bold "
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div
-                          className="spinner-border text-light"
-                          role="status"
-                        >
-                          <span className="visually-hidden">
-                            Actualizando...
-                          </span>
-                        </div>
-                      ) : (
-                        "Actualizar datos"
-                      )}
-                      <FontAwesomeIcon
-                        className="mx-2"
-                        beat
-                        icon={faFloppyDisk}
-                      />
-                    </button>
+                  <button
+                    type="submit"
+                    id="btnc"
+                    className="btn bg-success mx-5 text-white fw-bold "
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="spinner-border text-light" role="status">
+                        <span className="visually-hidden">Actualizando...</span>
+                      </div>
+                    ) : (
+                      "Actualizar datos"
+                    )}
+                    <FontAwesomeIcon
+                      className="mx-2"
+                      beat
+                      icon={faFloppyDisk}
+                    />
+                  </button>
 
-                    <button
-                      type="submit"
-                      onClick={onClose}
-                      id="btnc"
-                      className="btn bg-danger mx-5 text-white fw-bold"
-                    >
-                      Cerrar
-                      <FontAwesomeIcon
-                        className="mx-2"
-                        beat
-                        icon={faRectangleXmark}
-                      />
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    onClick={onClose}
+                    id="btnc"
+                    className="btn bg-danger mx-5 text-white fw-bold"
+                  >
+                    Cerrar
+                    <FontAwesomeIcon
+                      className="mx-2"
+                      beat
+                      icon={faRectangleXmark}
+                    />
+                  </button>
                 </div>
               </div>
             </form>

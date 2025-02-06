@@ -1,4 +1,3 @@
-// UserForm.js
 import { useState, useEffect } from "react";
 
 const UserForm = (initialObj) => {
@@ -9,15 +8,22 @@ const UserForm = (initialObj) => {
   }, [form]);
 
   const changed = (changes) => {
-    // Si es un evento
     if (changes.target) {
-      const { name, value } = changes.target;
+      const { name, value, type } = changes.target;
+      let finalValue = value;
+
+      // Manejo especial para radios
+
+      if (name === "personalData" && type === "radio") {
+        finalValue = value === "true"; // Convierte el valor a booleano
+      }
+
       setForm((prevForm) => ({
         ...prevForm,
-        [name]: value,
+        [name]: finalValue,
       }));
     }
-    // Si son múltiples cambios
+    // Múltiples cambios
     else if (Array.isArray(changes)) {
       setForm((prevForm) => {
         const newForm = { ...prevForm };
@@ -27,7 +33,7 @@ const UserForm = (initialObj) => {
         return newForm;
       });
     }
-    // Si es un objeto simple
+    // Objeto simple
     else {
       const { name, value } = changes;
       setForm((prevForm) => ({
@@ -37,7 +43,7 @@ const UserForm = (initialObj) => {
     }
   };
 
-  return { form, changed };
+  return { form, changed, setForm };
 };
 
 export default UserForm;

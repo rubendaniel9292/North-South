@@ -37,21 +37,36 @@ const PaymentModalContent = ({ policy, onClose }) => {
     status_payment_id: "",
     observations: "",
   });
+  useEffect(() => {
+    console.log("poliza recibida en el modal: ", policy);
+    console.log("Estado actualizado del formulario de pago:", form);
+  }, [form, policy]);
+  /*
 
   useEffect(() => {
     if (policy) {
       const lastPayment = policy.payments[policy.payments.length - 1];
-
       // Calcular próximo número de pago
       const nextPaymentNumber = lastPayment ? lastPayment.number_payment : 1;
-
       setForm({
         ...form,
         number_payment: nextPaymentNumber,
-        //pending_value:lastPayment.pending_value - Number(form.credit) || policy.policyValue - Number(form.credit),
-        pending_value: lastPayment?.pending_value - Number(form.credit),
+        pending_value: lastPayment?.pending_value,
       });
     }
+  }, [policy, form.credit]);*/
+  useEffect(() => {
+    if (policy && policy.payments && policy.payments.length > 0) {
+      const lastPayment = policy.payments[policy.payments.length - 1];
+      const nextPaymentNumber = lastPayment ? lastPayment.number_payment : 1;
+
+      setForm((prevForm) => ({
+        ...prevForm,
+        number_payment: nextPaymentNumber,
+        pending_value: lastPayment.pending_value,
+      }));
+    }
+    console.log("Formulario actualizado:", form);
   }, [policy, form.credit]);
 
   useEffect(() => {
@@ -97,6 +112,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
     const value = calculatePaymentValue();
     const credit = Number(form.credit) || 0;
     const balance = (value - credit).toFixed(2);
+
     const total = value - balance;
 
     console.log(
@@ -161,7 +177,59 @@ const PaymentModalContent = ({ policy, onClose }) => {
       };
     });
   };
+  /*
+  const savePayment = async (e) => {
+    setIsLoading(true);
+    try {
+      e.preventDefault();
+      const updatedPayment = { ...form, policy_id: policy.id };
+      const lastPaymentId = policy.payments.length
+        ? policy.payments[policy.payments.length - 1].id
+        : null;
 
+      const request = await http.put(
+        `payment/update-payment/${lastPaymentId}`,
+        updatedPayment
+      );
+
+      if (request.data?.status === "success") {
+        alerts(
+          "Actualización exitosa",
+          "Pago actualizado correctamente",
+          "success"
+        );
+
+        document.querySelector("#user-form").reset();
+        setTimeout(() => {
+          onClose();
+        }, 500);
+
+        // Verificar si se han completado todos los pagos
+        if (
+          form.pending_value <= 0 &&
+          form.number_payment >= policy.numberOfPayments
+        ) {
+          alerts(
+            "Pagos Completados",
+            "Todos los pagos para esta póliza han sido completados.",
+            "success"
+          );
+        }
+      } else {
+        alerts(
+          "Error",
+          "Pago no actualizado correctamente. Verificar que no haya campos vacíos o datos incorrectos",
+          "error"
+        );
+      }
+    } catch (error) {
+      alerts("Error", "Error actualizando el pago.", "error");
+      console.error("Error actualizando el pago:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+*/
   const savePayment = async (e) => {
     setIsLoading(true);
     try {
@@ -187,7 +255,6 @@ const PaymentModalContent = ({ policy, onClose }) => {
         setTimeout(() => {
           onClose();
         }, 500);
-        //await onPaymentUpdate();
         // Verificar si se han completado todos los pagos
         if (
           form.pending_value <= 0 &&

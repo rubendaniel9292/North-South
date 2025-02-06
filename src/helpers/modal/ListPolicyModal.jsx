@@ -150,7 +150,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </thead>
             <tbody>
               {currentPayments
-                .slice(0, policy.numberOfPayments) // Mostrar solo los pagos permitidos
+                //slice(0, policy.numberOfPayments) // Mostrar solo los pagos permitidos
                 .map((payment, index) => (
                 <tr key={payment.id}>
                   <td>

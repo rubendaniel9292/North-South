@@ -7,7 +7,7 @@ import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
-import UpdateCustomerModal from "../../helpers/modal/UpdateCustomerModal";
+
 const ListCustomer = () => {
   const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
   const [customers, setCustomers] = useState([]); // Almacenar la lista de clientes en el estado
@@ -151,7 +151,8 @@ const ListCustomer = () => {
               <th>Email</th>
               <th>Fecha de Registro</th>
               <th>Tratamiento de datos personales</th>
-              <th>Dirección</th>
+              {//<th>Dirección</th>
+              }
               <th>Acciones</th>
             </tr>
           </thead>
@@ -185,7 +186,8 @@ const ListCustomer = () => {
                       .toString()}
                   </td>
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
-                  <td>{customer.address}</td>
+                  {//<td>{customer.address}</td>
+                  }
 
                   <td className="d-flex gap-2">
                     <button

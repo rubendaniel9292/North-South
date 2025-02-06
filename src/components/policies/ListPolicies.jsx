@@ -41,22 +41,7 @@ const ListPolicies = () => {
   }, []);
 
   //metodo de prueba de registro de pago de poliza
-  /*
-  const registerPaymentTest = useCallback(async () => {
-    try {
-      const response = await http.post(`payment/manual-process-payments`);
-      console.log("respuesta de la peticion: ", response.data);
-      if (response.data.status === "success") {
-        alerts("Pago registrado", response.data.message, "success");
-      } else {
-        alerts("Error", response.data.message, "error");
-        console.error("Error registering payment:", response.data.message);
-      }
-    } catch (error) {
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error registering payment:", error);
-    }
-  }, []);*/
+
   const registerPaymentTest = useCallback(async () => {
     try {
       const response = await http.post(`payment/manual-process-payments`);

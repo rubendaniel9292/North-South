@@ -212,7 +212,7 @@ const Home = () => {
                       className="fs-4 fw-bold mb-0 "
                       style={{ color: "#ff3b30" }}
                     >
-                      No hay pagos
+                      No hay polzias vencidas
                     </p>
                   </>
                 ) : (
