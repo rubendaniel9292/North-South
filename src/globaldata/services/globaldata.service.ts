@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+import { CacheKeys } from '@/constants/cache.enum';
 
 @Injectable()
 export class GlobaldataService {
@@ -21,9 +22,10 @@ export class GlobaldataService {
   //1: metodo para obetener el listado de provincias
   public getAllProvinces = async (): Promise<ProvinceEntity[]> => {
     try {
-      const cachedCProvinces = await this.redisService.get('allProvinces');
-      if (cachedCProvinces) {
-        return JSON.parse(cachedCProvinces);
+      //const cachedCProvinces = await this.redisService.get('allProvinces');
+      const cachedProvinces = await this.redisService.get(CacheKeys.GLOBAL_PROVINCES); // Usa el enum
+      if (cachedProvinces) {
+        return JSON.parse(cachedProvinces);
       }
       const allProvinces: ProvinceEntity[] =
         await this.provinceRepository.find();
@@ -35,7 +37,8 @@ export class GlobaldataService {
         });
       }
       // Guardar los datos desencriptados en Redis
-      await this.redisService.set('allProvinces', JSON.stringify(allProvinces), 32400); // TTL de 9 horas
+      //await this.redisService.set('allProvinces', JSON.stringify(allProvinces));
+      await this.redisService.set(CacheKeys.GLOBAL_PROVINCES, JSON.stringify(allProvinces));
       return allProvinces;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -43,9 +46,14 @@ export class GlobaldataService {
   };
 
   //2: metodo para obetener el listado de ciudades o cantones
-  public getAllCitys = async (): Promise<CityEntity[]> => {
+  public getAllCities = async (): Promise<CityEntity[]> => {
     try {
-      const allCitys: CityEntity[] = await this.cityRepository.find({
+      const cachedCities = await this.redisService.get(CacheKeys.GLOBAL_CITIES); // Usa el enum
+      //const cachedCitys = await this.redisService.get('allCitys'); // Clave nueva
+      if (cachedCities) {
+        return JSON.parse(cachedCities);
+      }
+      const allCities: CityEntity[] = await this.cityRepository.find({
         relations: ['province'],
         select: {
           cityName: true,
@@ -56,7 +64,7 @@ export class GlobaldataService {
           },
         },
       });
-      if (!allCitys || allCitys.length === 0) {
+      if (!allCities || allCities.length === 0) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -64,7 +72,9 @@ export class GlobaldataService {
         });
       }
 
-      return allCitys;
+      await this.redisService.set(CacheKeys.GLOBAL_CITIES, JSON.stringify(allCities));
+      //await this.redisService.set('allCitys', JSON.stringify(allCitys));
+      return allCities;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -73,7 +83,8 @@ export class GlobaldataService {
   //2: metodo para obetener el listado de ciudades o cantones
   public getAllCivilStatus = async (): Promise<CivilStatusEntity[]> => {
     try {
-      const cachedStatus = await this.redisService.get('allStatus');
+      const cachedStatus = await this.redisService.get(CacheKeys.GLOBAL_CIVIL_STATUS); // Usa el enum
+      //const cachedStatus = await this.redisService.get('allStatus');
       if (cachedStatus) {
         return JSON.parse(cachedStatus);
       }
@@ -86,7 +97,8 @@ export class GlobaldataService {
         });
       }
       // Guardar los datos en Redis
-      await this.redisService.set('allCitys', JSON.stringify(allStatus), 32400); // TTL de 9 horas
+      //await this.redisService.set('allStatus', JSON.stringify(allStatus));
+      await this.redisService.set(CacheKeys.GLOBAL_CIVIL_STATUS, JSON.stringify(allStatus));
       return allStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

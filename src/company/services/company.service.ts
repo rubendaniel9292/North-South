@@ -6,6 +6,7 @@ import { ErrorManager } from '@/helpers/error.manager';
 import { CompanyEntity } from '../entities/company.entity';
 import { ValidateEntity } from '@/helpers/validations';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+import { CacheKeys } from '@/constants/cache.enum';
 
 @Injectable()
 export class CompanyService extends ValidateEntity {
@@ -26,11 +27,11 @@ export class CompanyService extends ValidateEntity {
       const newCompany = await this.companyRepository.save(body);
       console.log(newCompany);
 
-      // Guardar en Redis
-      await this.redisService.set(`newCompany:${newCompany.id}`, JSON.stringify(newCompany), 32400); // TTL de 9 horas
+        // Guardar en Redis (sin TTL, ya que es un dato estático o poco cambiante)
+        await this.redisService.set(`company:${newCompany.id}`, JSON.stringify(newCompany));
 
-      // Invalidar el caché de todas las compañías para evitar inconsistencias
-      await this.redisService.del('allCompany');
+        // Invalidar el caché de todas las compañías para evitar inconsistencias
+        await this.redisService.del(CacheKeys.GLOBAL_COMPANY);
 
       return newCompany;
     } catch (error) {
@@ -40,7 +41,8 @@ export class CompanyService extends ValidateEntity {
   //2: metodo para buscar las compañias asesoras
   public getAllCompanies = async () => {
     try {
-      const cachedCompany = await this.redisService.get('allCompany');
+      const cachedCompany = await this.redisService.get(CacheKeys.GLOBAL_COMPANY);
+      //const cachedCompany = await this.redisService.get('allCompany');
       if (cachedCompany) {
         return JSON.parse(cachedCompany);
       }

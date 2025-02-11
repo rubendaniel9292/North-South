@@ -15,7 +15,7 @@ import { PaymentService } from '@/payment/services/payment.service'; // Asegúra
 import { PaymentDTO } from '@/payment/dto/payment.dto';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
-
+import { CacheKeys } from '@/constants/cache.enum';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
@@ -338,7 +338,8 @@ export class PolicyService extends ValidateEntity {
   //4: metodo para obtener el listado de los tipos de poliza
   public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
     try {
-      const cachedTypes = await this.redisService.get('types');
+      //const cachedTypes = await this.redisService.get('types');
+      const cachedTypes = await this.redisService.get(CacheKeys.GLOBAL_POLICY_TYPE);
       if (cachedTypes) {
         return JSON.parse(cachedTypes);
       }
@@ -360,7 +361,8 @@ export class PolicyService extends ValidateEntity {
   //5: metodo para obtener el listado de las frecuencias
   public getFrecuencyPolicies = async (): Promise<PaymentFrequencyEntity[]> => {
     try {
-      const cachedFrequency = await this.redisService.get('frecuency');
+      //const cachedFrequency = await this.redisService.get('frecuency');
+      const cachedFrequency = await this.redisService.get(CacheKeys.GLOBAL_PAYMENT_FREQUENCY);
       if (cachedFrequency) {
         return JSON.parse(cachedFrequency);
       }
@@ -373,32 +375,34 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('frecuency', JSON.stringify(frecuency), 32400); // TTL de 1 hora
+      await this.redisService.set(CacheKeys.GLOBAL_PAYMENT_FREQUENCY, JSON.stringify(frecuency), 32400); // TTL de 1 hora
       return frecuency;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
 
-  //6: metodo para obtener el listado de los meto  pagos
+  //6: metodo para obtener el listado de los metodos  pagos
   public getPaymentMethod = async (): Promise<PaymentMethodEntity[]> => {
     try {
-      const cachedPayments = await this.redisService.get('payment');
+      const cachedPayments = await this.redisService.get(CacheKeys.GLOBAL_PAYMENT_METHOD);
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
       }
-      const payment: PaymentMethodEntity[] =
+      const allPaymentMethod: PaymentMethodEntity[] =
         await this.policyPaymentMethod.find();
 
-      if (!payment) {
+      if (!allPaymentMethod) {
         //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('payment', JSON.stringify(payment), 32400); // TTL de 1 hora
-      return payment;
+      //await this.redisService.set('allPaymentMethod', JSON.stringify(allPaymentMethod), 32400); // TTL de 1 hora
+      await this.redisService.set(CacheKeys.GLOBAL_PAYMENT_METHOD, JSON.stringify(allPaymentMethod), 32400); // TTL de 1 hora
+
+      return allPaymentMethod;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

@@ -89,6 +89,8 @@ export class AuthService {
     };
     // Eliminar la contraseña del usuario antes de devolverlo. funciona solo al probar en postman de ahi que sa necesario usar el reflector en main
     delete getUser.password;
+    delete getUser.userName;
+
     //retornar la informacion que quiero enviar
     return {
       status: 'success',

@@ -17,12 +17,12 @@ export class GlobaldataController {
   }
 
   @Get('get-city')
-  public async getCitys() {
-    const allCitys = await this.globaldataService.getAllCitys();
-    if (allCitys) {
+  public async getCities() {
+    const allCities = await this.globaldataService.getAllCities();
+    if (allCities) {
       return {
         status: 'success',
-        allCitys,
+        allCities,
       };
     }
   }
