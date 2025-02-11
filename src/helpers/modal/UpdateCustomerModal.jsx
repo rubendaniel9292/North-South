@@ -46,10 +46,10 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
         setStatuses(statusesResponse.data?.allStatus);
         setProvinces(provincesResponse.data?.allProvince);
 
-        if (citiesResponse.data?.allCitys) {
-          setCities(citiesResponse.data.allCitys);
+        if (citiesResponse.data?.allCities) {
+          setCities(citiesResponse.data.allCities);
           // Filtrar ciudades iniciales según provincia del cliente
-          const initialFilteredCities = citiesResponse.data.allCitys.filter(
+          const initialFilteredCities = citiesResponse.data.allCities.filter(
             (city) => city.province?.id === customerId.province?.id
           );
           setFilteredCities(initialFilteredCities);
@@ -109,6 +109,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
           "Cliente actualizado correctamente",
           "success"
         );
+        document.querySelector("#user-form").reset();
         // Llamar a la función de callback para propagar el cambio
         onCustomerUpdated(request.data.customerUpdated);
         setTimeout(() => {
@@ -314,9 +315,15 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     value={
                       Number(form.city_id) !== undefined
                         ? Number(form.city_id)
-                        : Number(customerId.city_id)
+                        : Number(form.city_id === customerId.city_id)
                     }*/
-                    value={Number(form.city_id) === Number(customerId.city_id)}
+                    //value={Number(form.city_id)}
+
+                    value={
+                      form.city_id !== undefined
+                        ? Number(form.city_id)
+                        : Number(customerId.city_id)
+                    }
                   >
                     <option disabled>{option}</option>
 
@@ -340,7 +347,8 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     name="birthdate"
                     onChange={changed}
                     //value={form.birthdate || customerId.birthdate} // Persist input value
-                    value={formatDate(form.birthdate || customerId.birthdate)} // Persist input value
+                    // value={formatDate(form.birthdate || customerId.birthdate)} // Persist input value
+                    value={form.birthdate ? dayjs(form.birthdate).format('YYYY-MM-DD') : ''}
                   />
                 </div>
 
@@ -355,22 +363,9 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                       name="personalData"
                       id="flexRadioSi"
                       value="true"
-                      /*
-                      checked={
-                        form.personalData === "true" ||
-                        (!form.personalData && customerId.personalData === true)
-                      }
-                      /*
-                      onChange={(e) => {
-                        setForm((prev) => ({
-                          ...prev,
-                          personalData: e.target.value,
-                        }));
-                      }}*/
-
                       onChange={changed}
                       checked={form.personalData === true}
-                      //checked={customerId.personalData || true}
+                      //ceked={customerId.personalData || true}
                     ></input>
                     <label
                       className="form-check-label"
@@ -387,19 +382,6 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                       id="flexRadioNo"
                       value="false" // String para consistencia con el evento onChange
                       checked={form.personalData === false}
-                      /*
-                      checked={
-                        form.personalData === "false" ||
-                        (!form.personalData &&
-                          customerId.personalData === false)
-                      }
-                      /*
-                      onChange={(e) => {
-                        setForm((prev) => ({
-                          ...prev,
-                          personalData: e.target.value,
-                        }));
-                      }}*/
                       onChange={changed}
                     ></input>
                     <label className="form-check-label" htmlFor="flexRadioNo">

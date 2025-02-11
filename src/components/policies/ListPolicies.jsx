@@ -194,8 +194,8 @@ const ListPolicies = () => {
                     </td>
                     <td>{policy.company.companyName}</td>
                     <td>{policy.policyType.policyName}</td>
-                    <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
-                    <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
+                    <td>{dayjs(policy.startDate).format("DD-MM-YYYY")}</td>
+                    <td>{dayjs(policy.endDate).format("DD-MM-YYYY")}</td>
                     <td>{policy.paymentMethod.methodName}</td>
                     <td>
                       {policy.bankAccount && policy.bankAccount.bank

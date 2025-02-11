@@ -86,8 +86,8 @@ const CreateCustomer = () => {
           setProvinces(provincesData.allProvince);
         }
 
-        if (citiesData?.allCitys) {
-          setCities(citiesData.allCitys);
+        if (citiesData?.allCities) {
+          setCities(citiesData.allCities);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -122,6 +122,7 @@ const CreateCustomer = () => {
           "Cliente registrado correctamente",
           "success"
         );
+        document.querySelector("#user-form").reset();
         setTimeout(() => {
           onClose();
         }, 500);
@@ -310,6 +311,7 @@ const CreateCustomer = () => {
                 id="birthdate"
                 name="birthdate"
                 onChange={changed}
+                value={form.birthdate ? dayjs(form.birthdate).format('YYYY-MM-DD') : ''}
               />
             </div>
 

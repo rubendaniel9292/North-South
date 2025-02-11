@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, React } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import dayjs from "dayjs";
-import "dayjs/locale/es";
+//import dayjs from "dayjs";
+//import "dayjs/locale/es";
+import dayjs from "../../helpers/Day";
 import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
@@ -19,7 +20,6 @@ const ListCustomer = () => {
   // Fetch all customers on component mount
   useEffect(() => {
     getAllCustomers();
-    
   }, []);
 
   const getAllCustomers = useCallback(async () => {
@@ -151,7 +151,8 @@ const ListCustomer = () => {
               <th>Email</th>
               <th>Fecha de Registro</th>
               <th>Tratamiento de datos personales</th>
-              {//<th>Dirección</th>
+              {
+                //<th>Dirección</th>
               }
               <th>Acciones</th>
             </tr>
@@ -176,7 +177,10 @@ const ListCustomer = () => {
                   <td>{customer.province?.provinceName}</td>
                   <td>{customer.city?.cityName}</td>
                   <td>
-                    {dayjs(customer.birthdate).format("DD/MM/YYYY").toString()}
+                    {dayjs(customer.birthdate)
+                      .tz("America/Guayaquil")
+                      .format("DD/MM/YYYY")
+                      .toString()}
                   </td>
                   <td>{customer.numberPhone}</td>
                   <td>{customer.email}</td>
@@ -185,8 +189,10 @@ const ListCustomer = () => {
                       .format("dddd DD/MM/YYYY")
                       .toString()}
                   </td>
+
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
-                  {//<td>{customer.address}</td>
+                  {
+                    //<td>{customer.address}</td>
                   }
 
                   <td className="d-flex gap-2">

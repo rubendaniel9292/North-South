@@ -1,15 +1,34 @@
 import { useState, useEffect } from "react";
-
+import dayjs from "../helpers/Day";
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
 
   useEffect(() => {
-    console.log("Estado actualizado del formulario:", form);
+    if (!form.password && !form.username && !form.cardNumber && !form.code) {
+      console.log("Estado actualizado del formulario:", form);
+    }
   }, [form]);
 
   const changed = (changes) => {
     if (changes.target) {
       const { name, value, type } = changes.target;
+  
+
+      // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas
+      if (type === "text") {
+        setForm((prevForm) => ({
+          ...prevForm,
+          [name]: value.toUpperCase(),
+        }));
+      }
+      // Manejo específico para fechas
+      else if (type === "date") {
+        const formattedDate = dayjs(value).utc(true).toISOString();
+        setForm((prevForm) => ({
+          ...prevForm,
+          [name]: formattedDate,
+        }));
+      }
       let finalValue = value;
 
       // Manejo especial para radios

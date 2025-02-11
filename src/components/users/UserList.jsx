@@ -32,10 +32,10 @@ const UserList = () => {
       //const data = await request.json();
       //Peticion con axios: mas entendible mantenible y robusto
       const request = await http.get("users/all");
-      console.log("usuarios del sistema: ", request.data.users);
+      //console.log("usuarios del sistema: ", request.data.users);
       if (request.data.status === "success") {
         setUsers(request.data.users); // Asume que la respuesta contiene un array de usuarios bajo la clave 'allUser'
-        console.log("usuarios del sistema: ", request);
+        //console.log("usuarios del sistema: ", request);
       } else {
         alerts("Error", "No se pudo listar los usuarios.", "error");
         console.error("Error fetching users:", request.message);
