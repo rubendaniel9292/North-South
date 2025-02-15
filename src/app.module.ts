@@ -20,6 +20,7 @@ import { RedisModuleModule } from './redis-module/redis-module.module';
 import { RedisModuleService } from './redis-module/services/redis-module.service';
 import { GlobaldataService } from './globaldata/services/globaldata.service';
 import { PolicyService } from './policy/services/policy.service';
+import { CommissionsPaymentsModule } from './commissions-payments/commissions-payments.module';
 
 
 @Module({
@@ -44,6 +45,7 @@ import { PolicyService } from './policy/services/policy.service';
     GenerateReportPdfModule,
     TurnstileModule,
     RedisModuleModule,
+    CommissionsPaymentsModule,
   ],
 })
 export default class AppModule implements OnModuleInit {

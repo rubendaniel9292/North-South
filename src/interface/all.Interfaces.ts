@@ -114,9 +114,16 @@ export interface IRenewall {
   updatedAt?: Date;
 }
 
-export interface IAdvance{
+export interface IAdvance {
   receiptNumber: string;
   advanceValue: number;
+  createdAt: Date;
+  observations?: string;
+}
+
+export interface ICommissionsPayments {
+  receiptNumber: string;
+  advanceAmount: number;
   createdAt: Date;
   observations?: string;
 }

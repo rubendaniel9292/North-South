@@ -1,4 +1,4 @@
-import { AdvisorEntity } from './../entity/advisor.entity';
+import { AdvisorEntity } from '../entities/advisor.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, } from 'typeorm';

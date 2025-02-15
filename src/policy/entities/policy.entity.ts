@@ -13,7 +13,7 @@ import { PolicyTypeEntity } from './policy_type.entity';
 import { PolicyStatusEntity } from './policy_status.entity';
 import { PaymentFrequencyEntity } from './payment_frequency.entity';
 import { CompanyEntity } from '@/company/entities/company.entity';
-import { AdvisorEntity } from '@/advisor/entity/advisor.entity';
+import { AdvisorEntity } from '@/advisor/entities/advisor.entity';
 import { CustomersEntity } from '@/customers/entities/customer.entity';
 import { CreditCardEntity } from '@/creditcard/entities/credit.card.entity';
 import { PaymentMethodEntity } from './payment_method.entity';

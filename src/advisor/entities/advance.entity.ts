@@ -1,10 +1,11 @@
+/*
 import { Entity, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { PaymentMethodEntity } from '@/policy/entities/payment_method.entity'; // Asegúrate de importar la entidad PaymentMethod si existe
 import { CompanyEntity } from '@/company/entities/company.entity'; // Asegúrate de importar la entidad Company si existe
 import { IdEntity } from '@/config/id.entity';
 import { IAdvance } from '@/interface/all.Interfaces';
 import { AdvisorEntity } from './advisor.entity';
-
+/*
 @Entity('advance')
 export class AdvanceEntity extends IdEntity implements IAdvance {
 
@@ -34,6 +35,7 @@ export class AdvanceEntity extends IdEntity implements IAdvance {
     pero el campo advisor en los anticipos quedará como NULL*/
     /*Si se elimina un asesor, todos los anticipos relacionado
      con ese asesor también se eliminarán automáticamente*/
+    /*
     @ManyToOne(() => AdvisorEntity, (advisor) => advisor.advances, {
         onDelete: 'SET NULL', // Eliminar asesor deja este campo en NULL
         nullable: true,       // Permite que un anticipo quede sin asesor
@@ -45,6 +47,6 @@ export class AdvanceEntity extends IdEntity implements IAdvance {
         nullable: true,       // Permite que un anticipo quede sin asesor
     })
     paymentMethod: PaymentMethodEntity;
-
-
-}
+*/
+/*
+}*/

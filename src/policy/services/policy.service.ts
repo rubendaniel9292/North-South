@@ -221,6 +221,7 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
+
         },
       });
       if (!policies || policies.length === 0) {
@@ -410,6 +411,8 @@ export class PolicyService extends ValidateEntity {
   //7: metodo para obtener las polizas mediante su id
   public findPolicyById = async (id: number): Promise<PolicyEntity> => {
     try {
+
+
       const policyId: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
         relations: [
@@ -477,8 +480,15 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
+
         },
+        order: {
+          payments: {
+            id: "DESC"
+          }
+        }
       });
+
 
       if (!policyId) {
         //se guarda el error

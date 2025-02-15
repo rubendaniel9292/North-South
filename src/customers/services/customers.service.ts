@@ -24,7 +24,10 @@ export class CustomersService extends ValidateEntity {
     try {
       // Primero validaR cédula y correo
       await this.validateInput(body, 'customer');
-      console.log('Datos recibidos en el backend:', body);
+      body.firstName = body.firstName.toUpperCase();
+      body.secondName = body.secondName.toUpperCase();
+      body.surname = body.surname.toUpperCase()
+      body.secondSurname = body.secondSurname.toUpperCase();
       const newCustomer = await this.customerRepository.save(body);
 
       console.log('Cliente guardado', newCustomer);
@@ -234,6 +237,19 @@ export class CustomersService extends ValidateEntity {
           type: 'NOT_FOUND',
           message: 'No se encontró el cliente',
         });
+      }
+      // Convertir a mayúsculas y asignar de nuevo
+      if (updateData.firstName) {
+        updateData.firstName = updateData.firstName.toUpperCase();
+      }
+      if (updateData.secondName) {
+        updateData.secondName = updateData.secondName.toUpperCase();
+      }
+      if (updateData.surname) {
+        updateData.surname = updateData.surname.toUpperCase();
+      }
+      if (updateData.secondSurname) {
+        updateData.secondSurname = updateData.secondSurname.toUpperCase();
       }
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(customer, updateData);
