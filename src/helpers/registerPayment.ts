@@ -74,47 +74,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       }
     }
   }
-  /*
-    async manualProcessPayments() {
-      console.log('Iniciando procesamiento manual de pagos...');
-      try {
-        const payments = await this.paymentService.getAllPayments();
-  
-        if (payments.length === 0) {
-          console.log('No hay pagos para procesar.');
-          return { message: 'No hay pagos para procesar.' };
-        }
-  
-        const createdPayments = []; // Almacenar pagos creados
-  
-        for (const payment of payments) {
-          const policy = await this.paymentService.getPolicyWithPayments(
-            payment.policy_id,
-          );
-  
-          // Validar número máximo de pagos
-          if (policy.payments.length >= policy.numberOfPayments) {
-            console.log(
-              `Póliza ${policy.id} ya tiene todos sus pagos generados (${policy.payments.length}/${policy.numberOfPayments}).`,
-            );
-            continue;
-          }
-  
-          // Crear pago si hay saldo pendiente
-          if (payment.pending_value > 0) {
-            const newPayment = await this.createOverduePayment(payment, policy);
-            createdPayments.push(newPayment);
-            //break; // Salir del bucle después de crear un pago
-          }
-        }
-  
-        console.log('Procesamiento manual completado!!...');
-        return { createdPayments }; // Devolver pagos creados
-      } catch (error) {
-        console.error('Error en el procesamiento manual:', error);
-        throw error;
-      }
-    }*/
+
   async manualProcessPayments() {
     console.log('Iniciando procesamiento manual de pagos...');
     try {
@@ -197,74 +157,7 @@ export class PaymentSchedulerService implements OnModuleInit {
 
     return nextDate;
   }
-  /*
 
-  async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
-    try {
-      console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
-
-      if (!policy.payments) {
-        console.error('Error: No se encontraron pagos asociados a la póliza.');
-        return;
-      }
-
-      const currentPolicyPayments = policy.payments.filter(
-        p => p.policy_id === payment.policy_id
-      );
-
-      const maxNumberPayment = Math.max(
-        ...currentPolicyPayments.map((p) => p.number_payment),
-        0
-      );
-
-      // Validar número máximo de pagos
-      if (maxNumberPayment >= policy.numberOfPayments) {
-        console.log('Se ha alcanzado el número total de pagos permitidos. No se crearán más pagos.');
-        return;
-      }
-
-      // Calcular nuevo saldo pendiente
-      const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
-      console.log('Último pago registrado:', lastPayment);
-      const newPendingValue = lastPayment.pending_value - payment.value;
-
-
-      if (newPendingValue < 0) {
-        console.log('El valor pendiente no puede ser negativo. No se crearán más pagos.');
-        return;
-      }
-
-      console.log('Nuevo valor de pago antes del registro:', newPendingValue);
-      //const valueToPay = this.calculatePaymentValue(policy.policyValue, policy.paymentFrequency.id, policy.numberOfPayments);
-
-      const newPayment: PaymentDTO = {
-        policy_id: payment.policy_id,
-        number_payment: maxNumberPayment + 1,
-        pending_value: newPendingValue,
-        value: payment.value,
-        credit: 0,
-        balance: payment.value,
-        total: 0,
-        status_payment_id: 1, // Estado por defecto (ej: "Pendiente")
-        observations: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const savedPayment = await this.paymentService.createPayment(newPayment);
-      console.log('Nuevo pago creado:', savedPayment);
-
-      // Verificar si se completaron todos los pagos
-      if (newPendingValue <= 0 && newPayment.number_payment >= policy.numberOfPayments) {
-        console.log(`Todos los pagos para la póliza ${payment.policy_id} han sido completados.`);
-      }
-
-      return savedPayment;
-    } catch (error) {
-      console.error('Error al crear pago:', error);
-      throw error;
-    }
-  }*/
   async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
     try {
       console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
@@ -308,6 +201,8 @@ export class PaymentSchedulerService implements OnModuleInit {
       }
 
       console.log('Nuevo valor pendiente calculado:', newPendingValue);
+      const createdAt = new Date(); // Fecha actual en UTC
+      createdAt.setHours(createdAt.getHours() - 5); // Ajusta a UTC-5
 
       const newPayment: PaymentDTO = {
         policy_id: payment.policy_id,
@@ -319,8 +214,8 @@ export class PaymentSchedulerService implements OnModuleInit {
         total: 0,
         status_payment_id: 1,
         observations: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: createdAt,
+        //updatedAt: updatedAt
       };
 
       const savedPayment = await this.paymentService.createPayment(newPayment);
@@ -332,30 +227,5 @@ export class PaymentSchedulerService implements OnModuleInit {
       throw error;
     }
   }
-  /*
-    private calculatePaymentValue(policyValue: number, paymentFrequency: number, numberOfPayments?: number): number {
-      let valueToPay = 0;
-      switch (paymentFrequency) {
-        case 1: // Pago mensual
-          valueToPay = parseFloat((policyValue / 12).toFixed(2));
-          break;
-        case 2: // Pago trimestral
-          valueToPay = parseFloat((policyValue / 4).toFixed(2));
-          break;
-        case 3: // Pago semestral
-          valueToPay = parseFloat((policyValue / 2).toFixed(2));
-          break;
-        case 5: // otro pago
-          if (numberOfPayments) {
-            valueToPay = parseFloat((policyValue / numberOfPayments).toFixed(2));
-          } else {
-            throw new Error("Number of payments is required for payment frequency 5");
-          }
-          break;
-        default: // Pago anual
-          valueToPay = policyValue;
-          break;
-      }
-      return valueToPay;
-    }*/
+
 }

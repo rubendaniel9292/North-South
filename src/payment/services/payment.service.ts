@@ -262,7 +262,9 @@ export class PaymentService {
       // Calcular el nuevo valor pendiente
 
       const newPendingValue = payment.pending_value;
-
+      const updatedAt = new Date(); // Fecha actual en UTC
+      updatedAt.setHours(updatedAt.getHours() - 5); // Ajusta a UTC-5
+      updateData.updatedAt = updatedAt;
 
       if (newPendingValue < 0) {
         throw new ErrorManager({
@@ -271,6 +273,7 @@ export class PaymentService {
         });
       }
       Object.assign(payment, updateData);
+
       const paymentUpdated = await this.paymentRepository.save(payment);
       // Limpiar todas las claves de caché relevantes
       /*

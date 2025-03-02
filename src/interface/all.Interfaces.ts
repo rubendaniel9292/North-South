@@ -83,6 +83,7 @@ export interface IPolicy {
   startDate: Date;
   endDate: Date;
   paymentsToAdvisor: number;
+  paymentsToAgency: number;
   observations?: string;
   renewalCommission: boolean;
 }

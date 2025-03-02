@@ -25,7 +25,12 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
   @Column()
   cardNumber: string;
 
-  @Column()
+  @Column(
+    {
+      type: 'timestamp with time zone',
+      name: 'expiration_date',
+    }
+  )
   expirationDate: Date;
 
   @Column()
@@ -41,12 +46,12 @@ export class CreditCardEntity extends IdEntity implements ICreditCard {
   card_status_id: number;
 
   @CreateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
     name: 'created_at',
   })
   createdAt: Date;
   @UpdateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
     name: 'updated_at',
   })
   updatedAt: Date;

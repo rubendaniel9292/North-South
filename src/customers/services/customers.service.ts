@@ -104,6 +104,7 @@ export class CustomersService extends ValidateEntity {
           },
         },
       });
+
       if (!customers.length) {
         //se guarda el error
         throw new ErrorManager({

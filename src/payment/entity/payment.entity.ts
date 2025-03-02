@@ -55,15 +55,17 @@ export class PaymentEntity extends IdEntity {
   @JoinColumn({ name: 'status_payment_id' })
   paymentStatus: PaymentStatusEntity;
 
-  @CreateDateColumn({
-    type: 'timestamp',
+  @Column({
+    type: 'timestamp with time zone',
     name: 'created_at',
   })
   createdAt: Date;
 
-  @UpdateDateColumn({
-    type: 'timestamp',
+  @Column({
+    nullable: true,
+    type: 'timestamp with time zone',
     name: 'updated_at',
-  })
+  }
+  )
   updatedAt: Date;
 }

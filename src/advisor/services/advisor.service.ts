@@ -66,7 +66,7 @@ export class AdvisorService extends ValidateEntity {
         order: {
           id: "DESC",
         },
-        relations: ['advances', 'policies']
+        relations: ['commissions', 'policies']
       }
       );
       await this.redisService.set(

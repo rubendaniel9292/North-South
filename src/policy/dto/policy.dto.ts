@@ -80,6 +80,10 @@ export class PolicyDTO {
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 2 })
   paymentsToAdvisor: number;
+  
+  @IsNotEmpty()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  paymentsToAgency:number 
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })

@@ -22,11 +22,9 @@ export class PolicyService extends ValidateEntity {
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly policyStatusService: PolicyStatusService,
-
     @InjectRepository(PaymentEntity) // Inyectar el servicio existente
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly paymentService: PaymentService,
-
     @InjectRepository(PolicyTypeEntity)
     private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
     @InjectRepository(PaymentFrequencyEntity)
@@ -87,16 +85,20 @@ export class PolicyService extends ValidateEntity {
       body.policy_status_id = determinedStatus.id;
       const newPolicy = await this.policyRepository.save(body);
 
+      if (newPolicy.policyValue == null) {
+        throw new Error("El valor de la póliza no puede ser nulo");
+      }
+
       const policyValue = Number(newPolicy.policyValue);
       if (isNaN(policyValue)) {
-        throw new Error("Valor calculado de pago invalido");
+        throw new Error("El valor de la póliza no es un número válido");
       }
 
       // Calcular el valor del pago según la frecuencia de pago y crear un pago inicial
       const paymentFrequency = Number(newPolicy.payment_frequency_id);
       const numberOfPayments = paymentFrequency === 5 ? Number(body?.numberOfPayments) : undefined;
       const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, numberOfPayments);
-      console.log('FRECUENCIA DE PAGO Y VALOR A PAGAR: ', paymentFrequency, valueToPay);
+      //console.log('FRECUENCIA DE PAGO Y VALOR A PAGAR: ', paymentFrequency, valueToPay);
 
       // Verifica que valueToPay sea un número válido
       if (isNaN(valueToPay)) {
@@ -113,7 +115,7 @@ export class PolicyService extends ValidateEntity {
         total: 0,
         observations: '',
         createdAt: newPolicy.startDate,
-        updatedAt: new Date(),
+       
       };
 
       await this.paymentService.createPayment(paymentData);
@@ -442,6 +444,7 @@ export class PolicyService extends ValidateEntity {
           startDate: true,
           endDate: true,
           paymentsToAdvisor: true,
+          paymentsToAgency: true,
           policyFee: true,
           renewalCommission: true,
           observations: true,

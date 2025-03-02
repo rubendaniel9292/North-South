@@ -30,6 +30,7 @@ import { CommissionsPaymentsModule } from './commissions-payments/commissions-pa
       //envFilePath: `.${process.env.NODE_ENV}.env`,
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}.env`,
       isGlobal: true,
+
     }),
     TypeOrmModule.forRoot({ ...DataSourceConfig }),
     UserModule,
@@ -56,7 +57,7 @@ export default class AppModule implements OnModuleInit {
     private readonly civilStatusService: GlobaldataService,
     private readonly allBanksService: BankAccountService,
     private readonly allTypesAccountsService: BankAccountService,
-    private readonly policyTypeService: PolicyService,  
+    private readonly policyTypeService: PolicyService,
     private readonly paymentMethodService: PolicyService,
     private readonly payementFrecuencyService: PolicyService,
   ) { }
@@ -73,7 +74,9 @@ export default class AppModule implements OnModuleInit {
     await this.paymentMethodService.getPaymentMethod();
     await this.policyTypeService.getTypesPolicies();
     await this.payementFrecuencyService.getFrecuencyPolicies();
-    
+    process.env.TZ = 'America/Guayaquil'; // Configura la zona horaria
+    console.log('Zona horaria configurada:');
+    console.log('Fecha actual:', new Date());
   }
 
 

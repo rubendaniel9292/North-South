@@ -38,6 +38,7 @@ export const DataSourceConfig: DataSourceOptions = {
     ssl: {
       rejectUnauthorized: false,
     },
+    options: "-c timezone=America/Guayaquil",
   },
   logging: false,
   namingStrategy: new SnakeNamingStrategy(),

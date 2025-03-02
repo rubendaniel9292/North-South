@@ -68,10 +68,16 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column()
   numberOfPayments: number;
 
-  @Column()
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'start_date'
+  })
   startDate: Date;
 
-  @Column()
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'end_date'
+  })
   endDate: Date;
 
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
@@ -79,6 +85,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
 
   @Column('decimal', { precision: 12, scale: 2 })
   paymentsToAdvisor: number;
+
+  @Column('decimal', { precision: 12, scale: 2 })
+  paymentsToAgency: number;
 
   @Column()
   numberOfPaymentsAdvisor: number;
@@ -90,13 +99,13 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   renewalCommission: boolean;
 
   @CreateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
     name: 'created_at',
   })
   createdAt: Date;
 
   @UpdateDateColumn({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
     name: 'updated_at',
   })
   updatedAt: Date;
@@ -174,7 +183,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   })
   @JoinColumn({ name: 'bank_account_id' })
   bankAccount?: BankAccountEntity;
-  
+
   // Una poliza tiene varios pagos
   @OneToMany(() => PaymentEntity, (payment) => payment.policies, {
     onDelete: 'CASCADE', //Si elimina una póliza, todos los pagos asociados también se eliminan automáticamente.
