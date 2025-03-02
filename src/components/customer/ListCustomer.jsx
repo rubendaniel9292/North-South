@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback, React } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-//import dayjs from "dayjs";
-//import "dayjs/locale/es";
-import dayjs from "../../helpers/Day";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
 import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
@@ -85,6 +84,11 @@ const ListCustomer = () => {
   };
 
   dayjs.locale("es");
+  // Función helper para formatear fechas consistentemente
+  /*
+  const formatDate = (date, format = "DD/MM/YYYY") => {
+    return dayjs(date).tz("America/Guayaquil").format(format);
+  };*/
 
   // Usar el hook personalizado para la búsqueda
   const {
@@ -176,19 +180,11 @@ const ListCustomer = () => {
                   <td>{customer.civil?.status}</td>
                   <td>{customer.province?.provinceName}</td>
                   <td>{customer.city?.cityName}</td>
-                  <td>
-                    {dayjs(customer.birthdate)
-                      .tz("America/Guayaquil")
-                      .format("DD/MM/YYYY")
-                      .toString()}
-                  </td>
+                  <td>{dayjs.utc(customer.birthdate).format("dddd  DD/MM/YYYY")}</td>
+                  
                   <td>{customer.numberPhone}</td>
                   <td>{customer.email}</td>
-                  <td>
-                    {dayjs(customer.createdAt)
-                      .format("dddd DD/MM/YYYY")
-                      .toString()}
-                  </td>
+                  <td>{dayjs.utc(customer.createdAt).format("dddd DD/MM/YYYY")}</td>
 
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
                   {

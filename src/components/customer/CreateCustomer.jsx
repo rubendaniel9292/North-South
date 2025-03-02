@@ -311,7 +311,7 @@ const CreateCustomer = () => {
                 id="birthdate"
                 name="birthdate"
                 onChange={changed}
-                value={form.birthdate ? dayjs(form.birthdate).format('YYYY-MM-DD') : ''}
+                value={form.birthdate}
               />
             </div>
 

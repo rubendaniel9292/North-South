@@ -83,9 +83,9 @@ const CreatePolicy = () => {
     );
     if (selectedCustomer) {
       const customerCiRuc = selectedCustomer.ci_ruc;
-      console.log("customerCiRuc:", customerCiRuc);
-      console.log("cards:", cards.cardNumber);
-      console.log("accounts:", accounts);
+      //console.log("customerCiRuc:", customerCiRuc);
+      //console.log("cards:", cards.cardNumber);
+      //console.log("accounts:", accounts);
 
       if (cards && cards.length > 0) {
         const filteredCards = cards.filter(
@@ -107,20 +107,40 @@ const CreatePolicy = () => {
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
     const value = Number(form.policyValue);
-    const percentage = Number(form.advisorPercentage);
+    const percentageAdvisor = Number(form.advisorPercentage);
+    const percentageAgency = Number(form.agencyPercentage);
     const policyFee = Number(form.policyFee);
-    let payment = Number(form.payment) || 0;
-    if (!isNaN(value) && !isNaN(percentage) && !isNaN(policyFee)) {
-      payment = Number((value * percentage) / 100 - policyFee).toFixed(2);
+    let paymentAvisor = 0;
+    let paymentAgency = 0;
+    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
+      paymentAgency = Number(
+        (value * percentageAgency) / 100 - policyFee
+      ).toFixed(2);
+
+      paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(
+        2
+      );
+      changed({
+        target: {
+          name: "paymentsToAgency",
+          value: paymentAgency - paymentAvisor,
+        },
+      });
+
       changed({
         target: {
           name: "paymentsToAdvisor",
-          value: payment,
+          value: paymentAvisor,
         },
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.policyValue, form.advisorPercentage, form.policyFee]);
+  }, [
+    form.policyValue,
+    form.advisorPercentage,
+    form.policyFee,
+    form.agencyPercentage,
+  ]);
 
   const handlePaymentMethodChange = (e) => {
     const paymentMetohd = e.target.value;
@@ -131,13 +151,16 @@ const CreatePolicy = () => {
   // Maneja el cambio de frecuencia de pago
   const handleFrequencyChange = (e) => {
     const selectedFrequencyId = Number(e.target.value); // ID de la frecuencia seleccionada
-    console.log("selectedFrequencyId:", selectedFrequencyId && typeof selectedFrequencyId);
+    console.log(
+      "selectedFrequencyId:",
+      selectedFrequencyId && typeof selectedFrequencyId
+    );
     const frequencyMap = {
       1: 12, // Mensual
       2: 4, // Trimestral
       3: 2, // Semestral
       4: 1, // Anual (default)
-      5:  "", //otro
+      5: "", //otro
     };
     const calculatedPayments = frequencyMap[selectedFrequencyId]; // Número de pagos calculado
 
@@ -459,34 +482,6 @@ const CreatePolicy = () => {
             />
           </div>
           <div className="mb-3 col-3">
-            <label htmlFor="agencyPercentage" className="form-label">
-              Procentaje de la Agencia
-            </label>
-            <input
-              required
-              type="number"
-              className="form-control"
-              id="agencyPercentage"
-              name="agencyPercentage"
-              onChange={changed}
-            />
-          </div>
-          <div className="mb-3 col-3">
-            <label htmlFor="advisorPercentage" className="form-label">
-              Porcentaje del Asesor
-            </label>
-            <input
-              required
-              type="number"
-              className="form-control"
-              id="advisorPercentage"
-              name="advisorPercentage"
-              onChange={changed} // Llamada a la función
-              value={form.advisorPercentage}
-            />
-          </div>
-
-          <div className="mb-3 col-3">
             <label htmlFor="policyValue" className="form-label">
               Valor de la Póliza
             </label>
@@ -513,6 +508,35 @@ const CreatePolicy = () => {
               onChange={changed} // Llamada a la función
             />
           </div>
+          <div className="mb-3 col-3">
+            <label htmlFor="agencyPercentage" className="form-label">
+              Procentaje de la Agencia
+            </label>
+            <input
+              required
+              type="number"
+              className="form-control"
+              id="agencyPercentage"
+              name="agencyPercentage"
+              onChange={changed}
+              value={form.agencyPercentage}
+            />
+          </div>
+          <div className="mb-3 col-3">
+            <label htmlFor="advisorPercentage" className="form-label">
+              Porcentaje del Asesor
+            </label>
+            <input
+              required
+              type="number"
+              className="form-control"
+              id="advisorPercentage"
+              name="advisorPercentage"
+              onChange={changed} // Llamada a la función
+              value={form.advisorPercentage}
+            />
+          </div>
+
           <div className="mb-3 col-3 ">
             <label htmlFor="flexRadioDefault7" className="form-label">
               Comisión por renovación
@@ -588,8 +612,22 @@ const CreatePolicy = () => {
             />
           </div>
           <div className="mb-3 col-3">
+            <label htmlFor="paymentsToAgency" className="form-label">
+              Comisiones de la agencia
+            </label>
+            <input
+              readOnly
+              required
+              type="number"
+              className="form-control"
+              id=" paymentsToAgency"
+              name=" paymentsToAgency"
+              value={form.paymentsToAgency || 0}
+            />
+          </div>
+          <div className="mb-3 col-3">
             <label htmlFor="paymentsToAdvisor" className="form-label">
-              Pago de comisiones al asesor
+              Comisiones de asesor
             </label>
             <input
               readOnly
@@ -601,6 +639,7 @@ const CreatePolicy = () => {
               value={form.paymentsToAdvisor || 0}
             />
           </div>
+
           <div className="mb-3 col-3">
             <label htmlFor="numberOfPaymentsAdvisor" className="form-label">
               Número de pagos al Asesor

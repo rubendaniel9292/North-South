@@ -1,17 +1,21 @@
 import PropTypes from "prop-types";
 import dayjs from "dayjs";
+import http from "../../helpers/Http";
 import "dayjs/locale/es";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import usePagination from "../../hooks/usePagination";
+import alerts from "../../helpers/Alerts";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   if (!policy) return null;
   const itemsPerPage = 5; // Número de items por página
-
+  //metodo para generacion de reporte
   const handleGenerateReport = (e) => {
     e.preventDefault();
     console.log("Generating report with policy data:", policy);
@@ -38,6 +42,63 @@ const ListPolicyModal = ({ policy, onClose }) => {
     totalPages: totalRenewalsPages,
     paginate: paginateRenewals,
   } = usePagination(policy.renewals || [], itemsPerPage);
+
+  //metodo de para actualzar pagos
+  const updatePaymentStatus = async (payment) => {
+    setIsLoading(true);
+    try {
+      //e.preventDefault();
+      // Solo actualizamos el estado del pago a "al día" y la fecha de actualización
+      // será automática en el servidor
+      const updatedPayment = {
+        status_payment_id: 2, // ID que corresponde a "al día"
+        policy_id: policy.id,
+        credit: Number(payment.value), // El abono será igual al valor total
+        balance: 0, // El saldo pendiente debe quedar en 0
+        total: Number(payment.value), // El total será igual al valor original del pago
+      };
+
+      const response = await http.put(
+        `payment/update-payment/${payment.id}`,
+        updatedPayment
+      );
+
+      if (response.data.status === "success") {
+        // Llamar después de actualizar exitosamente
+        alerts(
+          "Actualización exitosa",
+          "Pago actualizado correctamente",
+          "success"
+        );
+
+        setTimeout(() => {
+          onClose();
+        }, 500);
+        // Verificar si se han completado todos los pagos
+        if (
+          payment.pending_value <= 0 &&
+          payment.number_payment >= policy.numberOfPayments
+        ) {
+          alerts(
+            "Pagos Completados",
+            "Todos los pagos para esta póliza han sido completados.",
+            "info"
+          );
+        }
+      } else {
+        alerts(
+          "Error",
+          "Pago no actualizado correctamente. Verificar que no haya campos vacíos o datos incorrectos",
+          "error"
+        );
+      }
+    } catch (error) {
+      alerts("Error", "Error actualizando el pago.", "error");
+      console.error("Error actualizando el pago:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -72,8 +133,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 </td>
                 <td>{policy.company.companyName}</td>
                 <td>{policy.policyType.policyName}</td>
-                <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
-                <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
+                <td>{dayjs.utc(policy.startDate).format("DD-MM-YYYY")}</td>
+                <td>{dayjs.utc(policy.endDate).format("DD-MM-YYYY")}</td>
                 <td>{policy.paymentMethod.methodName}</td>
                 <td>
                   {policy.bankAccount && policy.bankAccount.bank
@@ -95,7 +156,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Valor de la Póliza</th>
                 <th>Número de Pagos</th>
                 <th>Derecho de Póliza</th>
-                <th>Comisiones al asesor</th>
+                <th>Comisiones de la agencia</th>
+                <th>Comisiones del asesor</th>
                 <th>Estado</th>
                 <th colSpan="2" scope="row">
                   Observaciones
@@ -110,6 +172,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <td>{policy.policyValue}</td>
                 <td>{policy.numberOfPayments}</td>
                 <td>{policy.policyFee || "NO APLICA"}</td>
+                <td>{policy.paymentsToAgency}</td>
                 <td>{policy.paymentsToAdvisor}</td>
                 <td
                   className={
@@ -136,48 +199,100 @@ const ListPolicyModal = ({ policy, onClose }) => {
           <table className="table table-striped">
             <thead>
               <tr>
-                <th>Orden</th>
+                {/*<th>Orden</th>*/}
                 <th>N° de Pago</th>
                 <th>Saldo Pendiente</th>
                 <th>Valor</th>
                 <th>Abono</th>
                 <th>Saldo</th>
                 <th>Total</th>
-                <th>Fecha de pago</th>
+                <th>Fecha de pago fija</th>
+                <th>Fecha de actualizacion</th>
                 <th>Estado</th>
-                <th>Observaciones</th>
+                {/*<th>Observaciones</th>*/}
+
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {currentPayments
                 //slice(0, policy.numberOfPayments) // Mostrar solo los pagos permitidos
                 .map((payment, index) => (
-                <tr key={payment.id}>
-                  <td>
-                    {(currentPaymentsPage - 1) * itemsPerPage + index + 1}
-                  </td>
-                  <td>{payment.number_payment}</td>
-                  <td>{payment.pending_value}</td>
-                  <td>{payment.value || "0.00"}</td>
-                  <td>{payment.credit || "0.00"}</td>
-                  <td>{payment.balance || "0.00"}</td>
-                  <td>{payment.total}</td>
-                  <td>{dayjs(payment.createdAt).format("DD/MM/YYYY")}</td>
+                  <tr key={payment.id}>
+                    {/*
+                    <td>
+                      {(currentPaymentsPage - 1) * itemsPerPage + index + 1}
+                    </td>*/}
+                    <td>{payment.number_payment}</td>
+                    <td>{payment.pending_value}</td>
+                    <td>{payment.value || "0.00"}</td>
+                    <td>{payment.credit || "0.00"}</td>
+                    <td>{payment.balance || "0.00"}</td>
+                    <td>{payment.total}</td>
+                    <td>{dayjs.utc(payment.createdAt).format("DD/MM/YYYY")}</td>
 
-                  <td
-                    className={
-                      payment.paymentStatus.id == 1
-                        ? "bg-warning"
-                        : payment.paymentStatus.id == 2
-                        ? "bg-success-subtle "
-                        : ""
-                    }
-                  >
-                    {payment.paymentStatus.statusNamePayment}
-                  </td>
-                  <td>{payment.observations || "N/A"}</td>
-                </tr>
-              ))}
+                    {payment.paymentStatus.id == 1 ? (
+                      <td>{""}</td>
+                    ) : (
+                      <td>
+                        {dayjs.utc(payment.updatedAt).format("DD/MM/YYYY")}
+                      </td>
+                    )}
+
+                    <td
+                      className={
+                        payment.paymentStatus.id == 1
+                          ? "bg-warning"
+                          : payment.paymentStatus.id == 2
+                          ? "bg-success-subtle "
+                          : ""
+                      }
+                    >
+                      {payment.paymentStatus.statusNamePayment}
+                    </td>
+                    {/*
+                    <td>{payment.observations || "N/A"}</td>*/}
+                    <td>
+                      <button
+                        type="button"
+                        disabled={isLoading || payment.paymentStatus.id == 2}
+                        className={`btn ${
+                          payment.paymentStatus.id == 2
+                            ? "bg-secondary"
+                            : "bg-success"
+                        } fw-bold text-white w-100`}
+                        onClick={() => updatePaymentStatus(payment)}
+                      >
+                        {isLoading ? (
+                          <div
+                            className="spinner-border text-light"
+                            role="status"
+                          >
+                            <span className="visually-hidden">
+                              Actualizando...
+                            </span>
+                          </div>
+                        ) : payment.paymentStatus.id == 2 ? (
+                          "Pago al día"
+                        ) : (
+                          "Actualizar Pago"
+                        )}
+                        {payment.paymentStatus.id == 2 ? (
+                          <FontAwesomeIcon
+                            className="mx-2"
+                            icon={faCircleCheck}
+                          />
+                        ) : (
+                          <FontAwesomeIcon
+                            className="mx-2"
+                            icon={faFloppyDisk}
+                            beat
+                          />
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
           {totalPaymentsPages > 1 && (
@@ -371,6 +486,7 @@ ListPolicyModal.propTypes = {
     startDate: PropTypes.string, // o PropTypes.instanceOf(Date) si es un objeto Date
     endDate: PropTypes.string,
     paymentsToAdvisor: PropTypes.string,
+    paymentsToAgency: PropTypes.string,
     policyFee: PropTypes.string,
     observations: PropTypes.string,
     renewalCommission: PropTypes.bool,

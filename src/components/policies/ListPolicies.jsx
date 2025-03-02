@@ -11,6 +11,7 @@ const ListPolicies = () => {
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
+
   const itemsPerPage = 5; // Número de asesor por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
@@ -194,8 +195,8 @@ const ListPolicies = () => {
                     </td>
                     <td>{policy.company.companyName}</td>
                     <td>{policy.policyType.policyName}</td>
-                    <td>{dayjs(policy.startDate).format("DD-MM-YYYY")}</td>
-                    <td>{dayjs(policy.endDate).format("DD-MM-YYYY")}</td>
+                    <td>{dayjs.utc(policy.startDate).format("DD-MM-YYYY").toString()}</td>
+                    <td>{dayjs.utc(policy.endDate).format("DD-MM-YYYY").toString()}</td>
                     <td>{policy.paymentMethod.methodName}</td>
                     <td>
                       {policy.bankAccount && policy.bankAccount.bank
@@ -231,7 +232,7 @@ const ListPolicies = () => {
                         className="btn btn-success text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "payment")}
                       >
-                        Actualizar Pago
+                       Añadir nota de pago
                       </button>
 
                       <button

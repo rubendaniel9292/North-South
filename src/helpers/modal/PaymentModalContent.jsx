@@ -177,59 +177,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
       };
     });
   };
-  /*
-  const savePayment = async (e) => {
-    setIsLoading(true);
-    try {
-      e.preventDefault();
-      const updatedPayment = { ...form, policy_id: policy.id };
-      const lastPaymentId = policy.payments.length
-        ? policy.payments[policy.payments.length - 1].id
-        : null;
 
-      const request = await http.put(
-        `payment/update-payment/${lastPaymentId}`,
-        updatedPayment
-      );
-
-      if (request.data?.status === "success") {
-        alerts(
-          "Actualización exitosa",
-          "Pago actualizado correctamente",
-          "success"
-        );
-
-        document.querySelector("#user-form").reset();
-        setTimeout(() => {
-          onClose();
-        }, 500);
-
-        // Verificar si se han completado todos los pagos
-        if (
-          form.pending_value <= 0 &&
-          form.number_payment >= policy.numberOfPayments
-        ) {
-          alerts(
-            "Pagos Completados",
-            "Todos los pagos para esta póliza han sido completados.",
-            "success"
-          );
-        }
-      } else {
-        alerts(
-          "Error",
-          "Pago no actualizado correctamente. Verificar que no haya campos vacíos o datos incorrectos",
-          "error"
-        );
-      }
-    } catch (error) {
-      alerts("Error", "Error actualizando el pago.", "error");
-      console.error("Error actualizando el pago:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-*/
   const savePayment = async (e) => {
     setIsLoading(true);
     try {

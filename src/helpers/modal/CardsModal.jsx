@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { useState } from "react";
+//import { useState } from "react";
 //import alerts from "../../helpers/Alerts";
 //import http from "../../helpers/Http";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 const CardsModal = ({ cards, onClose }) => {
   if (!cards) return null;
   // eslint-disable-next-line no-unused-vars, react-hooks/rules-of-hooks
-  const [isLoading, setIsLoading] = useState(false);
+  //const [isLoading, setIsLoading] = useState(false);
 
   return (
     <>
@@ -28,7 +28,9 @@ const CardsModal = ({ cards, onClose }) => {
                 <th>Número de tarjeta</th>
                 <th>Fecha de expiración</th>
                 <th>Cédula / RUC</th>
-                <th colSpan="4" scope="row">Cliente</th>
+                <th colSpan="4" scope="row">
+                  Cliente
+                </th>
                 <th>Numero Telefónico</th>
                 <th>Banco</th>
                 <th>Tipo de tarjeta</th>
@@ -41,7 +43,9 @@ const CardsModal = ({ cards, onClose }) => {
                   <td>{index + 1}</td>
                   <td>{card.cardNumber}</td>
                   <td>
-                    {dayjs(card.expirationDate).format("MM/YYYY").toString()}
+                    <td>
+                      {dayjs.utc(card.expirationDate).format("DD/MM/YYYY")}
+                    </td>
                   </td>
                   <td>{card.customer.ci_ruc}</td>
                   <td>{card.customer.firstName}</td>
@@ -68,8 +72,6 @@ const CardsModal = ({ cards, onClose }) => {
           </table>{" "}
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-
-
               <button
                 type="submit"
                 onClick={onClose}

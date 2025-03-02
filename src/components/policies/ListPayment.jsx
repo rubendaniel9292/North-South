@@ -60,6 +60,11 @@ const ListPayment = () => {
               <td>{payment.balance || "0.00"}</td>
               <td>{payment.total}</td>
               <td>{dayjs(payment.startDate).format("DD/MM/YYYY")}</td>
+              {payment.paymentStatus.id == 1 ? (
+                <td>{""}</td>
+              ) : (
+                <td>{dayjs.utc(payment.updatedAt).format("DD/MM/YYYY")}</td>
+              )}
               <td
                 className={
                   payment.paymentStatus.id == 1

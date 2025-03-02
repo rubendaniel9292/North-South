@@ -81,9 +81,7 @@ const ListCreditCard = () => {
                 <td>{index + 1}</td>
                 <td>{card.cardNumber}</td>
                 <td>{card.code}</td>
-                <td>
-                  {dayjs(card.expirationDate).format("MM/YYYY").toString()}
-                </td>
+                <td>{dayjs.utc(card.expirationDate).format("DD/MM/YYYY")}</td>
                 <td>{card.customer.ci_ruc}</td>
                 <td>{card.customer.firstName}</td>
                 <td>{card.customer.secondName}</td>

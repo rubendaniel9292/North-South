@@ -105,7 +105,7 @@ const UserList = () => {
                 <td>{user.email}</td>
                 <td>{user.userName}</td>
                 <td>
-                  {dayjs(user.createdAt).format("dddd DD/MM/YYYY").toString()}
+                  {dayjs.utc(user.createdAt).format("dddd DD/MM/YYYY").toString()}
                 </td>
                 <td>
                   {user.uuid !== auth.uuid && (

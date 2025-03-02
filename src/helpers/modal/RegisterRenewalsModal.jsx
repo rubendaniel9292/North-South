@@ -169,7 +169,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
                         <span className="visually-hidden">Registrando...</span>
                       </div>
                     ) : (
-                      "Registrar Pago"
+                      "Registrar Renovación"
                     )}
 
                     <FontAwesomeIcon

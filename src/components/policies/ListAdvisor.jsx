@@ -140,12 +140,13 @@ const ListAdvisor = () => {
                   <td>{item.surname}</td>
                   <td>{item.secondSurname}</td>
                   <td>
-                    {dayjs(item.birthdate).format("DD/MM/YYYY").toString()}
+                    {dayjs.utc(item.birthdate).format("DD/MM/YYYY")}
+                    
                   </td>
                   <td>{item.numberPhone}</td>
                   <td>{item.email}</td>
                   <td>
-                    {dayjs(item.createdAt).format("dddd DD/MM/YYYY").toString()}
+                    {dayjs.utc(item.createdAt).format("dddd DD/MM/YYYY")}
                   </td>
                   <td>{item.personalData === "true" ? "SÍ" : "NO"}</td>
 
