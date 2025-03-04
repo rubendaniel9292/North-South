@@ -32,7 +32,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
   const [cities, setCities] = useState([]);
   const [filteredCities, setFilteredCities] = useState([]);
   if (!customerId) return null;
-  console.log("CLIENTE SELECIONADO EN EN MODAL: ", customerId);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -89,10 +89,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
   };
 
   const option = "Escoja una opción";
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    return dayjs(dateString).locale("es").format("YYYY-MM-DD");
-  };
+ 
   const savedCustomer = async (e) => {
     setIsLoading(true);
     e.preventDefault();
@@ -118,7 +115,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
       } else {
         alerts(
           "Error",
-          "Cliente no registrado correctamente. Verificar que no haya campos vacios o duplicados",
+          "Cliente no actualizado correctamente. Verificar que no haya campos vacios o duplicados",
           "error"
         );
       }
@@ -348,7 +345,11 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     onChange={changed}
                     //value={form.birthdate || customerId.birthdate} // Persist input value
                     // value={formatDate(form.birthdate || customerId.birthdate)} // Persist input value
-                    value={form.birthdate ? dayjs(form.birthdate).format('YYYY-MM-DD') : ''}
+                    value={
+                      form.birthdate
+                        ? dayjs.utc(form.birthdate).format("YYYY-MM-DD")
+                        : ""
+                    }
                   />
                 </div>
 
@@ -455,6 +456,7 @@ UpdateCustomerModal.propTypes = {
     secondName: PropTypes.string,
     surname: PropTypes.string.isRequired,
     secondSurname: PropTypes.string,
+    numberPhone: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
     birthdate: PropTypes.string.isRequired,
     address: PropTypes.string.isRequired,

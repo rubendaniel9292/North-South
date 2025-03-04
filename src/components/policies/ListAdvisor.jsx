@@ -22,7 +22,9 @@ const ListAdvisor = () => {
   const closeModal = () => {
     setShowModal(false);
   };
-
+  useEffect(() => {
+    getAllAdvisor();
+  }, []);
   const getAvidorById = useCallback(async (advisorId, type) => {
     try {
       const response = await http.get(`advisor/get-advisor/${advisorId}`);
@@ -54,10 +56,6 @@ const ListAdvisor = () => {
     }
   }, []);
 
-  useEffect(() => {
-    getAllAdvisor();
-  }, [getAllAdvisor]);
-
   // Usar el hook personalizado para la búsqueda
   const {
     query,
@@ -84,6 +82,14 @@ const ListAdvisor = () => {
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
+
+  const handleAdvisorUpdated = (advisorUpdated) => {
+    setAdvisor((prevAdvisor) =>
+      prevAdvisor.map((advisor) =>
+        advisor.id === advisorUpdated.id ? advisorUpdated : advisor
+      )
+    );
+  };
   return (
     <>
       <div className="text-center py-2">
@@ -139,22 +145,20 @@ const ListAdvisor = () => {
                   <td>{item.secondName}</td>
                   <td>{item.surname}</td>
                   <td>{item.secondSurname}</td>
-                  <td>
-                    {dayjs.utc(item.birthdate).format("DD/MM/YYYY")}
-                    
-                  </td>
+                  <td>{dayjs.utc(item.birthdate).format("DD/MM/YYYY")}</td>
                   <td>{item.numberPhone}</td>
                   <td>{item.email}</td>
-                  <td>
-                    {dayjs.utc(item.createdAt).format("dddd DD/MM/YYYY")}
-                  </td>
-                  <td>{item.personalData === "true" ? "SÍ" : "NO"}</td>
+                  <td>{dayjs.utc(item.createdAt).format("dddd DD/MM/YYYY")}</td>
+                  <td>{item.personalData === true ? "SÍ" : "NO"}</td>
 
                   <td className="d-flex gap-2">
-                    <button className="btn btn-success text-white fw-bold w-100 my-1">
+                    <button
+                      className="btn btn-success text-white fw-bold w-100 my-1"
+                      onClick={() => getAvidorById(item.id, "updateAdvisor")}
+                    >
                       Actualizar
                     </button>
-                    {item.policies.length > 0 ? (
+                    {item.policies && item.policies.length >= 1 ? (
                       <button
                         onClick={() => getAvidorById(item.id, "advisor")}
                         className="btn btn-primary text-white fw-bold w-100 my-1"
@@ -162,10 +166,8 @@ const ListAdvisor = () => {
                         Registrar Anticipio
                       </button>
                     ) : (
-                      <div
-                        className="btn btn-secondary disabled text-white fw-bold w-100 my-1"
-                      >
-                        No se registran polizas vendidas
+                      <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
+                        No se registran polizas
                       </div>
                     )}
                   </td>
@@ -225,6 +227,7 @@ const ListAdvisor = () => {
           onClose={closeModal}
           advisorId={advisorId}
           modalType={modalType} // Pasamos el tipo de modal a mostrar
+          onAdvisorUpdated={handleAdvisorUpdated}
         ></Modal>
       )}
     </>
