@@ -82,19 +82,77 @@ export class AdvisorService extends ValidateEntity {
 
 
   //2: metodo para buscar los asesores
-  public getAdvisorBiId = async (id: number) => {
+  public getAdvisorById = async (id: number): Promise<AdvisorEntity> => {
     try {
-      const cachedAdvisorById = await this.redisService.get('advisorById');
+
+      const cachedAdvisorById = await this.redisService.get(`advisor:${id}`);
       if (cachedAdvisorById) {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id } }
+        { where: { id }, relations: ['commissions', 'policies'] }
       );
-      await this.redisService.set('advisorById', JSON.stringify(advisorById), 32400); // TTL de 9 horas
+      if (!advisorById) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró el asesor',
+        });
+      }
+      await this.redisService.set(`advisor:${id}`, JSON.stringify(advisorById), 32400); // TTL de 9 horas
       return advisorById;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //3: Método para actualizar un cliente  
+  public updateAvisor = async (
+    id: number,
+    updateData: Partial<AdvisorEntity>,
+  ): Promise<AdvisorEntity> => {
+    try {
+      const advisor = await this.advisdorRepository.findOne({ where: { id } });
+      console.log('Datos recibidos en el backend:', updateData);
+      if (!advisor) {
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: 'No se encontró el cliente',
+        });
+      }
+      // Convertir a mayúsculas y asignar de nuevo
+      if (updateData.firstName) {
+        updateData.firstName = updateData.firstName.toUpperCase();
+      }
+      if (updateData.secondName) {
+        updateData.secondName = updateData.secondName.toUpperCase();
+      }
+      if (updateData.surname) {
+        updateData.surname = updateData.surname.toUpperCase();
+      }
+      if (updateData.secondSurname) {
+        updateData.secondSurname = updateData.secondSurname.toUpperCase();
+      }
+      // Validar y asignar solo las propiedades permitidas de updateData
+      Object.assign(advisor, updateData);
+      // Guardar el cliente actualizado en la base de datos
+      const advisorUpdate = await this.advisdorRepository.save(advisor);
+
+      // Limpiar todas las claves de caché relevantes
+      await this.redisService.del(`advisor:${id}`);
+      await this.redisService.del('advisors');
+
+      // Actualizar caché con los datos más recientes
+      await this.redisService.set(
+        `advisor:${id}`,
+        JSON.stringify(advisorUpdate),
+        32400,
+      );
+
+      //console.log('Cliente actualizado:', customerUpdated);
+      return advisorUpdate;
+
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
 }
