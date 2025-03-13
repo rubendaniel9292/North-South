@@ -102,7 +102,7 @@ export class PolicyDTO {
   renewalCommission: boolean;
 }
 
-export class UpdatePolicyDTO {
+export class UpDatePolicyDTO {
   @IsOptional()
   @IsString()
   numberPolicy: string;

@@ -1,3 +1,4 @@
+
 //objeto enum para datos fijos que no cambiaran constante usan un prefijo global para agrupar claves para evitar colisiones:
 export enum CacheKeys {
     GLOBAL_PROVINCES = 'global:provinces:all',
@@ -10,4 +11,5 @@ export enum CacheKeys {
     GLOBAL_PAYMENT_METHOD = 'global:allPaymentMethod:all',
     GLOBAL_PAYMENT_FREQUENCY = 'global:frecuency:all',
     GLOBAL_COMPANY = 'global:allCompany:all',
+    GLOBAL_POLICY_STATUS = 'global:allStatusPolicies:all',
 }

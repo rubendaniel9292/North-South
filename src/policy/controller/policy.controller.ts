@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
-import { PolicyDTO } from '../dto/policy.dto';
+import { PolicyDTO, UpDatePolicyDTO } from '../dto/policy.dto';
 import { PolicyService } from '../services/policy.service';
 import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
 
@@ -106,4 +106,30 @@ export class PolicyController {
       };
     }
   }
+
+  @Roles('ADMIN', 'BASIC')
+  @Post('update-policy/:id')
+  public async updatepPolicy(@Body() updateData: UpDatePolicyDTO, @Param('id') id: number) {
+    const policyUpdate = await this.policyService.updatedPolicy(id, updateData);
+    if (policyUpdate) {
+      return {
+        status: 'success',
+        policyUpdate
+      }
+    }
+
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-all-satus-policy')
+  public async allStatusPolicy() {
+    const allStatusPolicy = await this.policyService.getPolicyStatus();
+    if (allStatusPolicy) {
+      return {
+        status: 'success',
+        allStatusPolicy,
+      };
+    }
+  }
+
 }

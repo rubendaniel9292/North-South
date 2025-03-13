@@ -51,12 +51,12 @@ export class AdvisorController {
   @Roles('ADMIN', 'BASIC')
   @Put('update-advisor-id/:id')
   public async updateAvisor(@Body() updateData: UpDateAdvisorDTO, @Param('id') id: number) {
-    const advisorUpdate  = await this.advisorService.updateAvisor(id,
-      updateData,);
-    if (advisorUpdate ) {
+    const advisorUpdate = await this.advisorService.updateAvisor(id,
+      updateData);
+    if (advisorUpdate) {
       return {
         status: 'success',
-        advisorUpdate ,
+        advisorUpdate,
       };
     }
   }

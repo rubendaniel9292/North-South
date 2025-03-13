@@ -2,7 +2,7 @@
 -- Crear la extensión para pgcrypto
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 INSERT INTO users (first_name ,surname, user_name, email, password, role)
-VALUES ('Jose', 'Rivas', 'joserivas2', 'joserivas@ejemplo.com', crypt('Sk79o&V@$qq', gen_salt('bf')), 'ADMIN')
+VALUES ('Jose', 'Rivas', 'joserivas2', 'joserivas@ejemplo.com', crypt('Sk79o&V@$q9q@%', gen_salt('bf')), 'ADMIN')
 ON CONFLICT (user_name) DO NOTHING;-- Evita insertar si ya existe un usuario con ese username
 select * from users;
 

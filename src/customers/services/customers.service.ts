@@ -240,18 +240,11 @@ export class CustomersService extends ValidateEntity {
         });
       }
       // Convertir a mayúsculas y asignar de nuevo
-      if (updateData.firstName) {
-        updateData.firstName = updateData.firstName.toUpperCase();
-      }
-      if (updateData.secondName) {
-        updateData.secondName = updateData.secondName.toUpperCase();
-      }
-      if (updateData.surname) {
-        updateData.surname = updateData.surname.toUpperCase();
-      }
-      if (updateData.secondSurname) {
-        updateData.secondSurname = updateData.secondSurname.toUpperCase();
-      }
+      updateData.firstName = updateData.firstName.toUpperCase();
+      updateData.secondName = updateData.secondName.toUpperCase();
+      updateData.surname = updateData.surname.toUpperCase();
+      updateData.secondSurname = updateData.secondSurname.toUpperCase();
+
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(customer, updateData);
       // Guardar el cliente actualizado en la base de datos

@@ -35,7 +35,7 @@ export const DataSourceConfig: DataSourceOptions = {
   */
 
   extra: {
-    
+
     ssl: {
       rejectUnauthorized: false,
     },

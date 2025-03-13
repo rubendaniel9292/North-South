@@ -1,6 +1,6 @@
 import { PolicyTypeEntity } from './../entities/policy_type.entity';
 import { ValidateEntity } from '@/helpers/validations';
-import { Body, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PolicyEntity } from '../entities/policy.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
@@ -13,17 +13,19 @@ import { RenewalEntity } from '../entities/renewal.entity';
 import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
 import { PaymentService } from '@/payment/services/payment.service'; // Asegúrate de importar el servicio de pagos
 import { PaymentDTO } from '@/payment/dto/payment.dto';
-import { PaymentEntity } from '@/payment/entity/payment.entity';
+//import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { CacheKeys } from '@/constants/cache.enum';
+import { PolicyStatusEntity } from "../entities/policy_status.entity";
+
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly policyStatusService: PolicyStatusService,
-    @InjectRepository(PaymentEntity) // Inyectar el servicio existente
-    private readonly paymentRepository: Repository<PaymentEntity>,
+    //@InjectRepository(PaymentEntity) // Inyectar el servicio existente
+    //private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly paymentService: PaymentService,
     @InjectRepository(PolicyTypeEntity)
     private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
@@ -34,6 +36,9 @@ export class PolicyService extends ValidateEntity {
     @InjectRepository(RenewalEntity)
     private readonly policyRenevalMethod: Repository<RenewalEntity>,
     private readonly redisService: RedisModuleService,
+
+    @InjectRepository(PolicyStatusEntity)
+    private readonly policyStatusRepository: Repository<PolicyStatusEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -115,7 +120,7 @@ export class PolicyService extends ValidateEntity {
         total: 0,
         observations: '',
         createdAt: newPolicy.startDate,
-       
+
       };
 
       await this.paymentService.createPayment(paymentData);
@@ -176,41 +181,28 @@ export class PolicyService extends ValidateEntity {
           'renewals',
         ],
         select: {
-          id: true,
-          numberPolicy: true,
-          coverageAmount: true,
-          agencyPercentage: true,
-          advisorPercentage: true,
-          policyValue: true,
-          numberOfPayments: true,
-          startDate: true,
-          endDate: true,
-          paymentsToAdvisor: true,
-          policyFee: true,
-          observations: true,
-          renewalCommission: true,
-          policyType: {
-            policyName: true,
+
+          company: {
+            id: true,
+            companyName: true,
           },
+          advisor: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+
           customer: {
+            id: true,
             ci_ruc: true,
             firstName: true,
             secondName: true,
             surname: true,
             secondSurname: true,
           },
-          company: {
-            companyName: true,
-          },
-          advisor: {
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
-          paymentMethod: {
-            methodName: true,
-          },
+
           bankAccount: {
             bank_id: true,
             bank: {
@@ -413,8 +405,6 @@ export class PolicyService extends ValidateEntity {
   //7: metodo para obtener las polizas mediante su id
   public findPolicyById = async (id: number): Promise<PolicyEntity> => {
     try {
-
-
       const policyId: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
         relations: [
@@ -434,25 +424,17 @@ export class PolicyService extends ValidateEntity {
           'renewals',
         ],
         select: {
-          id: true,
-          numberPolicy: true,
-          coverageAmount: true,
-          agencyPercentage: true,
-          advisorPercentage: true,
-          policyValue: true,
-          numberOfPayments: true,
-          startDate: true,
-          endDate: true,
-          paymentsToAdvisor: true,
-          paymentsToAgency: true,
-          policyFee: true,
-          renewalCommission: true,
-          observations: true,
-          policyType: {
-            policyName: true,
-          },
           customer: {
+            id: true,
             ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+
+          advisor: {
+            id: true,
             firstName: true,
             secondName: true,
             surname: true,
@@ -462,21 +444,14 @@ export class PolicyService extends ValidateEntity {
             id: true,
             companyName: true,
           },
-          advisor: {
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
-          paymentMethod: {
-            methodName: true,
-          },
+
           bankAccount: {
             bank_id: true,
             bank: {
               bankName: true,
             },
           },
+
           creditCard: {
             bank_id: true,
             bank: {
@@ -532,4 +507,68 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //9: metodo para actualizar las polizas
+  public updatedPolicy = async (
+    id: number,
+    updateData: Partial<PolicyEntity>,
+  ): Promise<PolicyEntity> => {
+    try {
+      // Buscar la política en la base de datos
+      const policy: PolicyEntity = await this.policyRepository.findOne({
+        where: { id },
+      });
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      // Validar y asignar solo las propiedades permitidas de updateData
+      Object.assign(policy, updateData);
+
+      // Guardar la política actualizada en la base de datos
+      const policyUpdate: PolicyEntity = await this.policyRepository.save(policy);
+
+      // Limpiar todas las claves de caché relevantes
+      await this.redisService.del(`policy:${id}`);
+      await this.redisService.del('policies');
+
+      // Actualizar caché con los datos más recientes
+      await this.redisService.set(
+        `policy:${id}`,
+        JSON.stringify(policyUpdate),
+        32400, // Tiempo de expiración en segundos (9 horas)
+      );
+
+      return policyUpdate;
+
+    } catch (error) {
+      // Manejar errores y lanzar una excepción personalizada
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //10: metodo para obetener los es  de las polizas
+  public getPolicyStatus = async (): Promise<PolicyStatusEntity[]> => {
+    try {
+      const cachedPoliciesStatus = await this.redisService.get(CacheKeys.GLOBAL_POLICY_STATUS);
+      if (cachedPoliciesStatus) {
+        return JSON.parse(cachedPoliciesStatus);
+      }
+      const allStatusPolicies: PolicyStatusEntity[] = await this.policyStatusRepository.find();
+      if (!allStatusPolicies || allStatusPolicies.length === 0) {
+        //se guarda el error
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+      await this.redisService.set(CacheKeys.GLOBAL_POLICY_STATUS, JSON.stringify(allStatusPolicies), 32400); // TTL de 1 hora
+      return allStatusPolicies;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
 }

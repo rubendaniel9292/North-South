@@ -20,19 +20,18 @@ export class AdvisorService extends ValidateEntity {
   //1:metodo para registrar un asesor
   public createAdvisor = async (body: AdvisorDTO): Promise<AdvisorEntity> => {
     try {
-      // Primero validamos cédula y correo
-      console.log('Valor recibido desde Postman:', body.personalData);
-      // Convertir el valor de personalData a booleano
-      //body.personalData = body.personalData === 'true' || body.personalData === true;
+
       await this.validateInput(body, 'advisor');
+      body.firstName = body.firstName.toUpperCase();
+      body.secondName = body.secondName.toUpperCase();
+      body.surname = body.surname.toUpperCase()
+      body.secondSurname = body.secondSurname.toUpperCase();
       const newAdvisor: AdvisorEntity =
         await this.advisdorRepository.save(body);
-      console.log(body.personalData);
-      //consulta futura para la eliminacion del usuario no se aconseja en produccion
-      //await this.customersRepository.query(`TRUNCATE TABLE customers RESTART IDENTITY CASCADE`);
 
-      console.log(newAdvisor);
-      console.log('After Save:', newAdvisor.personalData);
+      // Invalidar la caché existente de todos los asesores
+      await this.redisService.del('allAdvisors');
+
       return newAdvisor;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -111,7 +110,7 @@ export class AdvisorService extends ValidateEntity {
     updateData: Partial<AdvisorEntity>,
   ): Promise<AdvisorEntity> => {
     try {
-      const advisor = await this.advisdorRepository.findOne({ where: { id } });
+      const advisor: AdvisorEntity = await this.advisdorRepository.findOne({ where: { id } });
       console.log('Datos recibidos en el backend:', updateData);
       if (!advisor) {
         throw new ErrorManager({
@@ -120,26 +119,18 @@ export class AdvisorService extends ValidateEntity {
         });
       }
       // Convertir a mayúsculas y asignar de nuevo
-      if (updateData.firstName) {
-        updateData.firstName = updateData.firstName.toUpperCase();
-      }
-      if (updateData.secondName) {
-        updateData.secondName = updateData.secondName.toUpperCase();
-      }
-      if (updateData.surname) {
-        updateData.surname = updateData.surname.toUpperCase();
-      }
-      if (updateData.secondSurname) {
-        updateData.secondSurname = updateData.secondSurname.toUpperCase();
-      }
+      updateData.firstName = updateData.firstName.toUpperCase();
+      updateData.secondName = updateData.secondName.toUpperCase();
+      updateData.surname = updateData.surname.toUpperCase();
+      updateData.secondSurname = updateData.secondSurname.toUpperCase();
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(advisor, updateData);
       // Guardar el cliente actualizado en la base de datos
-      const advisorUpdate = await this.advisdorRepository.save(advisor);
+      const advisorUpdate: AdvisorEntity = await this.advisdorRepository.save(advisor);
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`advisor:${id}`);
-      await this.redisService.del('advisors');
+      await this.redisService.del('allAdvisors');
 
       // Actualizar caché con los datos más recientes
       await this.redisService.set(

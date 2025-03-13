@@ -60,6 +60,7 @@ export default class AppModule implements OnModuleInit {
     private readonly policyTypeService: PolicyService,
     private readonly paymentMethodService: PolicyService,
     private readonly payementFrecuencyService: PolicyService,
+    private readonly policyStatusRepository: PolicyService
   ) { }
   async onModuleInit() {
     // Limpiar todos los datos de la caché al iniciar el servidor
@@ -74,6 +75,7 @@ export default class AppModule implements OnModuleInit {
     await this.paymentMethodService.getPaymentMethod();
     await this.policyTypeService.getTypesPolicies();
     await this.payementFrecuencyService.getFrecuencyPolicies();
+    await this.policyStatusRepository.getPolicyStatus();
     process.env.TZ = 'America/Guayaquil'; // Configura la zona horaria
     console.log('Zona horaria configurada:');
     console.log('Fecha actual:', new Date());
