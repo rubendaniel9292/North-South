@@ -93,7 +93,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="ciruc"
                     name="ci_ruc"
                     onChange={changed}
-                    value={form.ci_ruc || advisorId.ci_ruc} // Persist input value
+                    value={form.ci_ruc} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -107,7 +107,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="name"
                     name="firstName"
                     onChange={changed}
-                    value={form.firstName || advisorId.firstName} // Persist input value
+                    value={form.firstName} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -120,7 +120,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="secondname"
                     name="secondName"
                     onChange={changed}
-                    value={form.secondName || advisorId.secondName} // Persist input value
+                    value={form.secondName} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -134,7 +134,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="surname"
                     name="surname"
                     onChange={changed}
-                    value={form.surname || advisorId.surname} // Persist input value
+                    value={form.surname} // Persist input value
                   />
                 </div>
 
@@ -148,7 +148,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="secondsurname"
                     name="secondSurname"
                     onChange={changed}
-                    value={form.secondSurname || advisorId.secondSurname} // Persist input value
+                    value={form.secondSurname} // Persist input value
                   />
                 </div>
                 <div className="mb-3 col-3">
@@ -182,7 +182,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="email"
                     name="email"
                     onChange={changed}
-                    value={form.email || advisorId.email} // Persist input value
+                    value={form.email} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -242,7 +242,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                   <button
                     type="submit"
                     id="btnc"
-                    className="btn bg-success mx-5 text-white fw-bold "
+                    className="btn bg-success mx-5 text-white fw-bold"
                     disabled={isLoading}
                   >
                     {isLoading ? (

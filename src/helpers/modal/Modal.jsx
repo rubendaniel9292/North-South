@@ -10,6 +10,7 @@ import PaymentByStatusModal from "./PaymentByStatusModal";
 import RegisterAdvanceModal from "./RegisterAdvanceModal";
 import UpdateCustomerModal from "./UpdateCustomerModal";
 import UpdateAdvisorModal from "./UpdateAdvisorModal";
+import UpdatePolicyModal from "./UpdatePolicyModal";
 
 export default function Modal({
   isOpen,
@@ -23,6 +24,7 @@ export default function Modal({
   advisorId,
   onCustomerUpdated,
   onAdvisorUpdated,
+  onPolicyUpdated
 }) {
   if (!isOpen) return null;
 
@@ -72,6 +74,14 @@ export default function Modal({
             onAdvisorUpdated={onAdvisorUpdated}
           />
         );
+      case "updatePolicy":
+        return (
+          <UpdatePolicyModal
+            onClose={onClose}
+            policy={policy}
+            onPolicyUpdated={onPolicyUpdated}
+          ></UpdatePolicyModal>
+        );
       default:
         return null;
     }
@@ -104,4 +114,6 @@ Modal.propTypes = {
   ]),
   onAdvisorUpdated: PropTypes.func.isRequired,
   onCustomerUpdated: PropTypes.func.isRequired,
+  onPolicyUpdated: PropTypes.func.isRequired,
+  onPaymentUpdated: PropTypes.func.isRequired,
 };

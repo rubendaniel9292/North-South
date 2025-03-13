@@ -76,6 +76,15 @@ const ListPolicies = () => {
     getAllPolicies();
   }, []);
 
+  //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
+  const handlePolicyUpdated = (policyUpdated) => {
+    setPolicies((prevPolicy) =>
+      prevPolicy.map((policy) =>
+        policy.id === policyUpdated.id ? policyUpdated : policy
+      )
+    );
+  };
+
   // Usar el hook personalizado para la búsqueda
   const {
     query,
@@ -165,7 +174,6 @@ const ListPolicies = () => {
                 <th>Fecha de Inicio</th>
                 <th>Fecha de Fin</th>
                 <th>Método de Pago</th>
-                <th>Banco (si aplica)</th>
                 <th>Frecuencia de Pago</th>
                 <th>Monto de Cobertura</th>
                 <th>Estado</th>
@@ -186,37 +194,41 @@ const ListPolicies = () => {
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>{policy.numberPolicy}</td>
                     <td>
-                      {policy.customer.firstName}{" "}
-                      {policy.customer.secondName || " "}{" "}
+                      {policy.customer?.firstName}{" "}
+                      {policy.customer?.secondName || " "}{" "}
                     </td>
                     <td>
-                      {policy.customer.surname}{" "}
-                      {policy.customer.secondSurname || " "}
+                      {policy.customer?.surname}{" "}
+                      {policy.customer?.secondSurname || " "}
                     </td>
-                    <td>{policy.company.companyName}</td>
-                    <td>{policy.policyType.policyName}</td>
-                    <td>{dayjs.utc(policy.startDate).format("DD-MM-YYYY").toString()}</td>
-                    <td>{dayjs.utc(policy.endDate).format("DD-MM-YYYY").toString()}</td>
-                    <td>{policy.paymentMethod.methodName}</td>
+                    <td>{policy.company?.companyName}</td>
+                    <td>{policy.policyType?.policyName}</td>
                     <td>
-                      {policy.bankAccount && policy.bankAccount.bank
-                        ? policy.bankAccount.bank.bankName
-                        : policy.creditCard && policy.creditCard.bank
-                        ? policy.creditCard.bank.bankName
-                        : "NO APLICA"}
+                      {dayjs
+                        .utc(policy.startDate)
+                        .format("DD-MM-YYYY")
+                        .toString()}
                     </td>
-                    <td>{policy.paymentFrequency.frequencyName}</td>
+                    <td>
+                      {dayjs
+                        .utc(policy.endDate)
+                        .format("DD-MM-YYYY")
+                        .toString()}
+                    </td>
+                    <td>{policy.paymentMethod?.methodName}</td>
+
+                    <td>{policy.paymentFrequency?.frequencyName}</td>
                     <td>{policy.coverageAmount}</td>
                     <td
                       className={
-                        policy.policyStatus.id == 4
+                        policy.policyStatus?.id == 4
                           ? "bg-warning text-white fw-bold"
-                          : policy.policyStatus.id == 3
+                          : policy.policyStatus?.id == 3
                           ? "bg-danger text-white fw-bold"
                           : "bg-success-subtle"
                       }
                     >
-                      {policy.policyStatus.statusName}
+                      {policy.policyStatus?.statusName}
                     </td>
                     <td>{policy.observations || "N/A"}</td>
                     <td className="d-flex gap-2">
@@ -228,11 +240,18 @@ const ListPolicies = () => {
                       </button>
 
                       <button
+                        className="btn btn-dark text-white fw-bold my-1 w-100"
+                        onClick={() => getPolicyById(policy.id, "updatePolicy")}
+                      >
+                        Actualizar
+                      </button>
+
+                      <button
                         key={index}
                         className="btn btn-success text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "payment")}
                       >
-                       Añadir nota de pago
+                        Añadir nota de pago
                       </button>
 
                       <button
@@ -298,6 +317,7 @@ const ListPolicies = () => {
             onClose={closeModal}
             policy={policy}
             modalType={modalType}
+            onPolicyUpdated={handlePolicyUpdated}
           ></Modal>
         )}
       </section>

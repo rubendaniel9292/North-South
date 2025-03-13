@@ -84,11 +84,6 @@ const ListCustomer = () => {
   };
 
   dayjs.locale("es");
-  // Función helper para formatear fechas consistentemente
-  /*
-  const formatDate = (date, format = "DD/MM/YYYY") => {
-    return dayjs(date).tz("America/Guayaquil").format(format);
-  };*/
 
   // Usar el hook personalizado para la búsqueda
   const {

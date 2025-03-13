@@ -12,7 +12,6 @@ const UserForm = (initialObj) => {
   const changed = (changes) => {
     if (changes.target) {
       const { name, value, type } = changes.target;
-  
 
       // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas
       if (type === "text") {
@@ -33,14 +32,24 @@ const UserForm = (initialObj) => {
 
       // Manejo especial para radios
 
-      if (name === "personalData" && type === "radio") {
+      if (name === "personalData" || name === "renewalCommission" && type === "radio") {
         finalValue = value === "true"; // Convierte el valor a booleano
       }
 
       setForm((prevForm) => ({
         ...prevForm,
         [name]: finalValue,
+        //[name]: finalValue === "true" ? true : false,
       }));
+      /*
+
+      if (name === "renewalCommission" && type === "radio") {
+        finalValue = value === "true"; // Convierte el valor a booleano
+      }
+      setForm((prevForm) => ({
+        ...prevForm,
+        [name]: finalValue === "true" ? true : false,
+      }));*/
     }
     // Múltiples cambios
     else if (Array.isArray(changes)) {

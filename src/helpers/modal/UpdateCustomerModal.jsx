@@ -89,7 +89,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
   };
 
   const option = "Escoja una opción";
- 
+
   const savedCustomer = async (e) => {
     setIsLoading(true);
     e.preventDefault();
@@ -150,7 +150,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="ciruc"
                     name="ci_ruc"
                     onChange={changed}
-                    value={form.ci_ruc || customerId.ci_ruc} // Persist input value
+                    value={form.ci_ruc} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -164,7 +164,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="name"
                     name="firstName"
                     onChange={changed}
-                    value={form.firstName || customerId.firstName} // Persist input value
+                    value={form.firstName} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -177,7 +177,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="secondname"
                     name="secondName"
                     onChange={changed}
-                    value={form.secondName || customerId.secondName} // Persist input value
+                    value={form.secondName } // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -191,7 +191,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="surname"
                     name="surname"
                     onChange={changed}
-                    value={form.surname || customerId.surname} // Persist input value
+                    value={form.surname} // Persist input value
                   />
                 </div>
 
@@ -205,7 +205,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="secondsurname"
                     name="secondSurname"
                     onChange={changed}
-                    value={form.secondSurname || customerId.secondSurname} // Persist input value
+                    value={form.secondSurname} // Persist input value
                   />
                 </div>
 
@@ -220,7 +220,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="email"
                     name="email"
                     onChange={changed}
-                    value={form.email || customerId.email} // Persist input value
+                    value={form.email} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3">
@@ -234,7 +234,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="phone"
                     name="numberPhone"
                     onChange={changed}
-                    value={form.numberPhone || customerId.numberPhone} // Persist input value
+                    value={form.numberPhone} // Persist input value
                   />
                 </div>
                 <div className="my-1 col-3 row">
@@ -401,7 +401,7 @@ const UpdateCustomerModal = ({ customerId, onClose, onCustomerUpdated }) => {
                     id="address"
                     name="address"
                     onChange={changed}
-                    value={form.address || customerId.address} // Persist input value
+                    value={form.address} // Persist input value
                   />
                 </div>
                 <div className="d-flex justify-content-around mt-4">
