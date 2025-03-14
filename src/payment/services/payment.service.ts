@@ -295,84 +295,16 @@ export class PaymentService {
   // 7: Nuevo método para obtener póliza con pagos actualizados
   public async getPolicyWithPayments(id: number): Promise<PolicyEntity> {
     try {
-      /*
-
-      const cacheKey = `policy:${id}:withPayments`;
-      const cachedPolicy = await this.redisService.get(cacheKey);
-
-      if (cachedPolicy) {
-        return JSON.parse(cachedPolicy);
-      }*/
 
       const policy = await this.policyRepository.findOne({
         where: { id },
-
         relations: [
-          'policyType',
           'policyStatus',
           'paymentFrequency',
-          'company',
-          'advisor',
-          'customer',
-          'paymentMethod',
-          'bankAccount',
-          'bankAccount.bank',
-          'creditCard',
-          'creditCard.bank',
           'payments',
           'payments.paymentStatus',
-          'renewals',
         ],
-        select: {
-          id: true,
-          numberPolicy: true,
-          coverageAmount: true,
-          agencyPercentage: true,
-          advisorPercentage: true,
-          policyValue: true,
-          numberOfPayments: true,
-          startDate: true,
-          endDate: true,
-          paymentsToAdvisor: true,
-          policyFee: true,
-          renewalCommission: true,
-          observations: true,
-          policyType: {
-            policyName: true,
-          },
-          customer: {
-            ci_ruc: true,
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
-          company: {
-            id: true,
-            companyName: true,
-          },
-          advisor: {
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
-          paymentMethod: {
-            methodName: true,
-          },
-          bankAccount: {
-            bank_id: true,
-            bank: {
-              bankName: true,
-            },
-          },
-          creditCard: {
-            bank_id: true,
-            bank: {
-              bankName: true,
-            },
-          },
-        },
+
         order: {
           payments: {
             number_payment: 'ASC',
@@ -380,14 +312,12 @@ export class PaymentService {
         },
       });
 
-      if (!policy) {
+      if (!policy || !policy.payments) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró la póliza',
         });
       }
-
-      //await this.redisService.set(cacheKey, JSON.stringify(policy), 32400); // TTL de 9 horas
       return policy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

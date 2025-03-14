@@ -76,20 +76,6 @@ export class CustomersService extends ValidateEntity {
         where: whereConditions.length > 0 ? whereConditions : undefined,
         relations: ['civil', 'city', 'province', 'policies'],
         select: {
-          id: true,
-          ci_ruc: true,
-          firstName: true,
-          secondName: true,
-          surname: true,
-          secondSurname: true,
-          birthdate: true,
-          email: true,
-          numberPhone: true,
-          address: true,
-          personalData: true,
-          province_id: true,
-          status_id: true,
-          city_id: true,
           civil: {
             id: true,
             status: true, // Solo selecciona el campo 'status', no el 'id'
@@ -154,20 +140,6 @@ export class CustomersService extends ValidateEntity {
           'policies.renewals',
         ],
         select: {
-          id: true,
-          ci_ruc: true,
-          firstName: true,
-          secondName: true,
-          surname: true,
-          secondSurname: true,
-          birthdate: true,
-          email: true,
-          numberPhone: true,
-          address: true,
-          personalData: true,
-          province_id: true,
-          status_id: true,
-          city_id: true,
           city: {
             id: true,
             cityName: true, // Selecciona solo el nombre de la ciudad

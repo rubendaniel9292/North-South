@@ -7,7 +7,10 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
 
 @Injectable()
 export class PaymentSchedulerService implements OnModuleInit {
-  constructor(private readonly paymentService: PaymentService) { }
+  constructor(
+    private readonly paymentService: PaymentService,
+
+  ) { }
 
   async onModuleInit() {
     console.log(
@@ -38,7 +41,7 @@ export class PaymentSchedulerService implements OnModuleInit {
   async verifyAndProcessPayments() {
     const today = new Date();
     const payments = await this.paymentService.getAllPayments();
-
+    //cost policy = await this.po
     if (payments.length === 0) {
       console.log('No hay pagos para procesar.');
       return;
@@ -50,6 +53,18 @@ export class PaymentSchedulerService implements OnModuleInit {
         const policy = await this.paymentService.getPolicyWithPayments(
           payment.policy_id,
         );
+        //console.log("Poliza obtenida antes de la valdiacion: ", policy)
+        // Validar el estado de la póliza
+
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
+          console.log(
+            `Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`,
+          );
+          console.log(
+            `estado de esta poliza: ${policy.policy_status_id}` && typeof policy.policy_status_id,
+          );
+          continue; // Saltar al siguiente pago
+        }
 
         // Verificar si ya se alcanzó el número máximo de pagos
         const currentPaymentsCount = policy.payments.length;
@@ -84,7 +99,6 @@ export class PaymentSchedulerService implements OnModuleInit {
         console.log('No hay pagos para procesar.');
         return { message: 'No hay pagos para procesar.' };
       }
-
       const createdPayments = []; // Almacenar pagos creados
       const processedPolicies = new Set<number>(); // Registrar pólizas procesadas
 
@@ -98,10 +112,19 @@ export class PaymentSchedulerService implements OnModuleInit {
           payment.policy_id,
         );
 
+        // Validar el estado de la póliza
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
+          console.log(
+            `Póliza ${policy.numberPolicy} está CANCELADA o CULMINADA. No se generarán más pagos.`,
+          );
+          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
+          continue; // Saltar al siguiente pago
+        }
+
         // Validar número máximo de pagos
         if (policy.payments.length >= policy.numberOfPayments) {
           console.log(
-            `Póliza ${policy.id} ya tiene todos sus pagos generados (${policy.payments.length}/${policy.numberOfPayments}).`,
+            `Póliza ${policy.numberPolicy} ya tiene todos sus pagos generados (${policy.payments.length}/${policy.numberOfPayments}).`,
           );
           processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
           continue;
@@ -114,7 +137,6 @@ export class PaymentSchedulerService implements OnModuleInit {
           processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
         }
       }
-
       console.log('Procesamiento manual completado!!...');
       return { createdPayments }; // Devolver pagos creados
     } catch (error) {
@@ -160,6 +182,13 @@ export class PaymentSchedulerService implements OnModuleInit {
 
   async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
     try {
+      // Verificar el estado de la póliza
+      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
+        console.log(
+          `Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`,
+        );
+        return;
+      }
       console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
 
       if (!policy.payments) {
@@ -184,6 +213,7 @@ export class PaymentSchedulerService implements OnModuleInit {
 
       // Calcular nuevo saldo pendiente
       const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
+
       console.log('Último pago registrado:', lastPayment);
 
       // Si es el primer pago, el saldo pendiente es el valor total de la póliza menos el valor del pago
@@ -195,9 +225,11 @@ export class PaymentSchedulerService implements OnModuleInit {
         newPendingValue = Number(lastPayment.pending_value) - Number(payment.value);
       }
 
+      // Ajustar el valor del pago si el saldo pendiente es menor que el valor del pago
       if (newPendingValue < 0) {
-        console.log('El valor pendiente no puede ser negativo. No se crearán más pagos.');
-        return;
+        console.log('Ajustando el valor del último pago para evitar saldo negativo.');
+        payment.value = Number(Number(lastPayment.pending_value).toFixed(2)); // Usar el saldo pendiente como valor del pago
+        newPendingValue = 0; // El saldo pendiente será 0 después de este pago
       }
 
       console.log('Nuevo valor pendiente calculado:', newPendingValue);
@@ -207,8 +239,8 @@ export class PaymentSchedulerService implements OnModuleInit {
       const newPayment: PaymentDTO = {
         policy_id: payment.policy_id,
         number_payment: maxNumberPayment + 1,
-        pending_value: newPendingValue,
         value: payment.value,
+        pending_value: Number(newPendingValue.toFixed(2)),
         credit: 0,
         balance: payment.value,
         total: 0,
@@ -219,7 +251,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       };
 
       const savedPayment = await this.paymentService.createPayment(newPayment);
-      console.log('Nuevo pago creado:', savedPayment);
+      //console.log('Nuevo pago creado:', savedPayment);
 
       return savedPayment;
     } catch (error) {

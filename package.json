@@ -19,8 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "orm:init": "typeorm-ts-node-commonjs -d ./src/config/data.source.ts",
-    "m:gen": "export NODE_ENV=production && npm run orm:init migration:generate src/migrations/init",
-    "m:run": "export NODE_ENV=production && npm run orm:init migration:run"
+    "m:gen": "export NODE_ENV=production run orm:init migration:generate src/migrations/init",
+    "m:run": "export NODE_ENV=production run orm:init migration:run"
   },
   "dependencies": {
     "@nestjs/axios": "^3.1.3",
