@@ -176,9 +176,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <td>{policy.paymentsToAdvisor}</td>
                 <td
                   className={
-                    policy.policyStatus.id == 4
+                    policy.policyStatus?.id == 4
                       ? "bg-warning text-white fw-bold"
-                      : policy.policyStatus.id == 3
+                      : policy.policyStatus?.id == 2 ||
+                        policy.policyStatus?.id == 3
                       ? "bg-danger text-white fw-bold"
                       : "bg-success-subtle"
                   }

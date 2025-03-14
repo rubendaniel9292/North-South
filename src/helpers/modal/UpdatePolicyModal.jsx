@@ -461,7 +461,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.policy_status_id}
                   >
                     {allStatusPolicy
-                      .filter((status) => status.id != 2)
+                      .filter((status) => status.id != 3 && status.id != 4)
                       .map((status) => (
                         <option
                           key={status.id}
@@ -758,7 +758,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="btn btn-success fw-bold"
+                    className="btn bg-success mx-5 text-white fw-bold "
                   >
                     {isLoading ? (
                       <div className="spinner-border text-light" role="status">
