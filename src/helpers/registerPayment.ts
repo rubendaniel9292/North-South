@@ -13,19 +13,109 @@ export class PaymentSchedulerService implements OnModuleInit {
   ) { }
 
   async onModuleInit() {
-    console.log(
-      'Inicializando módulo y verificando próximas fechas de pago...',
-    );
+    console.log('Inicializando módulo y verificando pagos pendientes...');
+
     try {
-      await this.verifyAndProcessPayments();
+      // Solo verificamos si hay pagos pendientes sin procesar
+      const payments = await this.paymentService.getAllPayments();
+
+      if (payments.length === 0) {
+        console.log('No hay pagos para procesar en la inicialización.');
+        return;
+      }
+
+      console.log(`Se encontraron ${payments.length} pagos en el sistema.`);
+
+      // Verificar si hay pagos que debieron generarse mientras el servidor estaba apagado
+      const today = new Date();
+      let pagosPendientes = false;
+
+      // Usamos un Set para evitar procesar la misma póliza múltiples veces
+      const processedPolicies = new Set<number>();
+
+      for (const payment of payments) {
+        // Evitar procesar la misma póliza más de una vez
+        if (processedPolicies.has(payment.policy_id)) {
+          continue;
+        }
+
+        // Solo procesar pagos con saldo pendiente
+        if (payment.pending_value <= 0) {
+          continue;
+        }
+
+        const nextPaymentDate = this.calculateNextPaymentDate(payment);
+
+        // Solo considerar pagos cuya fecha ya pasó
+        if (nextPaymentDate && nextPaymentDate <= today) {
+          pagosPendientes = true;
+          break; // Con encontrar uno es suficiente para saber que hay que procesar
+        }
+      }
+
+      if (pagosPendientes) {
+        console.log('Se encontraron pagos pendientes que deben procesarse. Procesando...');
+        // Llamamos a una versión modificada que solo procesa pagos vencidos
+        await this.processOverduePaymentsOnly();
+      } else {
+        console.log('No hay pagos pendientes que procesar. Módulo inicializado correctamente.');
+      }
     } catch (error) {
-      console.error(
-        'Error al verificar y procesar pagos al inicializar el módulo:',
-        error,
-      );
+      console.error('Error al verificar pagos al inicializar el módulo:', error);
     }
   }
 
+  // Método específico para procesar solo pagos vencidos sin duplicados
+  async processOverduePaymentsOnly() {
+    const today = new Date();
+    const payments = await this.paymentService.getAllPayments();
+
+    if (payments.length === 0) {
+      return;
+    }
+
+    // Usamos un Set para evitar procesar la misma póliza múltiples veces
+    const processedPolicies = new Set<number>();
+
+    for (const payment of payments) {
+      try {
+        // Evitar procesar la misma póliza más de una vez
+        if (processedPolicies.has(payment.policy_id)) {
+          continue;
+        }
+
+        // Solo procesar pagos con saldo pendiente
+        if (payment.pending_value <= 0) {
+          continue;
+        }
+
+        const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+
+        // Validar el estado de la póliza
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+          processedPolicies.add(payment.policy_id);
+          continue;
+        }
+
+        // Verificar si ya se alcanzó el número máximo de pagos
+        if (policy.payments.length >= policy.numberOfPayments) {
+          processedPolicies.add(payment.policy_id);
+          continue;
+        }
+
+        const nextPaymentDate = this.calculateNextPaymentDate(payment);
+
+        // Solo crear pago si la fecha ya pasó
+        if (nextPaymentDate && nextPaymentDate <= today) {
+          console.log(`Procesando pago vencido para póliza ${policy.id}, fecha: ${nextPaymentDate}`);
+          await this.createOverduePayment(payment, policy);
+          processedPolicies.add(payment.policy_id);
+        }
+      } catch (error) {
+        console.error(`Error procesando pago ${payment.id}:`, error);
+      }
+    }
+  }
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     try {
@@ -46,13 +136,27 @@ export class PaymentSchedulerService implements OnModuleInit {
       console.log('No hay pagos para procesar.');
       return;
     }
-
+    // Usamos un Set para evitar procesar la misma póliza múltiples veces
+    const processedPolicies = new Set<number>();
     for (const payment of payments) {
       try {
+        // Evitar procesar la misma póliza más de una vez
+        if (processedPolicies.has(payment.policy_id)) {
+          continue;
+        }
+
+        // Solo procesar pagos con saldo pendiente
+        if (payment.pending_value <= 0) {
+          continue;
+        }
         // Obtener la póliza actualizada con todos sus pagos
         const policy = await this.paymentService.getPolicyWithPayments(
           payment.policy_id,
         );
+        console.log(`Procesando póliza ${policy.id}...`);
+        console.log(`Pagos actuales: ${policy.payments.length}/${policy.numberOfPayments}`);
+        console.log(`Saldo pendiente: ${payment.pending_value}`);
+
         //console.log("Poliza obtenida antes de la valdiacion: ", policy)
         // Validar el estado de la póliza
 
@@ -68,13 +172,12 @@ export class PaymentSchedulerService implements OnModuleInit {
 
         // Verificar si ya se alcanzó el número máximo de pagos
         const currentPaymentsCount = policy.payments.length;
-        if (currentPaymentsCount >= policy.numberOfPayments) {
+        if (currentPaymentsCount >= policy.numberOfPayments && payment.pending_value <= 0) {
           console.log(
             `Póliza ${policy.id} ya tiene todos sus pagos generados (${currentPaymentsCount}/${policy.numberOfPayments}).`,
           );
           continue;
         }
-
         const nextPaymentDate = this.calculateNextPaymentDate(payment);
         console.log(
           `Pago ID: ${payment.id}, Próxima Fecha de Pago: ${nextPaymentDate}, Hoy: ${today}`,
@@ -122,13 +225,15 @@ export class PaymentSchedulerService implements OnModuleInit {
         }
 
         // Validar número máximo de pagos
-        if (policy.payments.length >= policy.numberOfPayments) {
+
+        if (policy.payments.length >= policy.numberOfPayments && payment.pending_value <= 0) {
           console.log(
             `Póliza ${policy.numberPolicy} ya tiene todos sus pagos generados (${policy.payments.length}/${policy.numberOfPayments}).`,
           );
           processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
           continue;
         }
+
 
         // Crear pago si hay saldo pendiente
         if (payment.pending_value > 0) {
@@ -196,6 +301,11 @@ export class PaymentSchedulerService implements OnModuleInit {
         return;
       }
 
+      if (payment.value <= 0 || payment.pending_value <= 0) {
+        console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
+        return;
+      }
+
       const currentPolicyPayments = policy.payments.filter(
         p => p.policy_id === payment.policy_id
       );
@@ -206,16 +316,14 @@ export class PaymentSchedulerService implements OnModuleInit {
       );
 
       // Validar número máximo de pagos
-      if (maxNumberPayment >= policy.numberOfPayments) {
+      if (maxNumberPayment >= policy.numberOfPayments && payment.pending_value <= 0) {
         console.log('Se ha alcanzado el número total de pagos permitidos. No se crearán más pagos.');
         return;
       }
 
       // Calcular nuevo saldo pendiente
       const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
-
       console.log('Último pago registrado:', lastPayment);
-
       // Si es el primer pago, el saldo pendiente es el valor total de la póliza menos el valor del pago
       let newPendingValue: number;
       if (maxNumberPayment === 0) {

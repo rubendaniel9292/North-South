@@ -312,7 +312,7 @@ export class PaymentService {
         },
       });
 
-      if (!policy || !policy.payments) {
+      if (!policy || !policy.payments || policy.payments.length === 0) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró la póliza',

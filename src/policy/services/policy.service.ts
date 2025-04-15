@@ -16,7 +16,7 @@ import { PaymentDTO } from '@/payment/dto/payment.dto';
 //import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { CacheKeys } from '@/constants/cache.enum';
-import { PolicyStatusEntity } from "../entities/policy_status.entity";
+import { PolicyStatusEntity } from '../entities/policy_status.entity';
 
 @Injectable()
 export class PolicyService extends ValidateEntity {
@@ -49,7 +49,7 @@ export class PolicyService extends ValidateEntity {
     numberOfPayments?: number,
   ): number {
     let valueToPay = 0;
-    console.log("numero de pagos ", numberOfPayments);
+    console.log('numero de pagos ', numberOfPayments);
     switch (paymentFrequency) {
       case 1: // Pago mensual
         valueToPay = parseFloat((policyValue / 12).toFixed(2));
@@ -64,7 +64,9 @@ export class PolicyService extends ValidateEntity {
         if (numberOfPayments) {
           valueToPay = parseFloat((policyValue / numberOfPayments).toFixed(2));
         } else {
-          throw new Error("Number of payments is required for payment frequency 5");
+          throw new Error(
+            'Number of payments is required for payment frequency 5',
+          );
         }
         break;
       default: // Pago anual
@@ -81,30 +83,36 @@ export class PolicyService extends ValidateEntity {
       const endDate = new Date(body.endDate);
 
       // Determinar el estado inicial de la póliza
-      const determinedStatus = await this.policyStatusService.determineNewPolicyStatus(endDate);
+      const determinedStatus =
+        await this.policyStatusService.determineNewPolicyStatus(endDate);
       body.policy_status_id = determinedStatus.id;
 
       // Crear la póliza en la base de datos
       const newPolicy = await this.policyRepository.save(body);
 
       if (newPolicy.policyValue == null) {
-        throw new Error("El valor de la póliza no puede ser nulo");
+        throw new Error('El valor de la póliza no puede ser nulo');
       }
 
       const policyValue = Number(newPolicy.policyValue);
       if (isNaN(policyValue)) {
-        throw new Error("El valor de la póliza no es un número válido");
+        throw new Error('El valor de la póliza no es un número válido');
       }
 
       // Obtener la frecuencia de pago y el número de pagos (si es personalizado)
       const paymentFrequency = Number(newPolicy.payment_frequency_id);
-      const numberOfPayments = paymentFrequency === 5 ? Number(body?.numberOfPayments) : undefined;
+      const numberOfPayments =
+        paymentFrequency === 5 ? Number(body?.numberOfPayments) : undefined;
 
       // Calcular el valor de cada pago
-      const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, numberOfPayments);
+      const valueToPay = this.calculatePaymentValue(
+        policyValue,
+        paymentFrequency,
+        numberOfPayments,
+      );
 
       if (isNaN(valueToPay)) {
-        throw new Error("Valor calculado de pago inválido");
+        throw new Error('Valor calculado de pago inválido');
       }
 
       // Obtener la fecha de inicio de la póliza
@@ -115,27 +123,41 @@ export class PolicyService extends ValidateEntity {
       let totalPayments = 0;
       switch (paymentFrequency) {
         case 1: // Mensual
-          totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth()));
+          totalPayments = Math.floor(
+            (today.getFullYear() - startDate.getFullYear()) * 12 +
+            (today.getMonth() - startDate.getMonth()),
+          );
           break;
         case 2: // Trimestral
-          totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 4 + (today.getMonth() - startDate.getMonth()) / 3);
+          totalPayments = Math.floor(
+            (today.getFullYear() - startDate.getFullYear()) * 4 +
+            (today.getMonth() - startDate.getMonth()) / 3,
+          );
           break;
         case 3: // Semestral
-          totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 2 + (today.getMonth() - startDate.getMonth()) / 6);
+          totalPayments = Math.floor(
+            (today.getFullYear() - startDate.getFullYear()) * 2 +
+            (today.getMonth() - startDate.getMonth()) / 6,
+          );
           break;
         case 4: // Anual
-          totalPayments = Math.floor(today.getFullYear() - startDate.getFullYear());
+          totalPayments = Math.floor(
+            today.getFullYear() - startDate.getFullYear(),
+          );
           break;
         case 5: // Personalizado
           if (!numberOfPayments || numberOfPayments <= 0) {
-            throw new Error("Número de pagos inválido para frecuencia personalizada");
+            throw new Error(
+              'Número de pagos inválido para frecuencia personalizada',
+            );
           }
           totalPayments = Math.floor(
-            (today.getTime() - startDate.getTime()) / ((endDate.getTime() - startDate.getTime()) / numberOfPayments)
+            (today.getTime() - startDate.getTime()) /
+            ((endDate.getTime() - startDate.getTime()) / numberOfPayments),
           );
           break;
         default:
-          throw new Error("Frecuencia de pago no válida");
+          throw new Error('Frecuencia de pago no válida');
       }
 
       // Asegurar que el número de pagos no exceda el total permitido
@@ -146,6 +168,7 @@ export class PolicyService extends ValidateEntity {
       // Generar pagos atrasados (si los hay) y al menos un pago por defecto
       let currentDate = new Date(startDate);
       let paymentNumber = 1;
+      let accumulated = 0;
 
       if (totalPayments === 0) {
         // Crear un pago por defecto si no hay pagos atrasados
@@ -165,10 +188,19 @@ export class PolicyService extends ValidateEntity {
         await this.paymentService.createPayment(paymentData);
       } else {
         // Generar pagos atrasados
+        /*
         for (let i = 0; i < totalPayments; i++) {
-          const pendingValue = policyValue - (valueToPay * paymentNumber);
+          //const pendingValue = policyValue - (valueToPay * paymentNumber);
+          accumulated += valueToPay;
+          let pendingValue = policyValue - accumulated;
+
+          // Evitar valores negativos
+          if (pendingValue < 0) {
+            pendingValue = 0;
+          }
 
           // Evitar valores negativos en el saldo pendiente
+          /*
           if (pendingValue < 0) {
             console.log('El valor pendiente no puede ser negativo. No se crearán más pagos.');
             break;
@@ -215,34 +247,97 @@ export class PolicyService extends ValidateEntity {
 
           paymentNumber++;
         }
-      }
+        */
+        while (currentDate <= today) {
+          accumulated += valueToPay;
+          let pendingValue = policyValue - accumulated;
+          if (pendingValue < 0) {
+            pendingValue = 0;
+            //console.log('El valor pendiente no puede ser negativo. No se crearán más pagos.');
+            //break;
+          }
+          //pendingValue = parseFloat(pendingValue.toFixed(2));
+          const paymentData: PaymentDTO = {
+            policy_id: newPolicy.id,
+            number_payment: paymentNumber,
+            value: valueToPay,
+            pending_value: pendingValue,
+            status_payment_id: 1,
+            credit: 0,
+            balance: valueToPay,
+            total: 0,
+            observations: '',
+            createdAt: new Date(currentDate),
+          };
 
+          await this.paymentService.createPayment(paymentData);
+          // Verificar si el período actual está completamente pagado
+          if (pendingValue === 0) {
+            console.log(
+              `El período actual finalizó con número de pago: ${paymentNumber}`,
+            );
+            // Reiniciar acumulados para el siguiente año o período
+            accumulated = 0;
+          }
+
+          // Avanzar la fecha según la frecuencia de pago
+          switch (paymentFrequency) {
+            case 1: // Mensual
+              currentDate.setMonth(currentDate.getMonth() + 1);
+              break;
+            case 2: // Trimestral
+              currentDate.setMonth(currentDate.getMonth() + 3);
+              break;
+            case 3: // Semestral
+              currentDate.setMonth(currentDate.getMonth() + 6);
+              break;
+            case 4: // Anual
+              currentDate.setFullYear(currentDate.getFullYear() + 1);
+              break;
+            case 5: // Personalizado
+              const daysBetween = Math.floor(
+                (endDate.getTime() - startDate.getTime()) / numberOfPayments,
+              );
+              currentDate.setDate(currentDate.getDate() + daysBetween);
+              break;
+          }
+
+          paymentNumber++;
+        }
+      }
+      // Invalidar todas las cachés relacionadas con pólizas
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+      await this.redisService.del('policies');
+      await this.redisService.del('policiesStatus');
+      await this.redisService.del('customers');
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
   //2:metodo para consultas todas las polizas
-  public getAllPolicies = async (search?: string,): Promise<PolicyEntity[]> => {
+  public getAllPolicies = async (search?: string): Promise<PolicyEntity[]> => {
     try {
-      /*
-            const cachedPolicies = await this.redisService.get('policies');
-            if (cachedPolicies) {
-              return JSON.parse(cachedPolicies);
-            }*/
 
+      // Solo usar caché si no hay búsqueda específica
+      if (!search) {
+        const cachedPolicies = await this.redisService.get(
+          CacheKeys.GLOBAL_ALL_POLICIES,
+        );
+        if (cachedPolicies) {
+          return JSON.parse(cachedPolicies);
+        }
+      }
       // Crea un array de condiciones de búsqueda en este caso por nu  mero de poliza
       const whereConditions: any[] = [];
 
       if (search) {
         const searchCondition = Like(`%${search}%`);
-        whereConditions.push(
-          { numberPolicy: searchCondition },
-        );
+        whereConditions.push({ numberPolicy: searchCondition });
       }
       const policies: PolicyEntity[] = await this.policyRepository.find({
         order: {
-          id: "DESC",
+          id: 'DESC',
         },
         relations: [
           'policyType',
@@ -261,7 +356,6 @@ export class PolicyService extends ValidateEntity {
           'renewals',
         ],
         select: {
-
           company: {
             id: true,
             companyName: true,
@@ -295,7 +389,6 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
-
         },
       });
       if (!policies || policies.length === 0) {
@@ -308,7 +401,6 @@ export class PolicyService extends ValidateEntity {
       //await this.redisService.set('policies', JSON.stringify(policies), 32400); // TTL de 1 hora
       //console.log(policies)
       return policies;
-
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -316,11 +408,12 @@ export class PolicyService extends ValidateEntity {
   //3:metodo para consultas todas las polizas en base al estado
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
-      /*
-            const cachedPolicies = await this.redisService.get('policiesStatus');
-            if (cachedPolicies) {
-              return JSON.parse(cachedPolicies);
-            }*/
+      const cachedPolicies = await this.redisService.get(
+        CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS,
+      );
+      if (cachedPolicies) {
+        return JSON.parse(cachedPolicies);
+      }
       const policiesStatus: PolicyEntity[] = await this.policyRepository.find({
         where: [
           { policy_status_id: 3 }, // Estado: por vencer
@@ -404,7 +497,12 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      //await this.redisService.set('policiesStatus', JSON.stringify(policiesStatus), 32400); // TTL de 1 hora
+
+      await this.redisService.set(
+        CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS,
+        JSON.stringify(policiesStatus),
+        32400,
+      );
       return policiesStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -414,7 +512,9 @@ export class PolicyService extends ValidateEntity {
   public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
     try {
       //const cachedTypes = await this.redisService.get('types');
-      const cachedTypes = await this.redisService.get(CacheKeys.GLOBAL_POLICY_TYPE);
+      const cachedTypes = await this.redisService.get(
+        CacheKeys.GLOBAL_POLICY_TYPE,
+      );
       if (cachedTypes) {
         return JSON.parse(cachedTypes);
       }
@@ -437,7 +537,9 @@ export class PolicyService extends ValidateEntity {
   public getFrecuencyPolicies = async (): Promise<PaymentFrequencyEntity[]> => {
     try {
       //const cachedFrequency = await this.redisService.get('frecuency');
-      const cachedFrequency = await this.redisService.get(CacheKeys.GLOBAL_PAYMENT_FREQUENCY);
+      const cachedFrequency = await this.redisService.get(
+        CacheKeys.GLOBAL_PAYMENT_FREQUENCY,
+      );
       if (cachedFrequency) {
         return JSON.parse(cachedFrequency);
       }
@@ -450,7 +552,11 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(CacheKeys.GLOBAL_PAYMENT_FREQUENCY, JSON.stringify(frecuency), 32400); // TTL de 1 hora
+      await this.redisService.set(
+        CacheKeys.GLOBAL_PAYMENT_FREQUENCY,
+        JSON.stringify(frecuency),
+        32400,
+      ); // TTL de 1 hora
       return frecuency;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -460,7 +566,9 @@ export class PolicyService extends ValidateEntity {
   //6: metodo para obtener el listado de los metodos  pagos
   public getPaymentMethod = async (): Promise<PaymentMethodEntity[]> => {
     try {
-      const cachedPayments = await this.redisService.get(CacheKeys.GLOBAL_PAYMENT_METHOD);
+      const cachedPayments = await this.redisService.get(
+        CacheKeys.GLOBAL_PAYMENT_METHOD,
+      );
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
       }
@@ -475,7 +583,11 @@ export class PolicyService extends ValidateEntity {
         });
       }
       //await this.redisService.set('allPaymentMethod', JSON.stringify(allPaymentMethod), 32400); // TTL de 1 hora
-      await this.redisService.set(CacheKeys.GLOBAL_PAYMENT_METHOD, JSON.stringify(allPaymentMethod), 32400); // TTL de 1 hora
+      await this.redisService.set(
+        CacheKeys.GLOBAL_PAYMENT_METHOD,
+        JSON.stringify(allPaymentMethod),
+        32400,
+      ); // TTL de 1 hora
 
       return allPaymentMethod;
     } catch (error) {
@@ -538,13 +650,12 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
-
         },
         order: {
           payments: {
-            id: "DESC"
-          }
-        }
+            id: 'DESC',
+          },
+        },
       });
       //console.log("POLIZA OBTENIDA DESDE EL SERVICIO DE POLIZA: ", policyId);
       if (!policyId || policyId === undefined) {
@@ -607,7 +718,8 @@ export class PolicyService extends ValidateEntity {
       Object.assign(policy, updateData);
 
       // Guardar la política actualizada en la base de datos
-      const policyUpdate: PolicyEntity = await this.policyRepository.save(policy);
+      const policyUpdate: PolicyEntity =
+        await this.policyRepository.save(policy);
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`policy:${id}`);
@@ -621,7 +733,6 @@ export class PolicyService extends ValidateEntity {
       );
 
       return policyUpdate;
-
     } catch (error) {
       // Manejar errores y lanzar una excepción personalizada
       throw ErrorManager.createSignatureError(error.message);
@@ -630,11 +741,14 @@ export class PolicyService extends ValidateEntity {
   //10: metodo para obetener los estados de las polizas
   public getPolicyStatus = async (): Promise<PolicyStatusEntity[]> => {
     try {
-      const cachedPoliciesStatus = await this.redisService.get(CacheKeys.GLOBAL_POLICY_STATUS);
+      const cachedPoliciesStatus = await this.redisService.get(
+        CacheKeys.GLOBAL_POLICY_STATUS,
+      );
       if (cachedPoliciesStatus) {
         return JSON.parse(cachedPoliciesStatus);
       }
-      const allStatusPolicies: PolicyStatusEntity[] = await this.policyStatusRepository.find();
+      const allStatusPolicies: PolicyStatusEntity[] =
+        await this.policyStatusRepository.find();
       if (!allStatusPolicies || allStatusPolicies.length === 0) {
         //se guarda el error
         throw new ErrorManager({
@@ -642,11 +756,13 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(CacheKeys.GLOBAL_POLICY_STATUS, JSON.stringify(allStatusPolicies)); // TTL de 1 hora
+      await this.redisService.set(
+        CacheKeys.GLOBAL_POLICY_STATUS,
+        JSON.stringify(allStatusPolicies),
+      ); // TTL de 1 hora
       return allStatusPolicies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
-  }
-
+  };
 }

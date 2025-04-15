@@ -1,3 +1,4 @@
+import { Global } from '@nestjs/common';
 
 //objeto enum para datos fijos que no cambiaran constante usan un prefijo global para agrupar claves para evitar colisiones:
 export enum CacheKeys {
@@ -12,4 +13,6 @@ export enum CacheKeys {
     GLOBAL_PAYMENT_FREQUENCY = 'global:frecuency:all',
     GLOBAL_COMPANY = 'global:allCompany:all',
     GLOBAL_POLICY_STATUS = 'global:allStatusPolicies:all',
+    GLOBAL_ALL_POLICIES = 'global:policies:all',
+    GLOBAL_ALL_POLICIES_BY_STATUS = 'global:policiesStatus:all',
 }

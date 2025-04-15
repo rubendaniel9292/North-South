@@ -40,7 +40,7 @@ export class PaymentEntity extends IdEntity {
   status_payment_id: number;
 
   // Relación uno a varios, varios pagos pueden estar asociados a una poliza
-  @ManyToOne(() => PolicyEntity, (policy) => policy.payments)
+  @ManyToOne(() => PolicyEntity, (policy) => policy.payments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'policy_id' })
   policies: PolicyEntity;
 

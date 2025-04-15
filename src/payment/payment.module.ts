@@ -10,6 +10,7 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentStatusEntity } from './entity/payment.status.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentSchedulerService } from '@/helpers/registerPayment';
+import { PolicyModule } from '@/policy/policy.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -20,7 +21,7 @@ import { PaymentSchedulerService } from '@/helpers/registerPayment';
     ScheduleModule.forRoot(), // Importa y configura ScheduleModule para tareas automaticas
     ProvidersModule,
     UserModule,
-    
+    PolicyModule,
 
   ],
   providers: [PaymentService, HttpCustomService, PaymentSchedulerService],
