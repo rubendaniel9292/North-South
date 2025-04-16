@@ -241,12 +241,12 @@ const ListPolicies = () => {
                       </button>
 
                       <button
-                        className="btn btn-dark text-white fw-bold my-1 w-100"
+                        className="btn btn-success text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "updatePolicy")}
                       >
                         Actualizar
                       </button>
-
+                      {/*
                       <button
                         key={index}
                         className="btn btn-success text-white fw-bold my-1 w-100"
@@ -254,7 +254,7 @@ const ListPolicies = () => {
                       >
                         Añadir nota de pago
                       </button>
-
+                      */}
                       <button
                         className="btn btn-secondary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "renewal")}

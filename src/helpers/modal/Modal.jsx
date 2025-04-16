@@ -11,6 +11,7 @@ import RegisterAdvanceModal from "./RegisterAdvanceModal";
 import UpdateCustomerModal from "./UpdateCustomerModal";
 import UpdateAdvisorModal from "./UpdateAdvisorModal";
 import UpdatePolicyModal from "./UpdatePolicyModal";
+import RenewallPolicyModal from "./RenewallPolicyModal";
 
 export default function Modal({
   isOpen,
@@ -45,7 +46,7 @@ export default function Modal({
           />
         );
       case "renewal":
-        return <RegisterRenewalsModal onClose={onClose} policy={policy} />;
+        return <RenewallPolicyModal onClose={onClose} policy={policy} />;
       case "customerId":
         return (
           <CustomerModalContent onClose={onClose} customerId={customerId} />

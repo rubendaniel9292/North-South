@@ -47,38 +47,38 @@ const PolicyStatusModal = ({ policies, onClose }) => {
                   <td>{index + 1}</td>
                   <td>{policy.numberPolicy}</td>
                   <td>
-                    {policy.customer.firstName}{" "}
-                    {policy.customer.secondName || ""} 
+                    {policy.customer?.firstName}{" "}
+                    {policy.customer?.secondName || ""} 
                   </td>
-                  <td>{policy.customer.surname}{" "}
-                    {policy.customer.secondSurname || ""}</td>
-                  <td>{policy.company.companyName}</td>
-                  <td>{policy.policyType.policyName}</td>
+                  <td>{policy.customer?.surname}{" "}
+                    {policy.customer?.secondSurname || ""}</td>
+                  <td>{policy.company?.companyName}</td>
+                  <td>{policy.policyType?.policyName}</td>
 
                   <td>{dayjs(policy.startDate).format("DD/MM/YYYY")}</td>
                   <td>{dayjs(policy.endDate).format("DD/MM/YYYY")}</td>
-                  <td>{policy.paymentMethod.methodName}</td>
+                  <td>{policy.paymentMethod?.methodName}</td>
 
                   <td>
                     {policy.bankAccount && policy.bankAccount.bank
-                      ? policy.bankAccount.bank.bankName
+                      ? policy.bankAccount?.bank.bankName
                       : policy.creditCard && policy.creditCard.bank
-                      ? policy.creditCard.bank.bankName
+                      ? policy.creditCard?.bank.bankName
                       : "NO APLICA"}
                   </td>
-                  <td>{policy.paymentFrequency.frequencyName}</td>
+                  <td>{policy.paymentFrequency?.frequencyName}</td>
                   <td>{policy.coverageAmount}</td>
                   <td>{policy.policyValue}</td>
                   <td
                     className={
-                      policy.policyStatus.id == 4
+                      policy.policyStatus?.id == 4
                         ? "bg-warning text-white fw-bold"
-                        : policy.policyStatus.id == 3
+                        : policy.policyStatus?.id == 3
                         ? "bg-danger text-white fw-bold"
                         : "bg-success-subtle"
                     }
                   >
-                    {policy.policyStatus.statusName}
+                    {policy.policyStatus?.statusName}
                   </td>
                   {/*    <td>
                     <button className="btn btn-success text-white fw-bold">

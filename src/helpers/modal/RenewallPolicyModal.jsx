@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useCallback } from "react";
 
-const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
+const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
@@ -299,14 +299,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-5">
-          <div className="d-flex justify-content-center align-items-center conten-title rounded">
+          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
             <h3 className="text-white fw-bold">
-              Poliza selecionada para actualizar: {policy.numberPolicy}
+              Poliza selecionada a renovar: {policy.numberPolicy}
             </h3>
-        
           </div>
-   
-
           <div className="justify-content-around mt-1">
             <form onSubmit={updatePolicy} id="user-form">
               <div className="row pt-3 fw-bold">
@@ -799,7 +796,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     </>
   );
 };
-UpdatePolicyModal.propTypes = {
+RenewallPolicyModal.propTypes = {
   policy: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
     numberPolicy: PropTypes.string.isRequired,
@@ -909,4 +906,4 @@ UpdatePolicyModal.propTypes = {
 
   onClose: PropTypes.func.isRequired,
 };
-export default UpdatePolicyModal;
+export default RenewallPolicyModal;
