@@ -100,6 +100,10 @@ export class PolicyDTO {
   @IsNotEmpty()
   @IsBoolean()
   renewalCommission: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  renewalPolicy?: boolean;
 }
 
 export class UpDatePolicyDTO {
@@ -178,4 +182,8 @@ export class UpDatePolicyDTO {
   @IsOptional()
   @IsString()
   observations: string;
+
+  @IsOptional()
+  @IsBoolean()
+  renewalPolicy?: boolean;
 }

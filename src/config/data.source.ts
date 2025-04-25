@@ -12,12 +12,7 @@ ConfigModule.forRoot({
 });
 
 const configService = new ConfigService();
-/*
-console.log('DB_HOST:', configService.get('DB_HOST'));
-console.log('DB_PORT:', configService.get('DB_PORT'));
-console.log('DB_USER:', configService.get('DB_USER'));
-console.log('DB_PASSWORD:', configService.get('DB_PASSWORD'));
-console.log('DB_NAME:', configService.get('DB_NAME'));*/
+
 //atributos del data source
 export const DataSourceConfig: DataSourceOptions = {
   type: 'postgres',
@@ -35,11 +30,11 @@ export const DataSourceConfig: DataSourceOptions = {
   */
 
   extra: {
-    
+
     ssl: {
       rejectUnauthorized: false,
     },
-    
+
     options: "-c timezone=America/Guayaquil",
   },
   logging: false,

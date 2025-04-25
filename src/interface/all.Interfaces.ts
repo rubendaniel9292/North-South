@@ -85,6 +85,7 @@ export interface IPolicy {
   paymentsToAdvisor: number;
   paymentsToAgency: number;
   observations?: string;
+  renewalPolicy?: boolean;
   renewalCommission: boolean;
 }
 

@@ -172,11 +172,7 @@ export class PaymentService {
       const cacheKey = companyId
         ? `paymentsByStatus:${companyId}`
         : 'paymentsByStatus:general';
-      const cachedPayments = await this.redisService.get(cacheKey);
-
-      if (cachedPayments) {
-        return JSON.parse(cachedPayments);
-      }
+      //const cachedPayments = await this.redisService.get(cacheKey);
 
       // condiciones de búsqueda
       const whereConditions: any = {

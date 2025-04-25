@@ -28,7 +28,7 @@ export class PaymentSchedulerService implements OnModuleInit {
 
       // Verificar si hay pagos que debieron generarse mientras el servidor estaba apagado
       const today = new Date();
-      let pagosPendientes = false;
+      let pendingPayments = false;
 
       // Usamos un Set para evitar procesar la misma póliza múltiples veces
       const processedPolicies = new Set<number>();
@@ -48,12 +48,12 @@ export class PaymentSchedulerService implements OnModuleInit {
 
         // Solo considerar pagos cuya fecha ya pasó
         if (nextPaymentDate && nextPaymentDate <= today) {
-          pagosPendientes = true;
+          pendingPayments = true;
           break; // Con encontrar uno es suficiente para saber que hay que procesar
         }
       }
 
-      if (pagosPendientes) {
+      if (pendingPayments) {
         console.log('Se encontraron pagos pendientes que deben procesarse. Procesando...');
         // Llamamos a una versión modificada que solo procesa pagos vencidos
         await this.processOverduePaymentsOnly();

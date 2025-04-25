@@ -190,7 +190,6 @@ export class CustomersService extends ValidateEntity {
       }
 
       await this.redisService.set(`customer:${id}`, JSON.stringify(customer), 32400);
-      console.log("CLIENTE SELECIONADO:", customer);
       return customer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -204,7 +203,6 @@ export class CustomersService extends ValidateEntity {
   ): Promise<CustomersEntity> => {
     try {
       const customer = await this.customerRepository.findOne({ where: { id } });
-      console.log('Datos recibidos en el backend:', updateData);
       if (!customer) {
         throw new ErrorManager({
           type: 'NOT_FOUND',

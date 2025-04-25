@@ -98,7 +98,7 @@ export class PolicyController {
   @Roles('ADMIN', 'BASIC')
   @Post('register-renewal')
   public async createReneval(@Body() body: PolicyRenewalDTO) {
-    const newRenewal = await this.policyService.createReneval(body);
+    const newRenewal = await this.policyService.createRenevalAndUpdate(body);
     if (newRenewal) {
       return {
         status: 'success',

@@ -98,6 +98,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ type: 'boolean' })
   renewalCommission: boolean;
 
+  @Column({ type: 'boolean', nullable: true })
+  renewalPolicy: boolean;
+
   @CreateDateColumn({
     type: 'timestamp with time zone',
     name: 'created_at',
