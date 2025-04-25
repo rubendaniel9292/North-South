@@ -53,7 +53,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
-  const [statusPolicy, setStatusPolicy] = useState({});
   const [allStatusPolicy, setAllStatusPolicy] = useState([]);
 
   //const location = useLocation();
@@ -96,9 +95,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     );
     if (selectedCustomer) {
       const customerCiRuc = selectedCustomer.ci_ruc;
-      //console.log("customerCiRuc:", customerCiRuc);
-      //console.log("cards:", cards.cardNumber);
-      //console.log("accounts:", accounts);
 
       if (cards && cards.length > 0) {
         const filteredCards = cards.filter(
@@ -303,9 +299,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             <h3 className="text-white fw-bold">
               Poliza selecionada para actualizar: {policy.numberPolicy}
             </h3>
-        
           </div>
-   
 
           <div className="justify-content-around mt-1">
             <form onSubmit={updatePolicy} id="user-form">
@@ -315,6 +309,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Número de póliza
                   </label>
                   <input
+                    readOnly
                     required
                     type="text"
                     className="form-control"
@@ -330,6 +325,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Tipo
                   </label>
                   <select
+                    readOnly
                     className="form-select"
                     id="policy_type_id"
                     name="policy_type_id"
@@ -356,11 +352,13 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.company_id} // Establece el valor predeterminado
                   >
                     <option disabled>{option}</option>
-                    {companies.map((copmany) => (
-                      <option key={copmany.id} value={copmany.id}>
-                        {copmany.companyName}
-                      </option>
-                    ))}
+                    {companies
+                      .filter((copmany) => copmany.id === form.company_id)
+                      .map((copmany) => (
+                        <option key={copmany.id} value={copmany.id}>
+                          {copmany.companyName}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="mb-3 col-3">

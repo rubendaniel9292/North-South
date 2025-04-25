@@ -77,13 +77,31 @@ const ListPolicies = () => {
   }, []);
 
   //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
-  const handlePolicyUpdated = (policyUpdated) => {
-    setPolicies((prevPolicy) =>
-      prevPolicy.map((policy) =>
-        policy.id === policyUpdated.id ? policyUpdated : policy
-      )
-    );
-  };
+// ... existing code ...
+const handlePolicyUpdated = (policyUpdated) => {
+  if (!policyUpdated) return;
+  
+  console.log("Póliza actualizada recibida:", policyUpdated);
+  
+  // Forzar una recarga completa de las pólizas desde el servidor
+  getAllPolicies();
+  
+  // También actualizamos la póliza seleccionada si es necesario
+  if (policy && policy.id === policyUpdated.id) {
+    setPolicy({
+      ...policy,
+      ...policyUpdated,
+      // Asegurarnos de que estos objetos anidados se actualicen correctamente
+      customer: policyUpdated.customer || policy.customer,
+      company: policyUpdated.company || policy.company,
+      policyType: policyUpdated.policyType || policy.policyType,
+      policyStatus: policyUpdated.policyStatus || policy.policyStatus,
+      paymentMethod: policyUpdated.paymentMethod || policy.paymentMethod,
+      paymentFrequency: policyUpdated.paymentFrequency || policy.paymentFrequency
+    });
+  }
+};
+// ... existing code ...
 
   // Usar el hook personalizado para la búsqueda
   const {

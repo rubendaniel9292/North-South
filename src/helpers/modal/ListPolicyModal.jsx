@@ -13,14 +13,15 @@ import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
-  if (!policy) return null;
+  const [localPolicy, setLocalPolicy] = useState(policy);
+  if (!localPolicy) return null;
   const itemsPerPage = 5; // Número de items por página
   //metodo para generacion de reporte
   const handleGenerateReport = (e) => {
     e.preventDefault();
-    console.log("Generating report with policy data:", policy);
+    console.log("Generating report with policy data:", localPolicy);
     generateReport(
-      policy,
+      localPolicy,
       "generate-report-pdf/download-policy",
       `data-report.pdf`,
       setIsLoading
@@ -33,7 +34,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
     currentItems: currentPayments,
     totalPages: totalPaymentsPages,
     paginate: paginatePayments,
-  } = usePagination(policy.payments, itemsPerPage);
+  } = usePagination(localPolicy.payments, itemsPerPage);
 
   // Usar el hook personalizado para la paginación de renovaciones
   const {
@@ -41,7 +42,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
     currentItems: currentRenewals,
     totalPages: totalRenewalsPages,
     paginate: paginateRenewals,
-  } = usePagination(policy.renewals || [], itemsPerPage);
+  } = usePagination(localPolicy.renewals || [], itemsPerPage);
 
   //metodo de para actualzar pagos
   const updatePaymentStatus = async (payment) => {
@@ -65,23 +66,44 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
       if (response.data.status === "success") {
         // Llamar después de actualizar exitosamente
-        alerts(
-          "Actualización exitosa",
-          "Pago actualizado correctamente",
-          "success"
-        );
+        // Actualizar el estado local del pago
+        const updatedPayments = localPolicy.payments.map((p) => {
+          if (p.id === payment.id) {
+            return {
+              ...p,
+              paymentStatus: {
+                id: 2,
+                statusNamePayment: "Al día",
+              },
+              credit: payment.value,
+              balance: "0.00",
+              pending_value: "0.00",
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return p;
+        });
 
         setTimeout(() => {
-          onClose();
-        }, 500);
-        // Verificar si se han completado todos los pagos
+          // Actualizar el estado local de la póliza con los pagos actualizados
+          setLocalPolicy({
+            ...localPolicy,
+            payments: updatedPayments,
+          });
+          alerts(
+            "Actualización exitosa",
+            "Pago actualizado correctamente",
+            "success"
+          );
+        }, 300);
+
         if (
           payment.pending_value <= 0 &&
           payment.number_payment >= policy.numberOfPayments
         ) {
           alerts(
             "Pagos Completados",
-            "Todos los pagos para esta póliza han sido completados.",
+            "Todos los pagos para este periodo han sido completados.",
             "info"
           );
         }
@@ -369,11 +391,13 @@ const ListPolicyModal = ({ policy, onClose }) => {
             ) : (
               <>
                 <tbody>
-                  {currentRenewals.map((renewal) => (
+                  {currentRenewals.map((renewal, index) => (
                     <tr key={renewal.id}>
-                      <td>
+                      {/*
+                         <td>
                         {(currentRenewalsPage - 1) * itemsPerPage + index + 1}
                       </td>
+                      */}
 
                       <td>{renewal.renewalNumber}</td>
                       <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>

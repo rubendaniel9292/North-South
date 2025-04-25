@@ -51,7 +51,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
     });
   };
 
-  const savedRenoval = async (e) => {
+  const renewallRenoval = async (e) => {
     setIsLoading(true);
     try {
       e.preventDefault();
@@ -85,7 +85,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
   };
   // Si los datos son inválidos, renderizar nada o un mensaje de error
   if (!isDataValid) {
-    return <div>Error: Datos de póliza o frecuencia de pago no válidos.</div>;
+    return <div>Error: Datos de póliza no válidos.</div>;
   }
 
   return (
@@ -98,7 +98,7 @@ const RegisterRenewalsModal = ({ policy, onClose }) => {
             </h3>
           </div>
           <div className="d-flex justify-content-around mt-5">
-            <form onSubmit={savedRenoval} id="user-form">
+            <form onSubmit={renewallRenoval} id="user-form">
               <div className="row">
                 <div className="mb-4 col-4 d-none">
                   <label htmlFor="policy_id" className="form-label">

@@ -76,11 +76,23 @@ const ListCustomer = () => {
     setShowModal(false);
   };
   const handleCustomerUpdated = (customerUpdated) => {
-    setCustomers((prevCustomers) =>
-      prevCustomers.map((customer) =>
-        customer.id === customerUpdated.id ? customerUpdated : customer
-      )
-    );
+    if (!customerUpdated) return;
+
+    console.log("Cliente actualizado recibido:", customerUpdated);
+
+    // Forzar una recarga completa de los clientes desde el servidor
+    getAllCustomers();
+
+    // También actualizamos el cliente seleccionado si es necesario
+    if (customerId && customerId.id === customerUpdated.id) {
+      setCustomerId({
+        ...customerId,
+        ...customerUpdated,
+        civil: customerUpdated.civil,
+        province: customerUpdated.province,
+        city: customerUpdated.city,
+      });
+    }
   };
 
   dayjs.locale("es");
@@ -175,11 +187,15 @@ const ListCustomer = () => {
                   <td>{customer.civil?.status}</td>
                   <td>{customer.province?.provinceName}</td>
                   <td>{customer.city?.cityName}</td>
-                  <td>{dayjs.utc(customer.birthdate).format("dddd  DD/MM/YYYY")}</td>
-                  
+                  <td>
+                    {dayjs.utc(customer.birthdate).format("dddd  DD/MM/YYYY")}
+                  </td>
+
                   <td>{customer.numberPhone}</td>
                   <td>{customer.email}</td>
-                  <td>{dayjs.utc(customer.createdAt).format("dddd DD/MM/YYYY")}</td>
+                  <td>
+                    {dayjs.utc(customer.createdAt).format("dddd DD/MM/YYYY")}
+                  </td>
 
                   <td>{customer.personalData === true ? "SÍ" : "NO"}</td>
                   {

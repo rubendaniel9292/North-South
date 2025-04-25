@@ -12,10 +12,11 @@ import { useCallback } from "react";
 
 const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
+
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed, setForm } = UserForm({
-    numberPolicy: policy.numberPolicy,
+    //numberPolicy: policy.numberPolicy,
     coverageAmount: policy.coverageAmount,
     agencyPercentage: policy.agencyPercentage,
     advisorPercentage: policy.advisorPercentage,
@@ -29,9 +30,9 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     observations: policy.observations,
     renewalCommission: policy.renewalCommission,
     policy_type_id: policy.policyType.id,
-    company_id: policy.company.id,
+    //company_id: policy.company.id,
     customers_id: policy.customer.id,
-    advisor_id: policy.advisor.id,
+    //advisor_id: policy.advisor.id,
     payment_method_id: policy.paymentMethod.id,
     credit_card_id: policy.creditCard?.id,
     bank_account_id: policy.bankAccount?.id,
@@ -39,23 +40,22 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     numberOfPayments: policy.numberOfPayments,
     numberOfPaymentsAdvisor: policy.numberOfPayments,
     payment_frequency_id: policy.paymentFrequency.id,
-    policy_status_id: policy.policyStatus.id,
+    //policy_status_id: policy.policyStatus.id,
   });
-  const [types, setType] = useState([]);
-  const [companies, setCompanies] = useState([]);
+  //const [types, setType] = useState([]);
+  //const [companies, setCompanies] = useState([]);
   const [frequency, setFrequency] = useState([]);
   const [selectedFrequencyId, setSelectedFrequencyId] = useState(0);
   const [customers, setCustomer] = useState([]);
-  const [advisor, setAdvisor] = useState([]);
+  //const [advisor, setAdvisor] = useState([]);
   const [cards, setCards] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
-  const [statusPolicy, setStatusPolicy] = useState({});
-  const [allStatusPolicy, setAllStatusPolicy] = useState([]);
-
+  //const [allStatusPolicy, setAllStatusPolicy] = useState([]);
+  const [isDataValid, setIsDataValid] = useState(true);
   //const location = useLocation();
   // Obtenemos el cliente pasado por NavLink, si lo hay
   //const customerFromNav = location.state?.customer;
@@ -64,7 +64,23 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
   //const [selectedCustomer, setSelectedCustomer] = useState(option);
-
+  // Actualizar el número de renovacion cuando se recibe el prop `policy`
+  useEffect(() => {
+    if (policy && policy.renewals) {
+      const lastRenowalNumber = policy.renewals.length
+        ? policy.renewals[policy.renewals.length - 1].renewalNumber
+        : 0;
+      setForm((prevForm) => ({
+        ...prevForm,
+        renewalNumber: lastRenowalNumber + 1, // Incrementar el último número de pago
+      }));
+    } else {
+      setForm((prevForm) => ({
+        ...prevForm,
+        renewalNumber: 1, // Valor por defecto si no hay datos de `payment`
+      }));
+    }
+  }, [policy]);
   useEffect(() => {
     if (policy) {
       setForm((prev) => ({
@@ -213,35 +229,35 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     const fetchData = async () => {
       try {
         const [
-          typeResponse,
-          companyResponse,
+          //typeResponse,
+          //companyResponse,
           frecuencyResponse,
           customerResponse,
-          advisorResponse,
+          //advisorResponse,
           paymentMethodResponse,
           creditCardResponse,
           accountResponse,
-          statuspolicyResponse,
+          //statuspolicyResponse,
         ] = await Promise.all([
-          http.get("policy/get-types"),
-          http.get("company/get-all-company"),
+          //http.get("policy/get-types"),
+          //http.get("company/get-all-company"),
           http.get("policy/get-frecuency"),
           http.get("customers/get-all-customer"),
-          http.get("advisor/get-all-advisor"),
+          //http.get("advisor/get-all-advisor"),
           http.get("policy/get-payment-method"),
           http.get("creditcard/all-cards-rp"),
           http.get("bankaccount/get-all-account"),
-          http.get("policy/get-all-satus-policy"),
+          //http.get("policy/get-all-satus-policy"),
         ]);
-        setType(typeResponse.data.allTypePolicy);
-        setCompanies(companyResponse.data.allCompanies);
+        //setType(typeResponse.data.allTypePolicy);
+        //setCompanies(companyResponse.data.allCompanies);
         setFrequency(frecuencyResponse.data.allFrecuency);
         setCustomer(customerResponse.data.allCustomer);
-        setAdvisor(advisorResponse.data.allAdvisors);
+        //setAdvisor(advisorResponse.data.allAdvisors);
         setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
         setCards(creditCardResponse.data.allCards);
         setAccounts(accountResponse.data.allBankAccounts);
-        setAllStatusPolicy(statuspolicyResponse.data.allStatusPolicy);
+        //setAllStatusPolicy(statuspolicyResponse.data.allStatusPolicy);
       } catch (error) {
         alerts("Error", "Error fetching data.", error);
       }
@@ -280,14 +296,14 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       } else {
         alerts(
           "Error",
-          "Póliza no actualizada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
+          "Póliza no renovada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
           "error"
         );
       }
     } catch (error) {
       alerts(
         "Error",
-        "No se registró la póliza, revise los campos e intente nuevamente.",
+        "No se renovó la póliza, revise los campos e intente nuevamente.",
         "error"
       );
       console.error("Error fetching policy:", error);
@@ -295,6 +311,9 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       setIsLoading(false);
     }
   };
+  if (!isDataValid) {
+    return <div>Error: Datos de póliza o frecuencia de pago no válidos.</div>;
+  }
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -307,60 +326,22 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
           <div className="justify-content-around mt-1">
             <form onSubmit={updatePolicy} id="user-form">
               <div className="row pt-3 fw-bold">
-                <div className="mb-3 col-3">
-                  <label htmlFor="numberPolicy" className="form-label">
-                    Número de póliza
+                <div className="mb-3 col-2">
+                  <label htmlFor="numberRenewal" className="form-label">
+                    Número de renovación
                   </label>
                   <input
                     required
-                    type="text"
+                    readOnly
+                    id="numberRenewal"
+                    type="number"
                     className="form-control"
-                    id="numberPolicy"
-                    name="numberPolicy"
+                    name="renewalNumber"
+                    value={form.renewalNumber}
                     onChange={changed}
-                    value={form.numberPolicy}
                   />
                 </div>
-
-                <div className="mb-3 col-3">
-                  <label htmlFor="policy_type_id" className="form-label">
-                    Tipo
-                  </label>
-                  <select
-                    className="form-select"
-                    id="policy_type_id"
-                    name="policy_type_id"
-                    onChange={changed}
-                    value={form.policy_type_id} // Establece el valor predeterminado
-                  >
-                    <option disabled>{option}</option>
-                    {types.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.policyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-3 col-3">
-                  <label htmlFor="company_id" className="form-label">
-                    Compañía
-                  </label>
-                  <select
-                    className="form-select"
-                    id="company_id"
-                    name="company_id"
-                    onChange={changed}
-                    value={form.company_id} // Establece el valor predeterminado
-                  >
-                    <option disabled>{option}</option>
-                    {companies.map((copmany) => (
-                      <option key={copmany.id} value={copmany.id}>
-                        {copmany.companyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="payment_frequency_id" className="form-label">
                     Frecuencia de pago
                   </label>
@@ -379,7 +360,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     ))}
                   </select>
                 </div>
-                <div className="mb-3 col-3">
+                <div className="d-none">
                   <label htmlFor="customers_id" className="form-label">
                     Cliente Beneficiario
                   </label>
@@ -404,33 +385,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                       ))}
                   </select>
                 </div>
-                <div className="mb-3 col-3">
-                  <label htmlFor="advisor_id" className="form-label">
-                    Asesor
-                  </label>
-                  <select
-                    className="form-select"
-                    id="advisor_id"
-                    name="advisor_id"
-                    onChange={changed}
-                    value={form.advisor_id} // Establece el valor predeterminado
-                  >
-                    {advisor
-                      .filter((item) => item.id === form.advisor_id)
-                      .map((item) => (
-                        <option
-                          key={item.id}
-                          value={item.id}
-                          disabled={item.id == form.advisor_id}
-                        >
-                          {`${item.firstName} ${item.secondName || ""} ${
-                            item.surname
-                          } ${item.secondSurname || ""}`.trim()}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="mb-3 col-3">
+
+                <div className="mb-3 col-2">
                   <label htmlFor="payment_method_id" className="form-label">
                     Metodo de Pago
                   </label>
@@ -449,30 +405,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     ))}
                   </select>
                 </div>
-                <div className="mb-3 col-3">
-                  <label htmlFor="policy_status_id" className="form-label">
-                    Estado de la Póliza (opcional)
-                  </label>
-                  <select
-                    className="form-select"
-                    id="policy_status_id"
-                    name="policy_status_id"
-                    onChange={changed}
-                    value={form.policy_status_id}
-                  >
-                    {allStatusPolicy
-                      .filter((status) => status.id != 3 && status.id != 4)
-                      .map((status) => (
-                        <option
-                          key={status.id}
-                          value={status.id}
-                          disabled={status.id == form.policy_status_id}
-                        >
-                          {status.statusName}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+
                 {selectedPaymentMethod === "9" && (
                   <div className="mb-3 col-3">
                     <label htmlFor="account_type_id" className="form-label">
@@ -532,7 +465,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     </select>
                   </div>
                 )}
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="coverageAmount" className="form-label">
                     Monto de Cobertura
                   </label>
@@ -546,7 +479,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.coverageAmount}
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="policyValue" className="form-label">
                     Valor de la Póliza
                   </label>
@@ -560,9 +493,9 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="policyFee" className="form-label">
-                    Derecho de póliza (opcional)
+                    Derecho de póliza
                   </label>
                   <input
                     type="number"
@@ -573,7 +506,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="agencyPercentage" className="form-label">
                     Procentaje de la Agencia
                   </label>
@@ -587,7 +520,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.agencyPercentage}
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="advisorPercentage" className="form-label">
                     Porcentaje del Asesor
                   </label>
@@ -602,48 +535,9 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   />
                 </div>
 
-                <div className="mb-3 col-3 ">
-                  <label htmlFor="flexRadioDefault7" className="form-label">
-                    Comisión por renovación
-                  </label>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="renewalCommission"
-                      id="flexRadioDefault7"
-                      value="true"
-                      onChange={changed}
-                      checked={form.renewalCommission === true}
-                    ></input>
-                    <label
-                      className="form-check-label"
-                      htmlFor="flexRadioDefault8"
-                    >
-                      Si
-                    </label>
-                  </div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="radio"
-                      name="renewalCommission"
-                      id="flexRadioDefault8"
-                      value="false"
-                      onChange={changed}
-                      checked={form.renewalCommission === false}
-                    ></input>
-                    <label
-                      className="form-check-label"
-                      htmlFor="flexRadioDefault8"
-                    >
-                      No
-                    </label>
-                  </div>
-                </div>
-                <div className="mb-3 col-3">
+                <div className="d-none">
                   <label htmlFor="numberOfPayments" className="form-label">
-                    Número de pagos de póliza
+                    N° de pagos de póliza
                   </label>
                   <input
                     required
@@ -660,35 +554,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     }
                   />
                 </div>
-                <div className="mb-3 col-3">
-                  <label htmlFor="startDate" className="form-label">
-                    Fecha de Inicio de la póliza
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    className="form-control"
-                    id="startDate"
-                    name="startDate"
-                    onChange={changed}
-                    value={form.startDate}
-                  />
-                </div>
-                <div className="mb-3 col-3">
-                  <label htmlFor="endDate" className="form-label">
-                    Fecha de Finalización de la póliza
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    className="form-control"
-                    id="endDate"
-                    name="endDate"
-                    onChange={changed}
-                    value={form.endDate}
-                  />
-                </div>
-                <div className="mb-3 col-3">
+
+                <div className="d-none">
                   <label htmlFor="paymentsToAgency" className="form-label">
                     Comisiones de la agencia
                   </label>
@@ -702,7 +569,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.paymentsToAgency || 0}
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="d-none">
                   <label htmlFor="paymentsToAdvisor" className="form-label">
                     Comisiones de asesor
                   </label>
@@ -717,12 +584,12 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   />
                 </div>
 
-                <div className="mb-3 col-3">
+                <div className=" d-none">
                   <label
                     htmlFor="numberOfPaymentsAdvisor"
                     className="form-label"
                   >
-                    Número de pagos al Asesor
+                    N° de pagos al Asesor
                   </label>
                   <input
                     required
@@ -739,21 +606,34 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     }
                   />
                 </div>
-
-                <div className="mb-3 col-3">
-                  <label htmlFor="observations" className="form-label">
-                    Observaciones
+                <div className="mb-3 col-2">
+                  <label htmlFor="balance" className="form-label">
+                    Fecha de renovacion
                   </label>
-                  <textarea
-                    type="text"
+                  <input
+                    required
+                    type="date"
                     className="form-control"
-                    id="observations"
-                    name="observations"
+                    id="createdAt"
+                    name="createdAt"
+                    value={form.createdAt}
                     onChange={changed}
-                    value={form.observations || ""}
                   />
                 </div>
-
+                <div className="mb-2 col-6">
+                    <label htmlFor="observations" className="form-label">
+                      Observaciones
+                    </label>
+                    <textarea
+                      type="text"
+                      className="form-control"
+                      id="observations"
+                      name="observations"
+                      onChange={changed}
+                      value={form.observations || ""}
+                    />
+                  </div>
+          
                 <div className="mt-2 col-12">
                   <button
                     type="submit"
@@ -765,7 +645,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                         <span className="visually-hidden">Registrando...</span>
                       </div>
                     ) : (
-                      "Actualizar Póliza"
+                      "Renovar Póliza"
                     )}
 
                     <FontAwesomeIcon
@@ -812,31 +692,9 @@ RenewallPolicyModal.propTypes = {
     policyFee: PropTypes.string,
     observations: PropTypes.string,
     renewalCommission: PropTypes.bool,
-    policyType: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      policyName: PropTypes.string.isRequired,
-    }).isRequired,
 
     customer: PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      ci_ruc: PropTypes.string.isRequired,
-      firstName: PropTypes.string.isRequired,
-      secondName: PropTypes.string,
-      surname: PropTypes.string.isRequired,
-      secondSurname: PropTypes.string,
-    }).isRequired,
-
-    company: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      companyName: PropTypes.string.isRequired,
-    }).isRequired,
-
-    advisor: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      firstName: PropTypes.string.isRequired,
-      secondName: PropTypes.string,
-      surname: PropTypes.string.isRequired,
-      secondSurname: PropTypes.string,
     }).isRequired,
 
     paymentMethod: PropTypes.shape({
@@ -857,42 +715,10 @@ RenewallPolicyModal.propTypes = {
         bankName: PropTypes.string.isRequired,
       }).isRequired,
     }),
-
-    policyStatus: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      statusName: PropTypes.string.isRequired,
-    }).isRequired,
-
     paymentFrequency: PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
-
-    payments: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired, // Hacer opcional y permitir string o number
-        pending_value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired,
-        number_payment: PropTypes.number.isRequired,
-        value: PropTypes.string.isRequired,
-        credit: PropTypes.string.isRequired,
-        balance: PropTypes.string.isRequired,
-        total: PropTypes.string.isRequired,
-        observations: PropTypes.string,
-        createdAt: PropTypes.string.isRequired,
-        status_payment_id: PropTypes.oneOfType([
-          PropTypes.string,
-          PropTypes.number,
-        ]).isRequired, // Hacer opcional y permitir string o number
-        paymentStatus: PropTypes.shape({
-          id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-            .isRequired, // Hacer opcional y permitir string o number
-          statusNamePayment: PropTypes.string.isRequired,
-        }).isRequired,
-        updatedAt: PropTypes.string.isRequired,
-      })
-    ).isRequired,
 
     renewals: PropTypes.arrayOf(
       PropTypes.shape({
