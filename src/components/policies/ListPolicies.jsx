@@ -40,6 +40,22 @@ const ListPolicies = () => {
     }
     return null; // Devuelve null en caso de error
   }, []);
+  const getAllPolicies = useCallback(async () => {
+    try {
+      const response = await http.get("policy/get-all-policy");
+      if (response.data.status === "success") {
+        setPolicies(response.data.allPolicy);
+        console.log("TODAS LAS POLIZAS: ", response.data.allPolicy);
+      } else {
+        //alerts("Error", "No existen póilzas  registradas", "error");
+        console.error("Error fetching polizas:", response.message);
+      }
+    } catch (error) {
+      //setError(error);
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error fetching póilzas:", error);
+    }
+  }, []);
 
   //metodo de prueba de registro de pago de poliza
 
@@ -50,7 +66,16 @@ const ListPolicies = () => {
 
       if (response.data.status === "success") {
         alerts("Pago registrado", response.data.message, "success");
+
         console.log("Pagos creados:", response.data.data.createdPayments); // Mostrar detalles
+        // Actualizar inmediatamente después de procesar pagos
+        getAllPolicies();
+
+        // Programar otra actualización después de un breve retraso
+        // para asegurarse de que los datos del servidor estén actualizados
+        setTimeout(() => {
+          getAllPolicies();
+        }, 5000); // 5 segundos
       } else {
         alerts("Error", response.data.message, "error");
       }
@@ -74,34 +99,65 @@ const ListPolicies = () => {
 
   useEffect(() => {
     getAllPolicies();
-  }, []);
+    // intervalo para actualizar las pólizas cada 30 segundos active automáticamente cuando el saldo pendiente llegue a 0
+    /*
+    const intervalId = setInterval(() => {
+      getAllPolicies();
+      // Limpiar el intervalo cuando el componente se desmonte
+      return () => clearInterval(intervalId);
+    }, 30000);*/
+  }, [getAllPolicies]);
 
   //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
-// ... existing code ...
-const handlePolicyUpdated = (policyUpdated) => {
-  if (!policyUpdated) return;
-  
-  console.log("Póliza actualizada recibida:", policyUpdated);
-  
-  // Forzar una recarga completa de las pólizas desde el servidor
-  getAllPolicies();
-  
-  // También actualizamos la póliza seleccionada si es necesario
-  if (policy && policy.id === policyUpdated.id) {
-    setPolicy({
-      ...policy,
-      ...policyUpdated,
-      // Asegurarnos de que estos objetos anidados se actualicen correctamente
-      customer: policyUpdated.customer || policy.customer,
-      company: policyUpdated.company || policy.company,
-      policyType: policyUpdated.policyType || policy.policyType,
-      policyStatus: policyUpdated.policyStatus || policy.policyStatus,
-      paymentMethod: policyUpdated.paymentMethod || policy.paymentMethod,
-      paymentFrequency: policyUpdated.paymentFrequency || policy.paymentFrequency
+  // ... existing code ...
+  const handlePolicyUpdated = (policyUpdated) => {
+    if (!policyUpdated) return;
+
+    console.log("Póliza actualizada recibida:", policyUpdated);
+
+    // Actualizar la póliza en el array de pólizas
+    setPolicies((prevPolicies) => {
+      return prevPolicies.map((p) => {
+        if (p.id === policyUpdated.id) {
+          // Crear una copia actualizada de la póliza
+          const updatedPolicy = {
+            ...p,
+            ...policyUpdated,
+            // Mantener las referencias a objetos anidados
+            customer: policyUpdated.customer || p.customer,
+            company: policyUpdated.company || p.company,
+            policyType: policyUpdated.policyType || p.policyType,
+            policyStatus: policyUpdated.policyStatus || p.policyStatus,
+            paymentMethod: policyUpdated.paymentMethod || p.paymentMethod,
+            paymentFrequency:
+              policyUpdated.paymentFrequency || p.paymentFrequency,
+          };
+
+          return updatedPolicy;
+        }
+        return p;
+      });
     });
-  }
-};
-// ... existing code ...
+
+    // También actualizamos la póliza seleccionada si es necesario
+    if (policy && policy.id === policyUpdated.id) {
+      setPolicy({
+        ...policy,
+        ...policyUpdated,
+        // Asegurarnos de que estos objetos anidados se actualicen correctamente
+        customer: policyUpdated.customer || policy.customer,
+        company: policyUpdated.company || policy.company,
+        policyType: policyUpdated.policyType || policy.policyType,
+        policyStatus: policyUpdated.policyStatus || policy.policyStatus,
+        paymentMethod: policyUpdated.paymentMethod || policy.paymentMethod,
+        paymentFrequency:
+          policyUpdated.paymentFrequency || policy.paymentFrequency,
+      });
+    }
+
+    // Forzar una recarga completa de las pólizas desde el servidor
+    getAllPolicies();
+  };
 
   // Usar el hook personalizado para la búsqueda
   const {
@@ -131,22 +187,7 @@ const handlePolicyUpdated = (policyUpdated) => {
   }
 
   dayjs.locale("es");
-  const getAllPolicies = useCallback(async () => {
-    try {
-      const response = await http.get("policy/get-all-policy");
-      if (response.data.status === "success") {
-        setPolicies(response.data.allPolicy);
-        console.log("TODAS LAS POLIZAS: ", response.data.allPolicy);
-      } else {
-        //alerts("Error", "No existen póilzas  registradas", "error");
-        console.error("Error fetching polizas:", response.message);
-      }
-    } catch (error) {
-      //setError(error);
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error fetching póilzas:", error);
-    }
-  }, []);
+
   return (
     <>
       <section>
@@ -273,9 +314,24 @@ const handlePolicyUpdated = (policyUpdated) => {
                         Añadir nota de pago
                       </button>
                       */}
+                      {/*Identifica correctamente el último pago : 
+                      Usando reduce() para encontrar el pago con el número más alto, independientemente del orden en el array.*/}
                       <button
                         className="btn btn-secondary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "renewal")}
+                        disabled={
+                          !policy.payments?.length ||
+                          parseFloat(
+                            policy.payments.reduce(
+                              (latest, payment) =>
+                                parseInt(payment.number_payment) >
+                                parseInt(latest.number_payment)
+                                  ? payment
+                                  : latest,
+                              policy.payments[0]
+                            ).pending_value
+                          ) > 0
+                        }
                       >
                         Renovar póliza
                       </button>

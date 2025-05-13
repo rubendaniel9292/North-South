@@ -10,77 +10,35 @@ import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useCallback } from "react";
 
-const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
+const RenewallPolicyModal = ({ policy, onClose }) => {
   if (!policy) return null;
 
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed, setForm } = UserForm({
-    //numberPolicy: policy.numberPolicy,
-    coverageAmount: policy.coverageAmount,
-    agencyPercentage: policy.agencyPercentage,
-    advisorPercentage: policy.advisorPercentage,
-    coverageAmount: policy.coverageAmount,
-    policyValue: policy.policyValue,
-    startDate: dayjs.utc(policy.startDate).format("YYYY-MM-DD").toString(),
-    endDate: dayjs.utc(policy.endDate).format("YYYY-MM-DD").toString(),
-    paymentsToAdvisor: policy.paymentsToAdvisor,
-    paymentsToAgency: policy.paymentsToAgency,
-    policyFee: policy.policyFee,
-    observations: policy.observations,
-    renewalCommission: policy.renewalCommission,
-    policy_type_id: policy.policyType.id,
-    //company_id: policy.company.id,
-    customers_id: policy.customer.id,
-    //advisor_id: policy.advisor.id,
-    payment_method_id: policy.paymentMethod.id,
-    credit_card_id: policy.creditCard?.id,
-    bank_account_id: policy.bankAccount?.id,
-    payment_frequency_id: policy.payment?.paymentFrequency.id,
-    numberOfPayments: policy.numberOfPayments,
-    numberOfPaymentsAdvisor: policy.numberOfPayments,
-    payment_frequency_id: policy.paymentFrequency.id,
-    //policy_status_id: policy.policyStatus.id,
+    policy_id: policy.id,
+    //createdAt:  dayjs(form.createdAt).toISOString(), // Usar versión ISO o convertir
   });
-  //const [types, setType] = useState([]);
-  //const [companies, setCompanies] = useState([]);
-  const [frequency, setFrequency] = useState([]);
-  const [selectedFrequencyId, setSelectedFrequencyId] = useState(0);
-  const [customers, setCustomer] = useState([]);
-  //const [advisor, setAdvisor] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [accounts, setAccounts] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState([]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-  const [filteredCard, setFilteredCard] = useState([]);
-  const [filteredAccount, setFilteredAccount] = useState([]);
-  //const [allStatusPolicy, setAllStatusPolicy] = useState([]);
-  const [isDataValid, setIsDataValid] = useState(true);
-  //const location = useLocation();
-  // Obtenemos el cliente pasado por NavLink, si lo hay
-  //const customerFromNav = location.state?.customer;
-  //const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
 
-  // Estado inicial del cliente seleccionado
-  const option = "Escoja una opción";
-  //const [selectedCustomer, setSelectedCustomer] = useState(option);
+  const [isDataValid, setIsDataValid] = useState(true);
+
   // Actualizar el número de renovacion cuando se recibe el prop `policy`
   useEffect(() => {
     if (policy && policy.renewals) {
-      const lastRenowalNumber = policy.renewals.length
-        ? policy.renewals[policy.renewals.length - 1].renewalNumber
-        : 0;
+      // Usar directamente la longitud del array + 1 para asegurar secuencia correcta
+      const newRenewalNumber = policy.renewals.length + 1;
       setForm((prevForm) => ({
         ...prevForm,
-        renewalNumber: lastRenowalNumber + 1, // Incrementar el último número de pago
+        renewalNumber: newRenewalNumber,
       }));
     } else {
       setForm((prevForm) => ({
         ...prevForm,
-        renewalNumber: 1, // Valor por defecto si no hay datos de `payment`
+        renewalNumber: 1, // Valor por defecto si no hay renovaciones
       }));
     }
   }, [policy]);
+  /*
   useEffect(() => {
     if (policy) {
       setForm((prev) => ({
@@ -88,52 +46,26 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       }));
     }
   }, [policy]);
-
-  //handleSelectChange para manejar la selección manual del cliente
-
-  const handleSelectChange = (e) => {
-    handleCard_Accunt(e);
-    setSelectedCustomer(e.target.value);
-    // Asegurar que se guarde como número
-    changed({
-      target: {
-        name: "customers_id",
-        value: parseInt(e.target.value),
-      },
-    });
-    handleCard_Accunt(e);
-  };
-
-  //filtro de tarjeta por clienes
-  const handleCard_Accunt = (e) => {
-    const selectedCustomerId = e.target.value;
-    const selectedCustomer = customers.find(
-      (customer) => customer.id === selectedCustomerId
-    );
-    if (selectedCustomer) {
-      const customerCiRuc = selectedCustomer.ci_ruc;
-      //console.log("customerCiRuc:", customerCiRuc);
-      //console.log("cards:", cards.cardNumber);
-      //console.log("accounts:", accounts);
-
-      if (cards && cards.length > 0) {
-        const filteredCards = cards.filter(
-          (card) => card.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredCard(filteredCards);
-      }
-      if (accounts && accounts.length > 0) {
-        const filteredAccount = accounts.filter(
-          (account) => account.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredAccount(filteredAccount);
-      }
+*/
+  useEffect(() => {
+    if (!policy) {
+      console.error("Error al recibir el objeto", policy);
+      setIsDataValid(false);
+      return null;
     }
-
-    changed(e);
+  }, [policy]);
+  // Manejo especial para el campo de fecha
+  /*
+  const handleDateChange = (e) => {
+    const { value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      createdAt: value,
+    }));
   };
-
+*/
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
+  /*
   const calculateAdvisorPayment = useCallback(() => {
     const value = Number(form.policyValue);
     const percentageAdvisor = Number(form.advisorPercentage);
@@ -170,133 +102,67 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     form.policyFee,
     form.agencyPercentage,
   ]);
-
-  const handlePaymentMethodChange = (e) => {
-    const paymentMetohd = e.target.value;
-    setSelectedPaymentMethod(paymentMetohd); // Actualiza el estado con el nuevo método de pago seleccionado
-    changed(e);
-  };
-
-  // Maneja el cambio de frecuencia de pago
-  const handleFrequencyChange = (e) => {
-    const selectedFrequencyId = Number(e.target.value); // ID de la frecuencia seleccionada
-    console.log(
-      "selectedFrequencyId:",
-      selectedFrequencyId && typeof selectedFrequencyId
-    );
-    const frequencyMap = {
-      1: 12, // Mensual
-      2: 4, // Trimestral
-      3: 2, // Semestral
-      4: 1, // Anual (default)
-      5: "", //otro
-    };
-    const calculatedPayments = frequencyMap[selectedFrequencyId]; // Número de pagos calculado
-
-    // Actualiza los campos relacionados en el formulario
-    changed([
-      {
-        name: "payment_frequency_id",
-        value: selectedFrequencyId,
-      },
-      {
-        name: "numberOfPayments",
-        value: calculatedPayments,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value: calculatedPayments,
-      },
-    ]);
-
-    setSelectedFrequencyId(selectedFrequencyId);
-  };
-
-  const handlePaymentsChange = (e) => {
-    const { value } = e.target;
-    changed([
-      {
-        name: "numberOfPayments",
-        value,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value,
-      },
-    ]);
-  };
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [
-          //typeResponse,
-          //companyResponse,
-          frecuencyResponse,
-          customerResponse,
-          //advisorResponse,
-          paymentMethodResponse,
-          creditCardResponse,
-          accountResponse,
-          //statuspolicyResponse,
-        ] = await Promise.all([
-          //http.get("policy/get-types"),
-          //http.get("company/get-all-company"),
-          http.get("policy/get-frecuency"),
-          http.get("customers/get-all-customer"),
-          //http.get("advisor/get-all-advisor"),
-          http.get("policy/get-payment-method"),
-          http.get("creditcard/all-cards-rp"),
-          http.get("bankaccount/get-all-account"),
-          //http.get("policy/get-all-satus-policy"),
-        ]);
-        //setType(typeResponse.data.allTypePolicy);
-        //setCompanies(companyResponse.data.allCompanies);
-        setFrequency(frecuencyResponse.data.allFrecuency);
-        setCustomer(customerResponse.data.allCustomer);
-        //setAdvisor(advisorResponse.data.allAdvisors);
-        setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
-        setCards(creditCardResponse.data.allCards);
-        setAccounts(accountResponse.data.allBankAccounts);
-        //setAllStatusPolicy(statuspolicyResponse.data.allStatusPolicy);
-      } catch (error) {
-        alerts("Error", "Error fetching data.", error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
+*/
+/*
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-
-  const updatePolicy = async (e) => {
+*/
+  const renewalAndUpdatePolicy = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      let newPolicy = { ...form };
-      const request = await http.post(
-        `policy/update-policy/${policy.id}`,
-        newPolicy
-      );
+      const renewalData = {
+        policy_id: policy.id,
+        renewalNumber: form.renewalNumber,
+        createdAt: form.createdAt,
+        observations: form.observations || "",
+      };
 
-      if (request.data.status === "success") {
-        console.log("Poliza actualizada: ", request.data);
+      const renewalRequest = await http.post(
+        "policy/register-renewal",
+        renewalData
+      );
+      if (renewalRequest.data.status !== "success") {
+        throw new Error("Error al registrar la renovación");
+      }
+
+      // 2. Luego actualizar la póliza
+      /*
+      const policyData = {
+        coverageAmount: form.coverageAmount,
+        policyValue: form.policyValue,
+        policyFee: form.policyFee,
+        agencyPercentage: form.agencyPercentage,
+        advisorPercentage: form.advisorPercentage,
+        paymentsToAgency: form.paymentsToAgency,
+        paymentsToAdvisor: form.paymentsToAdvisor,
+      };
+      /*
+      const policyRequest = await http.post(
+        `policy/update-policy/${policy.id}`,
+        policyData
+      );
+*/
+      if (renewalRequest.data.status === "success") {
         alerts(
-          "Actualización exitoso",
-          "Póliza actualizada correctamente",
+          "Renovación exitosa",
+          "Póliza renovada correctamente",
           "success"
         );
-        //document.querySelector("#user-form").reset();
+
         // Llamar a la función de callback para propagar el cambio
-        onPolicyUpdated(request.data.policyUpdate);
+        /*
+        if (typeof onPolicyUpdated === "function") {
+          onPolicyUpdated(policyRequest.data.policyUpdate);
+        }*/
         setTimeout(() => {
           onClose();
         }, 500);
       } else {
         alerts(
-          "Error",
-          "Póliza no renovada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
+          "Error durante la actualización de la póliza",
+          "Póliza no actualizada correctamente.",
           "error"
         );
       }
@@ -317,16 +183,30 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
-        <article className="modal-content text-center px-5 py-5">
-          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
+        <article className="modal-content modal-content-renewal  text-center px-5 py-5">
+          <div className="d-flex justify-content-center align-items-center conten-title rounded">
             <h3 className="text-white fw-bold">
               Poliza selecionada a renovar: {policy.numberPolicy}
             </h3>
           </div>
           <div className="justify-content-around mt-1">
-            <form onSubmit={updatePolicy} id="user-form">
+            <form onSubmit={renewalAndUpdatePolicy} id="user-form">
               <div className="row pt-3 fw-bold">
-                <div className="mb-3 col-2">
+                <div className="mb-3  d-none">
+                  <label htmlFor="policy_id" className="form-label">
+                    Id de Póliza
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="form-control"
+                    id="policy_id"
+                    name="policy_id"
+                    value={policy.id}
+                    readOnly
+                  />
+                </div>
+                <div className="mb-3 col-4">
                   <label htmlFor="numberRenewal" className="form-label">
                     Número de renovación
                   </label>
@@ -341,131 +221,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed}
                   />
                 </div>
-                <div className="mb-3 col-2">
-                  <label htmlFor="payment_frequency_id" className="form-label">
-                    Frecuencia de pago
-                  </label>
-                  <select
-                    className="form-select"
-                    id="payment_frequency_id"
-                    name="payment_frequency_id"
-                    onChange={handleFrequencyChange}
-                    value={form.payment_frequency_id} // Establece el valor predeterminado
-                  >
-                    <option disabled>{option}</option>
-                    {frequency.map((frequency) => (
-                      <option key={frequency.id} value={frequency.id}>
-                        {frequency.frequencyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="d-none">
-                  <label htmlFor="customers_id" className="form-label">
-                    Cliente Beneficiario
-                  </label>
-                  <select
-                    className="form-select"
-                    id="customers_id"
-                    name="customers_id"
-                    value={form.customers_id} // Seleccionamos el cliente automáticamente o se setea en vacio
-                    onChange={handleSelectChange}
-                    //disabled={!isEditable} // Deshabilitar el select si isEditable es false
-                  >
-                    {customers
-                      .filter((item) => item.id === form.customers_id)
-                      .map((customer) => (
-                        <option key={customer.id} value={customer.id} disabled>
-                          {`${customer.firstName} ${
-                            customer.secondName || ""
-                          } ${customer.surname} ${
-                            customer.secondSurname || ""
-                          }`.trim()}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="mb-3 col-2">
-                  <label htmlFor="payment_method_id" className="form-label">
-                    Metodo de Pago
-                  </label>
-                  <select
-                    className="form-select"
-                    id="payment_method_id"
-                    name="payment_method_id"
-                    onChange={handlePaymentMethodChange} // Cambiado aquí
-                    value={form.payment_method_id} // Establece el valor predeterminado
-                  >
-                    <option disabled>{option}</option>
-                    {paymentMethod.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.methodName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {selectedPaymentMethod === "9" && (
-                  <div className="mb-3 col-3">
-                    <label htmlFor="account_type_id" className="form-label">
-                      Cuenta Bancaria
-                    </label>
-                    <select
-                      className="form-select"
-                      id="bank_account_id"
-                      name="bank_account_id"
-                      onChange={changed}
-                      defaultValue={option}
-                    >
-                      {filteredAccount.length > 0 ? (
-                        <>
-                          <option disabled> {option}</option>
-                          {filteredAccount.map((account) => (
-                            <option key={account.id} value={account.id}>
-                              {account.accountNumber} - {account.bank?.bankName}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option className="bs-danger-bg-subtle">
-                          No hay cuentas asociadas a este cliente.
-                        </option>
-                      )}
-                    </select>
-                  </div>
-                )}
-
-                {selectedPaymentMethod === "6" && (
-                  <div className="mb-3 col-3">
-                    <label htmlFor="credit_card_id" className="form-label">
-                      Tarjeta de Crédito
-                    </label>
-                    <select
-                      className="form-select"
-                      id="credit_card_id"
-                      name="credit_card_id"
-                      onChange={changed}
-                      defaultValue={option}
-                    >
-                      {filteredCard.length > 0 ? (
-                        <>
-                          <option disabled> {option}</option>
-                          {filteredCard.map((card) => (
-                            <option key={card.id} value={card.id}>
-                              {card.cardNumber} - {card.bank?.bankName}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option className="bs-danger-bg-subtle">
-                          No hay tarjetas asociadas a este cliente.
-                        </option>
-                      )}
-                    </select>
-                  </div>
-                )}
-                <div className="mb-3 col-2">
+                {/* 
+                <div className="mb-3 col-3">
                   <label htmlFor="coverageAmount" className="form-label">
                     Monto de Cobertura
                   </label>
@@ -479,7 +236,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.coverageAmount}
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="policyValue" className="form-label">
                     Valor de la Póliza
                   </label>
@@ -493,7 +250,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="policyFee" className="form-label">
                     Derecho de póliza
                   </label>
@@ -506,7 +263,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="agencyPercentage" className="form-label">
                     Procentaje de la Agencia
                   </label>
@@ -520,7 +277,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.agencyPercentage}
                   />
                 </div>
-                <div className="mb-3 col-2">
+                <div className="mb-3 col-3">
                   <label htmlFor="advisorPercentage" className="form-label">
                     Porcentaje del Asesor
                   </label>
@@ -532,26 +289,6 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     name="advisorPercentage"
                     onChange={changed} // Llamada a la función
                     value={form.advisorPercentage}
-                  />
-                </div>
-
-                <div className="d-none">
-                  <label htmlFor="numberOfPayments" className="form-label">
-                    N° de pagos de póliza
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    className="form-control"
-                    id="numberOfPayments"
-                    name="numberOfPayments"
-                    value={form.numberOfPayments}
-                    readOnly={selectedFrequencyId !== 5}
-                    onChange={
-                      selectedFrequencyId === 5
-                        ? handlePaymentsChange
-                        : undefined
-                    }
                   />
                 </div>
 
@@ -583,30 +320,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.paymentsToAdvisor || 0}
                   />
                 </div>
-
-                <div className=" d-none">
-                  <label
-                    htmlFor="numberOfPaymentsAdvisor"
-                    className="form-label"
-                  >
-                    N° de pagos al Asesor
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    className="form-control"
-                    id="numberOfPaymentsAdvisor"
-                    name="numberOfPaymentsAdvisor"
-                    value={form.numberOfPaymentsAdvisor}
-                    readOnly={selectedFrequencyId !== 5}
-                    onChange={
-                      selectedFrequencyId === 5
-                        ? handlePaymentsChange
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className="mb-3 col-2">
+*/}
+                <div className="mb-3 col-4 ">
                   <label htmlFor="balance" className="form-label">
                     Fecha de renovacion
                   </label>
@@ -616,25 +331,24 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     className="form-control"
                     id="createdAt"
                     name="createdAt"
-                    value={form.createdAt}
                     onChange={changed}
                   />
                 </div>
-                <div className="mb-2 col-6">
-                    <label htmlFor="observations" className="form-label">
-                      Observaciones
-                    </label>
-                    <textarea
-                      type="text"
-                      className="form-control"
-                      id="observations"
-                      name="observations"
-                      onChange={changed}
-                      value={form.observations || ""}
-                    />
-                  </div>
-          
-                <div className="mt-2 col-12">
+
+                <div className="mb-2 col-4">
+                  <label htmlFor="observations" className="form-label">
+                    Observaciones
+                  </label>
+                  <textarea
+                    type="text"
+                    className="form-control"
+                    id="observations"
+                    name="observations"
+                    onChange={changed}
+                    value={form.observations || ""}
+                  />
+                </div>
+                <div className="mt-2 col-">
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -679,47 +393,6 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 RenewallPolicyModal.propTypes = {
   policy: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-    numberPolicy: PropTypes.string.isRequired,
-    coverageAmount: PropTypes.string.isRequired,
-    agencyPercentage: PropTypes.string.isRequired,
-    advisorPercentage: PropTypes.string,
-    policyValue: PropTypes.string.isRequired,
-    numberOfPayments: PropTypes.number,
-    startDate: PropTypes.string, // o PropTypes.instanceOf(Date) si es un objeto Date
-    endDate: PropTypes.string,
-    paymentsToAdvisor: PropTypes.string,
-    paymentsToAgency: PropTypes.string,
-    policyFee: PropTypes.string,
-    observations: PropTypes.string,
-    renewalCommission: PropTypes.bool,
-
-    customer: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-    }).isRequired,
-
-    paymentMethod: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      methodName: PropTypes.string.isRequired,
-    }).isRequired,
-
-    bankAccount: PropTypes.shape({
-      bank_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      bank: PropTypes.shape({
-        bankName: PropTypes.string.isRequired,
-      }).isRequired,
-    }),
-
-    creditCard: PropTypes.shape({
-      bank_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      bank: PropTypes.shape({
-        bankName: PropTypes.string.isRequired,
-      }).isRequired,
-    }),
-    paymentFrequency: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
-      frequencyName: PropTypes.string.isRequired,
-    }).isRequired,
-
     renewals: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])

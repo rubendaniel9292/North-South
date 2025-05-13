@@ -14,42 +14,46 @@ const UserForm = (initialObj) => {
       const { name, value, type } = changes.target;
 
       // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas
-      if (type === "text") {
+      if (type === "text" && name !== "username" && name !== "username") {
         setForm((prevForm) => ({
           ...prevForm,
           [name]: value.toUpperCase(),
         }));
       }
-      // Manejo específico para fechas
+
+      // Para campos de fecha
       else if (type === "date") {
-        const formattedDate = dayjs(value).utc(true).toISOString();
+        if (value) {
+          try {
+            // Guardar el valor original para el input
+            const isoValue = dayjs(value).toISOString();
+            setForm((prevForm) => ({
+              ...prevForm,
+              [name]: value,
+              // Guardar una propiedad adicional con el formato ISO
+              [`${name}ForBackend`]: isoValue,
+            }));
+          } catch (error) {
+            console.error(`Error procesando fecha ${name}:`, error);
+          }
+        }
+      } else {
+        let finalValue = value;
+
+        // Manejo especial para radios
+        if (
+          name === "personalData" ||
+          (name === "renewalCommission" && type === "radio")
+        ) {
+          finalValue = value === "true"; // Convierte el valor a booleano
+        }
+
         setForm((prevForm) => ({
           ...prevForm,
-          [name]: formattedDate,
+          [name]: finalValue,
+          //[name]: finalValue === "true" ? true : false,
         }));
       }
-      let finalValue = value;
-
-      // Manejo especial para radios
-
-      if (name === "personalData" || name === "renewalCommission" && type === "radio") {
-        finalValue = value === "true"; // Convierte el valor a booleano
-      }
-
-      setForm((prevForm) => ({
-        ...prevForm,
-        [name]: finalValue,
-        //[name]: finalValue === "true" ? true : false,
-      }));
-      /*
-
-      if (name === "renewalCommission" && type === "radio") {
-        finalValue = value === "true"; // Convierte el valor a booleano
-      }
-      setForm((prevForm) => ({
-        ...prevForm,
-        [name]: finalValue === "true" ? true : false,
-      }));*/
     }
     // Múltiples cambios
     else if (Array.isArray(changes)) {

@@ -231,8 +231,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <th>Total</th>
                 <th>Fecha de pago fija</th>
                 <th>Fecha de actualizacion</th>
+                
                 <th>Estado</th>
-                {/*<th>Observaciones</th>*/}
+                <th>Observaciones</th>
 
                 <th>Acciones</th>
               </tr>
@@ -273,8 +274,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     >
                       {payment.paymentStatus.statusNamePayment}
                     </td>
-                    {/*
-                    <td>{payment.observations || "N/A"}</td>*/}
+                    
+                    <td>{payment.observations || "N/A"}</td>
                     <td>
                       <button
                         type="button"
@@ -400,7 +401,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                       */}
 
                       <td>{renewal.renewalNumber}</td>
-                      <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>
+                      <td>{dayjs.utc(renewal.createdAt).format("DD/MM/YYYY")}</td>
                       <td>{renewal.observations || "N/A"}</td>
                     </tr>
                   ))}

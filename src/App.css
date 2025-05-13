@@ -31,8 +31,9 @@ body.modal-open {
         border-radius: 8px;
 
         .modal-content {
-            max-width: 70%;
+            max-width: 79%;
             min-height: 35%;
+
             .conten-title {
                 background-color: #5e72e4 !important;
                 height: 3.5rem;
@@ -41,6 +42,8 @@ body.modal-open {
                 -ms-border-radius: 8px 8px 0 0;
                 -o-border-radius: 8px 8px 0 0;
             }
+
+
 
             .btn:hover {
                 background-color: var(--secondary);
@@ -53,6 +56,10 @@ body.modal-open {
             #btnc :hover {
                 background-color: red !important;
             }
+        }
+
+        .modal-content-renewal {
+            max-width: 70% !important;
         }
     }
 }

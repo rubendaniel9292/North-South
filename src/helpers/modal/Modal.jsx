@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import PaymentModalContent from "./PaymentModalContent";
 import ListPolicyModal from "./ListPolicyModal";
-import RegisterRenewalsModal from "./RegisterRenewalsModal";
+
 import CustomerModalContent from "./CustomerModalContent";
 import PolicyStatusModal from "./PolicyStatusModal";
 import CardsModal from "./CardsModal";
@@ -46,7 +46,7 @@ export default function Modal({
           />
         );
       case "renewal":
-        return <RenewallPolicyModal onClose={onClose} policy={policy} />;
+        return <RenewallPolicyModal onClose={onClose} policy={policy} onPolicyUpdated={onPolicyUpdated}/>;
       case "customerId":
         return (
           <CustomerModalContent onClose={onClose} customerId={customerId} />

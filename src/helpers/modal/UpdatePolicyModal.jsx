@@ -55,11 +55,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [filteredAccount, setFilteredAccount] = useState([]);
   const [allStatusPolicy, setAllStatusPolicy] = useState([]);
 
-  //const location = useLocation();
-  // Obtenemos el cliente pasado por NavLink, si lo hay
-  //const customerFromNav = location.state?.customer;
-  //const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
-
   // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
   //const [selectedCustomer, setSelectedCustomer] = useState(option);
