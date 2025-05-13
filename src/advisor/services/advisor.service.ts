@@ -6,7 +6,7 @@ import { ValidateEntity } from '@/helpers/validations';
 import { ErrorManager } from '@/helpers/error.manager';
 import { AdvisorDTO } from '../dto/advisor.dto';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
-
+import { DateHelper } from '@/helpers/date.helper';
 @Injectable()
 export class AdvisorService extends ValidateEntity {
   constructor(
@@ -22,6 +22,8 @@ export class AdvisorService extends ValidateEntity {
     try {
 
       await this.validateInput(body, 'advisor');
+      const birthday = DateHelper.normalizeDateForDB(body.birthdate);
+      body.birthdate = birthday;
       body.firstName = body.firstName.toUpperCase();
       body.secondName = body.secondName.toUpperCase();
       body.surname = body.surname.toUpperCase()
@@ -119,6 +121,8 @@ export class AdvisorService extends ValidateEntity {
         });
       }
       // Convertir a mayúsculas y asignar de nuevo
+      const birthday = DateHelper.normalizeDateForDB(updateData.birthdate);
+      updateData.birthdate = birthday;
       updateData.firstName = updateData.firstName.toUpperCase();
       updateData.secondName = updateData.secondName.toUpperCase();
       updateData.surname = updateData.surname.toUpperCase();

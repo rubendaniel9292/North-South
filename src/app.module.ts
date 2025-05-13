@@ -78,8 +78,7 @@ export default class AppModule implements OnModuleInit {
     await this.policyStatusRepository.getPolicyStatus();
     process.env.TZ = 'America/Guayaquil'; // Configura la zona horaria
     console.log('Zona horaria configurada:');
-    console.log('Fecha actual:', new Date());
+    console.log('Fecha actual (UTC):', new Date());
+    console.log('Fecha actual (local):', new Date().toString())
   }
-
-
 }

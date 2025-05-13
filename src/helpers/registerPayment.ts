@@ -4,12 +4,11 @@ import { PaymentService } from '../payment/services/payment.service';
 import { PaymentEntity } from '../payment/entity/payment.entity';
 import { PaymentDTO } from '@/payment/dto/payment.dto';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
-
+import { DateHelper } from './date.helper';
 @Injectable()
 export class PaymentSchedulerService implements OnModuleInit {
   constructor(
     private readonly paymentService: PaymentService,
-
   ) { }
 
   async onModuleInit() {
@@ -23,9 +22,7 @@ export class PaymentSchedulerService implements OnModuleInit {
         console.log('No hay pagos para procesar en la inicialización.');
         return;
       }
-
       console.log(`Se encontraron ${payments.length} pagos en el sistema.`);
-
       // Verificar si hay pagos que debieron generarse mientras el servidor estaba apagado
       const today = new Date();
       let pendingPayments = false;
@@ -68,6 +65,8 @@ export class PaymentSchedulerService implements OnModuleInit {
   // Método específico para procesar solo pagos vencidos sin duplicados
   async processOverduePaymentsOnly() {
     const today = new Date();
+    console.log(`Procesando pagos vencidos desde ${today}`);
+
     const payments = await this.paymentService.getAllPayments();
 
     if (payments.length === 0) {
@@ -97,8 +96,23 @@ export class PaymentSchedulerService implements OnModuleInit {
           continue;
         }
 
-        // Verificar si ya se alcanzó el número máximo de pagos
-        if (policy.payments.length >= policy.numberOfPayments) {
+        // Verificar si la póliza ha sido renovada
+        const isRenewed = this.isPolicyRenewed(policy);
+
+        // Si la póliza ha sido renovada, solo considerar los pagos después de la renovación
+        let relevantPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+        console.log(`Procesando póliza ${policy.id} con ${relevantPayments.length} pagos relevantes.`);
+        if (isRenewed) {
+          const lastRenewalDate = this.getLastRenewalDate(policy);
+          relevantPayments = relevantPayments.filter(
+            p => DateHelper.normalizeDateForComparison(p.createdAt) >= lastRenewalDate
+          );
+        }
+
+
+
+        // Verificar si ya se alcanzó el número máximo de pagos para este período
+        if (relevantPayments.length >= policy.numberOfPayments) {
           processedPolicies.add(payment.policy_id);
           continue;
         }
@@ -116,6 +130,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       }
     }
   }
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     try {
@@ -125,6 +140,543 @@ export class PaymentSchedulerService implements OnModuleInit {
         'Error al verificar y procesar pagos en el cron job:',
         error,
       );
+    }
+  }
+
+  calculateNextPaymentDate(payment: PaymentEntity): Date | null {
+    if (!payment.policies?.paymentFrequency || !payment.createdAt) {
+      console.error(`No se puede calcular la próxima fecha de pago para el pago ID: ${payment.id}.`);
+      return null;
+    }
+
+    const paymentFrequencyId = Number(payment.policies.paymentFrequency.id);
+    //const lastPaymentDate = DateHelper.normalizeDateForDB(new Date(payment.createdAt));
+    // Normalizar la fecha eliminando horas, minutos y segundos
+    const lastPaymentDate = DateHelper.normalizeDateForComparison(new Date(payment.createdAt));
+
+    if (isNaN(lastPaymentDate.getTime())) {
+      console.error(`Fecha de último pago inválida para el pago ID: ${payment.id}.`);
+      return null;
+    }
+
+    const nextDate = new Date(lastPaymentDate);
+
+    switch (paymentFrequencyId) {
+      case 1: // Mensual
+      case 5: // Otro pago (Mensual)
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        break;
+      case 2: // Trimestral
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        break;
+      case 3: // Semestral
+        nextDate.setMonth(nextDate.getMonth() + 6);
+        break;
+      case 4: // Anual
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
+      default:
+        console.error(`Frecuencia de pago no válida para el pago ID: ${payment.id}.`);
+        return null;
+    }
+
+    return nextDate;
+  }
+
+  /*
+    async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
+      try {
+        // Verificar el estado de la póliza
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+          console.log(`Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`);
+          return;
+        }
+  
+        console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
+        if (!policy.payments) {
+          console.error('Error: No se encontraron pagos asociados a la póliza.');
+          return;
+        }
+  
+        // Inicializar renovaciones si es undefined
+        if (!policy.renewals) {
+          policy.renewals = [];
+        }
+  
+        if (payment.pending_value <= 0) {
+          console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
+          return;
+        }
+  
+        // Verificar si la póliza ha sido renovada
+        const isRenewed = this.isPolicyRenewed(policy);
+        const hasRenewals = isRenewed && policy.renewals && policy.renewals.length > 0;
+  
+        console.log(`Renovaciones: ${policy.renewals.length}, Es renovada: ${isRenewed}`);
+        console.log("Detalles de renovaciones:", {
+          tieneRenovaciones: policy.renewals.length > 0,
+          numeroRenovaciones: policy.renewals.length,
+          esRenovada: isRenewed,
+          ultimaRenovacion: hasRenewals ? policy.renewals[policy.renewals.length - 1] : null
+        });
+  
+        // Filtrar pagos de la póliza actual (todos los pagos, sin importar el ciclo)
+        let currentPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+  
+        // Calcular el número máximo de pagos permitidos basado en renovaciones
+        const totalPaymentsInCycle = Number(policy.numberOfPayments);
+        let maxAllowedPayments = totalPaymentsInCycle;
+  
+  
+        if (hasRenewals) {
+          // Cada renovación añade un nuevo ciclo completo de pagos
+          maxAllowedPayments = totalPaymentsInCycle * (policy.renewals.length + 1);
+          console.log(`Póliza renovada ${policy.renewals.length} veces. Pagos máximos permitidos: ${maxAllowedPayments}`);
+  
+          const maxNumberPayment = Math.max(
+            ...currentPolicyPayments.map((p) => p.number_payment),
+            0
+          );
+          // Calcular el siguiente número de pago
+  
+          let nextPaymentNumber = maxNumberPayment + 1;
+  
+          // Verificar si ya alcanzamos el máximo de pagos permitidos
+          if (nextPaymentNumber > maxAllowedPayments) {
+            console.log(`Se ha alcanzado el número máximo de pagos permitidos (${maxNumberPayment}/${maxAllowedPayments}). No se crearán más pagos.`);
+            return;
+          }
+          const existingPayment = currentPolicyPayments.find(p => p.number_payment === nextPaymentNumber);
+          if (existingPayment) {
+            console.log(`Ya existe un pago con número ${nextPaymentNumber} para la póliza ${policy.id}. No se generará un pago duplicado.`);
+            return;
+          }
+  
+          const valueToPay = Number(policy.policyValue) / totalPaymentsInCycle;
+          // Calcular nuevo saldo pendiente
+          let newPendingValue: number;
+  
+          // Calcular si es el último pago del ciclo actual
+          const isLastPaymentInCycle = (nextPaymentNumber % totalPaymentsInCycle === 0);
+  
+          if (isLastPaymentInCycle) {
+            // Si es el último pago del ciclo, el pendiente debe ser 0
+            newPendingValue = 0;
+          } else {
+            // Para los demás pagos, calcular basado en la posición dentro del ciclo
+            const positionInCycle = nextPaymentNumber % totalPaymentsInCycle || totalPaymentsInCycle;
+            const remainingPaymentsInCycle = totalPaymentsInCycle - positionInCycle;
+            newPendingValue = remainingPaymentsInCycle * valueToPay;
+          }
+  
+          if (newPendingValue < 0) newPendingValue = 0;
+  
+          // Crear el nuevo pago
+          const createdAt = DateHelper.normalizeDateForComparison(new Date());
+          const newPayment: PaymentDTO = {
+            policy_id: payment.policy_id,
+            number_payment: nextPaymentNumber,
+            value: valueToPay,
+            pending_value: Number(newPendingValue.toFixed(2)),
+            credit: 0,
+            balance: valueToPay,
+            total: 0,
+            status_payment_id: 1,
+            observations: '',
+            createdAt: createdAt,
+          };
+  
+          const savedPayment = await this.paymentService.createPayment(newPayment);
+          return savedPayment;
+        } else {
+          // Código para pólizas sin renovación
+          const maxNumberPayment = Math.max(
+            ...currentPolicyPayments.map((p) => p.number_payment),
+            0
+          );
+  
+          // Validar número máximo de pagos
+          if (maxNumberPayment >= maxAllowedPayments) {
+            console.log(`Se ha alcanzado el número total de pagos permitidos (${maxNumberPayment}/${maxAllowedPayments}). No se crearán más pagos.`);
+            return;
+          }
+  
+          // Calcular nuevo saldo pendiente
+          const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
+          console.log('Último pago registrado:', lastPayment);
+  
+          let newPendingValue: number;
+  
+          if (isRenewed && currentPolicyPayments.length === 1) {
+            newPendingValue = Number(policy.policyValue) - Number(payment.value);
+          } else {
+            newPendingValue = Number(lastPayment.pending_value) - Number(payment.value);
+          }
+  
+          // Ajustar el valor del pago si el saldo pendiente es menor que el valor del pago
+          if (newPendingValue < 0) {
+            console.log('Ajustando el valor del último pago para evitar saldo negativo.');
+            payment.value = Number(Number(lastPayment.pending_value).toFixed(2));
+            newPendingValue = 0;
+          }
+  
+          console.log('Nuevo valor pendiente calculado:', newPendingValue);
+          const createdAt = DateHelper.normalizeDateForComparison(new Date());
+  
+          const newPayment: PaymentDTO = {
+            policy_id: payment.policy_id,
+            number_payment: maxNumberPayment + 1,
+            value: payment.value,
+            pending_value: Number(newPendingValue.toFixed(2)),
+            credit: 0,
+            balance: payment.value,
+            total: 0,
+            status_payment_id: 1,
+            observations: '',
+            createdAt: createdAt,
+          };
+  
+          const savedPayment = await this.paymentService.createPayment(newPayment);
+          return savedPayment;
+        }
+      } catch (error) {
+        console.error('Error al crear pago:', error);
+        throw error;
+      }
+    }*/
+  /*
+ async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
+   try {
+     // Verificar el estado de la póliza
+     if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+       console.log(`Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`);
+       return;
+     }
+
+     console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
+     if (!policy.payments) {
+       console.error('Error: No se encontraron pagos asociados a la póliza.');
+       return;
+     }
+
+     // Inicializar renovaciones si es undefined
+     if (!policy.renewals) {
+       policy.renewals = [];
+     }
+
+     if (payment.pending_value <= 0) {
+       console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
+       return;
+     }
+
+     // Verificar si la póliza ha sido renovada
+     const isRenewed = this.isPolicyRenewed(policy);
+     const hasRenewals = isRenewed && policy.renewals && policy.renewals.length > 0;
+
+     console.log(`Renovaciones: ${policy.renewals.length}, Es renovada: ${isRenewed}`);
+     console.log("Detalles de renovaciones:", {
+       tieneRenovaciones: policy.renewals.length > 0,
+       numeroRenovaciones: policy.renewals.length,
+       esRenovada: isRenewed,
+       ultimaRenovacion: hasRenewals ? policy.renewals[policy.renewals.length - 1] : null
+     });
+
+     // Filtrar pagos de la póliza actual (todos los pagos, sin importar el ciclo)
+     let currentPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+
+     // Calcular el número máximo de pagos permitidos basado en renovaciones
+     const totalPaymentsInCycle = Number(policy.numberOfPayments);
+     let maxAllowedPayments = totalPaymentsInCycle;
+
+     // Verificar si ya se alcanzó el número máximo de pagos para el ciclo actual
+     if (hasRenewals) {
+       // Cada renovación añade un nuevo ciclo completo de pagos
+       maxAllowedPayments = totalPaymentsInCycle * (policy.renewals.length + 1);
+       console.log(`Póliza renovada ${policy.renewals.length} veces. Pagos máximos permitidos: ${maxAllowedPayments}`);
+     } else {
+       // Si no hay renovaciones, solo permitir el número original de pagos
+       maxAllowedPayments = totalPaymentsInCycle;
+       console.log(`Póliza sin renovar. Pagos máximos permitidos: ${maxAllowedPayments}`);
+     }
+
+     // Verificar si ya se alcanzó el número máximo de pagos para el ciclo actual
+     if (currentPolicyPayments.length >= maxAllowedPayments) {
+       console.log(`Se ha alcanzado el número máximo de pagos permitidos (${currentPolicyPayments.length}/${maxAllowedPayments}). No se crearán más pagos hasta que se renueve la póliza.`);
+       return;
+     }
+
+     // Calcular el siguiente número de pago
+     const maxNumberPayment = Math.max(
+       ...currentPolicyPayments.map((p) => p.number_payment),
+       0
+     );
+     const nextPaymentNumber = maxNumberPayment + 1;
+
+     // Verificar si ya existe un pago con este número
+     const existingPayment = currentPolicyPayments.find(p => p.number_payment === nextPaymentNumber);
+     if (existingPayment) {
+       console.log(`Ya existe un pago con número ${nextPaymentNumber} para la póliza ${policy.id}. No se generará un pago duplicado.`);
+       return;
+     }
+
+     // Calcular el valor del pago
+     const valueToPay = Number(policy.policyValue) / totalPaymentsInCycle;
+
+     // Calcular nuevo saldo pendiente
+     let newPendingValue: number;
+
+     // Calcular si es el último pago del ciclo actual
+     const isLastPaymentInCycle = (nextPaymentNumber % totalPaymentsInCycle === 0);
+
+     if (isLastPaymentInCycle) {
+       // Si es el último pago del ciclo, el pendiente debe ser 0
+       newPendingValue = 0;
+     } else {
+       // Para los demás pagos, calcular basado en la posición dentro del ciclo
+       const positionInCycle = nextPaymentNumber % totalPaymentsInCycle || totalPaymentsInCycle;
+       const remainingPaymentsInCycle = totalPaymentsInCycle - positionInCycle;
+       newPendingValue = remainingPaymentsInCycle * valueToPay;
+     }
+
+     if (newPendingValue < 0) newPendingValue = 0;
+
+     // Crear el nuevo pago
+     const createdAt = DateHelper.normalizeDateForComparison(new Date());
+     const newPayment: PaymentDTO = {
+       policy_id: payment.policy_id,
+       number_payment: nextPaymentNumber,
+       value: valueToPay,
+       pending_value: Number(newPendingValue.toFixed(2)),
+       credit: 0,
+       balance: valueToPay,
+       total: 0,
+       status_payment_id: 1,
+       observations: '',
+       createdAt: createdAt,
+     };
+
+     const savedPayment = await this.paymentService.createPayment(newPayment);
+     return savedPayment;
+   } catch (error) {
+     console.error('Error al crear pago:', error);
+     throw error;
+   }
+ }*/
+  async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
+    try {
+      // Verificar el estado de la póliza
+      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+        console.log(`Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`);
+        return;
+      }
+
+      console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
+      if (!policy.payments) {
+        console.error('Error: No se encontraron pagos asociados a la póliza.');
+        return;
+      }
+
+      // Inicializar renovaciones si es undefined
+      if (!policy.renewals) {
+        policy.renewals = [];
+      }
+
+      if (payment.pending_value <= 0) {
+        console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
+        return;
+      }
+
+      // Verificar si la póliza ha sido renovada
+      const isRenewed = this.isPolicyRenewed(policy);
+      const hasRenewals = isRenewed && policy.renewals && policy.renewals.length > 0;
+
+      console.log(`Renovaciones: ${policy.renewals.length}, Es renovada: ${isRenewed}`);
+      console.log("Detalles de renovaciones:", {
+        tieneRenovaciones: policy.renewals.length > 0,
+        numeroRenovaciones: policy.renewals.length,
+        esRenovada: isRenewed,
+        ultimaRenovacion: hasRenewals ? policy.renewals[policy.renewals.length - 1] : null
+      });
+
+      // Filtrar pagos de la póliza actual
+      let currentPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+
+      // Calcular el número máximo de pagos permitidos basado en renovaciones
+      const totalPaymentsInCycle = Number(policy.numberOfPayments);
+
+      // Calcular el número de ciclos completados basado en los pagos existentes
+      const completedCycles = Math.floor(currentPolicyPayments.length / totalPaymentsInCycle);
+
+      // Verificar si el número de ciclos completados es mayor que el número de renovaciones
+      if (completedCycles > policy.renewals.length) {
+        console.log(`Se han completado ${completedCycles} ciclos de pago, pero solo hay ${policy.renewals.length} renovaciones.`);
+        console.log(`No se pueden crear más pagos hasta que se renueve la póliza.`);
+        return;
+      }
+
+      // Calcular el número máximo de pagos permitidos en el ciclo actual
+      const maxAllowedPayments = totalPaymentsInCycle * (policy.renewals.length + 1);
+
+      console.log(`Ciclos completados: ${completedCycles}, Renovaciones: ${policy.renewals.length}`);
+      console.log(`Pagos máximos permitidos: ${maxAllowedPayments}, Pagos actuales: ${currentPolicyPayments.length}`);
+
+      // Verificar si ya se alcanzó el número máximo de pagos para el ciclo actual
+      if (currentPolicyPayments.length >= maxAllowedPayments) {
+        console.log(`Se ha alcanzado el número máximo de pagos permitidos (${currentPolicyPayments.length}/${maxAllowedPayments}).`);
+        console.log(`No se crearán más pagos hasta que se renueve la póliza.`);
+        return;
+      }
+
+      // Calcular el siguiente número de pago
+      const maxNumberPayment = Math.max(
+        ...currentPolicyPayments.map((p) => p.number_payment),
+        0
+      );
+      const nextPaymentNumber = maxNumberPayment + 1;
+
+      // Verificar si ya existe un pago con este número
+      const existingPayment = currentPolicyPayments.find(p => p.number_payment === nextPaymentNumber);
+      if (existingPayment) {
+        console.log(`Ya existe un pago con número ${nextPaymentNumber} para la póliza ${policy.id}. No se generará un pago duplicado.`);
+        return;
+      }
+
+      // Calcular el valor del pago
+      const valueToPay = Number(policy.policyValue) / totalPaymentsInCycle;
+
+      // Calcular nuevo saldo pendiente
+      let newPendingValue: number;
+
+      // Calcular si es el último pago del ciclo actual
+      const isLastPaymentInCycle = (nextPaymentNumber % totalPaymentsInCycle === 0);
+
+      if (isLastPaymentInCycle) {
+        // Si es el último pago del ciclo, el pendiente debe ser 0
+        newPendingValue = 0;
+      } else {
+        // Para los demás pagos, calcular basado en la posición dentro del ciclo
+        const positionInCycle = nextPaymentNumber % totalPaymentsInCycle || totalPaymentsInCycle;
+        const remainingPaymentsInCycle = totalPaymentsInCycle - positionInCycle;
+        newPendingValue = remainingPaymentsInCycle * valueToPay;
+      }
+
+      if (newPendingValue < 0) newPendingValue = 0;
+
+      // Crear el nuevo pago
+      const createdAt = DateHelper.normalizeDateForComparison(new Date());
+      const newPayment: PaymentDTO = {
+        policy_id: payment.policy_id,
+        number_payment: nextPaymentNumber,
+        value: valueToPay,
+        pending_value: Number(newPendingValue.toFixed(2)),
+        credit: 0,
+        balance: valueToPay,
+        total: 0,
+        status_payment_id: 1,
+        observations: '',
+        createdAt: createdAt,
+      };
+
+      const savedPayment = await this.paymentService.createPayment(newPayment);
+      return savedPayment;
+    } catch (error) {
+      console.error('Error al crear pago:', error);
+      throw error;
+    }
+  }
+  async manualProcessPayments() {
+    console.log('Iniciando procesamiento manual de pagos...');
+    try {
+
+      const payments = await this.paymentService.getAllPayments();
+
+      if (payments.length === 0) {
+        console.log('No hay pagos para procesar.');
+        return { message: 'No hay pagos para procesar.' };
+      }
+      const createdPayments = []; // Almacenar pagos creados
+      const processedPolicies = new Set<number>(); // Registrar pólizas procesadas
+
+      for (const payment of payments) {
+        // Verificar si la póliza ya ha sido procesada
+        if (processedPolicies.has(payment.policy_id)) {
+          continue; // Saltar si la póliza ya fue procesada
+        }
+
+        const policy = await this.paymentService.getPolicyWithPayments(
+          payment.policy_id,
+        );
+        // Al recibir la póliza de la base de datos
+        if (!policy.renewals) {
+          policy.renewals = []; // Inicializar como array vacío si es undefined
+        }
+        console.log(`Poliza ${policy.numberPolicy} tiene ${policy.payments.length} pagos generados.`)
+        console.log(
+          `Procesando pago ${payment.id} para póliza ${policy.numberPolicy}.`,
+        );
+
+        // Validar el estado de la póliza
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
+          console.log(
+            `Póliza ${policy.numberPolicy} está CANCELADA o CULMINADA. No se generarán más pagos.`,
+          );
+          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
+          continue; // Saltar al siguiente pago
+        }
+        console.log("numeros de pagos al momento de la prueba manual: ", policy.numberOfPayments)
+        console.log("renovaciones: ", policy.renewals && policy.renewals.length);
+        console.log("pagos generados: ", policy.payments.length)
+
+        console.log("pagos generados: ", policy.payments.length)
+        /*
+        if (policy.payments.find(p => p.number_payment === payment.number_payment)) {
+          console.log(`El pago con número ${payment.number_payment} ya existe para la póliza ${policy.id}.`);
+          continue;
+        }*/
+        // Validar número máximo de pagos
+
+        // Verificar si la póliza ha sido renovada
+        const isRenewed = this.isPolicyRenewed(policy);
+        console.log(`Renovaciones: ${policy.renewals ? policy.renewals.length : 0}, Es renovada: ${isRenewed}`);
+        console.log("Detalles de renovaciones:", {
+          tieneRenovaciones: policy.renewals ? true : false,
+          numeroRenovaciones: policy.renewals ? policy.renewals.length : 0,
+          esRenovada: isRenewed,
+          ultimaRenovacion: policy.renewals && policy.renewals.length > 0 ?
+            policy.renewals[policy.renewals.length - 1] : null
+        });
+        let maxAllowedPayments = policy.numberOfPayments;
+
+        // Si hay renovaciones, calcular el número máximo de pagos permitidos
+
+        if (isRenewed && policy.renewals && policy.renewals.length > 0) {
+          // Cada renovación permite un nuevo ciclo completo de pagos
+          maxAllowedPayments = policy.numberOfPayments * (policy.renewals.length + 1);
+          console.log(`Póliza renovada ${policy.renewals.length} veces. Pagos máximos permitidos: ${maxAllowedPayments}`);
+        }
+
+        // Validar número máximo de pagos (considerando renovaciones)
+        if (policy.payments.length >= maxAllowedPayments && payment.pending_value <= 0) {
+          console.log(
+            `Póliza ${policy.numberPolicy} ya tiene todos sus pagos generados (${policy.payments.length}/${maxAllowedPayments}).`,
+          );
+          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
+          continue;
+        }
+
+
+        // Crear pago si hay saldo pendiente
+        if (payment.pending_value > 0) {
+          const newPayment = await this.createOverduePayment(payment, policy);
+          createdPayments.push(newPayment);
+          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
+        }
+      }
+      console.log('Procesamiento manual completado!!...');
+      return { createdPayments }; // Devolver pagos creados
+    } catch (error) {
+      console.error('Error en el procesamiento manual:', error);
+      throw error;
     }
   }
 
@@ -153,6 +705,10 @@ export class PaymentSchedulerService implements OnModuleInit {
         const policy = await this.paymentService.getPolicyWithPayments(
           payment.policy_id,
         );
+        // Al recibir la póliza de la base de datos
+        if (!policy.renewals) {
+          policy.renewals = []; // Inicializar como array vacío si es undefined
+        }
         console.log(`Procesando póliza ${policy.id}...`);
         console.log(`Pagos actuales: ${policy.payments.length}/${policy.numberOfPayments}`);
         console.log(`Saldo pendiente: ${payment.pending_value}`);
@@ -170,11 +726,36 @@ export class PaymentSchedulerService implements OnModuleInit {
           continue; // Saltar al siguiente pago
         }
 
-        // Verificar si ya se alcanzó el número máximo de pagos
+        // Verificar si la póliza ha sido renovada
+        const isRenewed = this.isPolicyRenewed(policy);
+        console.log(`Renovaciones: ${policy.renewals ? policy.renewals.length : 0}, Es renovada: ${isRenewed}`);
+        let maxAllowedPayments = policy.numberOfPayments;
+        console.log("numeros de pagos al momento de la de la verificacion: ", policy.numberOfPayments)
+        console.log("renovaciones: ", policy.renewals && policy.renewals.length > 0)
+        console.log(`Renovaciones: ${policy.renewals ? policy.renewals.length : 0}, Es renovada: ${isRenewed}`);
+        console.log("Detalles de renovaciones:", {
+          tieneRenovaciones: policy.renewals.length > 0 ? true : false,
+          numeroRenovaciones: policy.renewals.length > 0 ? policy.renewals.length : 0,
+          esRenovada: isRenewed,
+          ultimaRenovacion: policy.renewals && policy.renewals.length > 0 ?
+            policy.renewals[policy.renewals.length - 1] : null
+        });
+        console.log("pagos generados: ", policy.payments.length)
+        console.log("pagos generados: ", policy.payments.length)
+
+        // Si hay renovaciones, calcular el número máximo de pagos permitidos
+        /*
+        if (isRenewed && policy.renewals && policy.renewals.length > 0) {
+          // Cada renovación permite un nuevo ciclo completo de pagos
+          maxAllowedPayments = policy.numberOfPayments * (policy.renewals.length + 1);
+          console.log(`Póliza renovada ${policy.renewals.length} veces. Pagos máximos permitidos: ${maxAllowedPayments}`);
+        }*/
+
+        // Verificar si ya se alcanzó el número máximo de pagos (considerando renovaciones)
         const currentPaymentsCount = policy.payments.length;
-        if (currentPaymentsCount >= policy.numberOfPayments && payment.pending_value <= 0) {
+        if (currentPaymentsCount >= maxAllowedPayments && payment.pending_value <= 0) {
           console.log(
-            `Póliza ${policy.id} ya tiene todos sus pagos generados (${currentPaymentsCount}/${policy.numberOfPayments}).`,
+            `Póliza ${policy.id} ya tiene todos sus pagos generados (${currentPaymentsCount}/${maxAllowedPayments}).`,
           );
           continue;
         }
@@ -192,180 +773,31 @@ export class PaymentSchedulerService implements OnModuleInit {
       }
     }
   }
-
-  async manualProcessPayments() {
-    console.log('Iniciando procesamiento manual de pagos...');
-    try {
-      const payments = await this.paymentService.getAllPayments();
-
-      if (payments.length === 0) {
-        console.log('No hay pagos para procesar.');
-        return { message: 'No hay pagos para procesar.' };
-      }
-      const createdPayments = []; // Almacenar pagos creados
-      const processedPolicies = new Set<number>(); // Registrar pólizas procesadas
-
-      for (const payment of payments) {
-        // Verificar si la póliza ya ha sido procesada
-        if (processedPolicies.has(payment.policy_id)) {
-          continue; // Saltar si la póliza ya fue procesada
-        }
-
-        const policy = await this.paymentService.getPolicyWithPayments(
-          payment.policy_id,
-        );
-
-        // Validar el estado de la póliza
-        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
-          console.log(
-            `Póliza ${policy.numberPolicy} está CANCELADA o CULMINADA. No se generarán más pagos.`,
-          );
-          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
-          continue; // Saltar al siguiente pago
-        }
-
-        // Validar número máximo de pagos
-
-        if (policy.payments.length >= policy.numberOfPayments && payment.pending_value <= 0) {
-          console.log(
-            `Póliza ${policy.numberPolicy} ya tiene todos sus pagos generados (${policy.payments.length}/${policy.numberOfPayments}).`,
-          );
-          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
-          continue;
-        }
-
-
-        // Crear pago si hay saldo pendiente
-        if (payment.pending_value > 0) {
-          const newPayment = await this.createOverduePayment(payment, policy);
-          createdPayments.push(newPayment);
-          processedPolicies.add(payment.policy_id); // Marcar la póliza como procesada
-        }
-      }
-      console.log('Procesamiento manual completado!!...');
-      return { createdPayments }; // Devolver pagos creados
-    } catch (error) {
-      console.error('Error en el procesamiento manual:', error);
-      throw error;
+  // Método para verificar si una póliza ha sido renovada
+  isPolicyRenewed(policy: PolicyEntity): boolean {
+    if (!policy.renewals || policy.renewals.length === 0) {
+      console.log(`La póliza ${policy.id} no tiene renovaciones.`);
+      return false;
     }
+
+    console.log(`La póliza ${policy.id} tiene ${policy.renewals.length} renovaciones.`);
+    return true;
   }
 
-  calculateNextPaymentDate(payment: PaymentEntity): Date | null {
-    if (!payment.policies?.paymentFrequency) {
-      return null;
+  getLastRenewalDate(policy: PolicyEntity): Date {
+    if (!policy.renewals || policy.renewals.length === 0) {
+      return new Date(policy.startDate);
     }
 
-    const paymentFrequencyId = Number(payment.policies.paymentFrequency.id);
-    const lastPaymentDate = new Date(payment.createdAt);
+    // Ordenar explícitamente las renovaciones por fecha
+    const sortedRenewals = [...policy.renewals].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-    if (isNaN(lastPaymentDate.getTime())) {
-      return null;
-    }
+    const lastRenewal = sortedRenewals[0];
+    console.log(`Última renovación fecha: ${new Date(lastRenewal.createdAt)}`);
 
-    const nextDate = new Date(lastPaymentDate);
-
-    switch (paymentFrequencyId) {
-      case 1: // Mensual
-      case 5: // Otro pago (Mensual)
-        nextDate.setMonth(nextDate.getMonth() + 1);
-        break;
-      case 2: // Trimestral
-        nextDate.setMonth(nextDate.getMonth() + 3);
-        break;
-      case 3: // Semestral
-        nextDate.setMonth(nextDate.getMonth() + 6);
-        break;
-      case 4: // Anual
-        nextDate.setFullYear(nextDate.getFullYear() + 1);
-        break;
-      default:
-        return null;
-    }
-
-    return nextDate;
+    return new Date(lastRenewal.createdAt);
   }
-
-  async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity) {
-    try {
-      // Verificar el estado de la póliza
-      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) { // CANCELADA (2) o CULMINADA (3)
-        console.log(
-          `Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`,
-        );
-        return;
-      }
-      console.log(`Creando nuevo pago para el pago ID: ${payment.id}`);
-
-      if (!policy.payments) {
-        console.error('Error: No se encontraron pagos asociados a la póliza.');
-        return;
-      }
-
-      if (payment.value <= 0 || payment.pending_value <= 0) {
-        console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
-        return;
-      }
-
-      const currentPolicyPayments = policy.payments.filter(
-        p => p.policy_id === payment.policy_id
-      );
-
-      const maxNumberPayment = Math.max(
-        ...currentPolicyPayments.map((p) => p.number_payment),
-        0
-      );
-
-      // Validar número máximo de pagos
-      if (maxNumberPayment >= policy.numberOfPayments && payment.pending_value <= 0) {
-        console.log('Se ha alcanzado el número total de pagos permitidos. No se crearán más pagos.');
-        return;
-      }
-
-      // Calcular nuevo saldo pendiente
-      const lastPayment = currentPolicyPayments[currentPolicyPayments.length - 1];
-      console.log('Último pago registrado:', lastPayment);
-      // Si es el primer pago, el saldo pendiente es el valor total de la póliza menos el valor del pago
-      let newPendingValue: number;
-      if (maxNumberPayment === 0) {
-        newPendingValue = Number(policy.policyValue) - Number(payment.value);
-      } else {
-        // Para los siguientes pagos, restar del saldo pendiente anterior
-        newPendingValue = Number(lastPayment.pending_value) - Number(payment.value);
-      }
-
-      // Ajustar el valor del pago si el saldo pendiente es menor que el valor del pago
-      if (newPendingValue < 0) {
-        console.log('Ajustando el valor del último pago para evitar saldo negativo.');
-        payment.value = Number(Number(lastPayment.pending_value).toFixed(2)); // Usar el saldo pendiente como valor del pago
-        newPendingValue = 0; // El saldo pendiente será 0 después de este pago
-      }
-
-      console.log('Nuevo valor pendiente calculado:', newPendingValue);
-      const createdAt = new Date(); // Fecha actual en UTC
-      createdAt.setHours(createdAt.getHours() - 5); // Ajusta a UTC-5
-
-      const newPayment: PaymentDTO = {
-        policy_id: payment.policy_id,
-        number_payment: maxNumberPayment + 1,
-        value: payment.value,
-        pending_value: Number(newPendingValue.toFixed(2)),
-        credit: 0,
-        balance: payment.value,
-        total: 0,
-        status_payment_id: 1,
-        observations: '',
-        createdAt: createdAt,
-        //updatedAt: updatedAt
-      };
-
-      const savedPayment = await this.paymentService.createPayment(newPayment);
-      //console.log('Nuevo pago creado:', savedPayment);
-
-      return savedPayment;
-    } catch (error) {
-      console.error('Error al crear pago:', error);
-      throw error;
-    }
-  }
-
 }
+

@@ -16,7 +16,7 @@ export class RedisModuleService {
 
     async get(key: string): Promise<any> {
         const value = await this.redisClient.get(key);
-        return value ? JSON.parse(value) : null;
+        return value ? JSON.parse(value as string) : null;
     }
 
     async del(key: string): Promise<void> {

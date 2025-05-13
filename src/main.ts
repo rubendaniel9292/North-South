@@ -6,7 +6,6 @@ import * as morgan from 'morgan';
 import * as winston from 'winston';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import * as mongoSanitize from 'express-mongo-sanitize';
 import xss from 'express-xss-sanitizer';
 import * as hpp from 'hpp';
 import * as https from 'https';
@@ -45,6 +44,7 @@ const securityLoggingMiddleware = (req: Request, _res: Response, next: NextFunct
 };
 
 // Middleware de sanitización personalizado para mitigar riesgos de inyección SQL o NoSQL.
+/*
 const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const sanitizeValue = (value: any): any => {
     if (typeof value === 'string') {
@@ -68,6 +68,34 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
 
   next();
 };
+
+*/
+const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const sanitizeValue = (value: any, isToken = false): any => {
+    if (typeof value === 'string') {
+      // No sanitizar si es un token de Turnstile
+      if (isToken) return value;
+
+      return value
+        .replace(/<script.*?>.*?<\/script>/gim, '')
+        .replace(/[;<>&]/g, '')
+        .replace(/[${}]/g, '') // Sanitización para MongoDB
+        .trim();
+    }
+    if (typeof value === 'object' && value !== null) {
+      return Object.keys(value).reduce((acc, key) => ({
+        ...acc,
+        // No sanitizar el campo turnstileToken
+        [key]: key === 'turnstileToken' ? sanitizeValue(value[key], true) : sanitizeValue(value[key])
+      }), {});
+    }
+    return value;
+  };
+
+  req.body = sanitizeValue(req.body);
+
+};
+
 
 
 // Configuración de Rate Limiting
@@ -118,7 +146,8 @@ async function setupSecurityMiddleware(app: INestApplication): Promise<void> {
   app.use(express.urlencoded({ extended: true, limit: '15kb' }));
 
   // Middlewares de seguridad adicionales
-  app.use(mongoSanitize());
+
+  app.use(xss());
   app.use(xss());
   app.use(hpp({ whitelist: [] }));
   app.use('/api', rateLimitConfig);

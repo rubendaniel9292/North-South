@@ -16,20 +16,47 @@ export class CreditCardStatusService implements OnModuleInit {
 
   //1: Método para determinar el estado de la tarjeta basado en la fecha de expiración
   async determineCardStatus(expirationDate: Date): Promise<CardStatusEntity> {
+    // Normalizar la fecha de expiración (eliminar la parte de la hora)
+    const normalizedExpirationDate = new Date(
+      expirationDate.getFullYear(),
+      expirationDate.getMonth(),
+      expirationDate.getDate()
+    );
+
+    // Normalizar la fecha actual
     const currentDate = new Date();
+    const normalizedCurrentDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+
+    // Calcular el primer día del mes actual
     const currentMonthStart = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1,
+      1
     );
+
+    // Calcular el primer día del próximo mes
     const nextMonthStart = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() + 1,
-      1,
+      1
     );
-    console.log('Fecha de expiración:', expirationDate);
+
+    // Calcular el primer día del mes siguiente al próximo mes
+    const afterNextMonthStart = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 2,
+      1
+    );
+
+    console.log('Fecha de expiración normalizada:', normalizedExpirationDate);
+    console.log('Fecha actual normalizada:', normalizedCurrentDate);
     console.log('Inicio del mes actual:', currentMonthStart);
     console.log('Inicio del próximo mes:', nextMonthStart);
+    console.log('Inicio del mes después del próximo:', afterNextMonthStart);
 
     // Obtener los estados correspondientes en base a id: vigente por caducar caducada
     const [activeStatus, aboutToExpireStatus, expiredStatus] =
@@ -56,17 +83,18 @@ export class CreditCardStatusService implements OnModuleInit {
       activeStatus,
     });
 
-    /*El método getTime() devuelve 
-    la representación de la fecha en milisegundos desde el 1 de enero de 1970
-    Se asegura de que ambos valores sean precisos hasta el nivel de milisegundos, eliminando cualquier ambigüedad.*/
-    if (expirationDate.getTime() < currentDate.getTime()) {
+    // Comparar las fechas normalizadas
+    if (normalizedExpirationDate.getTime() < normalizedCurrentDate.getTime()) {
+      console.log(`Tarjeta CADUCADA: ${normalizedExpirationDate} < ${normalizedCurrentDate}`);
       return expiredStatus; // La tarjeta ha caducado
     } else if (
-      expirationDate.getTime() >= currentDate.getTime() &&
-      expirationDate.getTime() < nextMonthStart.getTime()
+      normalizedExpirationDate.getTime() >= normalizedCurrentDate.getTime() &&
+      normalizedExpirationDate.getTime() < afterNextMonthStart.getTime()
     ) {
-      return aboutToExpireStatus; // La tarjeta está por caducar
+      console.log(`Tarjeta POR CADUCAR: ${normalizedExpirationDate} está dentro de los próximos dos meses`);
+      return aboutToExpireStatus; // La tarjeta está por caducar (dentro de los próximos dos meses)
     } else {
+      console.log(`Tarjeta VIGENTE: ${normalizedExpirationDate} >= ${afterNextMonthStart}`);
       return activeStatus; // La tarjeta está vigente
     }
   }

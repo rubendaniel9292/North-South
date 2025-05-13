@@ -15,20 +15,36 @@ export class PolicyStatusService implements OnModuleInit {
 
   //1: Método para determinar el estado de la poliza basado en la fecha de culminacion
   async determinePolicyStatus(policy: PolicyEntity): Promise<PolicyStatusEntity> {
+    // Normalizar fechas para comparación
     const currentDate = new Date();
-    const currentMonthStart = new Date(
+    const normalizedCurrentDate = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1,
+      currentDate.getDate()
     );
+
+    // Calcular fecha un mes adelante
+    const oneMonthAhead = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      currentDate.getDate()
+    );
+
     const nextMonthStart = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() + 1,
       1,
     );
-    //console.log('Fecha de expiración:', expirationDate);
-    //console.log('Inicio del mes actual:', currentMonthStart);
-    //console.log('Inicio del próximo mes:', nextMonthStart);
+    // Normalizar la fecha de finalización
+    const endDate = new Date(policy.endDate);
+    const normalizedEndDate = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate()
+    );
+    console.log('Fecha actual normalizada:', normalizedCurrentDate);
+    console.log('Fecha un mes adelante:', oneMonthAhead);
+    console.log('Fecha de finalización normalizada:', normalizedEndDate);
 
     // Obtener los estados correspondientes en base a id: vigente por caducar caducada
     const [
@@ -54,28 +70,39 @@ export class PolicyStatusService implements OnModuleInit {
     });
     // Lógica para determinar el estado
     // Lógica para determinar el estado
+    // Lógica para determinar el estado
     if (policy.policy_status_id === 2) {
       return policy.policyStatus; // Mantener el estado cancelado
-    } else if (policy.endDate.getTime() < currentDate.getTime()) {
-      return completedStatus; // La poliza ha culminado
-    } else if (policy.endDate.getTime() >= currentMonthStart.getTime() && policy.endDate.getTime() < nextMonthStart.getTime()) {
-      return closeToCompletion; // La poliza esta por culminar
+    } else if (normalizedEndDate.getTime() <= normalizedCurrentDate.getTime()) {
+      return completedStatus; // La poliza ha culminado (hoy o antes)
+    } else if (normalizedEndDate.getTime() <= oneMonthAhead.getTime()) {
+      return closeToCompletion; // La poliza esta por culminar (dentro de un mes)
     } else {
       return activeStatus; // La poiliza esta activa o vigente
     }
   }
   //2: Método para determinar el estado de una nueva póliza basada en la fecha de culminación
   async determineNewPolicyStatus(endDate: Date): Promise<PolicyStatusEntity> {
+    // Normalizar fechas para comparación
     const currentDate = new Date();
-    const currentMonthStart = new Date(
+    const normalizedCurrentDate = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1,
+      currentDate.getDate()
     );
-    const nextMonthStart = new Date(
+
+    // Calcular fecha un mes adelante
+    const oneMonthAhead = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() + 1,
-      1,
+      currentDate.getDate()
+    );
+
+    // Normalizar la fecha de finalización
+    const normalizedEndDate = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate()
     );
 
     // Obtener los estados correspondientes en base a id: vigente por caducar caducada
@@ -96,10 +123,10 @@ export class PolicyStatusService implements OnModuleInit {
     ]);
 
     // Lógica para determinar el estado
-    if (endDate.getTime() < currentDate.getTime()) {
-      return completedStatus; // La poliza ha culminado
-    } else if (endDate.getTime() >= currentMonthStart.getTime() && endDate.getTime() < nextMonthStart.getTime()) {
-      return closeToCompletion; // La poliza esta por culminar
+    if (normalizedEndDate.getTime() <= normalizedCurrentDate.getTime()) {
+      return completedStatus; // La poliza ha culminado (hoy o antes)
+    } else if (normalizedEndDate.getTime() <= oneMonthAhead.getTime()) {
+      return closeToCompletion; // La poliza esta por culminar (dentro de un mes)
     } else {
       return activeStatus; // La poiliza esta activa o vigente
     }

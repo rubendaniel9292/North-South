@@ -17,7 +17,7 @@ import { PaymentDTO } from '@/payment/dto/payment.dto';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { CacheKeys } from '@/constants/cache.enum';
 import { PolicyStatusEntity } from '../entities/policy_status.entity';
-
+import { DateHelper } from '@/helpers/date.helper';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
@@ -76,7 +76,148 @@ export class PolicyService extends ValidateEntity {
 
     return valueToPay;
   }
+  // Generar pagos utilizando el servicio de pagos
+  private async generatePaymentsUsingService(policy: PolicyEntity, startDate: Date, today: Date, paymentFrequency: number): Promise<void> {
+    const policyValue = Number(policy.policyValue);
+    const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
+
+    let totalPayments = 0;
+    switch (paymentFrequency) {
+      case 1: // Mensual
+        totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth()));
+        break;
+      case 2: // Trimestral
+        totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 4 + (today.getMonth() - startDate.getMonth()) / 3);
+        break;
+      case 3: // Semestral
+        totalPayments = Math.floor((today.getFullYear() - startDate.getFullYear()) * 2 + (today.getMonth() - startDate.getMonth()) / 6);
+        break;
+      case 4: // Anual
+        totalPayments = Math.floor(today.getFullYear() - startDate.getFullYear());
+        break;
+      case 5: // Personalizado
+        const numberOfPayments = policy.numberOfPayments || 0;
+        totalPayments = Math.floor((today.getTime() - startDate.getTime()) / ((policy.endDate.getTime() - startDate.getTime()) / numberOfPayments));
+        break;
+      default:
+        throw new Error('Frecuencia de pago no válida');
+    }
+
+    let currentDate = new Date(startDate);
+    let paymentNumber = 1;
+    let accumulated = 0;
+
+    if (totalPayments === 0) {
+      // Crear un pago por defecto si no hay pagos atrasados
+      const paymentData: PaymentDTO = {
+        policy_id: policy.id,
+        number_payment: paymentNumber,
+        value: valueToPay,
+        pending_value: policyValue - valueToPay,
+        status_payment_id: 1, // 1: Pendiente
+        credit: 0,
+        balance: valueToPay,
+        total: 0,
+        observations: '',
+        createdAt: policy.startDate
+      };
+
+      await this.paymentService.createPayment(paymentData);
+    } else {
+      // Generar pagos atrasados
+      while (currentDate <= today) {
+        accumulated += valueToPay;
+        let pendingValue = policyValue - accumulated;
+        if (pendingValue < 0) {
+          pendingValue = 0;
+        }
+
+        const paymentData: PaymentDTO = {
+          policy_id: policy.id,
+          number_payment: paymentNumber,
+          value: valueToPay,
+          pending_value: pendingValue,
+          status_payment_id: 1,
+          credit: 0,
+          balance: valueToPay,
+          total: 0,
+          observations: '',
+          //createdAt: new Date(currentDate),
+          createdAt: paymentNumber === 1 ? policy.startDate : DateHelper.normalizeDateForDB(new Date(currentDate))
+        };
+
+        // Llamar al servicio de pagos para registrar el pago
+        await this.paymentService.createPayment(paymentData);
+
+        // Avanzar la fecha según la frecuencia de pago
+        switch (paymentFrequency) {
+          case 1: // Mensual
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            break;
+          case 2: // Trimestral
+            currentDate.setMonth(currentDate.getMonth() + 3);
+            break;
+          case 3: // Semestral
+            currentDate.setMonth(currentDate.getMonth() + 6);
+            break;
+          case 4: // Anual
+            currentDate.setFullYear(currentDate.getFullYear() + 1);
+            break;
+          case 5: // Personalizado
+            const daysBetween = Math.floor((policy.endDate.getTime() - startDate.getTime()) / totalPayments);
+            currentDate.setDate(currentDate.getDate() + daysBetween);
+            break;
+        }
+
+        paymentNumber++;
+      }
+    }
+  }
+
+  // Validar el valor de la póliza
+  private validatePolicyValue(policyValue: number | null): void {
+    if (policyValue == null) {
+      throw new Error('El valor de la póliza no puede ser nulo');
+    }
+    if (isNaN(Number(policyValue))) {
+      throw new Error('El valor de la póliza no es un número válido');
+    }
+  }
+
+  // Manejar renovaciones automáticas
+  private async handleRenewals(policy: PolicyEntity, startDate: Date, today: Date): Promise<void> {
+    const yearsDifference = today.getFullYear() - startDate.getFullYear();
+    if (yearsDifference > 0) {
+      for (let i = 1; i <= yearsDifference; i++) {
+        const renewalDate = new Date(startDate);
+        renewalDate.setFullYear(startDate.getFullYear() + i);
+        // Normalizar la fecha de renovación
+        const normalizedRenewalDate = DateHelper.normalizeDateForDB(renewalDate);
+
+        const renewalData: PolicyRenewalDTO = {
+          policy_id: policy.id,
+          renewalNumber: i,
+          observations: `Renovación automática año/periodo ${i}`,
+          createdAt: normalizedRenewalDate,
+        };
+
+        await this.createRenevalAndUpdate(renewalData);
+      }
+    }
+  }
+
+  // Invalidar cachés relacionados con pólizas
+  private async invalidateCaches(): Promise<void> {
+    await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+    await this.redisService.del('policies');
+    await this.redisService.del('policiesStatus');
+    await this.redisService.del('customers');
+    await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
+
+  }
+
   //1:metodo para registrar una poliza
+  /*
   public createPolicy = async (body: PolicyDTO): Promise<PolicyEntity> => {
     try {
       await this.validateInput(body, 'policy');
@@ -276,6 +417,46 @@ export class PolicyService extends ValidateEntity {
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
+  };*/
+  public createPolicy = async (body: PolicyDTO): Promise<PolicyEntity> => {
+    try {
+      // Validar los datos de entrada
+      await this.validateInput(body, 'policy');
+      const endDate = DateHelper.normalizeDateForDB(body.endDate);
+      const startDate = DateHelper.normalizeDateForDB(body.startDate);
+      body.startDate = startDate;
+      body.endDate = endDate;
+
+      // Determinar el estado inicial de la póliza
+      const determinedStatus = await this.policyStatusService.determineNewPolicyStatus(endDate);
+      body.policy_status_id = determinedStatus.id;
+
+
+      // Crear la póliza en la base de datos
+      const newPolicy = await this.policyRepository.save(body);
+
+      // Validar el valor de la póliza
+      this.validatePolicyValue(Number(newPolicy.policyValue));
+
+      // Calcular pagos y renovaciones
+      const paymentFrequency = Number(newPolicy.payment_frequency_id);
+
+      const today = new Date();
+
+
+      // Crear renovaciones automáticas
+      await this.handleRenewals(newPolicy, startDate, today);
+
+      // Generar pagos utilizando el servicio de pagos
+      await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
+
+      // Invalidar cachés
+      await this.invalidateCaches();
+
+      return newPolicy;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
   };
   //2:metodo para consultas todas las polizas
   public getAllPolicies = async (search?: string): Promise<PolicyEntity[]> => {
@@ -351,6 +532,22 @@ export class PolicyService extends ValidateEntity {
               bankName: true,
             },
           },
+          payments: {
+            id: true,
+            number_payment: true,
+            value: true,
+            pending_value: true,
+            status_payment_id: true,
+            credit: true,
+            balance: true,
+            total: true,
+            observations: true,
+            createdAt: true,
+            paymentStatus: {
+              statusNamePayment: true,
+            },
+          }
+
         },
       });
       if (!policies || policies.length === 0) {
@@ -361,7 +558,7 @@ export class PolicyService extends ValidateEntity {
         });
       }
       //await this.redisService.set(CacheKeys.GLOBAL_ALL_POLICIES, 32400); // TTL de 1 hora
-      //console.log(policies)
+      console.log(policies)
       return policies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -617,6 +814,9 @@ export class PolicyService extends ValidateEntity {
           payments: {
             id: 'DESC',
           },
+          renewals: {
+            id: 'DESC',
+          }
         },
       });
       //console.log("POLIZA OBTENIDA DESDE EL SERVICIO DE POLIZA: ", policyId);
@@ -632,30 +832,31 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //8: metodo para registrar una renovacion de poliza
-  public createRenevalAndUpdate = async (
-    body: PolicyRenewalDTO,
-  ): Promise<RenewalEntity> => {
-    try {
-      // validar si la póliza existe antes de registrar la renovacion
-      const policy = await this.policyRepository.findOne({
-        where: { id: body.policy_id },
-      });
 
-      if (!policy) {
+
+  //8: metodo para obetener los estados de las polizas
+  public getPolicyStatus = async (): Promise<PolicyStatusEntity[]> => {
+    try {
+      const cachedPoliciesStatus = await this.redisService.get(
+        CacheKeys.GLOBAL_POLICY_STATUS,
+      );
+      if (cachedPoliciesStatus) {
+        return JSON.parse(cachedPoliciesStatus);
+      }
+      const allStatusPolicies: PolicyStatusEntity[] =
+        await this.policyStatusRepository.find();
+      if (!allStatusPolicies || allStatusPolicies.length === 0) {
+        //se guarda el error
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-
-      const newReneval = await this.policyRenevalMethod.save(body);
-      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
-      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
-      await this.redisService.del('policies');
-      await this.redisService.del('policiesStatus');
-      await this.redisService.del('customers');
-      return newReneval;
+      await this.redisService.set(
+        CacheKeys.GLOBAL_POLICY_STATUS,
+        JSON.stringify(allStatusPolicies),
+      ); // TTL de 1 hora
+      return allStatusPolicies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -670,7 +871,11 @@ export class PolicyService extends ValidateEntity {
       const policy: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
       });
-      const endDate = new Date(updateData.endDate);
+      //const endDate = new Date(updateData.endDate);
+      const endDate = DateHelper.normalizeDateForDB(updateData.endDate);
+      const startDate = DateHelper.normalizeDateForDB(updateData.startDate);
+      updateData.startDate = startDate;
+      updateData.endDate = endDate;
 
       // Determinar el estado inicial de la póliza
       const determinedStatus =
@@ -707,31 +912,76 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //10: metodo para obetener los estados de las polizas
-  public getPolicyStatus = async (): Promise<PolicyStatusEntity[]> => {
+  //10: metodo para registrar una renovacion de poliza
+  public createRenevalAndUpdate = async (
+    body: PolicyRenewalDTO,
+  ): Promise<RenewalEntity> => {
     try {
-      const cachedPoliciesStatus = await this.redisService.get(
-        CacheKeys.GLOBAL_POLICY_STATUS,
-      );
-      if (cachedPoliciesStatus) {
-        return JSON.parse(cachedPoliciesStatus);
-      }
-      const allStatusPolicies: PolicyStatusEntity[] =
-        await this.policyStatusRepository.find();
-      if (!allStatusPolicies || allStatusPolicies.length === 0) {
-        //se guarda el error
+      // validar si la póliza existe antes de registrar la renovacion
+      // Obtener la póliza completa
+      const policy = await this.findPolicyById(body.policy_id);
+
+      if (!policy) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(
-        CacheKeys.GLOBAL_POLICY_STATUS,
-        JSON.stringify(allStatusPolicies),
-      ); // TTL de 1 hora
-      return allStatusPolicies;
+      const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
+      body.createdAt = createdAt;
+
+      const newRenewal = await this.policyRenevalMethod.save(body);
+      /*
+            await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+            await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
+            await this.redisService.del('policies');
+            await this.redisService.del('policiesStatus');
+            await this.redisService.del('customers');
+      */
+      // Invalidar cachés
+      await this.invalidateCaches();
+      // Crear automáticamente el primer pago para el nuevo período
+      await this.createFirstPaymentAfterRenewal(policy, newRenewal);
+      return newRenewal;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+  //11: Método para crear el primer pago después de una renovación
+  private createFirstPaymentAfterRenewal = async (
+    policy: PolicyEntity,
+    newRenewal: RenewalEntity,
+  ): Promise<void> => {
+    try {
+
+      // Calcular el valor del pago según la frecuencia de pago
+      const paymentValue = this.calculatePaymentValue(
+        Number(policy.policyValue),
+        Number(policy.payment_frequency_id),
+
+      );
+      const nextNumberPayment = policy.payments.length + 1;
+      // Calcular el saldo pendiente (valor total de la póliza menos el primer pago)
+      const pendingValue = Number(policy.policyValue) - paymentValue;
+      // Crear el objeto de pago
+      const newPayment: PaymentDTO = {
+        policy_id: policy.id,
+        number_payment: nextNumberPayment, // Es el primer pago del nuevo período
+        value: paymentValue,
+        pending_value: Number(pendingValue.toFixed(2)),
+        credit: 0,
+        balance: paymentValue,
+        total: 0,
+        status_payment_id: 1, // Pendiente
+        observations: `Primer pago generado automáticamente después de renovación #${newRenewal.renewalNumber}`,
+        createdAt: DateHelper.normalizeDateForComparison(newRenewal.createdAt), // Usar la misma fecha de la renovación
+      };
+      // Guardar el nuevo pago
+      await this.paymentService.createPayment(newPayment);
+      console.log(`Primer pago creado automáticamente para la póliza ${policy.id} después de la renovación #${newRenewal.renewalNumber}`);
+    } catch (error) {
+      console.error('Error al crear el primer pago después de la renovación:', error);
+      throw error;
     }
   };
 }

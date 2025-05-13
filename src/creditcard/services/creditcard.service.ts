@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { CreditCardStatusService } from '@/helpers/card.status';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { CacheKeys } from '@/constants/cache.enum';
+import { DateHelper } from '@/helpers/date.helper';
 
 @Injectable()
 export class CreditcardService extends EncryptDataCard {
@@ -75,7 +76,7 @@ export class CreditcardService extends EncryptDataCard {
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
-      console.log('Datos recibidos en el servicio antes del cifrado:', body);
+    
       //1 Verificar si ya existe una tarjeta con el mismo número asociada al cliente
       const existingCard = await this.cardRepository.findOne({
         where: {
@@ -88,10 +89,11 @@ export class CreditcardService extends EncryptDataCard {
         throw new Error('El cliente ya tiene una tarjeta con este número.');
       }
       //2 Convertir la fecha de expiración a Date si es una cadena
-      const expirationDate = new Date(body.expirationDate);
+      const expirationDate = DateHelper.normalizeDateForDB(body.expirationDate);
+
       // Verificar si la tarjeta ya está caducada
       const currentDate = new Date();
-      if (expirationDate < currentDate) {
+      if (expirationDate <= currentDate) {
         throw new Error('La tarjeta ya está caducada.');
       }
 
@@ -101,7 +103,7 @@ export class CreditcardService extends EncryptDataCard {
 
       //4 Asignar el estado determinado al body de la tarjeta
       body.card_status_id = determinedStatus.id;
-
+      body.expirationDate = expirationDate;
       //5 Encriptar solo el número de tarjeta y el código
       const encryptedData = this.encryptData(body.cardNumber, body.code);
 
@@ -116,6 +118,9 @@ export class CreditcardService extends EncryptDataCard {
       const newCard = await this.cardRepository.save(encryptedBody);
       // Guardar la tarjeta en Redis
       await this.redisService.set(`card:${newCard.id}`, JSON.stringify(newCard), 32400); // TTL de 9 horas
+      // Invalidar las listas cacheadas para forzar una actualización
+      await this.redisService.del('allCards');
+      await this.redisService.del('allCardsExpired');
       return newCard;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

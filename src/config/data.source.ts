@@ -30,13 +30,15 @@ export const DataSourceConfig: DataSourceOptions = {
   */
 
   extra: {
-
-    ssl: {
-      rejectUnauthorized: false,
-    },
-
+    timezone: 'America/Guayaquil',
+    /*
+        ssl: {
+          rejectUnauthorized: false,
+        },
+    */
     options: "-c timezone=America/Guayaquil",
   },
+
   logging: false,
   namingStrategy: new SnakeNamingStrategy(),
 };

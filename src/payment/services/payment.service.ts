@@ -7,6 +7,8 @@ import { PaymentDTO } from '../dto/payment.dto';
 import { PaymentEntity } from '../entity/payment.entity';
 import { PaymentStatusEntity } from '../entity/payment.status.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+import { DateHelper } from '@/helpers/date.helper';
+
 
 @Injectable()
 export class PaymentService {
@@ -28,34 +30,65 @@ export class PaymentService {
       // validar si la póliza existe antes de registrar el pago.
       const policy = await this.policyRepository.findOne({
         where: { id: body.policy_id },
+        relations: ['payments', 'renewals']
       });
 
       if (!policy) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
-          message: 'No se encontró resultados',
+          message: 'No se encontró la póliza',
         });
       }
 
+      // Si no se proporciona un número de pago, calcular el siguiente número secuencial
+      if (!body.number_payment) {
+        // Obtener todos los pagos de la póliza, sin filtrar por renovación
+        const allPayments = policy.payments || [];
+
+        // Encontrar el número más alto de pago existente
+        const maxPaymentNumber = allPayments.length > 0
+          ? Math.max(...allPayments.map(p => p.number_payment))
+          : 0;
+
+        // El siguiente número de pago es el máximo + 1
+        body.number_payment = maxPaymentNumber + 1;
+
+        console.log(`Asignando número de pago secuencial: ${body.number_payment}`);
+      } else {
+        // Si se proporciona un número de pago, verificar que no exista ya
+        if (policy.payments && policy.payments.length > 0) {
+          const existingPayment = policy.payments.find(p => p.number_payment === body.number_payment);
+
+          if (existingPayment) {
+            console.log(`Ya existe un pago con número ${body.number_payment} para esta póliza.`);
+            throw new ErrorManager({
+              type: 'BAD_REQUEST',
+              message: `Ya existe un pago con número ${body.number_payment} para esta póliza.`,
+            });
+          }
+        }
+      }
+
+      // Si no se proporciona una fecha de creación, usar la fecha actual normalizada
+      if (!body.createdAt) {
+        body.createdAt = DateHelper.normalizeDateForDB(new Date());
+      } else {
+        // Si se proporciona una fecha, normalizarla
+        body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
+      }
+
       const newPayment = await this.paymentRepository.save(body);
+      await this.redisService.del(`newPayment:${newPayment.id}`);
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+      // Usar directamente el policy_id del body
+      await this.redisService.del(`policy:${body.policy_id}`);
 
-      // Guardar en Redis
-      //await this.redisService.set(`newPayment:${newPayment.id}`, JSON.stringify(newPayment), 32400); // TTL de 1 hora
-
-      // Eliminar el caché de todos los pagos y pagos por compañía para evitar inconsistencias.
-
-      //await this.redisService.del('payments');
-      //await this.redisService.del('paymentsByStatus:general');
-      /*
-      if (policy.company?.id) {
-        await this.redisService.del(`paymentsByStatus:${policy.company.id}`);
-      }*/
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
@@ -258,9 +291,7 @@ export class PaymentService {
       // Calcular el nuevo valor pendiente
 
       const newPendingValue = payment.pending_value;
-      const updatedAt = new Date(); // Fecha actual en UTC
-      updatedAt.setHours(updatedAt.getHours() - 5); // Ajusta a UTC-5
-      updateData.updatedAt = updatedAt;
+      updateData.updatedAt = DateHelper.normalizeDateForDB(new Date());
 
       if (newPendingValue < 0) {
         throw new ErrorManager({
@@ -298,6 +329,7 @@ export class PaymentService {
           'policyStatus',
           'paymentFrequency',
           'payments',
+          'renewals',
           'payments.paymentStatus',
         ],
 
@@ -305,6 +337,7 @@ export class PaymentService {
           payments: {
             number_payment: 'ASC',
           },
+
         },
       });
 
@@ -319,4 +352,5 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   }
+
 }

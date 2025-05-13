@@ -10,7 +10,7 @@ export class RenewalEntity extends IdEntity implements IRenewall {
   renewalNumber: number;
 
   @Column({
-    type: 'timestamp',
+    type: 'timestamp with time zone',
     name: 'created_at',
   })
   createdAt: Date;
