@@ -456,15 +456,6 @@ export class PaymentSchedulerService implements OnModuleInit {
             policy.renewals[policy.renewals.length - 1] : null
         });
         console.log("pagos generados: ", policy.payments.length)
-        console.log("pagos generados: ", policy.payments.length)
-
-        // Si hay renovaciones, calcular el número máximo de pagos permitidos
-        /*
-        if (isRenewed && policy.renewals && policy.renewals.length > 0) {
-          // Cada renovación permite un nuevo ciclo completo de pagos
-          maxAllowedPayments = policy.numberOfPayments * (policy.renewals.length + 1);
-          console.log(`Póliza renovada ${policy.renewals.length} veces. Pagos máximos permitidos: ${maxAllowedPayments}`);
-        }*/
 
         // Verificar si ya se alcanzó el número máximo de pagos (considerando renovaciones)
         const currentPaymentsCount = policy.payments.length;

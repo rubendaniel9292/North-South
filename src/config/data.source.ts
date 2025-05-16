@@ -31,11 +31,11 @@ export const DataSourceConfig: DataSourceOptions = {
 
   extra: {
     timezone: 'America/Guayaquil',
-    /*
-        ssl: {
-          rejectUnauthorized: false,
-        },
-    */
+
+    ssl: {
+      rejectUnauthorized: false,
+    },
+
     options: "-c timezone=America/Guayaquil",
   },
 

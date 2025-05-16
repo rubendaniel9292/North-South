@@ -41,35 +41,81 @@ export class PolicyService extends ValidateEntity {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
   }
+  //función para obtener pagos por ciclo según frecuencia
+  private getPaymentsPerCycle(paymentFrequency: number, numberOfPayments?: number): number {
+    let paymentsPerCycle = 1; // Por defecto
+
+    switch (paymentFrequency) {
+      case 1: // Mensual
+        paymentsPerCycle = 12;
+        break;
+      case 2: // Trimestral
+        paymentsPerCycle = 4;
+        break;
+      case 3: // Semestral
+        paymentsPerCycle = 2;
+        break;
+      case 4: // Anual
+        paymentsPerCycle = 1;
+        break;
+      case 5: // Personalizado
+        paymentsPerCycle = numberOfPayments || 1;
+        break;
+    }
+
+    return paymentsPerCycle;
+  }
+  // función para avanzar la fecha según la frecuencia de pago
+  private advanceDate(currentDate: Date, paymentFrequency: number, policy?: PolicyEntity, startDate?: Date, paymentsPerCycle?: number): Date {
+    const newDate = new Date(currentDate);
+
+    switch (paymentFrequency) {
+      case 1: // Mensual
+        newDate.setMonth(newDate.getMonth() + 1);
+        break;
+      case 2: // Trimestral
+        newDate.setMonth(newDate.getMonth() + 3);
+        break;
+      case 3: // Semestral
+        newDate.setMonth(newDate.getMonth() + 6);
+        break;
+      case 4: // Anual
+        newDate.setFullYear(newDate.getFullYear() + 1);
+        break;
+      case 5: // Personalizado
+        if (policy && startDate && paymentsPerCycle) {
+          const daysBetween = Math.floor((policy.endDate.getTime() - startDate.getTime()) / paymentsPerCycle);
+          newDate.setDate(newDate.getDate() + daysBetween);
+        }
+        break;
+    }
+
+    return newDate;
+  }
+  //funcion para calcular el valor de cada pago según la frecuencia de pagos segun el número de pagos en el ciclo
   private calculatePaymentValue(
     policyValue: number,
     paymentFrequency: number,
     numberOfPayments?: number,
   ): number {
+    // Obtener el número de pagos por ciclo según la frecuencia
+    const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, numberOfPayments);
+
+    // Calcular el valor de cada pago
     let valueToPay = 0;
-    console.log('numero de pagos ', numberOfPayments);
-    switch (paymentFrequency) {
-      case 1: // Pago mensual
-        valueToPay = parseFloat((policyValue / 12).toFixed(2));
-        break;
-      case 2: // Pago trimestral
-        valueToPay = parseFloat((policyValue / 4).toFixed(2));
-        break;
-      case 3: // Pago semestral
-        valueToPay = parseFloat((policyValue / 2).toFixed(2));
-        break;
-      case 5: // otro pago
-        if (numberOfPayments) {
-          valueToPay = parseFloat((policyValue / numberOfPayments).toFixed(2));
-        } else {
-          throw new Error(
-            'Number of payments is required for payment frequency 5',
-          );
-        }
-        break;
-      default: // Pago anual
-        valueToPay = policyValue;
-        break;
+
+    if (paymentFrequency === 5) { // Caso especial para pagos personalizados
+      if (numberOfPayments) {
+        valueToPay = parseFloat((policyValue / numberOfPayments).toFixed(2));
+      } else {
+        throw new Error(
+          'Number of payments is required for payment frequency 5',
+        );
+      }
+    } else if (paymentsPerCycle > 0) {
+      valueToPay = parseFloat((policyValue / paymentsPerCycle).toFixed(2));
+    } else {
+      valueToPay = policyValue; // Valor por defecto (pago anual)
     }
 
     return valueToPay;
@@ -80,7 +126,6 @@ export class PolicyService extends ValidateEntity {
     try {
 
       console.log(`Generando pagos iniciales para póliza ${policy.id} desde ${startDate.toISOString()} hasta la primera renovación`);
-
       const policyValue = Number(policy.policyValue);
       const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
 
@@ -100,28 +145,8 @@ export class PolicyService extends ValidateEntity {
         console.log(`La póliza ${policy.id} ya tiene ${existingPayments.length} pagos. No se generarán pagos iniciales.`);
         return;
       }
-
       // Calcular cuántos pagos se deben generar según la frecuencia hasta la primera renovación
-      let paymentsPerCycle = 1; // Por defecto
-
-
-      switch (paymentFrequency) {
-        case 1: // Mensual
-          paymentsPerCycle = 12;
-          break;
-        case 2: // Trimestral
-          paymentsPerCycle = 4;
-          break;
-        case 3: // Semestral
-          paymentsPerCycle = 2;
-          break;
-        case 4: // Anual
-          paymentsPerCycle = 1;
-          break;
-        case 5: // Personalizado
-          paymentsPerCycle = policy.numberOfPayments || 1;
-          break;
-      }
+      const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, policy.numberOfPayments);
 
       // Generar los pagos del ciclo inicial
       let currentDate = new Date(startDate);
@@ -151,7 +176,7 @@ export class PolicyService extends ValidateEntity {
             credit: 0,
             balance: valueToPay,
             total: 0,
-            observations: i === 0 ? 'Pago inicial de la póliza' : 'Pago del ciclo inicial',
+            observations: i === 0 ? 'Pago inicial de la póliza' : `Pago N° ${paymentNumber} del ciclo inicial`,
             createdAt: i === 0 ? policy.startDate : DateHelper.normalizeDateForComparison(new Date(currentDate))
           };
 
@@ -159,26 +184,8 @@ export class PolicyService extends ValidateEntity {
           await this.paymentService.createPayment(paymentData);
           paymentNumber++;
         }
-
         // Avanzar la fecha según la frecuencia de pago
-        switch (paymentFrequency) {
-          case 1: // Mensual
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            break;
-          case 2: // Trimestral
-            currentDate.setMonth(currentDate.getMonth() + 3);
-            break;
-          case 3: // Semestral
-            currentDate.setMonth(currentDate.getMonth() + 6);
-            break;
-          case 4: // Anual
-            currentDate.setFullYear(currentDate.getFullYear() + 1);
-            break;
-          case 5: // Personalizado
-            const daysBetween = Math.floor((policy.endDate.getTime() - startDate.getTime()) / paymentsPerCycle);
-            currentDate.setDate(currentDate.getDate() + daysBetween);
-            break;
-        }
+        currentDate = this.advanceDate(currentDate, paymentFrequency, policy, startDate, paymentsPerCycle);
       }
 
       console.log(`Se crearon ${paymentNumber - 1} pagos iniciales para la póliza ${policy.id}`);
@@ -216,7 +223,7 @@ export class PolicyService extends ValidateEntity {
           const renewalData: PolicyRenewalDTO = {
             policy_id: policy.id,
             renewalNumber: i,
-            observations: `Renovación automática año/periodo ${i}`,
+            observations: `Renovación automática año/periodo N° ${i}`,
             createdAt: normalizedRenewalDate,
           };
 
@@ -244,25 +251,8 @@ export class PolicyService extends ValidateEntity {
 
       // 4. Calcular cuántos pagos se deben generar según la frecuencia
       const paymentFrequency = Number(policy.payment_frequency_id);
-      let paymentsPerCycle = 1; // Por defecto
 
-      switch (paymentFrequency) {
-        case 1: // Mensual
-          paymentsPerCycle = 12;
-          break;
-        case 2: // Trimestral
-          paymentsPerCycle = 4;
-          break;
-        case 3: // Semestral
-          paymentsPerCycle = 2;
-          break;
-        case 4: // Anual
-          paymentsPerCycle = 1;
-          break;
-        case 5: // Personalizado
-          paymentsPerCycle = policy.numberOfPayments || 1;
-          break;
-      }
+      const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, policy.numberOfPayments);
 
       // 5. Generar solo los pagos necesarios para este ciclo (hasta la fecha actual)
       const policyValue = Number(policy.policyValue);
@@ -281,7 +271,7 @@ export class PolicyService extends ValidateEntity {
         credit: 0,
         balance: valueToPay,
         total: 0,
-        observations: `Pago generado por renovación #${renewal.renewalNumber}`,
+        observations: `Pago generado por renovación N° ${renewal.renewalNumber}`,
         createdAt: renewalDate
       };
 
@@ -291,24 +281,7 @@ export class PolicyService extends ValidateEntity {
       // Generar los pagos restantes del ciclo (hasta la fecha actual)
       for (let i = 1; i < paymentsPerCycle && currentDate <= today; i++) {
         // Avanzar la fecha según la frecuencia
-        switch (paymentFrequency) {
-          case 1: // Mensual
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            break;
-          case 2: // Trimestral
-            currentDate.setMonth(currentDate.getMonth() + 3);
-            break;
-          case 3: // Semestral
-            currentDate.setMonth(currentDate.getMonth() + 6);
-            break;
-          case 4: // Anual
-            currentDate.setFullYear(currentDate.getFullYear() + 1);
-            break;
-          case 5: // Personalizado
-            const daysBetween = Math.floor((policy.endDate.getTime() - renewalDate.getTime()) / paymentsPerCycle);
-            currentDate.setDate(currentDate.getDate() + daysBetween);
-            break;
-        }
+        currentDate = this.advanceDate(currentDate, paymentFrequency, policy, renewalDate, paymentsPerCycle);
 
         // Solo crear el pago si la fecha es menor o igual a hoy
         if (currentDate <= today) {
@@ -321,7 +294,7 @@ export class PolicyService extends ValidateEntity {
             credit: 0,
             balance: valueToPay,
             total: 0,
-            observations: `Pago del ciclo de renovación #${renewal.renewalNumber}`,
+            observations: `Pago del ciclo de renovación N° ${renewal.renewalNumber}`,
             createdAt: DateHelper.normalizeDateForComparison(new Date(currentDate))
           };
 
@@ -347,7 +320,6 @@ export class PolicyService extends ValidateEntity {
   }
 
   //1:metodo para registrar una poliza
-
   public createPolicy = async (body: PolicyDTO): Promise<PolicyEntity> => {
     try {
       // Validar los datos de entrada
@@ -839,10 +811,10 @@ export class PolicyService extends ValidateEntity {
     body: PolicyRenewalDTO,
   ): Promise<RenewalEntity> => {
     try {
-      // validar si la póliza existe antes de registrar la renovacion
+
       // Obtener la póliza completa
       const policy = await this.findPolicyById(body.policy_id);
-
+      // validar si la póliza existe antes de registrar la renovacion
       if (!policy) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -864,8 +836,6 @@ export class PolicyService extends ValidateEntity {
         previousRenewalDate.setFullYear(previousRenewalDate.getFullYear() + (body.renewalNumber - 1));
         await this.generateMissingPaymentsBeforeRenewal(policy, previousRenewalDate, new Date(body.createdAt));
       }
-
-
 
       // Crear automáticamente el primer pago para el nuevo período
       await this.createFirstPaymentAfterRenewal(policy, newRenewal);
@@ -905,7 +875,7 @@ export class PolicyService extends ValidateEntity {
       credit: 0,
       balance: valueToPay,
       total: 0,
-      observations: `Pago generado por renovación #${renewal.renewalNumber}`,
+      observations: `Pago generado por renovación N° ${renewal.renewalNumber}`,
       createdAt: renewal.createdAt
     };
 
@@ -966,26 +936,9 @@ export class PolicyService extends ValidateEntity {
         await this.paymentService.createPayment(paymentData);
         paymentNumber++;
       }
-
       // Avanzar la fecha según la frecuencia de pago
-      switch (paymentFrequency) {
-        case 1: // Mensual
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          break;
-        case 2: // Trimestral
-          currentDate.setMonth(currentDate.getMonth() + 3);
-          break;
-        case 3: // Semestral
-          currentDate.setMonth(currentDate.getMonth() + 6);
-          break;
-        case 4: // Anual
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
-          break;
-        case 5: // Personalizado
-          const daysBetween = Math.floor((policy.endDate.getTime() - startDate.getTime()) / policy.numberOfPayments);
-          currentDate.setDate(currentDate.getDate() + daysBetween);
-          break;
-      }
+      currentDate = this.advanceDate(currentDate, paymentFrequency, policy, startDate, policy.numberOfPayments);
+
     }
   }
 }
