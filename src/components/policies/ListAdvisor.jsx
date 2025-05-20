@@ -29,7 +29,6 @@ const ListAdvisor = () => {
     try {
       const response = await http.get(`advisor/get-advisor/${advisorId}`);
       console.log("Asesor por id obtenido: ", response.data.advisorById);
-      console.log("Tipo de modal: ", type);
       setAdvisorId(response.data.advisorById);
       setModalType(type);
       openModal();

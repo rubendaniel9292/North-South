@@ -4,7 +4,7 @@ import fs from "fs";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  /*
+  
   server: {
     https: {
       key: fs.readFileSync("/home/certificados/localhost-privateKey.key"),
@@ -17,5 +17,5 @@ export default defineConfig({
         secure: false,
       },
     },
-  },*/
+  },
 });
