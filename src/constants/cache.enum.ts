@@ -15,4 +15,5 @@ export enum CacheKeys {
     GLOBAL_POLICY_STATUS = 'global:allStatusPolicies:all',
     GLOBAL_ALL_POLICIES = 'global:policies:all',
     GLOBAL_ALL_POLICIES_BY_STATUS = 'global:policiesStatus:all',
+    GLOBAL_COMMISSIONS = 'global:commissions:all',
 }

@@ -17,13 +17,11 @@ import { CreditCardDTO } from '../dto/creditcard.dto';
 @Controller('creditcard')
 @UseGuards(AuthGuard, RolesGuard)
 export class CreditcardController {
-  constructor(private readonly creditCardService: CreditcardService) {}
+  constructor(private readonly creditCardService: CreditcardService) { }
   @Roles('ADMIN', 'BASIC')
   @Post('register-type')
   public async registerTypeCard(@Body() body: CardOptionDTO) {
-    console.log('datos recibidos en el cotnrolador: ', body);
     const newCardType = await this.creditCardService.createCreditdCarType(body);
-    console.log('Datos enviado al servicio: ', newCardType);
 
     if (newCardType) {
       return {

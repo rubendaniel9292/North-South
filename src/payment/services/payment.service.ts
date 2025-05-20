@@ -1,3 +1,4 @@
+//import { CommissionsPaymentsService } from './../../commissions-payments/services/commissions-payments.service';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { RedisModuleService } from '@/redis-module/services/redis-module.service
 import { DateHelper } from '@/helpers/date.helper';
 
 
+
 @Injectable()
 export class PaymentService {
   constructor(
@@ -19,10 +21,20 @@ export class PaymentService {
     @InjectRepository(PaymentStatusEntity)
     private readonly paymentStatusRepository: Repository<PaymentStatusEntity>,
 
+    /*
+    @InjectRepository(CommissionsPaymentsService)
+    private readonly commissionsPaymentsService: CommissionsPaymentsService,
+*/
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly redisService: RedisModuleService,
   ) { }
+
+  //metodo para calcular el valor de la comision de la poliza por cada registro o renovacion segun el periodo
+  private calculateCommissionValue(paymentsToAdvisor: number, paymentFrequency: number): number {
+    let commissionValue = parseFloat((paymentsToAdvisor / paymentFrequency).toFixed(2));
+    return commissionValue
+  }
   //1: metodo para registrar un pago de poliza
 
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
@@ -54,6 +66,7 @@ export class PaymentService {
         body.number_payment = maxPaymentNumber + 1;
 
         console.log(`Asignando número de pago secuencial: ${body.number_payment}`);
+
       } else {
         // Si se proporciona un número de pago, verificar que no exista ya
         if (policy.payments && policy.payments.length > 0) {
@@ -84,7 +97,21 @@ export class PaymentService {
       // Usar directamente el policy_id del body
       await this.redisService.del(`policy:${body.policy_id}`);
 
+      //OJO: SE ETRA CREANDO EL PRIMER PAGO DE COMOSION POR REGISTRO DE POLIZA
+      const commission= this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
+      // Crear el pago de comisión
+      const commissionPayment = {
+        value: commission,
+        number_payment: 1,
+        payment_frequency_id: policy.payment_frequency_id,
+        policy_id: policy.id,
+        status_payment_id: 1,
+        createdAt: DateHelper.normalizeDateForDB(new Date()),
+      };
+      // Guardar el pago de comisión
+      //await this.commissionsPaymentsService.createCommissionPayment(commissionPayment);
       return newPayment;
+
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

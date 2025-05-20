@@ -9,6 +9,7 @@ import {
 import { CompanyEntity } from '@/company/entities/company.entity';
 import { AdvisorEntity } from '@/advisor/entities/advisor.entity';
 import { PaymentMethodEntity } from '@/policy/entities/payment_method.entity';
+import { PolicyEntity } from '@/policy/entities/policy.entity';
 
 @Entity('commissions_payments')
 export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsPayments {
@@ -19,7 +20,10 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column('decimal', { precision: 12, scale: 2 })
     advanceAmount: number;
 
-    @Column()
+    @Column({
+        type: 'timestamp',
+        name: 'created_at',
+    })
     createdAt: Date;
 
     @Column({ nullable: true })
@@ -31,16 +35,11 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column()
     payment_method_id: number;
 
-    @Column()
+    @Column({ nullable: true })
     company_id: number;
 
-    // Muchas polizas son vendidas por un asesor
-    /*
-    @ManyToOne(() => AdvisorEntity, (advisor) => advisor.policies, {
-        onDelete: 'RESTRICT', // No permite eliminar el asesor si tiene pólizas asociadas
-    })
-    @JoinColumn({ name: 'advisor_id' })
-    advisor: AdvisorEntity;*/
+    @Column({ nullable: true })
+    policy_id: number;
 
     // RELACION CON METODOS DE PAGOS
     @ManyToOne(
@@ -64,5 +63,10 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     })
     @JoinColumn({ name: 'advisor_id' })
     advisor: AdvisorEntity;
+
+    //RELACION CON POLIZAS
+    @ManyToOne(() => PolicyEntity, (policy) => policy.commission)
+    @JoinColumn({ name: 'policy_id' })
+    policy: PolicyEntity;
 
 }

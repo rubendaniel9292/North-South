@@ -349,6 +349,8 @@ export class PolicyService extends ValidateEntity {
       // Invalidar cachés
       await this.invalidateCaches();
       return newPolicy;
+
+    
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -839,6 +841,7 @@ export class PolicyService extends ValidateEntity {
 
       // Crear automáticamente el primer pago para el nuevo período
       await this.createFirstPaymentAfterRenewal(policy, newRenewal);
+      
       // Invalidar cachés
       await this.invalidateCaches();
       return newRenewal;

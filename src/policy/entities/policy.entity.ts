@@ -20,6 +20,7 @@ import { PaymentMethodEntity } from './payment_method.entity';
 import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RenewalEntity } from './renewal.entity';
+import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
 
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
@@ -52,6 +53,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
 
   @Column({ nullable: true })
   bank_account_id: number;
+
+  @Column({ nullable: true })
+  commission: number;
 
   @Column('decimal', { precision: 12, scale: 2 })
   coverageAmount: number;
@@ -199,4 +203,11 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     onDelete: 'CASCADE', //Si elimina una póliza, todas las renovaciones asociadas también se eliminan automáticamente.
   })
   renewals: RenewalEntity[];
+
+  //relacion con las comisiones de pagos
+  @OneToMany(() => CommissionsPaymentsEntity, (commissionsPayments) => commissionsPayments.policy, {
+    nullable: true,
+    onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
+  })
+  commissionsPayments: CommissionsPaymentsEntity[];
 }
