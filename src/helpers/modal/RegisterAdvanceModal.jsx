@@ -15,6 +15,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [advanceValue, setAdvanceValue] = useState();
+  const [remainingValue, setRemainingValue] = useState(0);
+  const [totalCommission, setTotalCommission] = useState(0);
   const { form, changed } = UserForm({});
   const option = "Escoja una opción";
   useEffect(() => {
@@ -44,6 +47,16 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
     if (!selectedPolicyId) {
       changed(e); // Procesamos el cambio normalmente
       setFilteredCompanies(companies); // Restauramos todas las compañías
+      setSelectedPolicy(null); // Limpiamos la póliza seleccionada
+      setRemainingValue(0); // Reiniciamos el valor restante
+      // Limpiamos el valor de la compañía en el formulario
+      const companyEvent = {
+        target: {
+          name: "company_id",
+          value: "",
+        },
+      };
+      changed(companyEvent);
       return;
     }
 
@@ -60,7 +73,17 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
     }
     if (selectedPolicy) {
       // Actualizamos el formulario con el cambio de la póliza
-      changed(e);
+      setSelectedPolicy(selectedPolicy);
+      // Calculamos el valor total de comisiones una sola vez
+      const commissionValue =
+        selectedPolicy.renewalCommission === false
+          ? selectedPolicy.paymentsToAdvisor
+          : (selectedPolicy.paymentsToAdvisor /
+              selectedPolicy.numberOfPaymentsAdvisor) *
+            selectedPolicy.payments.length;
+
+      setTotalCommission(commissionValue);
+      setRemainingValue(commissionValue); // Inicializamos el valor
 
       // Filtramos las compañías para mostrar solo la que corresponde a la póliza
       const companyId = selectedPolicy.company_id;
@@ -81,7 +104,58 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
       changed(companyEvent);
     }
   };
+  // Función para manejar el cambio en el valor del anticipo
+  const handleAdvanceValueChange = (e) => {
+    const inputValue = e.target.value;
+    // Si el campo está vacío, establecemos el estado como una cadena vacía
+    if (inputValue === "") {
+      setAdvanceValue("");
 
+      if (selectedPolicy) {
+        // Si no hay valor, el restante es igual al total
+        setRemainingValue(totalCommission);
+      }
+    } else {
+      // Si hay un valor, lo convertimos a número
+      const value = parseFloat(inputValue);
+      setAdvanceValue(value);
+
+      if (selectedPolicy) {
+        // Calculamos el valor restante
+        const remaining = totalCommission - value;
+        setRemainingValue(remaining);
+
+        // Validamos si el valor excede el total de comisiones
+        const inputElement = document.getElementById("advanceValue");
+        if (value > totalCommission) {
+          inputElement.setCustomValidity("Valor excede comisiones");
+        } else {
+          inputElement.setCustomValidity("");
+        }
+      }
+    }
+
+    // Procesamos el cambio normalmente
+    changed(e);
+  };
+
+  // Añade esta función para manejar el envío del formulario
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const form = e.target;
+
+    if (!form.checkValidity()) {
+      e.stopPropagation();
+    }
+
+    form.classList.add("was-validated");
+
+    // Si el formulario es válido, procede con el envío
+    if (form.checkValidity()) {
+      // Aquí iría tu lógica de envío
+      console.log("Formulario válido, enviando datos...");
+    }
+  };
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -91,15 +165,22 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
               Registro de anticipio a: {advisorId.firstName} {advisorId.surname}
             </h3>
             {selectedPolicy ? (
-              <h4 className="text-white fw-bold">
-                Comisiones generadas para esta poliza:{" "}
-                {selectedPolicy.renewalCommission === false
-                  ? selectedPolicy.paymentsToAdvisor
-                  : (
-                      selectedPolicy.paymentsToAdvisor /
-                      selectedPolicy.numberOfPaymentsAdvisor
-                    ).toFixed(2) * selectedPolicy.payments.length.toFixed(2)}
-              </h4>
+              <>
+                <h4 className="text-white fw-bold">
+                  Comisiones generadas para esta poliza:{" "}
+                  {totalCommission.toFixed(2)}
+                </h4>
+                <h4
+                  className={
+                    remainingValue <= 0
+                      ? "bg-danger text-white fw-bold p-1 rounded"
+                      : "text-white fw-bold"
+                  }
+                >
+                  Valor restante después del anticipo:{" "}
+                  {remainingValue.toFixed(2)}
+                </h4>
+              </>
             ) : (
               <h4 className="text-white fw-bold">
                 Seleccione una póliza para ver sus comisiones
@@ -107,7 +188,12 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
             )}
           </div>
           <div className="d-flex justify-content-around mt-5">
-            <form onSubmit={""} id="user-form">
+            <form
+              onSubmit={handleSubmit}
+              id="user-form"
+              className="needs-validation"
+              noValidate
+            >
               <div className="row">
                 <div className="mb-4  d-none">
                   <label htmlFor="advisor_id" className="form-label">
@@ -119,7 +205,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     className="form-control"
                     id="advisor_id"
                     name="advisor_id"
-                    //onChange={handleChange}
+                    onChange={changed}
                     value={advisorId.id}
                     readOnly
                   />
@@ -166,8 +252,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     type="string"
                     className="form-control"
                     name="receiptNumber"
-
-                    //onChange={handleChange}
                   />
                 </div>
                 <div className="mb-3 col-4">
@@ -180,9 +264,12 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     name="company_id"
                     onChange={changed}
                     defaultValue={option}
-                    value={form.company_id || ""}
+                    value={selectedPolicy ? form.company_id || "" : ""}
+                    disabled={!selectedPolicy}
                   >
-                    <option disabled>{option}</option>
+                    <option disabled value="">
+                      {option}
+                    </option>
                     {filteredCompanies.map((company) => (
                       <option key={company.id} value={company.id}>
                         {company.companyName}
@@ -199,7 +286,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     className="form-select"
                     id="payment_method_id"
                     name="payment_method_id"
-                    //onChange={handlePaymentMethodChange} // Cambiado aquí
+                    onChange={changed}
                     defaultValue={option}
                   >
                     <option disabled>{option}</option>
@@ -212,20 +299,23 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                 </div>
 
                 <div className="mb-3 col-4">
-                  <label htmlFor=" advanceValue" className="form-label">
+                  <label htmlFor="advanceValue" className="form-label">
                     Valor del anticipio
                   </label>
                   <input
                     required
                     type="number"
-                    className="form-control"
-                    id=" advanceValue"
-                    name=" advanceValue"
+                    className="form-control "
+                    id="advanceValue"
+                    name="advanceValue"
                     step="0.01"
-                    //value={Number(form.value).toFixed(2)}
-                    //onChange={handleChange}
-                    readOnly
+                    onChange={handleAdvanceValueChange}
+                    value={advanceValue}
                   />
+                  <div className="invalid-feedback">
+                    La comisión es mayor que la comisión de la póliza
+                    seleccionada o el campo está vacío
+                  </div>
                 </div>
 
                 <div className="mb-3 col-4">
@@ -238,8 +328,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     className="form-control"
                     id="createdAt"
                     name="createdAt"
-                    //value={form.createdAt}
-                    //onChange={handleChange}
+                    onChange={changed}
                   />
                 </div>
 
@@ -252,7 +341,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     className="form-control"
                     id="observations"
                     name="observations"
-                    //onChange={handleChange}
+                    onChange={changed}
                   />
                 </div>
                 <div className="mt-4 col-12">
@@ -276,7 +365,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     />
                   </button>
                   <button
-                    type="submit"
+                    type="button"
                     onClick={onClose}
                     id="btnc"
                     className="btn bg-danger mx-5 text-white fw-bold"

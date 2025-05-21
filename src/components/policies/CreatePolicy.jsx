@@ -106,6 +106,11 @@ const CreatePolicy = () => {
 
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
+    // Función auxiliar para agregar clase de manera segura
+    const addClassSafely = (id, className) => {
+      const element = document.getElementById(id);
+      if (element) element.classList.add(className);
+    };
     const value = Number(form.policyValue);
     const percentageAdvisor = Number(form.advisorPercentage);
     const percentageAgency = Number(form.agencyPercentage);
@@ -133,8 +138,12 @@ const CreatePolicy = () => {
           value: paymentAvisor,
         },
       });
+      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+      addClassSafely("paymentsToAgency", "is-valid");
+      addClassSafely("paymentsToAdvisor", "is-valid");
+      addClassSafely("numberOfPayments", "is-valid");
+      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     form.policyValue,
     form.advisorPercentage,
@@ -241,23 +250,37 @@ const CreatePolicy = () => {
   const savedPolicy = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    // Obtener el elemento del formulario
+    const formElement = e.target;
+
+    // Verificar la validez del formulario
+    if (!formElement.checkValidity()) {
+      e.stopPropagation();
+    }
+
+    // Agregar la clase was-validated para mostrar los mensajes de error
+    formElement.classList.add("was-validated");
     try {
-      let newPolicy = form;
-      const request = await http.post("policy/register-policy", newPolicy);
-      if (request.data.status === "success") {
-        console.log("Poliza registrada: ", request.data);
-        alerts(
-          "Registro exitoso",
-          "Póliza registrada correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-      } else {
-        alerts(
-          "Error",
-          "Póliza no registrada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
-          "error"
-        );
+      // Si el formulario es válido, procede con el envío
+      if (formElement.checkValidity()) {
+        // Aquí iría tu lógica de envío
+        console.log("Formulario válido, enviando datos...");
+        const request = await http.post("policy/register-policy", form);
+        if (request.data.status === "success") {
+          console.log("Poliza registrada: ", request.data);
+          alerts(
+            "Registro exitoso",
+            "Póliza registrada correctamente",
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Póliza no registrada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
+            "error"
+          );
+        }
       }
     } catch (error) {
       alerts(
@@ -273,7 +296,12 @@ const CreatePolicy = () => {
 
   return (
     <>
-      <form onSubmit={savedPolicy} id="user-form">
+      <form
+        onSubmit={savedPolicy}
+        id="user-form"
+        className="needs-validation was-validated"
+        noValidate
+      >
         <div className="row pt-3 fw-bold">
           <div className="mb-3 col-3">
             <label htmlFor="numberPolicy" className="form-label">
@@ -287,6 +315,9 @@ const CreatePolicy = () => {
               name="numberPolicy"
               onChange={changed}
             />{" "}
+            <div className="invalid-feedback">
+              Por favor ingrese el número de póliza.
+            </div>
           </div>
 
           <div className="mb-3 col-3">
@@ -299,15 +330,23 @@ const CreatePolicy = () => {
               name="policy_type_id"
               onChange={changed}
               defaultValue={option}
+              required
+              aria-label="select example"
             >
-              <option disabled>{option}</option>
+              <option selected value={""} disabled>
+                {option}
+              </option>
               {types.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.policyName}
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">
+              Por favor escooja un tipo de póliza.
+            </div>
           </div>
+
           <div className="mb-3 col-3">
             <label htmlFor="company_id" className="form-label">
               Compañía
@@ -318,15 +357,23 @@ const CreatePolicy = () => {
               name="company_id"
               onChange={changed}
               defaultValue={option}
+              aria-label="select example"
+              required
             >
-              <option disabled>{option}</option>
+              <option selected value={""} disabled>
+                {option}
+              </option>
               {companies.map((copmany) => (
                 <option key={copmany.id} value={copmany.id}>
                   {copmany.companyName}
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">
+              Por favor escoja una compañía.
+            </div>
           </div>
+
           <div className="mb-3 col-3">
             <label htmlFor="payment_frequency_id" className="form-label">
               Frecuencia de pago
@@ -337,14 +384,21 @@ const CreatePolicy = () => {
               name="payment_frequency_id"
               onChange={handleFrequencyChange}
               defaultValue={option}
+              required
+              aria-label="select example"
             >
-              <option disabled>{option}</option>
+              <option selected value={""} disabled>
+                {option}
+              </option>
               {frequency.map((frequency) => (
                 <option key={frequency.id} value={frequency.id}>
                   {frequency.frequencyName}
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">
+              Por favor escoja la frecuencia de pago.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="customers_id" className="form-label">
@@ -354,12 +408,15 @@ const CreatePolicy = () => {
               className="form-select"
               id="customers_id"
               name="customers_id"
-              //defaultValue={option}
               value={selectedCustomer} // Seleccionamos el cliente automáticamente o se setea en vacio
               onChange={handleSelectChange}
               disabled={!isEditable} // Deshabilitar el select si isEditable es false
+              required
+              aria-label="select example"
             >
-              <option disabled>{option}</option>
+              <option selected disabled>
+                {option}
+              </option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {`${customer.firstName} ${customer.secondName || ""} ${
@@ -368,6 +425,7 @@ const CreatePolicy = () => {
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">Por favor escoja un cliente.</div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="advisor_id" className="form-label">
@@ -379,8 +437,12 @@ const CreatePolicy = () => {
               name="advisor_id"
               onChange={changed}
               defaultValue={option}
+              aria-label="select example"
+              required
             >
-              <option disabled>{option}</option>
+              <option selected value={""} disabled>
+                {option}
+              </option>
               {advisor.map((item) => (
                 <option key={item.id} value={item.id}>
                   {`${item.firstName} ${item.secondName || ""} ${
@@ -389,6 +451,7 @@ const CreatePolicy = () => {
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">Por favor escoja un asesor.</div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="payment_method_id" className="form-label">
@@ -400,14 +463,21 @@ const CreatePolicy = () => {
               name="payment_method_id"
               onChange={handlePaymentMethodChange} // Cambiado aquí
               defaultValue={option}
+              required
+              aria-label="select example"
             >
-              <option disabled>{option}</option>
+              <option disabled value={""} selected>
+                {option}
+              </option>
               {paymentMethod.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.methodName}
                 </option>
               ))}
             </select>
+            <div className="invalid-feedback">
+              Por favor escoja un método de pago.
+            </div>
           </div>
           {selectedPaymentMethod === "9" && (
             <div className="mb-3 col-3">
@@ -420,10 +490,15 @@ const CreatePolicy = () => {
                 name="bank_account_id"
                 onChange={changed}
                 defaultValue={option}
+                required
+                aria-label="select example"
               >
                 {filteredAccount.length > 0 ? (
                   <>
-                    <option disabled> {option}</option>
+                    <option disabled value={""} selected>
+                      {" "}
+                      {option}
+                    </option>
                     {filteredAccount.map((account) => (
                       <option key={account.id} value={account.id}>
                         {account.accountNumber} - {account.bank?.bankName}
@@ -436,6 +511,9 @@ const CreatePolicy = () => {
                   </option>
                 )}
               </select>
+              <div className="invalid-feedback">
+                Por favor escoja una cuenta
+              </div>
             </div>
           )}
 
@@ -450,10 +528,15 @@ const CreatePolicy = () => {
                 name="credit_card_id"
                 onChange={changed}
                 defaultValue={option}
+                required
+                aria-label="select example"
               >
                 {filteredCard.length > 0 ? (
                   <>
-                    <option disabled> {option}</option>
+                    <option disabled selected value={""}>
+                      {" "}
+                      {option}
+                    </option>
                     {filteredCard.map((card) => (
                       <option key={card.id} value={card.id}>
                         {card.cardNumber} - {card.bank?.bankName}
@@ -461,11 +544,14 @@ const CreatePolicy = () => {
                     ))}
                   </>
                 ) : (
-                  <option className="bs-danger-bg-subtle">
+                  <option disabled selected className="bs-danger-bg-subtle">
                     No hay tarjetas asociadas a este cliente.
                   </option>
                 )}
               </select>
+              <div className="invalid-feedback">
+                Por favor escoja una tarjeta.
+              </div>
             </div>
           )}
           <div className="mb-3 col-3">
@@ -506,7 +592,9 @@ const CreatePolicy = () => {
               name="policyFee"
               value={form.policyFee}
               onChange={changed} // Llamada a la función
+              required
             />
+            <div className="invalid-feedback">Ingrese 0 sino aplica</div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="agencyPercentage" className="form-label">
@@ -538,7 +626,7 @@ const CreatePolicy = () => {
           </div>
 
           <div className="mb-3 col-3 ">
-            <label htmlFor="flexRadioDefault7" className="form-label">
+            <label htmlFor="flexRadioDefault7" className="form-check-label">
               Comisión por renovación
             </label>
             <div className="form-check">
@@ -549,8 +637,9 @@ const CreatePolicy = () => {
                 id="flexRadioDefault7"
                 value="true"
                 onChange={changed}
+                required
               ></input>
-              <label className="form-check-label" htmlFor="flexRadioDefault8">
+              <label className="form-check-label" htmlFor="flexRadioDefault7">
                 Si
               </label>
             </div>
@@ -562,10 +651,14 @@ const CreatePolicy = () => {
                 id="flexRadioDefault8"
                 value="false"
                 onChange={changed}
-              ></input>
+                required
+              />
               <label className="form-check-label" htmlFor="flexRadioDefault8">
                 No
               </label>
+              <div className="invalid-feedback">
+                Por favor escoja una opción.
+              </div>
             </div>
           </div>
           <div className="mb-3 col-3">
@@ -575,7 +668,9 @@ const CreatePolicy = () => {
             <input
               required
               type="number"
-              className="form-control"
+              className={`form-control ${
+                form.numberOfPayments ? "is-valid" : ""
+              }`}
               id="numberOfPayments"
               name="numberOfPayments"
               value={form.numberOfPayments}
@@ -619,9 +714,11 @@ const CreatePolicy = () => {
               readOnly
               required
               type="number"
-              className="form-control"
-              id=" paymentsToAgency"
-              name=" paymentsToAgency"
+              className={`form-control ${
+                form.paymentsToAgency ? "is-valid" : ""
+              }`}
+              id="paymentsToAgency"
+              name="paymentsToAgency"
               value={form.paymentsToAgency || 0}
             />
           </div>
@@ -633,7 +730,9 @@ const CreatePolicy = () => {
               readOnly
               required
               type="number"
-              className="form-control"
+              className={`form-control ${
+                form.paymentsToAdvisor ? "is-valid" : ""
+              }`}
               id="paymentsToAdvisor"
               name="paymentsToAdvisor"
               value={form.paymentsToAdvisor || 0}
@@ -647,7 +746,9 @@ const CreatePolicy = () => {
             <input
               required
               type="number"
-              className="form-control"
+              className={`form-control ${
+                form.numberOfPaymentsAdvisor ? "is-valid" : ""
+              }`}
               id="numberOfPaymentsAdvisor"
               name="numberOfPaymentsAdvisor"
               value={form.numberOfPaymentsAdvisor}

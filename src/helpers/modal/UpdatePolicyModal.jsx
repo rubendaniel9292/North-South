@@ -110,6 +110,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
+    // Función auxiliar para agregar clase de manera segura
+    const addClassSafely = (id, className) => {
+      const element = document.getElementById(id);
+      if (element) element.classList.add(className);
+    };
     const value = Number(form.policyValue);
     const percentageAdvisor = Number(form.advisorPercentage);
     const percentageAgency = Number(form.agencyPercentage);
@@ -137,6 +142,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
           value: paymentAvisor,
         },
       });
+      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+      addClassSafely("paymentsToAgency", "is-valid");
+      addClassSafely("paymentsToAdvisor", "is-valid");
+      addClassSafely("numberOfPayments", "is-valid");
+      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -297,7 +307,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
           </div>
 
           <div className="justify-content-around mt-1">
-            <form onSubmit={updatePolicy} id="user-form">
+            <form
+              onSubmit={updatePolicy}
+              id="user-form"
+              className="was-validated"
+            >
               <div className="row pt-3 fw-bold">
                 <div className="mb-3 col-3">
                   <label htmlFor="numberPolicy" className="form-label">

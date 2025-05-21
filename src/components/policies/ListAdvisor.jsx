@@ -164,7 +164,7 @@ const ListAdvisor = () => {
                         onClick={() => getAvidorById(item.id, "advisor")}
                         className="btn btn-primary text-white fw-bold w-100 my-1"
                       >
-                        Registrar Anticipio
+                        Registrar Anticipio/Comisión
                       </button>
                     ) : (
                       <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
