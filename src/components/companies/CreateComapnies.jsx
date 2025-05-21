@@ -36,7 +36,7 @@ const CreateComapnies = () => {
     <>
       <div className="container-fluid">
         <h2>Registro de compañias</h2>
-        <form onSubmit={savedCompanies} id="user-form">
+        <form onSubmit={savedCompanies} id="user-form" className="needs-validation was-validated">
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">

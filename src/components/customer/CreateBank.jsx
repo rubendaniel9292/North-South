@@ -33,7 +33,7 @@ const CreateBank = () => {
     <>
       <div className="container-fluid">
         <h2>Registro de bancos o cooperativas</h2>
-        <form onSubmit={savedBank} id="user-form">
+        <form onSubmit={savedBank} id="user-form" className="needs-validation was-validated">
           <div className="row pt-3">
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">

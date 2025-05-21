@@ -2,8 +2,8 @@ import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 const CreateUser = () => {
-    const { form, changed } = UserForm({});
-     const option = "Escoja una opción";
+  const { form, changed } = UserForm({});
+  const option = "Escoja una opción";
   const saveUser = async (e) => {
     try {
       e.preventDefault();
@@ -51,7 +51,11 @@ const CreateUser = () => {
   return (
     <>
       <div className="container-fluid">
-        <form onSubmit={saveUser} id="user-form">
+        <form
+          onSubmit={saveUser}
+          id="user-form"
+          className="needs-validation was-validated"
+        >
           <div className="row">
             <div className="mb-3 col-6">
               <label htmlFor="name" className="form-label">
@@ -127,10 +131,12 @@ const CreateUser = () => {
                 id="role"
                 name="role"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
                 {" "}
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 <option value="ADMIN">Administrador</option>
                 <option value="BASIC">Básico</option>
               </select>

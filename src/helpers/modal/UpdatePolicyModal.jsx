@@ -310,7 +310,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             <form
               onSubmit={updatePolicy}
               id="user-form"
-              className="was-validated"
+              className="needs-validation was-validated"
             >
               <div className="row pt-3 fw-bold">
                 <div className="mb-3 col-3">
@@ -762,6 +762,9 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed}
                     value={form.observations || ""}
                   />
+                  <div className="valid-feedback">
+                    Campo opcional: ingrese cualquier inforación adicional.
+                  </div>
                 </div>
 
                 <div className="mt-2 col-12">

@@ -80,7 +80,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
             </h3>
           </div>
           <div className="justify-content-around mt-1">
-            <form onSubmit={savedAdvisor} id="user-form">
+            <form onSubmit={savedAdvisor} id="user-form" className="needs-validation was-validated">
               <div className="row pt-3 fw-bold">
                 <div className="my-1 col-3">
                   <label htmlFor="ci_ruc" className="form-label">

@@ -566,6 +566,9 @@ const CreatePolicy = () => {
               name="coverageAmount"
               onChange={changed}
             />
+            <div className="invalid-feedback">
+              Por favor ingrese el monto de cobertura.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="policyValue" className="form-label">
@@ -580,6 +583,9 @@ const CreatePolicy = () => {
               value={form.policyValue}
               onChange={changed} // Llamada a la función
             />
+            <div className="invalid-feedback">
+              Por favor ingrese el valor de la póliza.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="policyFee" className="form-label">
@@ -609,6 +615,9 @@ const CreatePolicy = () => {
               onChange={changed}
               value={form.agencyPercentage}
             />
+            <div className="invalid-feedback">
+              Por favor ingrese un porcentaje de la agencia.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="advisorPercentage" className="form-label">
@@ -623,6 +632,9 @@ const CreatePolicy = () => {
               onChange={changed} // Llamada a la función
               value={form.advisorPercentage}
             />
+            <div className="invalid-feedback">
+              Por favor ingrese un porcentaje del asesor.
+            </div>
           </div>
 
           <div className="mb-3 col-3 ">
@@ -692,6 +704,9 @@ const CreatePolicy = () => {
               name="startDate"
               onChange={changed}
             />
+            <div className="invalid-feedback">
+              Por favor ingrese una fecha de inicio.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="endDate" className="form-label">
@@ -705,6 +720,9 @@ const CreatePolicy = () => {
               name="endDate"
               onChange={changed}
             />
+            <div className="invalid-feedback">
+              Por favor ingrese una fecha de finalización.
+            </div>
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="paymentsToAgency" className="form-label">
@@ -770,6 +788,9 @@ const CreatePolicy = () => {
               name="observations"
               onChange={changed}
             />
+            <div className="valid-feedback">
+              Campo opcional: ingrese cualquier inforación adicional.
+            </div>
           </div>
 
           <div className="mt-4 col-3">

@@ -70,7 +70,7 @@ const RegisterCreditCard = () => {
   return (
     <>
       <div className="container-fluid">
-        <form onSubmit={savedCard} id="user-form">
+        <form onSubmit={savedCard} id="user-form" className="needs-validation was-validated">
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
@@ -81,9 +81,10 @@ const RegisterCreditCard = () => {
                 id="customers_id"
                 name="customers_id"
                 onChange={changed}
-                defaultValue={option}
+                required
+              
               >
-                <option disabled>{option}</option>
+                <option disabled selected value={""}>{option}</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {`${customer.firstName} ${customer.secondName || ""} ${
@@ -142,9 +143,9 @@ const RegisterCreditCard = () => {
                 id="card_option_id"
                 name="card_option_id"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled selected value={""}>{option}</option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.cardName}
@@ -161,9 +162,9 @@ const RegisterCreditCard = () => {
                 id="bank_id"
                 name="bank_id"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled selected value={""}>{option}</option>
                 {banks.map((bank) => (
                   <option key={bank.id} value={bank.id}>
                     {bank.bankName}

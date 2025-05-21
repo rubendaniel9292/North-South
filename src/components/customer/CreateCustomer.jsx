@@ -12,54 +12,6 @@ const CreateCustomer = () => {
   const [filteredCities, setFilteredCities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  /* metod para obtener de la base de datos los datos para el select, valido si es solo un selet para un solo campo
-  useEffect(() => {
-    console.log("CreateCustomer component is rendering");
-    const fetchStatuses = async () => {
-      try {
-        const response = await http.get("globaldata/civil-status");
-        const data = response.data;
-        console.log("estados civiles de la bd: ", data.allStatus); // Verifica la respuesta aquí
-        setStatuses(data.allStatus); // Asegúrate de que data.allStatus exista y tenga datos.
-      } catch (error) {
-        console.error("Error fetching statuses:", error);
-      }
-    };
-
-    const fetchProvinces = async () => {
-      try {
-        const response = await http.get("globaldata/get-provinces");
-        const data = response.data;
-        setProvinces(data.allProvince);
-      } catch (error) {
-        console.error("Error fetching provinces:", error);
-        alerts("Error", "Error fetching provinces.", "error");
-      }
-    };
-
-    const fetchCities = async () => {
-      try {
-        const response = await http.get("globaldata/get-city");
-        const data = response.data;
-        setCities(data.allCitys);
-      } catch (error) {
-        console.error("Error fetching cities:", error);
-        alerts("Error", "Error fetching cities.", "error");
-      }
-    };
-    fetchProvinces();
-    fetchCities();
-    fetchStatuses();
-  }, []);
-  const handleProvinceChange = (event) => {
-    const selectedProvinceId = event.target.value;
-    const filtered = cities.filter(
-      (city) => city.province.id === selectedProvinceId
-    );
-    setFilteredCities(filtered);
-    changed(event);
-  };
-  */
   useEffect(() => {
     /* Ejecuta todas las peticiones de manera concurrente, 
     lo que reduce el tiempo de espera general
@@ -145,7 +97,11 @@ const CreateCustomer = () => {
   return (
     <>
       <div className="container-fluid">
-        <form onSubmit={savedCustomer} id="user-form">
+        <form
+          onSubmit={savedCustomer}
+          id="user-form"
+          className="needs-validation was-validated"
+        >
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="ci_ruc" className="form-label">
@@ -239,12 +195,13 @@ const CreateCustomer = () => {
               />
             </div>
             <div className="mb-3 col-3 row">
-              <label htmlFor="flexRadioDefault" className="form-label">
+              <label htmlFor="flexRadioDefault" className="form-check-label">
                 Estado Civil
               </label>
               {statuses.map((status) => (
                 <div className="form-check col-6" key={status.id}>
                   <input
+                    required
                     className="form-check-input"
                     type="radio"
                     name="status_id"
@@ -271,8 +228,11 @@ const CreateCustomer = () => {
                 name="province_id"
                 onChange={handleProvinceChange}
                 defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 {province.map((province) => (
                   <option key={province.id} value={province.id}>
                     {province.provinceName}
@@ -290,8 +250,11 @@ const CreateCustomer = () => {
                 name="city_id"
                 onChange={changed}
                 defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 {filteredCities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.cityName}
@@ -329,7 +292,7 @@ const CreateCustomer = () => {
               />
             </div>
             <div className="mb-3 col-3 ">
-              <label htmlFor="flexRadioDefault7" className="form-label">
+              <label htmlFor="flexRadioDefault" className="form-check-label">
                 ¿El cliente acetpa el tratamiendo de datos personales?
               </label>
               <div className="form-check">
@@ -338,10 +301,11 @@ const CreateCustomer = () => {
                   type="radio"
                   name="personalData"
                   id="flexRadioDefault7"
+                  required
                   value="true"
                   onChange={changed} // Maneja el cambio aquí
                 ></input>
-                <label className="form-check-label" htmlFor="flexRadioDefault8">
+                <label className="form-check-label" htmlFor="flexRadioDefault7">
                   Si
                 </label>
               </div>
@@ -351,6 +315,7 @@ const CreateCustomer = () => {
                   type="radio"
                   name="personalData"
                   id="flexRadioDefault8"
+                  required
                   value="false"
                   onChange={changed}
                 ></input>

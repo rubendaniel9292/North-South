@@ -76,7 +76,11 @@ const CreateBankAccount = () => {
   return (
     <>
       <div className="container-fluid">
-        <form onSubmit={savedBankAccount} id="user-form">
+        <form
+          onSubmit={savedBankAccount}
+          id="user-form"
+          className="needs-validation was-validated"
+        >
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
@@ -87,9 +91,11 @@ const CreateBankAccount = () => {
                 id="customers_id"
                 name="customers_id"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {`${customer.firstName} ${customer.secondName || ""} ${
@@ -122,9 +128,11 @@ const CreateBankAccount = () => {
                 id="account_type_id"
                 name="account_type_id"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.typeName}
@@ -141,9 +149,11 @@ const CreateBankAccount = () => {
                 id="bank_id"
                 name="bank_id"
                 onChange={changed}
-                defaultValue={option}
+                required
               >
-                <option disabled>{option}</option>
+                <option disabled value={""} selected>
+                  {option}
+                </option>
                 {banks.map((bank) => (
                   <option key={bank.id} value={bank.id}>
                     {bank.bankName}
@@ -162,6 +172,9 @@ const CreateBankAccount = () => {
                 name="observations"
                 onChange={changed}
               />
+              <div className="valid-feedback">
+                Campo opcional: ingrese cualquier inforación adicional.
+              </div>
             </div>
 
             <div className="mt-4 col-3">

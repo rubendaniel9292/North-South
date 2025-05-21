@@ -5,6 +5,7 @@ import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import http from "../../helpers/Http";
 import UserForm from "../../hooks/UserForm";
+import alerts from "../../helpers/Alerts";
 
 const RegisterAdvanceModal = ({ advisorId, onClose }) => {
   if (!advisorId) return null;
@@ -38,6 +39,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    console.log("Advisor completo:", advisorId);
+    console.log("Políticas del asesor:", advisorId.policies);
+  }, [advisorId]);
 
   // Función para manejar el cambio de póliza
   const handlePolicyChange = (e) => {
@@ -140,7 +146,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
   };
 
   // Añade esta función para manejar el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
 
@@ -154,6 +160,35 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
     if (form.checkValidity()) {
       // Aquí iría tu lógica de envío
       console.log("Formulario válido, enviando datos...");
+      try {
+        // Realiza la solicitud POST al servidor
+        const response = await http.post(
+          "commissions-payments/register-commissions",
+          form
+        );
+        console.log("Respuesta del servidor:", response);
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Asesor registrado registrado correctamente",
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Avance/anticipo no registrado correctamente. Verificar que no haya campos vacios o cedulas o correos duplicados",
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error durante el registro", "error");
+        console.error("Error fetching asesor:", error);
+      } finally {
+        setIsLoading(false);
+      }
+
+      console.log("Datos del anticipo:", newAdvance);
     }
   };
   return (
@@ -168,7 +203,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
               <>
                 <h4 className="text-white fw-bold">
                   Comisiones generadas para esta poliza:{" "}
-                  {totalCommission.toFixed(2)}
+                  {Number(totalCommission).toFixed(2)}
                 </h4>
                 <h4
                   className={
@@ -178,7 +213,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                   }
                 >
                   Valor restante después del anticipo:{" "}
-                  {remainingValue.toFixed(2)}
+                  {Number(remainingValue).toFixed(2)}
                 </h4>
               </>
             ) : (
@@ -191,7 +226,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
             <form
               onSubmit={handleSubmit}
               id="user-form"
-              className="needs-validation"
+              className="needs-validation was-validated"
               noValidate
             >
               <div className="row">
@@ -219,10 +254,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     className="form-select"
                     id="advance"
                     name="advance"
-                    defaultValue={option}
                     onChange={handlePolicyChange}
                   >
-                    <option disabled>{option}</option>
+                    <option disabled selected value={""}>
+                      {option}
+                    </option>
                     <option value="">Anticipio</option>
                     {Array.isArray(advisorId.policies) &&
                     advisorId.policies.length > 0 ? (
@@ -230,9 +266,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                         console.log("Renderizando política:", policy);
                         return (
                           <option key={policy.id} value={policy.id}>
-                            {policy.numberPolicy ||
-                              policy.policyNumber ||
-                              "Póliza sin número"}
+                            {policy.numberPolicy}
                           </option>
                         );
                       })
@@ -288,8 +322,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     name="payment_method_id"
                     onChange={changed}
                     defaultValue={option}
+                    required
                   >
-                    <option disabled>{option}</option>
+                    <option disabled selected value={""}>
+                      {option}
+                    </option>
                     {paymentMethod.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.methodName}
@@ -307,7 +344,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose }) => {
                     type="number"
                     className="form-control "
                     id="advanceValue"
-                    name="advanceValue"
+                    name="advanceAmount"
                     step="0.01"
                     onChange={handleAdvanceValueChange}
                     value={advanceValue}
@@ -398,7 +435,7 @@ RegisterAdvanceModal.propTypes = {
     policies: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.number.isRequired,
-        policyNumber: PropTypes.string.isRequired,
+        numberPolicy: PropTypes.string.isRequired,
         payment_frequency_id: PropTypes.string.isRequired,
         numberOfPaymentsAdvisor: PropTypes.number.isRequired,
         paymentsToAdvisor: PropTypes.number.isRequired,
