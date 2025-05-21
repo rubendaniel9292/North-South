@@ -91,7 +91,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['policies','policies.payments'] }
+        { where: { id }, relations: ['commissions', 'policies'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
@@ -113,7 +113,6 @@ export class AdvisorService extends ValidateEntity {
   ): Promise<AdvisorEntity> => {
     try {
       const advisor: AdvisorEntity = await this.advisdorRepository.findOne({ where: { id } });
-      console.log('Datos recibidos en el backend:', updateData);
       if (!advisor) {
         throw new ErrorManager({
           type: 'NOT_FOUND',
@@ -136,16 +135,19 @@ export class AdvisorService extends ValidateEntity {
       await this.redisService.del(`advisor:${id}`);
       await this.redisService.del('allAdvisors');
 
-      // Actualizar caché con los datos más recientes
+      // Obtener el asesor actualizado con todas sus relaciones
+      const advisorWithRelations = await this.advisdorRepository.findOne({
+        where: { id },
+        relations: ['policies', 'policies.payments']
+      });
+
+      // Actualizar caché con los datos más recientes incluyendo relaciones
       await this.redisService.set(
         `advisor:${id}`,
-        JSON.stringify(advisorUpdate),
+        JSON.stringify(advisorWithRelations),
         32400,
       );
-
-      //console.log('Cliente actualizado:', customerUpdated);
-      return advisorUpdate;
-
+      return advisorWithRelations;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

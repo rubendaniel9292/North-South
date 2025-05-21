@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { CacheKeys } from '@/constants/cache.enum';
 import { CommissionsDTO } from '../dto/Commissions.dto';
+import { DateHelper } from '@/helpers/date.helper';
 @Injectable()
 export class CommissionsPaymentsService {
     constructor(
@@ -21,10 +22,12 @@ export class CommissionsPaymentsService {
     //1: metodo para crear una nueva comision
     public async createCommissionsPayments(body: CommissionsDTO): Promise<CommissionsPaymentsEntity> {
         try {
+            body.createdAt = DateHelper.normalizeDateForDB(body.createdAt);
             // Guardar la comisión en la base de datos
             const commissionsPayments = await this.commissonsPayments.save({
                 ...body
             })
+
             // Guardar la comisión individual en caché
             await this.redisService.set(
                 `commission:${commissionsPayments.id}`,

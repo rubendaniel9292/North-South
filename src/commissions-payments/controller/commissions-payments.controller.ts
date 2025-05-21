@@ -12,7 +12,7 @@ export class CommissionsPaymentsController {
     ) { }
 
     @Roles('ADMIN', 'BASIC')
-    @Post('register-company')
+    @Post('register-commissions')
     public async createCommission(@Body() body: CommissionsDTO) {
         const newCommission =
             await this.commissionsPaymentsServices.createCommissionsPayments(body);
