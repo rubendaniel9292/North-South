@@ -316,6 +316,7 @@ export class PolicyService extends ValidateEntity {
     await this.redisService.del('policiesStatus');
     await this.redisService.del('customers');
     await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
+    await this.redisService.del('allAdvisors');
 
   }
 
@@ -349,8 +350,6 @@ export class PolicyService extends ValidateEntity {
       // Invalidar cachés
       await this.invalidateCaches();
       return newPolicy;
-
-    
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -670,6 +669,7 @@ export class PolicyService extends ValidateEntity {
           'payments',
           'payments.paymentStatus',
           'renewals',
+          'commissionsPayments',
         ],
         select: {
           customer: {
@@ -841,7 +841,7 @@ export class PolicyService extends ValidateEntity {
 
       // Crear automáticamente el primer pago para el nuevo período
       await this.createFirstPaymentAfterRenewal(policy, newRenewal);
-      
+
       // Invalidar cachés
       await this.invalidateCaches();
       return newRenewal;

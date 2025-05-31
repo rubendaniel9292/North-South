@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   north_south_pg_container:
     image: postgres:16.3
@@ -15,6 +14,7 @@ services:
       - 5432:5432
     networks:
       - north_south_network
+      
 
   redis_container:
     image: redis:latest
@@ -23,7 +23,7 @@ services:
       - 6379:6379
     restart: always
     volumes:
-      - redisdata:/data
+      - redisdata:/data  
     networks:
       - north_south_network
 

@@ -35,7 +35,10 @@ export class CommissionsPaymentsService {
             )
             // Invalidar cualquier caché que contenga listas de comisiones
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
-            // También podrías invalidar cachés relacionadas con el asesor específico
+            // Invalidar caché del asesor con la nueva comisión
+            await this.redisService.del(`advisor:${body.advisor_id}`);
+
+            // También podrías invalidar cachés relacionadas con el asesor específico (si tienes otros)
             await this.redisService.del(`advisor_commissions:${body.advisor_id}`);
             return commissionsPayments;
         } catch (error) {

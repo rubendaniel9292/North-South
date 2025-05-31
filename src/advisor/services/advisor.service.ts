@@ -42,9 +42,7 @@ export class AdvisorService extends ValidateEntity {
 
   //2: metodo para buscar los asesores
   public getAllAdvisors = async (search?: string) => {
-
     try {
-
       // Verificar si los datos están en Redis
       const cachedAllAdvisors = await this.redisService.get('allAdvisors');
       if (cachedAllAdvisors) {
@@ -64,6 +62,7 @@ export class AdvisorService extends ValidateEntity {
         );
       }
       const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find({
+        where: whereConditions.length ? whereConditions : undefined,
         order: {
           id: "DESC",
         },
@@ -82,7 +81,7 @@ export class AdvisorService extends ValidateEntity {
   };
 
 
-  //2: metodo para buscar los asesores
+  //3: metodo para listar los asesores por id
   public getAdvisorById = async (id: number): Promise<AdvisorEntity> => {
     try {
 
@@ -91,7 +90,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions', 'policies'] }
+        { where: { id }, relations: ['commissions', 'policies','policies.customer', 'policies.payments','policies.commissionsPayments'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
