@@ -55,6 +55,18 @@ const ListAdvisor = () => {
     }
   }, []);
 
+  // Recargar UN asesor (para refrescar el modal)
+  const reloadAdvisor = useCallback(
+    async (id) => {
+      const response = await http.get(`advisor/get-advisor/${id}`);
+      if (response.data && response.data.advisorById)
+        setAdvisorId(response.data.advisorById);
+      //  refrescar también la tabla al llamar a getAllAdvisor
+      await getAllAdvisor();
+    },
+    [getAllAdvisor]
+  );
+
   // Usar el hook personalizado para la búsqueda
   const {
     query,
@@ -90,7 +102,6 @@ const ListAdvisor = () => {
     );
   };
 
-  
   return (
     <>
       <div className="text-center py-2">
@@ -153,24 +164,22 @@ const ListAdvisor = () => {
                   <td>{item.personalData === true ? "SÍ" : "NO"}</td>
 
                   <td className="d-flex gap-2">
-                    
                     {item.policies && item.policies.length >= 1 ? (
                       <>
                         <button
-                        onClick={() => getAvidorById(item.id, "historial")}
-                        className="btn btn-primary text-white fw-bold w-100 my-1"
-                      >
-                        Ver historial de anticipo/avaces
-                      </button>
+                          onClick={() => getAvidorById(item.id, "commissionHistory")}
+                          className="btn btn-primary text-white fw-bold w-100 my-1"
+                        >
+                          Ver historial de anticipos/comisiones
+                        </button>
 
-                      <button
-                        onClick={() => getAvidorById(item.id, "advisor")}
-                        className="btn btn-secondary text-white fw-bold w-100 my-1"
-                      >
-                        Registrar Anticipio/Comisión
-                      </button>
+                        <button
+                          onClick={() => getAvidorById(item.id, "advisor")}
+                          className="btn btn-secondary text-white fw-bold w-100 my-1"
+                        >
+                          Registrar Anticipio/Comisión
+                        </button>
                       </>
-                    
                     ) : (
                       <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
                         No se registran polizas
@@ -240,6 +249,7 @@ const ListAdvisor = () => {
           advisorId={advisorId}
           modalType={modalType} // Pasamos el tipo de modal a mostrar
           onAdvisorUpdated={handleAdvisorUpdated}
+          refreshAdvisor={() => reloadAdvisor(advisorId.id)}
         ></Modal>
       )}
     </>

@@ -36,11 +36,23 @@ body.modal-open {
 
             .conten-title {
                 background-color: #5e72e4 !important;
-                height: 5.7rem;
+                height: 5.8rem;
                 -webkit-border-radius: 8px 8px 0 0;
                 -moz-border-radius: 8px 8px 0 0;
                 -ms-border-radius: 8px 8px 0 0;
                 -o-border-radius: 8px 8px 0 0;
+            }
+            .conten-title-com{
+                padding: 1rem;
+                background-color: #5e72e4 !important;
+                height: 4rem;
+                -webkit-border-radius: 8px 8px 0 0;
+                -moz-border-radius: 8px 8px 0 0;
+                -ms-border-radius: 8px 8px 0 0;
+                -o-border-radius: 8px 8px 0 0;
+            }
+            .bg-balance-color {
+                background-color: #adb5bd;
             }
 
 

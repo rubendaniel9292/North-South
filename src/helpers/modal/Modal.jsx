@@ -2,7 +2,6 @@ import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import PaymentModalContent from "./PaymentModalContent";
 import ListPolicyModal from "./ListPolicyModal";
-
 import CustomerModalContent from "./CustomerModalContent";
 import PolicyStatusModal from "./PolicyStatusModal";
 import CardsModal from "./CardsModal";
@@ -12,6 +11,7 @@ import UpdateCustomerModal from "./UpdateCustomerModal";
 import UpdateAdvisorModal from "./UpdateAdvisorModal";
 import UpdatePolicyModal from "./UpdatePolicyModal";
 import RenewallPolicyModal from "./RenewallPolicyModal";
+import CommissionHistoryModal from "./CommissionHistoryModal";
 
 export default function Modal({
   isOpen,
@@ -25,7 +25,8 @@ export default function Modal({
   advisorId,
   onCustomerUpdated,
   onAdvisorUpdated,
-  onPolicyUpdated
+  onPolicyUpdated,
+  commissionHistory,
 }) {
   if (!isOpen) return null;
 
@@ -46,7 +47,13 @@ export default function Modal({
           />
         );
       case "renewal":
-        return <RenewallPolicyModal onClose={onClose} policy={policy} onPolicyUpdated={onPolicyUpdated}/>;
+        return (
+          <RenewallPolicyModal
+            onClose={onClose}
+            policy={policy}
+            onPolicyUpdated={onPolicyUpdated}
+          />
+        );
       case "customerId":
         return (
           <CustomerModalContent onClose={onClose} customerId={customerId} />
@@ -83,6 +90,13 @@ export default function Modal({
             onPolicyUpdated={onPolicyUpdated}
           ></UpdatePolicyModal>
         );
+      case "commissionHistory":
+        return (
+          <CommissionHistoryModal
+            onClose={onClose}
+            advisorId={advisorId}
+          ></CommissionHistoryModal>
+        );
       default:
         return null;
     }
@@ -117,4 +131,5 @@ Modal.propTypes = {
   onCustomerUpdated: PropTypes.func.isRequired,
   onPolicyUpdated: PropTypes.func.isRequired,
   onPaymentUpdated: PropTypes.func.isRequired,
+  commissionHistory: PropTypes.func.isRequired,
 };
