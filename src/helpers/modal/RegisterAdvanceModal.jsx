@@ -22,7 +22,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const [advanceValue, setAdvanceValue] = useState();
   const [remainingValue, setRemainingValue] = useState(0);
   const [totalCommission, setTotalCommission] = useState(0);
-  const [availableCommissions, setAvalaibleCommissions] = useState(0);
+  const [availableCommissions, availableCommission] = useState(0);
+  const [releasedCommissions, setReleasedCommissions] = useState(0);
   const { form, changed } = UserForm({
     advisor_id: advisorId.id,
     policy_id: advisorId.policies.id || null,
@@ -83,80 +84,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   // Función para manejar el cambio de póliza
-  /*
-  const handlePolicyChange = (e) => {
-    const selectedPolicyId = e.target.value;
 
-    // Si se selecciona "Anticipio" (valor vacío), mostramos todas las compañías
-    if (!selectedPolicyId) {
-      changed(e);
-      setFilteredCompanies(companies);
-      setSelectedPolicy(null);
-      setRemainingValue(0);
-
-      const companyEvent = {
-        target: {
-          name: "company_id",
-          value: "",
-        },
-      };
-      changed(companyEvent);
-      return;
-    } else {
-      changed(e); // Procesamos el cambio normalmente
-    }
-
-    // Buscamos la póliza seleccionada
-    const selectedPolicy = advisorId.policies.find(
-      (policy) => policy.id === selectedPolicyId
-    );
-    console.log("poliza seleccionada: ", selectedPolicy);
-    if (selectedPolicy) {
-      // Actualizamos el formulario con el cambio de la póliza
-      setSelectedPolicy(selectedPolicy);
-
-      // Cálculo correcto total de comisiones
-      const commissionValue = calculateCommissionValue(selectedPolicy);
-
-      // Comisiones ya pagadas
-      const commissionsPaid = Array.isArray(selectedPolicy.commissionsPayments)
-        ? selectedPolicy.commissionsPayments.reduce(
-            (total, payment) => total + (Number(payment.advanceAmount) || 0),
-            0
-          )
-        : 0;
-
-      setTotalCommission(commissionValue);
-      const available = Math.max(0, commissionValue - commissionsPaid);
-      setAvalaibleCommissions(available);
-      setRemainingValue(available); // <-- aquí debe ser available
-
-      console.log("comisiones pagadas: ", commissionsPaid);
-      console.log("comisiones totales: ", commissionValue);
-      console.log(
-        "comisiones disponibles: ",
-        commissionValue - commissionsPaid
-      );
-
-      // Filtramos las compañías para mostrar solo la que corresponde a la póliza
-      const companyId = selectedPolicy.company_id;
-      const companyForPolicy = companies.filter(
-        (company) => company.id === companyId
-      );
-      setFilteredCompanies(companyForPolicy);
-
-      // Actualizamos la compañía automáticamente en el formulario
-      const companyEvent = {
-        target: {
-          name: "company_id",
-          value: companyId,
-        },
-      };
-
-      // Actualizamos el formulario con el cambio de compañía
-      changed(companyEvent);
-    }
-  };*/
   const handlePolicyChange = (e) => {
     const selectedPolicyId = e.target.value;
 
@@ -173,6 +101,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         },
       };
       changed(companyEvent);
+      setTotalCommission(0);
+      availableCommission(0);
+      setReleasedCommissions(0);
       return;
     } else {
       changed(e);
@@ -183,7 +114,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     );
     if (selectedPolicyObj) {
       setSelectedPolicy(selectedPolicyObj);
-
       const commissionValue = calculateCommissionValue(selectedPolicyObj);
       const commissionsPaid = Array.isArray(
         selectedPolicyObj.commissionsPayments
@@ -196,8 +126,13 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
       setTotalCommission(commissionValue);
       const available = Math.max(0, commissionValue - commissionsPaid);
-      setAvalaibleCommissions(available);
-      setRemainingValue(available); // <-- aquí debe ser available
+
+      availableCommission(available);
+      setRemainingValue(available);
+
+      // comisiones liberadas
+      const released = calculateReleasedCommissions(selectedPolicyObj);
+      setReleasedCommissions(released);
 
       const companyId = selectedPolicyObj.company_id;
       const companyForPolicy = companies.filter(
@@ -242,8 +177,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
         // Validamos si el valor excede el total de comisiones
         const inputElement = document.getElementById("advanceValue");
-        if (value > availableCommissions) {
-          inputElement.setCustomValidity("Valor excede comisiones");
+        //   if (value > availableCommissions)
+        if (value > releasedCommissions || value > availableCommissions) {
+          inputElement.setCustomValidity("Valor excede al permitido");
         } else {
           inputElement.setCustomValidity("");
         }
@@ -253,6 +189,29 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     // Procesamos el cambio normalmente
     changed(e);
   };
+
+  // Cálculo de comisiones liberadas (solo pagos AL DÍA)
+  const calculateReleasedCommissions = useCallback((policy) => {
+    //Si no hay póliza o no tiene pagos, retorna 0 Así se evita errores si los datos todavía no están listos.
+    if (!policy || !Array.isArray(policy.payments)) return 0;
+    const agencyPercentage = Number(policy.agencyPercentage || 0) / 100;
+    const advisorPercentage = Number(policy.advisorPercentage || 0) / 100;
+
+    // Solo pagos con paymentStatus.id === 2 ("AL DÍA")
+    const releasedPayments = policy.payments.filter(
+      (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+    );
+
+    // Suma el valor de esos pagos: Reduce: Suma el campo payment.value de cada pago "AL DÍA".
+    const sum = releasedPayments.reduce((total, payment) => {
+      const value = Number(payment.value || 0);
+      const agencyCommission = value * agencyPercentage;
+      const advisorCommission = agencyCommission * advisorPercentage;
+      return total + advisorCommission;
+    }, 0);
+
+    return sum;
+  }, []);
 
   // función para manejar el envío del formulario
   const handleSubmit = async (e) => {
@@ -334,14 +293,15 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <tr>
                     <td className="fw-bold">{selectedPolicy.numberPolicy}</td>
                     <td className="fw-bold">
-                      {selectedPolicy.customer && selectedPolicy.customer
-                        ? selectedPolicy.customer.firstName +
-                          " " +
-                          selectedPolicy.customer.secondName +
-                          " " +
-                          selectedPolicy.customer.surname +
-                          " " +
-                          selectedPolicy.customer.secondSurname
+                      {selectedPolicy.customer
+                        ? [
+                            selectedPolicy.customer.firstName,
+                            selectedPolicy.customer.secondName,
+                            selectedPolicy.customer.surname,
+                            selectedPolicy.customer.secondSurname,
+                          ]
+                            .filter(Boolean)
+                            .join(" ")
                         : "N/A"}
                     </td>
                     <td className="bg-info fw-bold">
@@ -359,18 +319,28 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     >
                       ${Number(remainingValue).toFixed(2)}
                     </td>
-                    <td className="fw-bold bg-warning">
-                      $
-                      {Array.isArray(selectedPolicy.commissionsPayments)
-                        ? selectedPolicy.commissionsPayments
-                            .reduce(
-                              (total, payment) =>
-                                total + (Number(payment.advanceAmount) || 0),
-                              0
-                            )
-                            .toFixed(2)
-                        : "0.00"}
-                    </td>
+
+                    {releasedCommissions >= totalCommission ? (
+                      <td
+                        className={
+                          Number(advanceValue) > releasedCommissions
+                            ? "bg-danger fw-bold"
+                            : "fw-bold bg-warning"
+                        }
+                      >
+                        {Number(totalCommission).toFixed(2)}
+                      </td>
+                    ) : (
+                      <td
+                        className={
+                          Number(advanceValue) > releasedCommissions
+                            ? "bg-danger fw-bold"
+                            : "fw-bold bg-warning"
+                        }
+                      >
+                        {Number(releasedCommissions).toFixed(2)}
+                      </td>
+                    )}
                   </tr>
                 ) : (
                   <tr>
@@ -615,6 +585,11 @@ RegisterAdvanceModal.propTypes = {
         numberOfPaymentsAdvisor: PropTypes.number.isRequired,
         paymentsToAdvisor: PropTypes.number.isRequired,
         renewalCommission: PropTypes.bool.isRequired,
+        advisorPercentage: PropTypes.number.isRequired,
+        agencyPercentage: PropTypes.number.isRequired,
+        totalCommission: PropTypes.number.isRequired,
+        company_id: PropTypes.number.isRequired,
+
         commissionsPayments: PropTypes.arrayOf(
           PropTypes.shape({
             id: PropTypes.number.isRequired,
@@ -631,6 +606,10 @@ RegisterAdvanceModal.propTypes = {
             id: PropTypes.number.isRequired,
             paymentDate: PropTypes.string.isRequired,
             paymentAmount: PropTypes.number.isRequired,
+            paymentStatus: PropTypes.shape({
+              id: PropTypes.number.isRequired,
+              statusName: PropTypes.string.isRequired,
+            }),
           })
         ),
         customer: PropTypes.arrayOf(
