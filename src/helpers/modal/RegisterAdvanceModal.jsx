@@ -13,16 +13,15 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     return null;
   }
   const [isLoading, setIsLoading] = useState(false);
-  // Manejar el caso de datos no disponibles, pero después de llamar a los hooks
-  const [isDataValid, setIsDataValid] = useState(true);
   const [companies, setCompanies] = useState([]);
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [advanceValue, setAdvanceValue] = useState();
-  const [remainingValue, setRemainingValue] = useState(0);
   const [totalCommission, setTotalCommission] = useState(0);
   const [availableCommissions, availableCommission] = useState(0);
+  const [realBalance, setRealBalance] = useState(0);
+  const [remainingValue, setRemainingValue] = useState(0);
   const [releasedCommissions, setReleasedCommissions] = useState(0);
   const { form, changed } = UserForm({
     advisor_id: advisorId.id,
@@ -47,12 +46,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
     fetchData();
   }, []);
-  /*
-  useEffect(() => {
-    console.log("Advisor completo:", advisorId);
-    console.log("Políticas del asesor:", advisorId.policies);
-  }, [advisorId]);
-*/
 
   // Función para calcular el total de comisiones generadas para la póliza (incluyendo renovaciones)
   const calculateCommissionValue = useCallback((policy) => {
@@ -84,7 +77,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   // Función para manejar el cambio de póliza
-
   const handlePolicyChange = (e) => {
     const selectedPolicyId = e.target.value;
 
@@ -104,6 +96,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       setTotalCommission(0);
       availableCommission(0);
       setReleasedCommissions(0);
+      setRealBalance(0);
+
       return;
     } else {
       changed(e);
@@ -114,6 +108,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     );
     if (selectedPolicyObj) {
       setSelectedPolicy(selectedPolicyObj);
+      // 1. Calcula el total permitido para la póliza
       const commissionValue = calculateCommissionValue(selectedPolicyObj);
       const commissionsPaid = Array.isArray(
         selectedPolicyObj.commissionsPayments
@@ -123,16 +118,22 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
             0
           )
         : 0;
+      // 2. Comisiones liberadas (solo pagos AL DÍA)
+      const released = calculateReleasedCommissions(selectedPolicyObj);
 
-      setTotalCommission(commissionValue);
+      // 3. Saldo real NUNCA puede superar el máximo permitido
+      const maxLiberated = Math.min(released, commissionValue);
+      const realBalance = Math.max(0, maxLiberated - commissionsPaid);
+
+      //3: comisiones disponibles
       const available = Math.max(0, commissionValue - commissionsPaid);
 
+      // 4. Al cambiar de póliza, el saldo después del registro ES el saldo real (acotado)
+      setTotalCommission(commissionValue);
       availableCommission(available);
-      setRemainingValue(available);
-
-      // comisiones liberadas
-      const released = calculateReleasedCommissions(selectedPolicyObj);
+      setRemainingValue(realBalance);
       setReleasedCommissions(released);
+      setRealBalance(realBalance);
 
       const companyId = selectedPolicyObj.company_id;
       const companyForPolicy = companies.filter(
@@ -146,7 +147,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           value: companyId,
         },
       };
-
       changed(companyEvent);
     }
   };
@@ -160,9 +160,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       setAdvanceValue("");
 
       if (selectedPolicy) {
-        // Si no hay valor, el restante es igual al total
-        //setRemainingValue(totalCommission);
-        setRemainingValue(availableCommissions);
+        // Si no hay valor, el restante es igual al saldo pendiente real
+
+        //setRemainingValue(availableCommissions);
+        setRemainingValue(realBalance);
       }
       inputElement.setCustomValidity("");
     } else {
@@ -172,13 +173,18 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
       if (selectedPolicy) {
         // Calculamos el valor restante
-        const remaining = availableCommissions - value;
+        //const remaining = availableCommissions - value;
+        const remaining = realBalance - value;
         setRemainingValue(remaining);
 
         // Validamos si el valor excede el total de comisiones
         const inputElement = document.getElementById("advanceValue");
         //   if (value > availableCommissions)
-        if (value > releasedCommissions || value > availableCommissions) {
+        if (
+          value > releasedCommissions ||
+          value > availableCommissions ||
+          value > realBalance
+        ) {
           inputElement.setCustomValidity("Valor excede al permitido");
         } else {
           inputElement.setCustomValidity("");
@@ -281,73 +287,107 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               <thead>
                 <tr>
                   <th>N° de póliza</th>
-                  <th>Cliente</th>
-                  <th>Comisiones totales</th>
-                  <th>Comisiones disponibles</th>
-                  <th>Saldo</th>
+                  <th>Cliente </th>
+                  <th>
+                    Comisiones totales <span>(hasta la fecha)</span>
+                  </th>
                   <th>Comisiones liberadas</th>
+                  <th>Comisiones pagadas</th>
+                  <th>
+                    Saldo <span>(después del registro)</span>
+                  </th>
+                  <th>Comisiones a favor</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedPolicy ? (
-                  <tr>
-                    <td className="fw-bold">{selectedPolicy.numberPolicy}</td>
-                    <td className="fw-bold">
-                      {selectedPolicy.customer
-                        ? [
-                            selectedPolicy.customer.firstName,
-                            selectedPolicy.customer.secondName,
-                            selectedPolicy.customer.surname,
-                            selectedPolicy.customer.secondSurname,
-                          ]
-                            .filter(Boolean)
-                            .join(" ")
-                        : "N/A"}
-                    </td>
-                    <td className="bg-info fw-bold">
-                      ${Number(totalCommission).toFixed(2)}
-                    </td>
-                    <td className="bg-success-subtle fw-bold">
-                      ${Number(availableCommissions).toFixed(2)}
-                    </td>
-                    <td
-                      className={
-                        remainingValue <= 0
-                          ? "bg-danger  fw-bold"
-                          : "fw-bold bg-balance-color"
-                      }
-                    >
-                      ${Number(remainingValue).toFixed(2)}
-                    </td>
+                  (() => {
+                    // Calcula las comisiones pagadas reales
+                    const commissionsPaid = Array.isArray(
+                      selectedPolicy.commissionsPayments
+                    )
+                      ? selectedPolicy.commissionsPayments.reduce(
+                          (total, payment) =>
+                            total + (Number(payment.advanceAmount) || 0),
+                          0
+                        )
+                      : 0;
+                    // Ajusta los límites máximos
+                    const maxLiberated = Math.min(
+                      releasedCommissions,
+                      totalCommission
+                    );
+                    const maxPaid = Math.min(commissionsPaid, maxLiberated);
+                    // Comisiones a favor: nunca menos que 0
+                    const commissionsAfavor = Math.max(0, remainingValue);
+                    const valueAfterAdvance =
+                      remainingValue -
+                      (advanceValue ? Number(advanceValue) : 0);
+                    return (
+                      <tr>
+                        {/* N° de póliza */}
+                        <td className="fw-bold">
+                          {selectedPolicy.numberPolicy}
+                        </td>
+                        <td className="fw-bold">
+                          {selectedPolicy.customer
+                            ? [
+                                selectedPolicy.customer.firstName,
+                                selectedPolicy.customer.secondName,
+                                selectedPolicy.customer.surname,
+                                selectedPolicy.customer.secondSurname,
+                              ]
+                                .filter(Boolean)
+                                .join(" ")
+                            : "N/A"}
+                        </td>
 
-                    {releasedCommissions >= totalCommission ? (
-                      <td
-                        className={
-                          Number(advanceValue) > releasedCommissions
-                            ? "bg-danger fw-bold"
-                            : "fw-bold bg-warning"
-                        }
-                      >
-                        {Number(totalCommission).toFixed(2)}
-                      </td>
-                    ) : (
-                      <td
-                        className={
-                          Number(advanceValue) > releasedCommissions
-                            ? "bg-danger fw-bold"
-                            : "fw-bold bg-warning"
-                        }
-                      >
-                        {Number(releasedCommissions).toFixed(2)}
-                      </td>
-                    )}
-                  </tr>
+                        <td className="bg-info fw-bold">
+                          <span className="fw-bold">
+                            ${Number(totalCommission).toFixed(2)}
+                          </span>
+                        </td>
+                        {/* Comisiones liberadas */}
+                        <td className="fw-bold bg-warning">
+                          <span className="fw-bold">
+                            ${Number(maxLiberated).toFixed(2)}
+                          </span>
+                        </td>
+                        {/* Comisiones pagadas - AJUSTADO */}
+                        <td className="fw-bold bg-primary text-white">
+                          <span className="fw-bold">
+                            ${Number(maxPaid).toFixed(2)}
+                          </span>
+                        </td>
+
+                        {/* Saldo después del anticipo */}
+                        <td
+                          className={
+                            valueAfterAdvance < 0
+                              ? "bg-danger fw-bold text-white"
+                              : "fw-bold bg-balance-color"
+                          }
+                        >
+                          <span className="fw-bold">
+                            ${Number(valueAfterAdvance).toFixed(2)}
+                          </span>
+                        </td>
+
+                        {/* Saldo a favor pendiente */}
+                        <td className="bg-success-subtle fw-bold">
+                          <span className="fw-bold">
+                            ${Number(commissionsAfavor).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })()
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center text-success">
+                    <td colSpan="7" className="text-center text-success">
                       <p>
                         Escoja una póliza para ver detalles de las comisiones o
-                        registre un anticipio
+                        registre un anticipo
                       </p>
                     </td>
                   </tr>
@@ -526,7 +566,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         <span className="visually-hidden">Registrando...</span>
                       </div>
                     ) : (
-                      "Registrar Pago"
+                      "Registrar Comisión/Anticipo"
                     )}
 
                     <FontAwesomeIcon
