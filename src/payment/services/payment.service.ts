@@ -98,7 +98,7 @@ export class PaymentService {
       await this.redisService.del(`policy:${body.policy_id}`);
 
       //OJO: SE ETRA CREANDO EL PRIMER PAGO DE COMOSION POR REGISTRO DE POLIZA
-      const commission= this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
+      const commission = this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
       // Crear el pago de comisión
       const commissionPayment = {
         value: commission,
@@ -307,7 +307,7 @@ export class PaymentService {
     updateData: Partial<PaymentDTO>,
   ): Promise<PaymentEntity> => {
     try {
-      const payment = await this.paymentRepository.findOne({ where: { id } });
+      const payment = await this.paymentRepository.findOne({ where: { id }, relations: ['policies', 'policies.company', 'policies.advisor'] });
       if (!payment) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -318,7 +318,7 @@ export class PaymentService {
       // Calcular el nuevo valor pendiente
 
       const newPendingValue = payment.pending_value;
-      updateData.updatedAt = DateHelper.normalizeDateForDB(new Date());
+      updateData.updatedAt = DateHelper.normalizeDateForComparison(new Date());
 
       if (newPendingValue < 0) {
         throw new ErrorManager({
@@ -330,14 +330,18 @@ export class PaymentService {
 
       const paymentUpdated = await this.paymentRepository.save(payment);
       // Limpiar todas las claves de caché relevantes
-      /*
       await this.redisService.del(`newPayment:${id}`);
       await this.redisService.del('payments');
       await this.redisService.del('paymentsByStatus:general');
-      await this.redisService.del(`policy:${payment.policies.id}`);
-      */
+      if (payment.policies?.id) {
+        await this.redisService.del(`policy:${payment.policies.id}`);
+      }
       if (payment.policies?.company?.id) {
         await this.redisService.del(`paymentsByStatus:${payment.policies.company.id}`);
+      }
+      // Si tu modelo de asesor usa cache por id:
+      if (payment.policies?.advisor?.id) {
+        await this.redisService.del(`advisor:${payment.policies.advisor.id}`);
       }
 
       return paymentUpdated;

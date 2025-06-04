@@ -27,7 +27,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     createdAt: Date;
 
     @Column({ nullable: true })
-    observations: string;
+    observations?: string;
 
     @Column()
     advisor_id: number;
@@ -39,7 +39,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     company_id: number;
 
     @Column({ nullable: true })
-    policy_id: number;
+    policy_id?: number;
 
     // RELACION CON METODOS DE PAGOS
     @ManyToOne(
@@ -51,6 +51,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
 
     // RELACION CON COMPAÑIAS
     @ManyToOne(() => CompanyEntity, (company) => company.commissions, {
+        nullable: true,
         onDelete: 'RESTRICT', // No permite eliminar la compañía si tiene pólizas asociadas
     })
     @JoinColumn({ name: 'company_id' })
@@ -65,7 +66,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     advisor: AdvisorEntity;
 
     //RELACION CON POLIZAS
-    @ManyToOne(() => PolicyEntity, (policy) => policy.commission)
+    @ManyToOne(() => PolicyEntity, (policy) => policy.commission, { nullable: true })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
 

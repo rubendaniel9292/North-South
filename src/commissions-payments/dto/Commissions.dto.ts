@@ -14,7 +14,7 @@ export class CommissionsDTO {
 
     @IsOptional()
     @IsString()
-    observations: string;
+    observations?: string;
 
     @IsNotEmpty()
     @IsInt()
@@ -25,10 +25,10 @@ export class CommissionsDTO {
     payment_method_id: number;
 
     @IsOptional()
-    @IsInt()
-    company_id: number; // Campo opcional para la compañía asociada a la comisión
+    @IsInt() 
+    company_id?: number | null; // Campo opcional para la compañía asociada a la comisión
 
     @IsOptional()
     @IsInt()
-    policy_id: number; // Campo opcional para la compañía asociada a la comisión
+    policy_id?: number | null; // Campo opcional para la poliza a la comisión
 }

@@ -90,7 +90,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions', 'policies','policies.customer', 'policies.payments','policies.commissionsPayments'] }
+        { where: { id }, relations: ['commissions', 'policies','policies.customer', 'policies.payments', 'policies.payments.paymentStatus','policies.commissionsPayments'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
