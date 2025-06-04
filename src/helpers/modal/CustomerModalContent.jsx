@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-//import { useState } from "react";
+import { useState } from "react";
 //import alerts from "../Alerts";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
 //import http from "../Http";
@@ -9,9 +9,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 
 const CustomerModalContent = ({ onClose, customerId }) => {
-  //const [isDataValid, setIsDataValid] = useState(true);
-  //const [isLoading, setIsLoading] = useState(false);
-  const isLoading = false; // Validación para evitar errores si customer o policy no existen
+
+  const [isLoading, setIsLoading] = useState(false);
+  //const isLoading = false; // Validación para evitar errores si customer o policy no existen
   // Validación para evitar errores si customer o policy no existen
 
   console.log("informacion del cliente en el modal: ", customerId);
@@ -121,66 +121,6 @@ const CustomerModalContent = ({ onClose, customerId }) => {
               ))}
             </tbody>
           </table>
-          {/*
-            <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
-              <h3 className="text-white">Historial de pagos</h3>
-            </div>
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>Número de Pago</th>
-                  <th>Valor</th>
-                  <th>Abono</th>
-                  <th>Saldo</th>
-                  <th>Total</th>
-                  <th>Fecha de pago</th>
-                  <th>Observaciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customerId.policies.payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td>{payment.number_payment}</td>
-                    <td>{payment.value || "0.00"}</td>
-                    <td>{payment.credit || "0.00"}</td>
-                    <td>{payment.balance || "0.00"}</td>
-                    <td>{payment.total}</td>
-                    <td>{dayjs(payment.createdAt).format("DD/MM/YYYY")}</td>
-                    <td>{payment.observations || "N/A"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
-              <h3 className="text-white">Historial de renovaciones</h3>
-            </div>
-            {!customerId.policies.renewals ? (
-              <div className="my-1">
-                <span>Aun no se han registrado renovaciones</span>
-              </div>
-            ) : (
-              <>
-                <table className="table table-striped">
-                  <thead>
-                    <tr className="table-header">
-                      <th>Numero de renovacion</th>
-                      <th>Fecha de renovacion</th>
-                      <th>Observaciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerId.policies.renewals.map((renewal) => (
-                      <tr key={renewal.id}>
-                        <td>{renewal.renewalNumber}</td>
-                        <td>{dayjs(renewal.createdAt).format("DD/MM/YYYY")}</td>
-                        <td>{renewal.observations || "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
-*/}
           <div className="d-flex justify-content-around mt-1">
             <div className="">
               <button
