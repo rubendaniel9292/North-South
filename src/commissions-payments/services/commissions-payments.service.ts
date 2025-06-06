@@ -22,26 +22,32 @@ export class CommissionsPaymentsService {
     //1: metodo para crear una nueva comision
     public async createCommissionsPayments(body: CommissionsDTO): Promise<CommissionsPaymentsEntity> {
         try {
-            body.createdAt = DateHelper.normalizeDateForDB(body.createdAt);
-            // Guardar la comisión en la base de datos
-            const commissionsPayments = await this.commissonsPayments.save({
-                ...body
-            })
+            // 1. Normalización y limpieza de datos
+            const normalizedBody = {
+                ...body,
+                createdAt: DateHelper.normalizeDateForDB(body.createdAt),
+                policy_id: body.policy_id ? Number(body.policy_id) : null, // Convertir a null si es vacío/undefined
+                company_id: body.company_id ? Number(body.company_id) : null,
+            };
 
-            // Guardar la comisión individual en caché
+            // 2. Guardar la comisión
+            const commissionsPayments = await this.commissonsPayments.save(normalizedBody);
+
+            // 3. Manejo de caché (tu implementación actual está bien)
             await this.redisService.set(
                 `commission:${commissionsPayments.id}`,
                 JSON.stringify(commissionsPayments)
-            )
-            // Invalidar cualquier caché que contenga listas de comisiones
+            );
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
-            // Invalidar caché del asesor con la nueva comisión
             await this.redisService.del(`advisor:${body.advisor_id}`);
-
-            // También podrías invalidar cachés relacionadas con el asesor específico (si tienes otros)
             await this.redisService.del(`advisor_commissions:${body.advisor_id}`);
+
             return commissionsPayments;
         } catch (error) {
+            // Mejorar el manejo de errores
+            if (error.message.includes('foreign key constraint')) {
+                throw new Error('Error de integridad referencial: Verifica que todos los IDs relacionados existan');
+            }
             throw ErrorManager.createSignatureError(error.message);
         }
     }

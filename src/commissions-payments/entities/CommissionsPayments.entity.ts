@@ -21,7 +21,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     advanceAmount: number;
 
     @Column({
-        type: 'timestamp',
+        type: 'timestamp with time zone',
         name: 'created_at',
     })
     createdAt: Date;
@@ -36,7 +36,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     payment_method_id: number;
 
     @Column({ nullable: true })
-    company_id: number;
+    company_id?: number;
 
     @Column({ nullable: true })
     policy_id?: number;
