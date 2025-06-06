@@ -425,6 +425,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     className="form-select"
                     id="policy_id"
                     name="policy_id"
+                   
                     onChange={handlePolicyChange}
                   >
                     <option disabled selected value={""}>
