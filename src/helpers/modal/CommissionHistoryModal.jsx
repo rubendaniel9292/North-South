@@ -173,9 +173,7 @@ export const CommissionHistoryModal = ({ onClose, advisorId }) => {
                 <>
                   <thead>
                     <tr>
-                      <th colSpan={2} className="fw-bold">
-                        ANTICIPO
-                      </th>
+                     
 
                       <th colSpan={4} className="fw-bold">
                         Anticipos generales sin póliza asignada

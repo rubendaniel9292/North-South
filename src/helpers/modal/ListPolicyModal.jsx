@@ -15,15 +15,15 @@ const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [localPolicy, setLocalPolicy] = useState(policy);
   if (!localPolicy) return null;
-  const itemsPerPage = 5; // Número de items por página
+  const itemsPerPage = 3; // Número de items por página
   //metodo para generacion de reporte
   const handleGenerateReport = (e) => {
     e.preventDefault();
     console.log("Generating report with policy data:", localPolicy);
     generateReport(
-      localPolicy,
-      "generate-report-pdf/download-policy",
-      `data-report.pdf`,
+      { type: "policy", data: localPolicy }, // Para reporte de póliza
+      "generate-report-pdf/download",
+      "policy-report.pdf",
       setIsLoading
     );
   };
@@ -136,7 +136,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <thead>
               <tr>
                 <th>Número de Póliza</th>
-                <th>Cliente</th>
+                <th colSpan={2}>Cliente</th>
                 <th>Compañía</th>
                 <th>Tipo de Póliza</th>
                 <th>Fecha de Inicio</th>
@@ -150,8 +150,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <tbody>
               <tr>
                 <td>{policy.numberPolicy}</td>
-                <td>
-                  {policy.customer.firstName} {policy.customer.surname}
+                <td colSpan={2}>
+                  {policy.customer.firstName} {policy.customer.secondName}{" "}
+                  {policy.customer.surname} {policy.customer.secondSurname}
                 </td>
                 <td>{policy.company.companyName}</td>
                 <td>{policy.policyType.policyName}</td>

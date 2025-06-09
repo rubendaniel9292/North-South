@@ -28,7 +28,7 @@ const CustomerModalContent = ({ onClose, customerId }) => {
               Pólizas a nombre de {customerId.firstName} {customerId.secondName}{" "}
               {customerId.surname} {customerId.secondSurname}
             </h3>
-            <h3 className="text-white">Cédula: {customerId.ci_ruc}</h3>
+           
           </div>
 
           <table className="table table-striped">

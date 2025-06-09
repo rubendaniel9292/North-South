@@ -76,10 +76,11 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
 
   const handleGenerateReport = (e) => {
     e.preventDefault();
+
     generateReport(
-      filteredPayments,
-      "generate-report-pdf/download-payment",
-      `payment-data-report.pdf`,
+      { type: "payment", data: filteredPayments },
+      "generate-report-pdf/download",
+      "payment-report.pdf",
       setIsLoading
     );
   };
@@ -200,7 +201,9 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                       </td>
                       <td>{payment.policies.policyValue}</td>
                       <td>
-                        {dayjs(payment.createdAt).format("MM/YYYY").toString()}
+                        {dayjs(payment.createdAt)
+                          .format("DD/MM/YYYY")
+                          .toString()}
                       </td>
                       <td className={"bg-warning text-white fw-bold"}>
                         {payment.paymentStatus.statusNamePayment}

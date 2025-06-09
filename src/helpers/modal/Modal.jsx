@@ -12,7 +12,6 @@ import UpdateAdvisorModal from "./UpdateAdvisorModal";
 import UpdatePolicyModal from "./UpdatePolicyModal";
 import RenewallPolicyModal from "./RenewallPolicyModal";
 import CommissionHistoryModal from "./CommissionHistoryModal";
-
 export default function Modal({
   isOpen,
   onClose,
@@ -27,6 +26,7 @@ export default function Modal({
   onAdvisorUpdated,
   onPolicyUpdated,
   commissionHistory,
+  
 }) {
   if (!isOpen) return null;
 
@@ -95,6 +95,7 @@ export default function Modal({
           <CommissionHistoryModal
             onClose={onClose}
             advisorId={advisorId}
+            commissionHistory={commissionHistory}
           ></CommissionHistoryModal>
         );
       default:
@@ -132,4 +133,5 @@ Modal.propTypes = {
   onPolicyUpdated: PropTypes.func.isRequired,
   onPaymentUpdated: PropTypes.func.isRequired,
   commissionHistory: PropTypes.func.isRequired,
+  
 };
