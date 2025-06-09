@@ -288,3 +288,39 @@ sudo apt-get install -y \
 
 ### sudo PUPPETEER_CACHE_DIR=/root/.cache/puppeteer npx puppeteer browsers install chrome
 ### npm install puppeteer puppeteer-core
+
+## NO SE USA ACTUALMENTE
+## Usar solo servicios externos (backend local)
+
+1. Levanta solo base de datos y Redis:
+    ```bash
+    docker-compose up -d north_south_pg_container redis_container
+    ```
+
+2. Inicia tu backend local en HTTPS:
+    ```bash
+    sudo KEY_PATH=/home/certificados/localhost-privateKey.key CERT_PATH=/home/certificados/localhost.crt npm run start:dev
+    ```
+
+---
+
+
+## Levantar todo en Docker (backend + base de datos + redis)
+
+1. Copia `.env.example` a `.env` y completa los valores reales.
+2. Coloca tus certificados en la carpeta `./certs`:
+    - `localhost.crt`
+    - `localhost-privateKey.key`
+3. Levanta todos los servicios:
+    ```bash
+    docker-compose up -d --build
+    ```
+4. Accede a tu API:
+    - https://localhost/api/  (HTTPS)
+    - http://localhost:3000/api/ (HTTP)
+5. Para ver logs del backend:
+    ```bash
+    docker-compose logs -f north_south_backend
+    
+    docker-compose up -d --build → Reconstruye y reinstala todo (solo úsalo si cambiaste dependencias, Dockerfile, etc.).
+docker-compose up -d → Inicia con lo ya construido y no vuelve a instalar dependencias.```

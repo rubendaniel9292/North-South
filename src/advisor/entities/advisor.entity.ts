@@ -21,13 +21,6 @@ export class AdvisorEntity extends IdCustomEntity {
   @OneToMany(() => PolicyEntity, (policy) => policy.advisor)
   policies: PolicyEntity[];
 
-  //un asesor puede pedir varios anticipos
-
-  // Un asesor puede tener varios anticipos o avances
-  /*
-  @OneToMany(() => AdvanceEntity, (advance) => advance.advisor)
-  advances: AdvanceEntity[];*/
-
   // Un asesor puede tener varios anticipos
   @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.advisor)
   commissions: CommissionsPaymentsEntity[];

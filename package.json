@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "docker-compose up -d --build && export NODE_ENV=dev && nest start --watch",
+    "start:dev": "docker-compose up -d && export NODE_ENV=dev && nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "export NODE_ENV=production && node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

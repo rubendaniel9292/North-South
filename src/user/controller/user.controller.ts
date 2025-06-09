@@ -10,9 +10,10 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
-import { UserDTO } from '../dto/user.dto';
+import { UpdateUserDTO, UserDTO } from '../dto/user.dto';
 import { UserService } from '../services/user.service';
 
 @Controller('users')
@@ -59,5 +60,18 @@ export class UserController {
         deletedUser,
       };
     }
+  }
+
+  @Roles('ADMIN') //solo usuarios de tipo admin pordran actualizar otros usuarios
+  @Put(':id')
+  public async updateUser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() updateDto: Partial<UpdateUserDTO>
+  ) {
+    const updatedUser = await this.userService.updateUser(id, updateDto);
+    return {
+      status: 'success',
+      updatedUser,
+    };
   }
 }

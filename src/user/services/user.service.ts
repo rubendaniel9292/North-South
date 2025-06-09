@@ -1,7 +1,7 @@
 import { UserEntity } from './../entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserDTO } from '../dto/user.dto';
+import { UpdateUserDTO, UserDTO } from '../dto/user.dto';
 import { DeleteResult, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt-updated';
 import { ErrorManager } from 'src/helpers/error.manager';
@@ -16,7 +16,7 @@ export class UserService {
     private readonly redisService: RedisModuleService,
   ) { }
 
-  
+
   //1:metodo para crear usuarios que haran usos del sistema
   public createUser = async (body: UserDTO): Promise<UserEntity> => {
     try {
@@ -43,7 +43,7 @@ export class UserService {
     }
   };
 
-  //2:
+  //2: metodo para encontrar usuarios
   public findUsers = async (): Promise<UserEntity[]> => {
     try {
       const cachedUsers = await this.redisService.get('users');
@@ -137,4 +137,22 @@ export class UserService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+  //5: metodo para actualizar la contraseña
+
+  public updateUser = async (id: string, updateData: Partial<UpdateUserDTO>): Promise<UserEntity> => {
+    try {
+      await this.userRepository.update({ uuid: id }, updateData);
+      const updatedUser = await this.userRepository.findOne({ where: { uuid: id } });
+      if (!updatedUser) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se pudo actualizar el usuario',
+        });
+      }
+      return updatedUser;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
 }

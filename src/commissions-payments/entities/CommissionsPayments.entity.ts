@@ -66,7 +66,7 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     advisor: AdvisorEntity;
 
     //RELACION CON POLIZAS
-    @ManyToOne(() => PolicyEntity, (policy) => policy.commission, { nullable: true })
+    @ManyToOne(() => PolicyEntity, (policy) => policy.commissionsPayments, { nullable: true })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
 

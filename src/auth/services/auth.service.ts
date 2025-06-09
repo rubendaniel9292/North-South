@@ -12,14 +12,21 @@ import { RedisModuleService } from '@/redis-module/services/redis-module.service
 export class AuthService {
   constructor(private readonly userService: UserService, private readonly redisService: RedisModuleService) { }
   //1: metodo para validar el usuario. busca el usuario y compara las contraseñas
-  // Método para validar el usuario, busca el usuario y compara las contraseñas
+
   public validateUser = async (username: string, password: string) => {
     const cachedUser = await this.redisService.get(`user:${username}`);
 
+    const getUserFlag = (user: any) => {
+      const { password, mustChangePassword, ...userWithoutPassword } = user;
+      return {
+        user: userWithoutPassword,
+        mustChangePassword: mustChangePassword ?? true, // Si no existe, por defecto true
+      };
+    };
+
     if (cachedUser) {
-      const { password: cachedPassword, ...userWithoutPassword } = cachedUser; // Separar el usuario y la contraseña
-      const match = await bcrypt.compare(password, cachedPassword);
-      if (match) return userWithoutPassword; // Devuelve el usuario sin la contraseña
+      const match = await bcrypt.compare(password, cachedUser.password);
+      if (match) return getUserFlag(cachedUser);
     } else {
       const userByUsername = await this.userService.findAndCompare({
         key: 'userName',
@@ -33,31 +40,22 @@ export class AuthService {
       if (userByUsername) {
         const match = await bcrypt.compare(password, userByUsername.password);
         if (match) {
-          await this.redisService.set(`user:${username}`, {
-            ...userByUsername,
-            password: userByUsername.password, // Almacenar la contraseña cifrada en Redis
-          }, 3600);
-          const { password, ...userWithoutPassword } = userByUsername;
-          return userWithoutPassword; // Devuelve el usuario sin la contraseña
+          await this.redisService.set(`user:${username}`, userByUsername, 3600);
+          return getUserFlag(userByUsername);
         }
       }
 
       if (userByEmail) {
         const match = await bcrypt.compare(password, userByEmail.password);
         if (match) {
-          await this.redisService.set(`user:${username}`, {
-            ...userByEmail,
-            password: userByEmail.password, // Almacenar la contraseña cifrada en Redis
-          }, 3600);
-          const { password, ...userWithoutPassword } = userByEmail;
-          return userWithoutPassword; // Devuelve el usuario sin la contraseña
+          await this.redisService.set(`user:${username}`, userByEmail, 3600);
+          return getUserFlag(userByEmail);
         }
       }
     }
 
     return null;
   };
-
   //2: metodo para general la firma del token, este sera aleatorio y rotativo
   //const: secret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
   public singJWT({
@@ -103,4 +101,18 @@ export class AuthService {
       user: getUser,
     };
   };
+
+  //4: Metodo para cambiar la contraseña al primer inicio de secion
+  public async changePassword(userId: string, newPassword: string): Promise<boolean> {
+    const user = await this.userService.findUserById(userId);
+    if (!user) return false;
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.userService.updateUser(userId, {
+      password: hashedPassword,
+      mustChangePassword: false,
+    });
+    await this.redisService.del(`user:${user.userName}`);
+    return true;
+  }
 }

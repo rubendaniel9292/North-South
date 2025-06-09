@@ -67,4 +67,8 @@ export class UpdateUserDTO {
   @IsOptional()
   @IsString()
   role: ROLES;
+
+  @IsOptional()
+  @IsString()
+  mustChangePassword: boolean;
 }

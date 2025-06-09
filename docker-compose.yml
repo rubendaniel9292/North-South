@@ -1,4 +1,6 @@
 services:
+  
+
   north_south_pg_container:
     image: postgres:16.3
     container_name: north_south_pg_container
@@ -14,7 +16,6 @@ services:
       - 5432:5432
     networks:
       - north_south_network
-      
 
   redis_container:
     image: redis:latest

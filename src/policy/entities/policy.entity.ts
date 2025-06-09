@@ -54,9 +54,6 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @Column({ nullable: true })
   bank_account_id: number;
 
-  @Column({ nullable: true })
-  commission: number;
-
   @Column('decimal', { precision: 12, scale: 2 })
   coverageAmount: number;
 

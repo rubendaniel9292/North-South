@@ -31,4 +31,8 @@ export class UserEntity extends BaseEntity implements IUser {
   //@Column({ type: 'enum', enum: ['BASIC', 'ADMIN'], default: 'ADMIN' })
   @Column({ type: 'enum', enum: ROLES })
   role: ROLES;
+
+  //cuando se cree un usuario directamente en la BD, este campo está en true, forzando el cambio de contraseña en el primer inicio de sesión
+  @Column({ default: true }) // Nuevo campo
+  mustChangePassword: boolean;
 }

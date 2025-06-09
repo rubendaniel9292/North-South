@@ -1,5 +1,6 @@
 import { AuthService } from './../services/auth.service';
 import { LoginDto } from '../dto/auth.dto';
+import { ChangePasswordDTO } from '../dto/ChangePasswordDTO';
 import {
   BadRequestException,
   Body,
@@ -49,17 +50,45 @@ export class AuthController {
       throw new BadRequestException('Fallo en la verificación de turnstileToken');
 
     }
+    /*
     const userValidate = await this.authServices.validateUser(
       username,
       password,
-    );
+    );*/
+    const validateResult = await this.authServices.validateUser(username, password)
     //si la contraseña es incorrecta genera un error,caso contrario se genera la firma del token
-    if (!userValidate) {
+    if (!validateResult) {
       console.error('**Usuario o contraseña incorrectos**')
       throw new UnauthorizedException('Data not valid');
     }
-    const jwt = await this.authServices.generateJWT(userValidate);
+    const { user, mustChangePassword } = validateResult;
+    if (mustChangePassword) {
+      // No generes el JWT, responde aviso al frontend
+      return {
+        status: 'must_change_password',
+        message: 'Debes cambiar tu contraseña antes de continuar.',
+        mustChangePassword: true,
+        userId: user.uuid, // Para que el frontend sepa a quién cambiarle la contraseña
+      };
+    }
+    //const jwt = await this.authServices.generateJWT(userValidate);
+    const jwt = await this.authServices.generateJWT(user);
     console.error('Login exitoso...')
     return jwt;
+  }
+
+  @PublicAcces()
+  @Post('change-password')
+  async changePassword(@Body() body: ChangePasswordDTO) {
+    const { userId, newPassword } = body;
+    const ok = await this.authServices.changePassword(userId, newPassword);
+    if (!ok) {
+      throw new BadRequestException('No se pudo cambiar la contraseña');
+    }
+    return {
+      status: 'success',
+      message: 'Contraseña cambiada correctamente. Ahora puedes iniciar sesión.',
+      ok
+    };
   }
 }
