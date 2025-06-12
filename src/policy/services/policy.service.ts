@@ -310,13 +310,15 @@ export class PolicyService extends ValidateEntity {
   }
 
   // Invalidar cachés relacionados con pólizas
-  private async invalidateCaches(): Promise<void> {
+  private async invalidateCaches(advisorId?: number): Promise<void> {
     await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
     await this.redisService.del('policies');
     await this.redisService.del('policiesStatus');
     await this.redisService.del('customers');
     await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
     await this.redisService.del('allAdvisors');
+    await this.redisService.del(`advisor:${advisorId}`);
+
 
   }
 
@@ -346,9 +348,11 @@ export class PolicyService extends ValidateEntity {
       await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
       // Crear renovaciones automáticas
       await this.handleRenewals(newPolicy, startDate, today);
-
+      // Invalidar cachés, pasando el ID del asesor relacionado
+      await this.invalidateCaches(newPolicy.advisor_id);
       // Invalidar cachés
-      await this.invalidateCaches();
+      //await this.invalidateCaches();
+
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

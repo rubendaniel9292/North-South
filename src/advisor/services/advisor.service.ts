@@ -90,7 +90,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissionsPayments'] }
+        { where: { id }, relations: ['commissions', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissionsPayments'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
@@ -98,6 +98,7 @@ export class AdvisorService extends ValidateEntity {
           message: 'No se encontró el asesor',
         });
       }
+      
       await this.redisService.set(`advisor:${id}`, JSON.stringify(advisorById), 32400); // TTL de 9 horas
       return advisorById;
     } catch (error) {
