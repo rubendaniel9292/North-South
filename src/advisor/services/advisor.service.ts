@@ -90,7 +90,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions', 'policies','policies.customer', 'policies.payments', 'policies.payments.paymentStatus','policies.commissionsPayments'] }
+        { where: { id }, relations: ['commissions', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissionsPayments'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
@@ -128,7 +128,7 @@ export class AdvisorService extends ValidateEntity {
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(advisor, updateData);
       // Guardar el cliente actualizado en la base de datos
-      const advisorUpdate: AdvisorEntity = await this.advisdorRepository.save(advisor);
+      await this.advisdorRepository.save(advisor);
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`advisor:${id}`);
@@ -137,7 +137,14 @@ export class AdvisorService extends ValidateEntity {
       // Obtener el asesor actualizado con todas sus relaciones
       const advisorWithRelations = await this.advisdorRepository.findOne({
         where: { id },
-        relations: ['policies', 'policies.payments']
+        relations: [
+          'commissions',
+          'policies',
+          'policies.customer',                 // <-- ¡IMPORTANTE!
+          'policies.payments',
+          'policies.payments.paymentStatus',
+          'policies.commissionsPayments'
+        ]
       });
 
       // Actualizar caché con los datos más recientes incluyendo relaciones

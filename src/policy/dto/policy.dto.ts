@@ -80,10 +80,10 @@ export class PolicyDTO {
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 2 })
   paymentsToAdvisor: number;
-  
+
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 2 })
-  paymentsToAgency:number 
+  paymentsToAgency: number
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -101,9 +101,13 @@ export class PolicyDTO {
   @IsBoolean()
   renewalCommission: boolean;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsBoolean()
-  renewalPolicy?: boolean;
+  isCommissionAnnualized: boolean;
+
+  //@IsOptional()
+  //@IsBoolean()
+  //renewalPolicy?: boolean;
 }
 
 export class UpDatePolicyDTO {
@@ -185,5 +189,9 @@ export class UpDatePolicyDTO {
 
   @IsOptional()
   @IsBoolean()
-  renewalPolicy?: boolean;
+  isCommissionAnnualized: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  renewalCommission: boolean;
 }

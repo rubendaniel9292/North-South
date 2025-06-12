@@ -85,6 +85,7 @@ export class PaymentService {
       // Si no se proporciona una fecha de creación, usar la fecha actual normalizada
       if (!body.createdAt) {
         body.createdAt = DateHelper.normalizeDateForDB(new Date());
+        //body.createdAt = DateHelper.normalizeDateForComparison(new Date());
       } else {
         // Si se proporciona una fecha, normalizarla
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
@@ -98,8 +99,9 @@ export class PaymentService {
       await this.redisService.del(`policy:${body.policy_id}`);
 
       //OJO: SE ETRA CREANDO EL PRIMER PAGO DE COMOSION POR REGISTRO DE POLIZA
-      const commission = this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
+      //const commission = this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
       // Crear el pago de comisión
+      /*
       const commissionPayment = {
         value: commission,
         number_payment: 1,
@@ -107,11 +109,10 @@ export class PaymentService {
         policy_id: policy.id,
         status_payment_id: 1,
         createdAt: DateHelper.normalizeDateForDB(new Date()),
-      };
+      };*/
       // Guardar el pago de comisión
       //await this.commissionsPaymentsService.createCommissionPayment(commissionPayment);
       return newPayment;
-
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -158,7 +159,6 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
-
       //const cachedPaymentsId = await this.redisService.get('paymentId');
       /*
       const cachedPaymentsId = await this.redisService.get(`paymentId:${id}`);
