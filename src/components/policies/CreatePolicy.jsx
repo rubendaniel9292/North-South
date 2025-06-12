@@ -120,10 +120,9 @@ const CreatePolicy = () => {
     let paymentAvisor = 0;
     let paymentAgency = 0;
     if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = Number((value * percentageAgency) / 100).toFixed(2);
+      paymentAgency = parseFloat(((value * percentageAgency) / 100).toFixed(2));
+      paymentAvisor = parseFloat(((value * percentageAdvisor) / 100).toFixed(2));
 
-      //paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(2);
-      paymentAvisor = Number((value * percentageAdvisor) / 100).toFixed(2);
       changed({
         target: {
           name: "paymentsToAgency",

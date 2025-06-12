@@ -167,6 +167,7 @@ const ListAdvisor = () => {
                   <td className="d-flex gap-2">
                     {item.policies && item.policies.length >= 1 ? (
                       <>
+                        {/* 
                         <button
                           onClick={() =>
                             getAvidorById(item.id, "commissionHistory")
@@ -175,7 +176,7 @@ const ListAdvisor = () => {
                         >
                           Ver historial de anticipos/comisiones
                         </button>
-
+                      */}
                         <NavLink
                           to="/management/get-all-commissions"
                           state={{
@@ -183,9 +184,9 @@ const ListAdvisor = () => {
                             //customer: item.customer,
                             // Opcionalmente, puedes pasar un cliente si quieres filtrar por cliente
                           }}
-                          className="btn btn-warning text-white fw-bold w-100 my-1"
+                          className="btn btn-primary text-white fw-bold w-100 my-1"
                         >
-                          Ver historial completo de comiciones
+                          Ver historial de comiciones/anticipos
                         </NavLink>
 
                         <button

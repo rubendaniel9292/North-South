@@ -3,9 +3,12 @@ import { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import http from "../../helpers/Http";
-
 import { faRectangleXmark, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  calculateCommissionValue,
+  calculateReleasedCommissions,
+} from "../../helpers/CommissionUtils";
 
 const ListCommissions = () => {
   const location = useLocation();
@@ -36,52 +39,6 @@ const ListCommissions = () => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
 
-  // Helpers: los mismos del historial anterior
-  const calculateCommissionValue = useCallback((policy) => {
-    if (!policy) return 0;
-
-    
-    if (policy.renewalCommission === false) {
-      return Number(policy.paymentsToAdvisor) || 0;
-    }
-
-    const perPeriod =
-      Number(policy.paymentsToAdvisor) /
-      Number(policy.numberOfPaymentsAdvisor || 1);
-    return perPeriod * (policy.payments ? policy.payments.length : 0);
-    
-  }, []);
-
-  // Cálculo de comisiones liberadas 
-  const calculateReleasedCommissions = useCallback((policy) => {
-    //Si no hay póliza o no tiene pagos, retorna 0 Así se evita errores si los datos todavía no están listos.
-    if (!policy || !Array.isArray(policy.payments)) return 0;
-    //const agencyPercentage = Number(policy.agencyPercentage || 0) / 100;
-    const advisorPercentage = Number(policy.advisorPercentage || 0) / 100;
-
-    // Solo pagos con paymentStatus.id === 2 ("AL DÍA")
-    const releasedPayments = policy.payments.filter(
-      (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-    );
-    //determinar si la comicion es anaualizada, si es anualizada se suma el valor de la comision
-    if (policy.isCommissionAnnualized === true) {
-      const totalAnnualized =
-        Number(policy.paymentsToAdvisor) /
-        Number(policy.numberOfPaymentsAdvisor || 1);
-      return totalAnnualized * (policy.payments ? policy.payments.length : 0);
-    } else {
-      //si no es anualizada se suma el valor del pago Suma el valor de esos pagos: Reduce: Suma el campo payment.value de cada pago "AL DÍA".
-      const sum = releasedPayments.reduce((total, payment) => {
-        const value = Number(payment.value || 0);
-        //const agencyCommission = value * agencyPercentage;
-        //const advisorCommission = agencyCommission * advisorPercentage;
-        const advisorCommission = value * advisorPercentage;
-        return total + advisorCommission;
-      }, 0);
-
-      return sum;
-    }
-  }, []);
 
   // Filtrado de pólizas por cliente si fue enviado
   const filteredPolicies =
@@ -146,9 +103,10 @@ const ListCommissions = () => {
                   <th>Cliente </th>
                   <th>Frecuencia</th>
                   <th>Pagos por periodo/año</th>
-                  <th>
-                    Comisiones totales <span>(hasta la fecha)</span>
-                  </th>
+                  <th>Comision por renovacion</th>
+                  <th>Valor de la póliza</th>
+                  <th>Comisiones totales</th>
+
                   <th>Comisiones liberadas</th>
                   <th>Comisiones pagadas</th>
                   <th>Comisiones a favor</th>
@@ -204,14 +162,20 @@ const ListCommissions = () => {
                               ? "Normal"
                               : "Anualizada"}
                           </td>
-                          <th>
+                          <th className="fw-bold">
                             {policy.isCommissionAnnualized === false
                               ? policy.numberOfPaymentsAdvisor
                               : 1}
                           </th>
+
+                          <td className="fw-bold">
+                            {policy.renewalCommission === true ? "SI" : "NO"}
+                          </td>
+                          <td className="fw-bold">{policy.policyValue}</td>
                           <td className="bg-info fw-bold">
                             ${Number(commissionValue).toFixed(2)}
                           </td>
+
                           <td className="fw-bold bg-warning">
                             ${Number(maxLiberated).toFixed(2)}
                           </td>
@@ -224,7 +188,7 @@ const ListCommissions = () => {
                         </tr>
                         {/* Subtabla historial de pagos debajo */}
                         <tr>
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={10} className="p-0">
                             {Array.isArray(policy.commissionsPayments) &&
                             policy.commissionsPayments.length > 0 ? (
                               <table className="table table-sm table-bordered text-center">

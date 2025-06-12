@@ -6,7 +6,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import http from "../../helpers/Http";
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
-
+import {
+  calculateCommissionValue,
+  calculateReleasedCommissions,
+} from "../../helpers/CommissionUtils";
 const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   if (!advisorId) {
     console.error("advisorId es undefined en RegisterAdvanceModal");
@@ -46,43 +49,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
     fetchData();
   }, []);
-
-  // Función para calcular el total de comisiones generadas para la póliza (incluyendo renovaciones)
-  const calculateCommissionValue = useCallback((policy) => {
-    if (!policy) return 0;
-    if (policy.renewalCommission === false) {
-      return Number(policy.paymentsToAdvisor) || 0;
-    }
-    if (policy.isCommissionAnnualized === true) {
-      const totalAnnualized =
-        Number(policy.paymentsToAdvisor) *
-        Number(policy.numberOfPaymentsAdvisor || 1);
-      return totalAnnualized;
-    } else {
-      const perPeriod =
-        Number(policy.paymentsToAdvisor) /
-        Number(policy.numberOfPaymentsAdvisor || 1);
-      return perPeriod * (policy.payments ? policy.payments.length : 0);
-    }
-  }, []);
-
-  // Función auxiliar para calcular comisiones disponibles
-  /*
-  const calculateAvailableCommissions = useCallback(
-    (policy) => {
-      if (!policy) return 0;
-      const commissionValue = calculateCommissionValue(policy);
-      let commissionsPaid = 0;
-      if (Array.isArray(policy.commissionsPayments)) {
-        commissionsPaid = policy.commissionsPayments.reduce(
-          (total, payment) => total + (Number(payment.advanceAmount) || 0),
-          0
-        );
-      }
-      return Math.max(0, commissionValue - commissionsPaid);
-    },
-    [calculateCommissionValue]
-  );*/
 
   // Función para manejar el cambio de póliza
   const handlePolicyChange = (e) => {
@@ -203,37 +169,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     // Procesamos el cambio normalmente
     changed(e);
   };
-
-  // Cálculo de comisiones liberadas
-  const calculateReleasedCommissions = useCallback((policy) => {
-    //Si no hay póliza o no tiene pagos, retorna 0 Así se evita errores si los datos todavía no están listos.
-    if (!policy || !Array.isArray(policy.payments)) return 0;
-    const agencyPercentage = Number(policy.agencyPercentage || 0) / 100;
-    const advisorPercentage = Number(policy.advisorPercentage || 0) / 100;
-
-    // Solo pagos con paymentStatus.id === 2 ("AL DÍA")
-    const releasedPayments = policy.payments.filter(
-      (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-    );
-    //determinar si la comicion es anaualizada, si es anualizada se suma el valor de la comision
-    if (policy.isCommissionAnnualized === true) {
-      const totalAnnualized =
-        Number(policy.paymentsToAdvisor) /
-        Number(policy.numberOfPaymentsAdvisor || 1);
-      return totalAnnualized * (policy.payments ? policy.payments.length : 0);
-    } else {
-      //si no es anualizada se suma el valor del pago Suma el valor de esos pagos: Reduce: Suma el campo payment.value de cada pago "AL DÍA".
-      const sum = releasedPayments.reduce((total, payment) => {
-        const value = Number(payment.value || 0);
-        //const agencyCommission = value * agencyPercentage;
-        //const advisorCommission = agencyCommission * advisorPercentage;
-        const advisorCommission = value * advisorPercentage;
-        return total + advisorCommission;
-      }, 0);
-
-      return sum;
-    }
-  }, []);
 
   // función para manejar el envío del formulario
   const handleSubmit = async (e) => {
