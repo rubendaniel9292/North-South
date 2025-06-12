@@ -43,6 +43,7 @@ const UserForm = (initialObj) => {
         // Manejo especial para radios
         if (
           name === "personalData" ||
+          name === "isCommissionAnnualized" ||
           (name === "renewalCommission" && type === "radio")
         ) {
           finalValue = value === "true"; // Convierte el valor a booleano

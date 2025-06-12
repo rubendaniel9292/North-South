@@ -53,10 +53,17 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     if (policy.renewalCommission === false) {
       return Number(policy.paymentsToAdvisor) || 0;
     }
-    const perPeriod =
-      Number(policy.paymentsToAdvisor) /
-      Number(policy.numberOfPaymentsAdvisor || 1);
-    return perPeriod * (policy.payments ? policy.payments.length : 0);
+    if (policy.isCommissionAnnualized === true) {
+      const totalAnnualized =
+        Number(policy.paymentsToAdvisor) *
+        Number(policy.numberOfPaymentsAdvisor || 1);
+      return totalAnnualized;
+    } else {
+      const perPeriod =
+        Number(policy.paymentsToAdvisor) /
+        Number(policy.numberOfPaymentsAdvisor || 1);
+      return perPeriod * (policy.payments ? policy.payments.length : 0);
+    }
   }, []);
 
   // Función auxiliar para calcular comisiones disponibles
@@ -197,7 +204,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     changed(e);
   };
 
-  // Cálculo de comisiones liberadas (solo pagos AL DÍA)
+  // Cálculo de comisiones liberadas
   const calculateReleasedCommissions = useCallback((policy) => {
     //Si no hay póliza o no tiene pagos, retorna 0 Así se evita errores si los datos todavía no están listos.
     if (!policy || !Array.isArray(policy.payments)) return 0;
@@ -208,16 +215,24 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     const releasedPayments = policy.payments.filter(
       (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
     );
+    //determinar si la comicion es anaualizada, si es anualizada se suma el valor de la comision
+    if (policy.isCommissionAnnualized === true) {
+      const totalAnnualized =
+        Number(policy.paymentsToAdvisor) /
+        Number(policy.numberOfPaymentsAdvisor || 1);
+      return totalAnnualized * (policy.payments ? policy.payments.length : 0);
+    } else {
+      //si no es anualizada se suma el valor del pago Suma el valor de esos pagos: Reduce: Suma el campo payment.value de cada pago "AL DÍA".
+      const sum = releasedPayments.reduce((total, payment) => {
+        const value = Number(payment.value || 0);
+        //const agencyCommission = value * agencyPercentage;
+        //const advisorCommission = agencyCommission * advisorPercentage;
+        const advisorCommission = value * advisorPercentage;
+        return total + advisorCommission;
+      }, 0);
 
-    // Suma el valor de esos pagos: Reduce: Suma el campo payment.value de cada pago "AL DÍA".
-    const sum = releasedPayments.reduce((total, payment) => {
-      const value = Number(payment.value || 0);
-      const agencyCommission = value * agencyPercentage;
-      const advisorCommission = agencyCommission * advisorPercentage;
-      return total + advisorCommission;
-    }, 0);
-
-    return sum;
+      return sum;
+    }
   }, []);
 
   // función para manejar el envío del formulario
@@ -289,6 +304,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                 <tr>
                   <th>N° de póliza</th>
                   <th>Cliente </th>
+                  <th>Frecuencia</th>
+                  <th>Pagos por periodo/año</th>
                   <th>
                     Comisiones totales <span>(hasta la fecha)</span>
                   </th>
@@ -339,6 +356,16 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 .join(" ")
                             : "N/A"}
                         </td>
+                        <td className="fw-bold">
+                          {selectedPolicy.isCommissionAnnualized === false
+                            ? "Normal"
+                            : "Anualizada"}
+                        </td>
+                        <th>
+                          {selectedPolicy.isCommissionAnnualized === false
+                            ? selectedPolicy.numberOfPaymentsAdvisor
+                            : 1}
+                        </th>
 
                         <td className="bg-info fw-bold">
                           <span className="fw-bold">
@@ -382,7 +409,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   })()
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center text-success">
+                    <td colSpan="9" className="text-center text-success">
                       <p>
                         Escoja una póliza para ver detalles de las comisiones o
                         registre un anticipo
@@ -425,7 +452,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     className="form-select"
                     id="policy_id"
                     name="policy_id"
-                   
                     onChange={handlePolicyChange}
                   >
                     <option disabled selected value={""}>
@@ -655,7 +681,7 @@ RegisterAdvanceModal.propTypes = {
         agencyPercentage: PropTypes.number.isRequired,
         totalCommission: PropTypes.number.isRequired,
         company_id: PropTypes.number.isRequired,
-
+        isCommissionAnnualized: PropTypes.bool.isRequired,
         commissionsPayments: PropTypes.arrayOf(
           PropTypes.shape({
             id: PropTypes.number.isRequired,

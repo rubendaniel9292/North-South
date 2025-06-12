@@ -173,6 +173,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
             <thead>
               <tr>
+                <th>Frecuencia de comicioes</th>
                 <th>Monto de Cobertura</th>
                 <th>Porcentaje de la Agencia</th>
                 <th>Porcentaje del Asesor</th>
@@ -189,6 +190,11 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </thead>
             <tbody>
               <tr>
+                <td>
+                  {policy.isCommissionAnnualized === false
+                    ? "Normal"
+                    : "Anualizada"}
+                </td>
                 <td>{policy.coverageAmount}</td>
                 <td>{policy.agencyPercentage}</td>
                 <td>{policy.advisorPercentage}</td>
@@ -511,14 +517,15 @@ ListPolicyModal.propTypes = {
     agencyPercentage: PropTypes.string.isRequired,
     advisorPercentage: PropTypes.string,
     policyValue: PropTypes.string.isRequired,
-    numberOfPayments: PropTypes.number,
-    startDate: PropTypes.string, // o PropTypes.instanceOf(Date) si es un objeto Date
-    endDate: PropTypes.string,
-    paymentsToAdvisor: PropTypes.string,
-    paymentsToAgency: PropTypes.string,
+    numberOfPayments: PropTypes.number.isRequired,
+    startDate: PropTypes.string.isRequired, // o PropTypes.instanceOf(Date) si es un objeto Date
+    endDate: PropTypes.string.isRequired,
+    paymentsToAdvisor: PropTypes.string.isRequired,
+    paymentsToAgency: PropTypes.string.isRequired,
     policyFee: PropTypes.string,
     observations: PropTypes.string,
-    renewalCommission: PropTypes.bool,
+    renewalCommission: PropTypes.bool.isRequired,
+    isCommissionAnnualized: PropTypes.bool.isRequired,
 
     policyType: PropTypes.shape({
       policyName: PropTypes.string.isRequired,

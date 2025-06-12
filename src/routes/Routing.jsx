@@ -21,7 +21,7 @@ import ListPolicies  from "../components/policies/ListPolicies";
 import CreateBankAccount from "../components/customer/CreateBankAccount";
 import ListBankAccounts from "../components/customer/ListBankAccounts";
 import  ListPayment from "../components/policies/ListPayment";
-
+import ListCommissions  from "../components/customer/ListCommissions";
 const Routing = () => {
   return (
     <HashRouter>
@@ -52,6 +52,7 @@ const Routing = () => {
             <Route path="create-policy" element={<CreatePolicy/>}></Route>
             <Route path="get-all-policy" element={<ListPolicies/>}></Route>
             <Route path="get-all-payments" element={<ListPayment/>}></Route>
+            <Route path="get-all-commissions" element={<ListCommissions/>}></Route>
             <Route path="logout" element={<Logout />}></Route>
           </Route>
 

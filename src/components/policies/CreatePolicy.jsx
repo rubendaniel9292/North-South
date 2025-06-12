@@ -24,6 +24,7 @@ const CreatePolicy = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
+  const [errorAdvisorPercentage, setErrorAdvisorPercentage] = useState("");
 
   const location = useLocation();
   // Obtenemos el cliente pasado por NavLink, si lo hay
@@ -111,24 +112,23 @@ const CreatePolicy = () => {
       const element = document.getElementById(id);
       if (element) element.classList.add(className);
     };
-    const value = Number(form.policyValue);
+
     const percentageAdvisor = Number(form.advisorPercentage);
     const percentageAgency = Number(form.agencyPercentage);
     const policyFee = Number(form.policyFee);
+    const value = Number(form.policyValue) - policyFee;
     let paymentAvisor = 0;
     let paymentAgency = 0;
     if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = Number(
-        (value * percentageAgency) / 100 - policyFee
-      ).toFixed(2);
+      paymentAgency = Number((value * percentageAgency) / 100).toFixed(2);
 
-      paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(
-        2
-      );
+      //paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(2);
+      paymentAvisor = Number((value * percentageAdvisor) / 100).toFixed(2);
       changed({
         target: {
           name: "paymentsToAgency",
           value: paymentAgency - paymentAvisor,
+          //value: paymentAvisor,
         },
       });
 
@@ -247,6 +247,25 @@ const CreatePolicy = () => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
 
+  //handler especial para el campo advisorPercentage
+  const handleAdvisorPercentageChange = (e) => {
+    changed(e); // Actualiza el form normalmente
+    const advisorVal = Number(e.target.value);
+    const agencyVal = Number(form.agencyPercentage);
+
+    if (agencyVal === 0) {
+      setErrorAdvisorPercentage("Primero ingrese el porcentaje de la agencia");
+      el;
+    } else if (advisorVal >= agencyVal) {
+      setErrorAdvisorPercentage(
+        "El porcentaje del asesor debe ser menor que el de la agencia"
+      );
+    } else if (advisorVal === "") {
+      setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
+    } else {
+      setErrorAdvisorPercentage("");
+    }
+  };
   const savedPolicy = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -626,12 +645,24 @@ const CreatePolicy = () => {
             <input
               required
               type="number"
-              className="form-control"
+              className={`form-control ${
+                !form.advisorPercentage ||
+                Number(form.advisorPercentage) >= Number(form.agencyPercentage)
+                  ? "is-invalid"
+                  : "is-valid"
+              }`}
               id="advisorPercentage"
               name="advisorPercentage"
-              onChange={changed} // Llamada a la función
+              onChange={handleAdvisorPercentageChange}
               value={form.advisorPercentage}
             />
+
+            {errorAdvisorPercentage && (
+              <>
+                <div className="invalid-feedback">{errorAdvisorPercentage}</div>
+              </>
+            )}
+
             <div className="invalid-feedback">
               Por favor ingrese un porcentaje del asesor.
             </div>
@@ -667,6 +698,45 @@ const CreatePolicy = () => {
               />
               <label className="form-check-label" htmlFor="flexRadioDefault8">
                 No
+              </label>
+              <div className="invalid-feedback">
+                Por favor escoja una opción.
+              </div>
+            </div>
+          </div>
+          <div className="mb-3 col-3">
+            <label className="form-label">
+              Frecuencia de pago de comisiones
+            </label>
+            <div className="form-check">
+              <input
+                required
+                className="form-check-input"
+                type="radio"
+                name="isCommissionAnnualized"
+                id="commissionAnnualized"
+                value="true"
+                onChange={changed}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="commissionAnnualized"
+              >
+                Anualizada
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                required
+                className="form-check-input"
+                type="radio"
+                name="isCommissionAnnualized"
+                id="commissionNormal"
+                value="false"
+                onChange={changed}
+              />
+              <label className="form-check-label" htmlFor="commissionNormal">
+                Normal (según frecuencia de pago)
               </label>
               <div className="invalid-feedback">
                 Por favor escoja una opción.

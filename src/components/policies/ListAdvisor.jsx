@@ -6,6 +6,7 @@ import "dayjs/locale/es";
 import Modal from "../../helpers/modal/Modal";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
+import { NavLink } from "react-router-dom";
 const ListAdvisor = () => {
   const [advisor, setAdvisor] = useState([]);
   const [advisorId, setAdvisorId] = useState({});
@@ -167,11 +168,25 @@ const ListAdvisor = () => {
                     {item.policies && item.policies.length >= 1 ? (
                       <>
                         <button
-                          onClick={() => getAvidorById(item.id, "commissionHistory")}
+                          onClick={() =>
+                            getAvidorById(item.id, "commissionHistory")
+                          }
                           className="btn btn-primary text-white fw-bold w-100 my-1"
                         >
                           Ver historial de anticipos/comisiones
                         </button>
+
+                        <NavLink
+                          to="/management/get-all-commissions"
+                          state={{
+                            advisor: item, // Pasa el asesor completo
+                            //customer: item.customer,
+                            // Opcionalmente, puedes pasar un cliente si quieres filtrar por cliente
+                          }}
+                          className="btn btn-warning text-white fw-bold w-100 my-1"
+                        >
+                          Ver historial completo de comiciones
+                        </NavLink>
 
                         <button
                           onClick={() => getAvidorById(item.id, "advisor")}

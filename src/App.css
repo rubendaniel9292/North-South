@@ -42,7 +42,8 @@ body.modal-open {
                 -ms-border-radius: 8px 8px 0 0;
                 -o-border-radius: 8px 8px 0 0;
             }
-            .conten-title-com{
+
+            .conten-title-com {
                 padding: 1rem;
                 background-color: #5e72e4 !important;
                 height: 4rem;
@@ -51,6 +52,7 @@ body.modal-open {
                 -ms-border-radius: 8px 8px 0 0;
                 -o-border-radius: 8px 8px 0 0;
             }
+
             .bg-balance-color {
                 background-color: #adb5bd;
             }
@@ -74,4 +76,21 @@ body.modal-open {
             max-width: 70% !important;
         }
     }
+}
+
+.stickyFooter {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    display: flex;
+    justify-content: center;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.relativeContainer {
+    position: relative;
+    min-height: 87vh;
+    /* Ajusta según tu diseño */
 }

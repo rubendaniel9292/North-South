@@ -4,11 +4,8 @@ import "dayjs/locale/es";
 import { faRectangleXmark, faFile } from "@fortawesome/free-solid-svg-icons";
 import { useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import http from "../../helpers/Http";
-import UserForm from "../../hooks/UserForm";
-import alerts from "../../helpers/Alerts";
 
-export const CommissionHistoryModal = ({ onClose, advisorId }) => {
+const CommissionHistoryModal = ({ onClose, advisorId }) => {
   const [isLoading, setIsLoading] = useState(false);
   if (!advisorId) return null;
 
@@ -52,7 +49,7 @@ export const CommissionHistoryModal = ({ onClose, advisorId }) => {
           </h3>
         </div>
         <div className="row pt-2">
-          <table className="table table-striped table-bordered">
+          <table className="table table-striped table-bordered mb-0">
             <thead>
               <tr>
                 <th>N° de póliza</th>
@@ -65,25 +62,26 @@ export const CommissionHistoryModal = ({ onClose, advisorId }) => {
                 <th>Comisiones a favor</th>
               </tr>
             </thead>
-            {/* Historial por póliza */}
-            {advisorId.policies.map((policy) => {
-              // --- Cálculos consistentes con el modal de registro ---
-              const commissionValue = calculateCommissionValue(policy);
-              const released = calculateReleasedCommissions(policy);
-              const maxLiberated = Math.min(released, commissionValue);
-              const commissionsPaid = Array.isArray(policy.commissionsPayments)
-                ? policy.commissionsPayments.reduce(
-                    (total, payment) =>
-                      total + (Number(payment.advanceAmount) || 0),
-                    0
-                  )
-                : 0;
-              const maxPaid = Math.min(commissionsPaid, maxLiberated);
-              const commissionsAfavor = Math.max(0, maxLiberated - maxPaid);
+            <tbody>
+              {advisorId.policies.map((policy) => {
+                const commissionValue = calculateCommissionValue(policy);
+                const released = calculateReleasedCommissions(policy);
+                const maxLiberated = Math.min(released, commissionValue);
+                const commissionsPaid = Array.isArray(
+                  policy.commissionsPayments
+                )
+                  ? policy.commissionsPayments.reduce(
+                      (total, payment) =>
+                        total + (Number(payment.advanceAmount) || 0),
+                      0
+                    )
+                  : 0;
+                const maxPaid = Math.min(commissionsPaid, maxLiberated);
+                const commissionsAfavor = Math.max(0, maxLiberated - maxPaid);
 
-              return (
-                <>
-                  <tbody>
+                return (
+                  <>
+                    {/* Fila principal */}
                     <tr key={policy.id}>
                       <td className="fw-bold">{policy.numberPolicy}</td>
                       <td className="fw-bold">
@@ -111,117 +109,87 @@ export const CommissionHistoryModal = ({ onClose, advisorId }) => {
                         ${Number(commissionsAfavor).toFixed(2)}
                       </td>
                     </tr>
-                  </tbody>
-                </>
-              );
-            })}
-            {/* Subtabla de historial de pagos para cada póliza */}
-            {advisorId.policies.map((policy) =>
-              Array.isArray(policy.commissionsPayments) &&
-              policy.commissionsPayments.length > 0 ? (
-                <tr key={`payments-${policy.id}`}>
-                  <td colSpan={6}>
-                    <table className="table table table-striped  table-sm table-bordered mb-0">
-                      <thead>
-                        <tr>
-                          <th>Fecha de pago</th>
-                          <th>Número de recibo</th>
-                          <th>Monto abonado</th>
-                          <th>Observaciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {policy.commissionsPayments.map((payment) => (
-                          <tr key={payment.id}>
-                            <td>
-                              <span>
-                                {" "}
-                                {payment.createdAt
-                                  ? dayjs(payment.createdAt).format(
-                                      "DD/MM/YYYY"
-                                    )
-                                  : "-"}
-                              </span>
-                            </td>
-                            <td>{payment.receiptNumber}</td>
-                            <td>
-                              {" "}
-                              <span>
-                                ${Number(payment.advanceAmount).toFixed(2)}
-                              </span>
-                            </td>
-                            <td>{payment.observations || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </td>
-                </tr>
-              ) : (
-                <tr className="border">
-                  <th colSpan={7}>
-                    Aún so se han registrado pagos de comiciones
-                  </th>
-                </tr>
-              )
-            )}
-          </table>
-          <table className="table table-striped table-success table-sm table-bordered mt-3">
-            {/* Anticipos generales */}
-            {advisorId.commissions &&
-              advisorId.commissions.filter((c) => !c.policy_id).length > 0 && (
-                <>
-                  <thead>
+                    {/* Fila debajo: historial de pagos */}
                     <tr>
-                     
-
-                      <th colSpan={4} className="fw-bold">
-                        Anticipos generales sin póliza asignada
-                      </th>
-                    </tr>
-                  </thead>
-                  <tr>
-                    <td colSpan={6}>
-                      <table className="table table-striped table-sm table-bordered mb-0">
-                        <thead>
-                          <tr>
-                            <th>Fecha de pago</th>
-                            <th>Número de recibo</th>
-                            <th>Monto abonado</th>
-                            <th>Observaciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {advisorId.commissions
-                            .filter((c) => !c.policy_id)
-                            .map((anticipo) => (
-                              <tr key={anticipo.id}>
-                                <td>
-                                  <span>
-                                    {anticipo.createdAt
-                                      ? dayjs(anticipo.createdAt).format(
+                      <td colSpan={6} className="p-0">
+                        {Array.isArray(policy.commissionsPayments) &&
+                        policy.commissionsPayments.length > 0 ? (
+                          <table className="table table-sm table-bordered mb-0">
+                            <thead>
+                              <tr>
+                                <th>Fecha de pago</th>
+                                <th>Número de recibo</th>
+                                <th>Monto abonado</th>
+                                <th>Observaciones</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {policy.commissionsPayments.map((payment) => (
+                                <tr key={payment.id}>
+                                  <td>
+                                    {payment.createdAt
+                                      ? dayjs(payment.createdAt).format(
                                           "DD/MM/YYYY"
                                         )
                                       : "-"}
-                                  </span>
-                                </td>
-                                <td>{anticipo.receiptNumber}</td>
-                                <td>
-                                  <span>
-                                    {" "}
-                                    ${Number(anticipo.advanceAmount).toFixed(2)}
-                                  </span>
-                                </td>
-                                <td>{anticipo.observations || "-"}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                </>
-              )}
+                                  </td>
+                                  <td>{payment.receiptNumber}</td>
+                                  <td>
+                                    ${Number(payment.advanceAmount).toFixed(2)}
+                                  </td>
+                                  <td>{payment.observations || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="text-center text-muted py-2">
+                            Aún no se han registrado pagos de comisiones
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  </>
+                );
+              })}
+            </tbody>
           </table>
+
+          {/* Anticipos generales sin póliza asignada */}
+          {advisorId.commissions &&
+            advisorId.commissions.filter((c) => !c.policy_id).length > 0 && (
+              <table className="table  table-sm table-bordered mt-3">
+                <thead className="table-success">
+                  <tr>
+                    <th colSpan={4} className="fw-bold text-center">
+                      Anticipos generales sin póliza asignada
+                    </th>
+                  </tr>
+                  <tr>
+                    <th>Fecha de pago</th>
+                    <th>Número de recibo</th>
+                    <th>Monto abonado</th>
+                    <th>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {advisorId.commissions
+                    .filter((c) => !c.policy_id)
+                    .map((anticipo) => (
+                      <tr key={anticipo.id}>
+                        <td>
+                          {anticipo.createdAt
+                            ? dayjs(anticipo.createdAt).format("DD/MM/YYYY")
+                            : "-"}
+                        </td>
+                        <td>{anticipo.receiptNumber}</td>
+                        <td>${Number(anticipo.advanceAmount).toFixed(2)}</td>
+                        <td>{anticipo.observations || "-"}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
         </div>
         <div className="d-flex justify-content-center align-items-center">
           <div>
@@ -230,7 +198,6 @@ export const CommissionHistoryModal = ({ onClose, advisorId }) => {
               id="btnc"
               className="btn bg-success mx-5 text-white fw-bold"
               disabled={isLoading}
-              //onClick={generateReport}
             >
               {isLoading ? (
                 <div className="spinner-border text-light" role="status">
