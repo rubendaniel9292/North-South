@@ -21,6 +21,7 @@ const ListAdvisor = () => {
     setShowModal(true);
   };
   const closeModal = () => {
+    localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
     setShowModal(false);
   };
   useEffect(() => {

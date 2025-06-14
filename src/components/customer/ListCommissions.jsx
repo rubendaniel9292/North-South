@@ -39,7 +39,6 @@ const ListCommissions = () => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
 
-
   // Filtrado de pólizas por cliente si fue enviado
   const filteredPolicies =
     advisor?.policies?.filter((policy) => {
@@ -157,7 +156,13 @@ const ListCommissions = () => {
                                   .join(" ")
                               : "N/A"}
                           </td>
-                          <td className="fw-bold">
+                          <td
+                            className={
+                              policy.isCommissionAnnualized === false
+                                ? "fw-bold bg-info-subtle"
+                                : "fw-bold bg-dark-subtle"
+                            }
+                          >
                             {policy.isCommissionAnnualized === false
                               ? "Normal"
                               : "Anualizada"}
@@ -168,7 +173,13 @@ const ListCommissions = () => {
                               : 1}
                           </th>
 
-                          <td className="fw-bold">
+                          <td
+                            className={
+                              policy.renewalCommission === true
+                                ? "fw-bold bg-success-subtle"
+                                : "fw-bold bg-danger-subtle"
+                            }
+                          >
                             {policy.renewalCommission === true ? "SI" : "NO"}
                           </td>
                           <td className="fw-bold">{policy.policyValue}</td>
@@ -224,7 +235,7 @@ const ListCommissions = () => {
                               </table>
                             ) : (
                               <div className="text-center text-muted py-2">
-                                Aún no se han registrado pagos de comisiones
+                                Aún no se han registrado pagos de comisiones para esta póliza.
                               </div>
                             )}
                           </td>
