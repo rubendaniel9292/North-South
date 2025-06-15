@@ -1,7 +1,9 @@
 import PropTypes from "prop-types";
-import { useEffect, useRef, useState } from "react";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  faRectangleXmark,
+  faFloppyDisk,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import http from "../../helpers/Http";
 import UserForm from "../../hooks/UserForm";
@@ -14,33 +16,81 @@ import {
   calculateCommissionValue,
   calculateReleasedCommissions,
 } from "../../helpers/CommissionUtils";
+
 const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   if (!advisorId) {
     console.error("advisorId es undefined en RegisterAdvanceModal");
     return null;
   }
+  // ESTADOS CLÁSICOS, NO SE ELIMINA NINGUNO
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState([]);
-  const [advanceValue, setAdvanceValue] = useState();
+  const [advanceValue, setAdvanceValue] = useState("");
   const { form, changed } = UserForm({
     advisor_id: advisorId.id,
-    policy_id: advisorId.policies.id || null,
+    policy_id: advisorId.policies?.id || null,
     advanceAmount: "",
   });
-
   const [operationType, setOperationType] = useState(""); // ANTICIPO o COMISION
   const [selectedPolicies, setSelectedPolicies] = useState([]); // array de polizas seleccionadas
   const advanceValueRef = useRef(null);
+  const getAdvisorTotalAdvances = (advisor) =>
+    advisor && advisor.commissions
+      ? advisor.commissions.reduce(
+          (sum, advance) => sum + (Number(advance.advanceAmount) || 0),
+          0
+        )
+      : 0;
+  const advisorTotalAdvances = getAdvisorTotalAdvances(advisorId);
 
+  // FUNCIÓN DE REPARTO (solo para mostrar y enviar, no rompe tu lógica previa)
+  const calculateDistributedBalances = useCallback(
+    (totalAmount, policies, advisorTotalAdvances) => {
+      let remainingAnticipo = Number(advisorTotalAdvances) || 0;
+      let remainingInput = Number(totalAmount) || 0;
+
+      return policies.map((policy) => {
+        const commissionTotal = calculateCommissionValue(policy);
+        const releasedCommissions = calculateReleasedCommissions(policy);
+        const paidCommissions = Array.isArray(policy.commissionsPayments)
+          ? policy.commissionsPayments.reduce(
+              (sum, p) => sum + (Number(p.advanceAmount) || 0),
+              0
+            )
+          : 0;
+        const maxReleased = Math.min(releasedCommissions, commissionTotal);
+        let available = maxReleased - paidCommissions;
+
+        // Primero consume el anticipo general
+        let anticipoUsed = Math.min(available, remainingAnticipo);
+        available -= anticipoUsed;
+        remainingAnticipo -= anticipoUsed;
+
+        // Luego consume el input del usuario
+        let toAssign = Math.min(available, remainingInput);
+        remainingInput -= toAssign;
+
+        const afterBalance = available - toAssign;
+
+        return {
+          ...policy,
+          assignedAmount: toAssign,
+          afterBalance,
+        };
+      });
+    },
+    []
+  );
+
+  // Cargar selección previa de localStorage al abrir el modal (NO SE ELIMINA)
   useEffect(() => {
-    // NUEVO: Cargar selección previa de localStorage
     if (advisorId?.id) {
       const prev = loadSelectedPolicies(advisorId.id);
       if (prev) setSelectedPolicies(prev);
     }
   }, [advisorId]);
 
-  //  Actualizar localStorage cuando cambia la selección
+  // Guardar selección en localStorage cuando cambia (NO SE ELIMINA)
   useEffect(() => {
     if (advisorId?.id) saveSelectedPolicies(advisorId.id, selectedPolicies);
   }, [selectedPolicies, advisorId]);
@@ -48,26 +98,35 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   // Cuando se selecciona 'COMISION', cargar todas las pólizas liberadas
   useEffect(() => {
     if (operationType === "COMISION" && Array.isArray(advisorId.policies)) {
-      const liberadas = advisorId.policies.filter((pol) => {
-        const liberada = calculateReleasedCommissions(pol);
-        const total = calculateCommissionValue(pol);
-        const comisionesPagadas = Array.isArray(pol.commissionsPayments)
-          ? pol.commissionsPayments.reduce(
-              (sum, p) => sum + (Number(p.advanceAmount) || 0),
+      const releasedPolicies = advisorId.policies.filter((policy) => {
+        const released = calculateReleasedCommissions(policy);
+        const total = calculateCommissionValue(policy);
+        const paid = Array.isArray(policy.commissionsPayments)
+          ? policy.commissionsPayments.reduce(
+              (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
               0
             )
           : 0;
-        const maxLiberada = Math.min(liberada, total);
-        return maxLiberada - comisionesPagadas > 0;
+        const maxReleased = Math.min(released, total);
+        const balance = maxReleased - paid;
+        return balance > 0; // Solo pólizas con saldo a favor
       });
-      setSelectedPolicies(liberadas);
+      setSelectedPolicies(releasedPolicies);
     }
     if (operationType === "ANTICIPO") {
       setSelectedPolicies([]); // Limpiar para anticipos
     }
   }, [operationType, advisorId]);
+  // Suma simple de todos los anticipos del asesor (no por póliza)
 
-  // Cálculo de totales  de todas las polizas
+  // CALCULO DE REPARTO según el monto ingresado
+  const distributedPolicies = calculateDistributedBalances(
+    advanceValue,
+    selectedPolicies,
+    advisorTotalAdvances
+  );
+
+  // Cálculo de totales de todas las pólizas (NO SE ELIMINA)
   const getPolicyFields = (policy) => {
     const commissionTotal = calculateCommissionValue(policy);
     const releasedCommissions = calculateReleasedCommissions(policy);
@@ -87,14 +146,15 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       favorCommissions: afterBalance, // si tienes otra lógica, cámbiala aquí
     };
   };
-  // Quitar póliza de la lista
+
+  // Quitar póliza de la lista (usa selectedPolicies, no distributedPolicies)
   const removePolicy = (policyId) => {
     setSelectedPolicies(
       selectedPolicies.filter((policy) => policy.id !== policyId)
     );
   };
 
-  //Sumatorias globales (solo para COMISION) + Calcula el saldo después del registro RESTANDO el anticipo
+  //Sumatorias globales (solo para COMISION)
   const getTotals = (policies, advanceValue = 0) => {
     // Suma los campos de cada póliza
     const totals = policies.reduce(
@@ -124,23 +184,14 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   const option = "Escoja una opción";
 
-  // Suma simple de todos los anticipos del asesor (no por póliza)
-  const getAdvisorTotalAdvances = (advisor) =>
-    advisor && advisor.commissions
-      ? advisor.commissions.reduce(
-          (sum, advance) => sum + (Number(advance.advanceAmount) || 0),
-          0
-        )
-      : 0;
-
-  const advisorTotalAdvances = getAdvisorTotalAdvances(advisorId);
-
   // Totales globales (sin descontar anticipos aún)
-  const globalTotals = getTotals(selectedPolicies);
+  const globalTotals = getTotals(distributedPolicies);
 
   // Ajustamos el saldo después del registro (restando anticipos del asesor)
-  //const afterBalanceGlobal = globalTotals.afterBalance - advisorTotalAdvances;
-  const afterBalanceGlobal = globalTotals.afterBalance - (Number(advanceValue) || 0) - advisorTotalAdvances;;
+  const afterBalanceGlobal =
+    globalTotals.afterBalance -
+    (Number(advanceValue) || 0) -
+    advisorTotalAdvances;
 
   // Comisiones a favor (también descuenta anticipos del asesor)
   const commissionsFavorTotal =
@@ -157,6 +208,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       ? "bg-danger fw-bold text-white"
       : "bg-success-subtle";
 
+  // Cargar métodos de pago al montar (NO SE ELIMINA)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -165,7 +217,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         ]);
         setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
       } catch (error) {
-        //alerts("Error", "Error fetching data.", error);
         console.error("Error fetching data:", error);
       }
     };
@@ -173,14 +224,14 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     fetchData();
   }, []);
 
-  // Función para manejar el cambio en el valor del anticipo
+  // Manejar cambio en el valor del anticipo
   const handleAdvanceValueChange = (e) => {
     const inputValue = e.target.value;
     const inputElement = advanceValueRef.current;
 
     // Calcula el saldo global después del anticipo
     const globalAfterBalance = getTotals(
-      selectedPolicies,
+      distributedPolicies,
       inputValue
     ).afterBalance;
 
@@ -216,17 +267,32 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     }
 
     try {
-      // Crear un objeto con los datos del formulario
-      const formData = {
-        ...form,
-        //policy_id: policy ? policy.id : null, // Asegurarse de incluir el ID de la póliza
-      };
+      // NUEVO: Construye el array de pagos por póliza para enviar al backend
+      const distributed = distributedPolicies
+        .filter((p) => p.assignedAmount > 0)
+        .map((p) => ({
+          policy_id: p.id,
+          amount: p.assignedAmount,
+          receiptNumber: form.receiptNumber,
+          payment_method_id: form.payment_method_id,
+          createdAt: form.createdAt,
+          observations: form.observations,
+        }));
 
-      const response = await http.post(
-        "commissions-payments/register-commissions",
-        formData
-      );
-      console.log("Respuesta del servidor:", response);
+      // Si es ANTICIPO, solo manda el form normal
+      let response;
+      if (operationType === "COMISION") {
+        response = await http.post(
+          "commissions-payments/register-commissions",
+          { advisor_id: advisorId.id, payments: distributed }
+        );
+      } else {
+        // ANTICIPO general
+        response = await http.post(
+          "commissions-payments/register-commissions",
+          { ...form, advisor_id: advisorId.id }
+        );
+      }
 
       if (response.data.status === "success") {
         if (typeof refreshAdvisor === "function") {
@@ -268,7 +334,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               {advisorId.surname} {advisorId.secondSurname}{" "}
               {advisorId.secondSurname}
             </h3>
-            {/* NUEVO: Selector de tipo de operación */}
             <div className="row pt-2"></div>
           </div>
 
@@ -291,16 +356,16 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         Saldo <span>(después del registro)</span>
                       </th>
                       <th>Comisiones a favor</th>
-                      <th>Quitar</th> {/* NUEVO */}
+                      <th>Quitar</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedPolicies.length === 0 ? (
+                    {distributedPolicies.length === 0 ? (
                       <tr>
-                        <td colSpan="10">No hay pólizas seleccionadas</td>
+                        <td colSpan="11">No hay pólizas seleccionadas</td>
                       </tr>
                     ) : (
-                      selectedPolicies.map((policy) => {
+                      distributedPolicies.map((policy) => {
                         const {
                           commissionTotal,
                           releasedCommissions,
@@ -339,7 +404,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 ? policy.numberOfPaymentsAdvisor
                                 : 1}
                             </th>
-
                             <td
                               className={
                                 policy.renewalCommission === true
@@ -358,14 +422,15 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                             <td className="bg-primary text-white">
                               ${paidCommissions.toFixed(2)}
                             </td>
+                            {/* NUEVO: Saldo después del registro (con reparto) */}
                             <td
                               className={
-                                afterBalance < 0
+                                policy.afterBalance < 0
                                   ? "bg-danger f text-white"
                                   : "bg-balance-color"
                               }
                             >
-                              ${afterBalance.toFixed(2)}
+                              ${policy.afterBalance.toFixed(2)}
                             </td>
                             <td className="bg-success-subtle">
                               ${favorCommissions.toFixed(2)}
@@ -397,7 +462,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th className="bg-info">
                         ${globalTotals.commissionTotal.toFixed(2)}
                       </th>
-
                       <th className="bg-warning">
                         ${globalTotals.releasedCommissions.toFixed(2)}
                       </th>
@@ -410,9 +474,26 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th className={commissionsFavorTotalClass}>
                         ${commissionsFavorTotal.toFixed(2)}
                       </th>
+                      <th></th>
                     </tr>
                   </tfoot>
                 </table>
+                {/* (Opcional) Desglose visual */}
+                {advanceValue > 0 && (
+                  <div className="alert alert-info mt-3">
+                    <strong>Desglose de reparto:</strong>
+                    <ul>
+                      {distributedPolicies
+                        .filter((p) => p.assignedAmount > 0)
+                        .map((policy) => (
+                          <li key={policy.id}>
+                            Póliza {policy.numberPolicy}: $
+                            {policy.assignedAmount.toFixed(2)}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -425,6 +506,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               noValidate
             >
               <div className="row">
+                {/* ...resto de tus campos... */}
                 <div className="mb-4 d-none">
                   <label htmlFor="advisor_id" className="form-label">
                     Id Asesor
@@ -599,7 +681,6 @@ RegisterAdvanceModal.propTypes = {
         observations: PropTypes.string,
       })
     ),
-
     policies: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.number.isRequired,
