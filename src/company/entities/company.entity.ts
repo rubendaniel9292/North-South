@@ -15,7 +15,8 @@ export class CompanyEntity extends IdEntity implements ICompany {
   @OneToMany(() => PolicyEntity, (policy) => policy.company)
   policies: PolicyEntity[];
 
-
-  @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.company)
-  commissions: CommissionsPaymentsEntity[];
+  /*
+    @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.company)
+    commissions: CommissionsPaymentsEntity[];
+    */
 }

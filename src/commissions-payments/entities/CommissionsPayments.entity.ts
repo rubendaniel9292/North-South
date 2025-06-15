@@ -14,7 +14,7 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
 @Entity('commissions_payments')
 export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsPayments {
 
-    @Column({ unique: true })
+    @Column()
     receiptNumber: string;
 
     @Column('decimal', { precision: 12, scale: 2 })
@@ -35,9 +35,9 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column()
     payment_method_id: number;
 
-    @Column({ nullable: true })
-    company_id?: number;
-
+    //@Column({ nullable: true })
+    //company_id?: number;
+    
     @Column({ nullable: true })
     policy_id?: number;
 
@@ -50,10 +50,11 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     paymentMethod: PaymentMethodEntity;
 
     // RELACION CON COMPAÑIAS
+    /*
     @ManyToOne(() => CompanyEntity, (company) => company.commissions, {
         nullable: true,
         onDelete: 'RESTRICT', // No permite eliminar la compañía si tiene pólizas asociadas
-    })
+    })*/
     @JoinColumn({ name: 'company_id' })
     company: CompanyEntity;
 
