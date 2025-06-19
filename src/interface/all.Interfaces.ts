@@ -128,4 +128,9 @@ export interface ICommissionsPayments {
   advanceAmount: number;
   createdAt: Date;
   observations?: string;
+
+}
+
+export interface IStatusAdvance {
+  statusNameAdvance : string;
 }

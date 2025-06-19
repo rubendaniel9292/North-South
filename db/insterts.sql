@@ -411,3 +411,6 @@ INSERT INTO company (company_name,ci_ruc) VALUES
 
 -- 14: ESTADO DE LOS PAGOS
 INSERT INTO payment_status (status_name_payment) VALUES (' ATRASADO '),(' AL DÍA ');
+
+--15: ESTADO DE LOS ANTICIPOS
+INSERT INTO status_advance (status_name_advance) VALUES ('VIGENTE'),('LIQUIDADOS');

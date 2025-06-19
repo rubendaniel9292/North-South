@@ -24,7 +24,6 @@ export class AdvisorEntity extends IdCustomEntity {
   // Un asesor puede tener varios anticipos
   @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.advisor)
   commissions: CommissionsPaymentsEntity[];
-
 }
 
 

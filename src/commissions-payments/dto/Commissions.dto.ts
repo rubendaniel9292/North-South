@@ -25,10 +25,19 @@ export class CommissionsDTO {
     payment_method_id: number;
 
     @IsOptional()
-    @IsInt() 
+    @IsInt()
     company_id?: number | null; // Campo opcional para la compañía asociada a la comisión
 
     @IsOptional()
     @IsInt()
-    policy_id?: number | null; // Campo opcional para la poliza a la comisión
+    policy_id?: number[] | null; // Campo opcional para la poliza a la comisión
+
+    @IsOptional()
+    @IsInt()
+    status_advance_id?: number | null; // Campo opcional para el estado del anticipo
+
+    @IsOptional()
+    @IsNumber()
+    parent_advance_id?: number | null;
+
 }

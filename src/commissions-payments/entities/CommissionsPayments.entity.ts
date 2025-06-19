@@ -10,6 +10,7 @@ import { CompanyEntity } from '@/company/entities/company.entity';
 import { AdvisorEntity } from '@/advisor/entities/advisor.entity';
 import { PaymentMethodEntity } from '@/policy/entities/payment_method.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
+import { StatusAdvanceEntity } from './StatusAdvance.entity';
 
 @Entity('commissions_payments')
 export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsPayments {
@@ -35,11 +36,10 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column()
     payment_method_id: number;
 
-    //@Column({ nullable: true })
-    //company_id?: number;
-    
     @Column({ nullable: true })
     policy_id?: number;
+
+
 
     // RELACION CON METODOS DE PAGOS
     @ManyToOne(
@@ -48,15 +48,6 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     )
     @JoinColumn({ name: 'payment_method_id' })
     paymentMethod: PaymentMethodEntity;
-
-    // RELACION CON COMPAÑIAS
-    /*
-    @ManyToOne(() => CompanyEntity, (company) => company.commissions, {
-        nullable: true,
-        onDelete: 'RESTRICT', // No permite eliminar la compañía si tiene pólizas asociadas
-    })*/
-    @JoinColumn({ name: 'company_id' })
-    company: CompanyEntity;
 
     //RELACION CON ASESOR
     @ManyToOne(() => AdvisorEntity, (advisor) => advisor.commissions, {
@@ -67,8 +58,16 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     advisor: AdvisorEntity;
 
     //RELACION CON POLIZAS
-    @ManyToOne(() => PolicyEntity, (policy) => policy.commissionsPayments, { nullable: true })
+    @ManyToOne(() => PolicyEntity, (policy) => policy.commissions, { nullable: true })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
+
+    // RELACION CON ESTADO DE ANTICIPO (solo si es anticipo, si no es null)
+    @Column({ name: 'status_advance_id', nullable: true })
+    status_advance_id?: number | null;
+
+    @ManyToOne(() => StatusAdvanceEntity, (statusAdvance) => statusAdvance.commissions, { nullable: true, onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'status_advance_id' })
+    statusAdvance: StatusAdvanceEntity;
 
 }

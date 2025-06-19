@@ -673,7 +673,7 @@ export class PolicyService extends ValidateEntity {
           'payments',
           'payments.paymentStatus',
           'renewals',
-          'commissionsPayments',
+          'commissions',
         ],
         select: {
           customer: {

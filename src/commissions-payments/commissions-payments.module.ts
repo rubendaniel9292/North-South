@@ -13,6 +13,7 @@ import { AdvisorEntity } from '@/advisor/entities/advisor.entity';
 import { AdvisorModule } from '@/advisor/advisor.module';
 import { CompanyModule } from '@/company/company.module';
 import { CommissionsPaymentsEntity } from './entities/CommissionsPayments.entity';
+import { PolicyEntity } from '@/policy/entities/policy.entity';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { CommissionsPaymentsEntity } from './entities/CommissionsPayments.entity
       PaymentMethodEntity,
       AdvisorEntity,
       CompanyEntity,
-      CommissionsPaymentsEntity
+      CommissionsPaymentsEntity,
+      PolicyEntity
     ]),
     ScheduleModule.forRoot(),
     ProvidersModule,

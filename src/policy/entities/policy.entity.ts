@@ -205,9 +205,9 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   renewals: RenewalEntity[];
 
   //relacion con las comisiones de pagos
-  @OneToMany(() => CommissionsPaymentsEntity, (commissionsPayments) => commissionsPayments.policy, {
+  @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.policy, {
     nullable: true,
     onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
   })
-  commissionsPayments: CommissionsPaymentsEntity[];
+  commissions: CommissionsPaymentsEntity[];
 }

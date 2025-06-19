@@ -23,4 +23,12 @@ export class CommissionsPaymentsController {
             };
         }
     }
+
+    @Roles('ADMIN', 'BASIC')
+    @Post('apply-advance-distribution')
+    @Post('apply-advance-distribution')
+  async applyAdvanceDistribution(@Body() body: any) {
+    return this.commissionsPaymentsServices.applyAdvanceDistribution(body);
+  }
+
 }
