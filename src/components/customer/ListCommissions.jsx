@@ -1,9 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
+import React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import http from "../../helpers/Http";
-import { faRectangleXmark, faFile } from "@fortawesome/free-solid-svg-icons";
+import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   calculateCommissionValue,
@@ -21,7 +22,7 @@ const ListCommissions = () => {
   const [advisor, setAdvisor] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Traer asesor completo con todas sus pólizas y comisiones, igual que en el modal
+  // Traer asesor completo con todas sus pólizas y comisiones
   const fetchAdvisor = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -105,7 +106,6 @@ const ListCommissions = () => {
                   <th>Comision por renovacion</th>
                   <th>Valor de la póliza</th>
                   <th>Comisiones totales</th>
-
                   <th>Comisiones liberadas</th>
                   <th>Comisiones pagadas</th>
                   <th>Comisiones a favor</th>
@@ -114,7 +114,7 @@ const ListCommissions = () => {
               <tbody>
                 {filteredPolicies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center">
+                    <td colSpan={10} className="text-center">
                       No existen pólizas para el asesor {advisor.firstName}{" "}
                       {advisor.surname}
                       {customerFromNav ? ` y cliente seleccionado.` : "."}
@@ -126,9 +126,9 @@ const ListCommissions = () => {
                     const released = calculateReleasedCommissions(policy);
                     const maxLiberated = Math.min(released, commissionValue);
                     const commissionsPaid = Array.isArray(
-                      policy.commissionsPayments
+                      policy.commissions
                     )
-                      ? policy.commissionsPayments.reduce(
+                      ? policy.commissions.reduce(
                           (total, payment) =>
                             total + (Number(payment.advanceAmount) || 0),
                           0
@@ -141,8 +141,8 @@ const ListCommissions = () => {
                     );
 
                     return (
-                      <>
-                        <tr key={policy.id}>
+                      <React.Fragment key={policy.id}>
+                        <tr>
                           <td className="fw-bold">{policy.numberPolicy}</td>
                           <td className="fw-bold">
                             {policy.customer
@@ -186,7 +186,6 @@ const ListCommissions = () => {
                           <td className="bg-info fw-bold">
                             ${Number(commissionValue).toFixed(2)}
                           </td>
-
                           <td className="fw-bold bg-warning">
                             ${Number(maxLiberated).toFixed(2)}
                           </td>
@@ -197,22 +196,23 @@ const ListCommissions = () => {
                             ${Number(commissionsAfavor).toFixed(2)}
                           </td>
                         </tr>
+
                         {/* Subtabla historial de pagos debajo */}
                         <tr>
                           <td colSpan={10} className="p-0">
-                            {Array.isArray(policy.commissionsPayments) &&
-                            policy.commissionsPayments.length > 0 ? (
+                            {Array.isArray(policy.commissions) &&
+                            policy.commissions.length > 0 ? (
                               <table className="table table-sm table-bordered text-center">
-                                <thead className="">
+                                <thead>
                                   <tr>
                                     <th>Fecha de pago</th>
                                     <th>Número de recibo</th>
-                                    <th>Monto abonado</th>
+                                    <th>Comisión pagadas</th>
                                     <th>Observaciones</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {policy.commissionsPayments.map((payment) => (
+                                  {policy.commissions.map((payment) => (
                                     <tr key={payment.id}>
                                       <td>
                                         {payment.createdAt
@@ -235,12 +235,13 @@ const ListCommissions = () => {
                               </table>
                             ) : (
                               <div className="text-center text-muted py-2">
-                                Aún no se han registrado pagos de comisiones para esta póliza.
+                                Aún no se han registrado pagos de comisiones
+                                para esta póliza.
                               </div>
                             )}
                           </td>
                         </tr>
-                      </>
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -250,10 +251,7 @@ const ListCommissions = () => {
             {/* Anticipos generales sin póliza asignada */}
             {advisor.commissions &&
               advisor.commissions.filter((c) => !c.policy_id).length > 0 && (
-                <table
-                  className="table  table-sm table-bordered mt-3 text-center
-                "
-                >
+                <table className="table  table-sm table-bordered mt-3 text-center">
                   <thead className="table-success">
                     <tr>
                       <th colSpan={4} className="fw-bold text-center">
