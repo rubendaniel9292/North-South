@@ -5,6 +5,8 @@ import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFilePdf, faTimes, faEdit } from "@fortawesome/free-solid-svg-icons";
 import "dayjs/locale/es";
 const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
@@ -187,6 +189,13 @@ const ListPolicies = () => {
   }
 
   dayjs.locale("es");
+
+    // Helper para estado visual
+    const getStatusBadge = (statusId, statusName) => {
+      if (statusId === 4) return <span className="badge bg-warning text-white">{statusName}</span>;
+      if (statusId === 2 || statusId === 3) return <span className="badge bg-danger text-white">{statusName}</span>;
+      return <span className="badge bg-success">{statusName}</span>;
+    };
 
   return (
     <>

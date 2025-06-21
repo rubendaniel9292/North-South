@@ -35,7 +35,7 @@ body.modal-open {
             min-height: 35%;
 
             .conten-title {
-                background-color: #5e72e4 !important;
+                background-color: #172b4d !important;
                 height: 5.8rem;
                 -webkit-border-radius: 8px 8px 0 0;
                 -moz-border-radius: 8px 8px 0 0;
@@ -45,7 +45,9 @@ body.modal-open {
 
             .conten-title-com {
                 padding: 1rem;
-                background-color: #5e72e4 !important;
+                /*background-color: #5e72e4 !important;*/
+                background-color: #172b4d !important;
+
                 height: 4rem;
                 -webkit-border-radius: 8px 8px 0 0;
                 -moz-border-radius: 8px 8px 0 0;

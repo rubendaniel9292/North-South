@@ -1,17 +1,21 @@
 .row .navIndex {
   height: 98px;
-  background-color: #5e72e4;
+  /*background-color: #5e72e4;*/
+  background-color: #172b4d;
   /*border: 3px solid rgb(190, 13, 128);*/
   width: 100%;
 }
 
 .dasboard {
   height: 89vh;
-  /*border: 1px solid red;*/
+
 }
-.bg-orange-400{
+
+
+.bg-orange-400 {
   background-color: #ee940b;
 }
+
 textarea {
   field-sizing: content;
 }
@@ -21,13 +25,14 @@ textarea {
 
 /* Asegúrate de que las celdas no tengan márgenes ni rellenos adicionales */
 table tbody td {
-  vertical-align: middle; 
+  vertical-align: middle;
 }
 
-.card{
+.card {
   height: 15rem;
   width: auto;
 }
+
 .card.transition:hover {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
   transition-property: all;
@@ -56,28 +61,43 @@ table tbody td {
 /*barra lateral izquierda*/
 .lateral {
   background-color: #172b4d;
+  padding: 0px !important;
+  margin: 0px !important;
 }
 
 .dropdown-item:hover {
-  background-color: #172b4d !important;
+  /*background-color: #172b4d !important;*/
+
 }
 
 .active {
-  background-color: #172b4d !important;
+  /*background-color: #172b4d !important;*/
 }
 
 .btnDas {
   width: 100%;
   height: 50px;
-  border-radius: 10px;
-  background-color: rgb(60, 203, 20);
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  -ms-border-radius: 10px;
-  -o-border-radius: 10px;
+  width: 100%;
+
 }
 
 .dropdown-toggle {
+  width: 100%;
+  position: static !important;
+}
+
+
+.btnDas:hover,
+.dropdown-item:hover {
+  background-color: rgb(60, 203, 20);
+}
+
+.card-commisions {
+  height: 10rem !important;
+  width: 100%;
+}
+
+li {
   background-color: rgb(60, 203, 20);
   width: 100%;
 
