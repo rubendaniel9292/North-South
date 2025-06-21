@@ -14,6 +14,7 @@ import { AdvisorModule } from '@/advisor/advisor.module';
 import { CompanyModule } from '@/company/company.module';
 import { CommissionsPaymentsEntity } from './entities/CommissionsPayments.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
+import { CommissionRefundsEntity } from './entities/CommissionRefunds.entity';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { PolicyEntity } from '@/policy/entities/policy.entity';
       AdvisorEntity,
       CompanyEntity,
       CommissionsPaymentsEntity,
-      PolicyEntity
+      PolicyEntity,
+      CommissionRefundsEntity,
     ]),
     ScheduleModule.forRoot(),
     ProvidersModule,

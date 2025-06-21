@@ -4,18 +4,20 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
+import { CommissionRefundsDTO } from '../dto/CommissionRefunds.dto';
+import { CommissionRefundsEntity } from '../entities/CommissionRefunds.entity';
 @Controller('commissions-payments')
 @UseGuards(AuthGuard, RolesGuard)
 export class CommissionsPaymentsController {
     constructor(
         private readonly commissionsPaymentsServices: CommissionsPaymentsService,
+        private readonly commissionRefundsRepository: CommissionsPaymentsService
     ) { }
 
     @Roles('ADMIN', 'BASIC')
     @Post('register-commissions')
     public async createCommission(@Body() body: CommissionsDTO) {
-        const newCommission =
-            await this.commissionsPaymentsServices.createCommissionsPayments(body);
+        const newCommission = await this.commissionsPaymentsServices.createCommissionsPayments(body);
         if (newCommission) {
             return {
                 status: 'success',
@@ -26,9 +28,22 @@ export class CommissionsPaymentsController {
 
     @Roles('ADMIN', 'BASIC')
     @Post('apply-advance-distribution')
-    @Post('apply-advance-distribution')
-  async applyAdvanceDistribution(@Body() body: any) {
-    return this.commissionsPaymentsServices.applyAdvanceDistribution(body);
-  }
+    public async applyAdvanceDistribution(@Body() body: any) {
+        return this.commissionsPaymentsServices.applyAdvanceDistribution(body);
+    }
+
+    @Roles('ADMIN', 'BASIC')
+    @Post('register-commission-refunds')
+    public async createCommissionRefunds(@Body() body: CommissionRefundsDTO) {
+        const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.createCommissionRefunds(body);
+        if (commissionRefunds) {
+            return {
+                status: 'success',
+                commissionRefunds,
+            };
+        }
+
+    }
+
 
 }

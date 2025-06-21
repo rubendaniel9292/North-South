@@ -8,6 +8,8 @@ import { CacheKeys } from '@/constants/cache.enum';
 import { ErrorManager } from '@/helpers/error.manager';
 import { CommissionsDTO } from '../dto/Commissions.dto';
 import { DateHelper } from '@/helpers/date.helper';
+import { CommissionRefundsEntity } from '../entities/CommissionRefunds.entity';
+import { CommissionRefundsDTO } from '../dto/CommissionRefunds.dto';
 interface PolicyAdvanceDTO {
     policy_id: number;
     released_commission: number;
@@ -30,6 +32,9 @@ export class CommissionsPaymentsService {
 
         @InjectRepository(PolicyEntity)
         private readonly policyRepository: Repository<PolicyEntity>,
+
+        @InjectRepository(CommissionRefundsEntity)
+        private readonly commissionRefundsRepository: Repository<CommissionRefundsEntity>,
 
         private readonly redisService: RedisModuleService,
     ) { }
@@ -284,7 +289,7 @@ export class CommissionsPaymentsService {
             }
 
             // Si no está en caché, obtener de la base de datos
-            const allCommissions = await this.commissionsPayments.find();
+            const allCommissions: CommissionsPaymentsEntity[] = await this.commissionsPayments.find();
 
             // Guardar en caché para futuras consultas
             await this.redisService.set(
@@ -299,7 +304,7 @@ export class CommissionsPaymentsService {
         }
     }
 
-    //3:// Función que liquida los anticipos si se cumple la condición
+    //3: Función que liquida los anticipos si se cumple la condición
     public async liquidateAdvancesIfNeeded(advisorId: number) {
         // Sumar anticipos vigentes
         const advances = await this.commissionsPayments.find({
@@ -323,6 +328,17 @@ export class CommissionsPaymentsService {
                 { advisor_id: advisorId, status_advance_id: 1 },
                 { status_advance_id: 2 }
             );
+        }
+    }
+
+    //4: registro de devolucion de anticipos
+    public async createCommissionRefunds(body: CommissionRefundsDTO): Promise<CommissionRefundsEntity> {
+        try {
+            const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.save(body);
+            await this.redisService.del('allAdvisors');
+            return commissionRefunds;
+        } catch (error) {
+            throw ErrorManager.createSignatureError(error.message);
         }
     }
 }

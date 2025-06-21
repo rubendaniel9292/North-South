@@ -134,3 +134,11 @@ export interface ICommissionsPayments {
 export interface IStatusAdvance {
   statusNameAdvance : string;
 }
+
+export interface ICommissionRefunds{
+  amountRefunds: number;	
+  reason: string;
+  cancellationDate: Date;
+  createdAt: Date;
+  observations?: string;
+}

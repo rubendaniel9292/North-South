@@ -21,6 +21,7 @@ import { BankAccountEntity } from '@/bankaccount/entities/bank-account.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RenewalEntity } from './renewal.entity';
 import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
+import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
 
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
@@ -101,9 +102,6 @@ export class PolicyEntity extends IdEntity implements IPolicy {
 
   @Column({ type: 'boolean' })
   isCommissionAnnualized: boolean;
-
-  //@Column({ type: 'boolean', nullable: true })
-  //renewalPolicy: boolean;
 
   @CreateDateColumn({
     type: 'timestamp with time zone',
@@ -210,4 +208,11 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
   })
   commissions: CommissionsPaymentsEntity[];
+
+  //relacion con las commission_refunds 
+  @OneToMany(() => CommissionRefundsEntity, (commissionRefunds) => commissionRefunds.policy, {
+    nullable: true,
+    onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
+  })
+  commissionRefunds: CommissionRefundsEntity[];
 }

@@ -39,8 +39,6 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column({ nullable: true })
     policy_id?: number;
 
-
-
     // RELACION CON METODOS DE PAGOS
     @ManyToOne(
         () => PaymentMethodEntity,
