@@ -61,9 +61,7 @@ body.modal-open {
 
 
 
-            .btn:hover {
-                background-color: var(--secondary);
-            }
+
 
             #btnc {
                 background-color: red;

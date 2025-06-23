@@ -12,6 +12,7 @@ import UpdateAdvisorModal from "./UpdateAdvisorModal";
 import UpdatePolicyModal from "./UpdatePolicyModal";
 import RenewallPolicyModal from "./RenewallPolicyModal";
 import CommissionHistoryModal from "./CommissionHistoryModal";
+import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
 export default function Modal({
   isOpen,
   onClose,
@@ -26,7 +27,7 @@ export default function Modal({
   onAdvisorUpdated,
   onPolicyUpdated,
   commissionHistory,
-  
+  commissionRefunds,
 }) {
   if (!isOpen) return null;
 
@@ -98,6 +99,15 @@ export default function Modal({
             commissionHistory={commissionHistory}
           ></CommissionHistoryModal>
         );
+
+      case "commissionRefunds":
+        return (
+          <RegisterCommissionRefunds
+            onClose={onClose}
+            advisorId={advisorId}
+            commissionRefunds={commissionRefunds}
+          ></RegisterCommissionRefunds>
+        );
       default:
         return null;
     }
@@ -133,5 +143,5 @@ Modal.propTypes = {
   onPolicyUpdated: PropTypes.func.isRequired,
   onPaymentUpdated: PropTypes.func.isRequired,
   commissionHistory: PropTypes.func.isRequired,
-  
+  commissionRefunds: PropTypes.func.isRequired,
 };

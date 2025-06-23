@@ -145,48 +145,64 @@ export const distributeAdvance = (policies, advanceAmount) => {
 
 // Para totales globales
 export const getPolicyFields = (policy) => {
-  const commissionTotal = calculateCommissionValue(policy);
-  const releasedCommissions = calculateReleasedCommissions(policy);
-  const paidCommissions = Array.isArray(policy.commissionsPayments)
+  // Suma de reembolsos
+  const refundsAmount = (policy.commissionRefunds || []).reduce(
+    (acc, curr) => acc + Number(curr.amountRefunds || 0),
+    0
+  );
+  // Comisiones liberadas netas
+  const commissionTotal = calculateCommissionValue(policy); // total comisión posible de la póliza
+  const released = calculateReleasedCommissions(policy); // comisiones liberadas brutas (sin restar reembolsos)
+  const releasedNet = released - refundsAmount;
+
+  const paid = Array.isArray(policy.commissionsPayments)
     ? policy.commissionsPayments.reduce(
         (sum, p) => sum + (Number(p.advanceAmount) || 0),
         0
       )
     : 0;
-  const maxReleased = Math.min(releasedCommissions, commissionTotal);
-  const afterBalance = maxReleased - paidCommissions;
+
+  const appliedHistoricalAdvance = policy.appliedHistoricalAdvance || 0; // si tienes este campo aparte
+  const afterBalance = releasedNet - paid - appliedHistoricalAdvance;
+  const commissionInFavor = Math.max(afterBalance, 0);
+
   return {
     commissionTotal,
-    releasedCommissions: maxReleased,
-    paidCommissions,
+    released: released,
+    paid,
+    appliedHistoricalAdvance,
+    refundsAmount,
     afterBalance,
-    favorCommissions: afterBalance, // si tienes otra lógica, cámbiala aquí
+    commissionInFavor,
+  
   };
 };
 
 //Sumatorias globales (solo para COMISION)
-
 export const getTotals = (policies, advanceValue = 0, operationType = "") => {
-  // Suma los campos de cada póliza
   const totals = policies.reduce(
     (acc, policy) => {
       const f = getPolicyFields(policy);
       acc.commissionTotal += f.commissionTotal;
-      acc.releasedCommissions += f.releasedCommissions;
-      acc.paidCommissions += f.paidCommissions;
+      acc.released += f.released;
+      acc.paid += f.paid;
+      acc.appliedHistoricalAdvance += f.appliedHistoricalAdvance;
+      acc.refundsAmount += f.refundsAmount;
       acc.afterBalance += f.afterBalance;
-      acc.favorCommissions += f.favorCommissions;
+      acc.commissionInFavor += f.commissionInFavor;
       return acc;
     },
     {
       commissionTotal: 0,
-      releasedCommissions: 0,
-      paidCommissions: 0,
+      released: 0,
+      paid: 0,
+      appliedHistoricalAdvance: 0,
+      refundsAmount: 0,
       afterBalance: 0,
-      favorCommissions: 0,
+      commissionInFavor: 0,
     }
   );
-  // Aplica la resta SOLO si se está trabajando en modo COMISION
+  // Si tienes lógica de anticipo global, aplícala acá si es necesario
   if (operationType === "COMISION" && policies.length > 0 && advanceValue) {
     totals.afterBalance -= Number(advanceValue);
   }

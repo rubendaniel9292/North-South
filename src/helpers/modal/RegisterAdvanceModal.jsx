@@ -62,8 +62,13 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   // 6. DISTRIBUIR EL VALOR ACTUAL DEL FORMULARIO ENTRE LAS POLIZAS
+
   const distributedPolicies = useMemo(
-    () => distributeAdvance(policiesWithFavor, advanceValue),
+    () =>
+      distributeAdvance(policiesWithFavor, advanceValue).map((policy) => ({
+        ...policy,
+        ...getPolicyFields(policy),
+      })),
     [policiesWithFavor, advanceValue]
   );
 
@@ -234,8 +239,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           return;
         }
 
-        if (typeof refreshAdvisor === "function") await refreshAdvisor();
-
+        refreshAdvisor?.();
         alerts(
           "Registro exitoso",
           "Anticipo aplicado correctamente",
@@ -321,6 +325,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
+                      <th>Desc. por cancelacion (si aplica)</th>
                       <th>Saldo (después del registro)</th>
                       <th>Comisiones a favor</th>
                       <th>Quitar</th>
@@ -383,7 +388,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                               {policy.renewalCommission === true ? "SI" : "NO"}
                             </td>
                             <td className="bg-info">
-                              ${policy.totalCommission?.toFixed(2) ?? "0.00"}
+                              ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
                             </td>
                             <td className="bg-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
@@ -395,6 +400,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                               $
                               {policy.appliedHistoricalAdvance?.toFixed(2) ??
                                 "0.00"}
+                            </td>
+                            <td className="bg-warning-subtle">
+                              ${policy.refundsAmount?.toFixed(2) ?? "0.00"}
                             </td>
                             <td
                               className={
@@ -433,54 +441,34 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         ${advisorTotalAdvances.toFixed(2)}
                       </th>
                       <th className="bg-info">
-                        $
-                        {distributedPolicies
-                          .reduce((acc, p) => acc + (p.totalCommission || 0), 0)
-                          .toFixed(2)}
+                        ${globalTotals.commissionTotal?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-warning">
-                        $
-                        {distributedPolicies
-                          .reduce((acc, p) => acc + (p.released || 0), 0)
-                          .toFixed(2)}
+                        ${globalTotals.released?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-primary text-white">
-                        $
-                        {distributedPolicies
-                          .reduce((acc, p) => acc + (p.paid || 0), 0)
-                          .toFixed(2)}
+                        ${globalTotals.paid?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-success text-white">
                         $
-                        {distributedPolicies
-                          .reduce(
-                            (acc, p) => acc + (p.appliedHistoricalAdvance || 0),
-                            0
-                          )
-                          .toFixed(2)}
+                        {globalTotals.appliedHistoricalAdvance?.toFixed(2) ??
+                          "0.00"}
+                      </th>
+                      <th className="bg-warning-subtle">
+                        ${globalTotals.refundsAmount?.toFixed(2) ?? "0.00"}
                       </th>
                       <th
                         className={
-                          afterBalanceGlobal <= 0
+                          globalTotals.afterBalance <= 0
                             ? "bg-danger fw-bold text-white"
                             : "bg-balance-color fw-bold"
                         }
                       >
-                        $
-                        {distributedPolicies
-                          .reduce((acc, p) => acc + (p.afterBalance || 0), 0)
-                          .toFixed(2)}
+                        ${globalTotals.afterBalance?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-success-subtle fw-bold">
-                        $
-                        {distributedPolicies
-                          .reduce(
-                            (acc, p) => acc + (p.commissionInFavor || 0),
-                            0
-                          )
-                          .toFixed(2)}
+                        ${globalTotals.commissionInFavor?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th></th>
                     </tr>
                   </tfoot>
                 </table>
@@ -751,11 +739,19 @@ RegisterAdvanceModal.propTypes = {
         ),
         customer: PropTypes.shape({
           id: PropTypes.number,
-          firstName: PropTypes.string,
-          secondName: PropTypes.string,
-          surname: PropTypes.string,
-          secondSurname: PropTypes.string,
+          firstName: PropTypes.string.isRequierd,
+          secondName: PropTypes.stringisRequierd,
+          surname: PropTypes.string.isRequierd,
+          secondSurname: PropTypes.string.isRequierd,
         }),
+        commissionsRefunds: PropTypes.arrayOf(
+          PropTypes.shape({
+            id: PropTypes.numberisRequierd,
+            amountRefunds: PropTypes.number.isRequierd,
+            cancellationDate: PropTypes.string.isRequierd,
+            reason: PropTypes.string.isRequierd,
+          })
+        ),
       })
     ),
   }).isRequired,
