@@ -334,8 +334,18 @@ export class CommissionsPaymentsService {
     //4: registro de devolucion de anticipos
     public async createCommissionRefunds(body: CommissionRefundsDTO): Promise<CommissionRefundsEntity> {
         try {
+           // const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
+            const cancellationDate = DateHelper.normalizeDateForDB(body.cancellationDate);
+            //body.createdAt = createdAt;
+            body.cancellationDate = cancellationDate;
             const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.save(body);
             await this.redisService.del('allAdvisors');
+            await this.redisService.del(
+                CacheKeys.GLOBAL_COMMISSIONS,
+            );
+            await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+            await this.redisService.del(CacheKeys.GLOBAL_COMMISSION_REFUNDS);
+            await this.redisService.del('policies');
             return commissionRefunds;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);

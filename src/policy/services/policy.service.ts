@@ -397,6 +397,7 @@ export class PolicyService extends ValidateEntity {
           'creditCard',
           'creditCard.bank',
           'renewals',
+          'commissionRefunds'
         ],
         select: {
           company: {
@@ -458,7 +459,7 @@ export class PolicyService extends ValidateEntity {
         });
       }
       //await this.redisService.set(CacheKeys.GLOBAL_ALL_POLICIES, 32400); // TTL de 1 hora
-      console.log(policies)
+      //console.log(policies)
       return policies;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -493,6 +494,7 @@ export class PolicyService extends ValidateEntity {
           'payments',
           'payments.paymentStatus',
           'renewals',
+          'commissionRefunds'
         ],
         select: {
           id: true,
@@ -674,6 +676,7 @@ export class PolicyService extends ValidateEntity {
           'payments.paymentStatus',
           'renewals',
           'commissions',
+          'commissionRefunds'
         ],
         select: {
           customer: {

@@ -2,13 +2,14 @@
 import { IdEntity } from '@/config/id.entity';
 import { ICommissionRefunds } from '@/interface/all.Interfaces';
 import {
-    Column, Entity,
+    Column, CreateDateColumn, Entity,
     JoinColumn,
     ManyToOne,
     OneToMany,
 } from 'typeorm';
 
 import { PolicyEntity } from '@/policy/entities/policy.entity';
+import { AdvisorEntity } from '@/advisor/entities/advisor.entity';
 @Entity('commission_refunds')
 export class CommissionRefundsEntity extends IdEntity implements ICommissionRefunds {
     @Column({
@@ -22,8 +23,13 @@ export class CommissionRefundsEntity extends IdEntity implements ICommissionRefu
     reason: string;
 
     @Column()
-    policy_id: number;
+    advisor_id: number;
+    @ManyToOne(() => AdvisorEntity, (advisor) => advisor.commissionRefunds)
+    @JoinColumn({ name: 'advisor_id' })
+    advisor: AdvisorEntity;
 
+    @Column()
+    policy_id: number;
     @ManyToOne(() => PolicyEntity, (policy) => policy.commissionRefunds)
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
@@ -36,7 +42,7 @@ export class CommissionRefundsEntity extends IdEntity implements ICommissionRefu
     )
     cancellationDate: Date;
 
-    @Column({
+    @CreateDateColumn({
         type: 'timestamp with time zone',
         name: 'created_at'
     })

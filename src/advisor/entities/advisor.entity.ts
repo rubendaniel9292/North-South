@@ -1,3 +1,4 @@
+import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
 import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
 import { IdCustomEntity } from '@/config/id.custom.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
@@ -24,6 +25,10 @@ export class AdvisorEntity extends IdCustomEntity {
   // Un asesor puede tener varios anticipos
   @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.advisor)
   commissions: CommissionsPaymentsEntity[];
+
+  // Un asesor puede tener varios reembolsos
+  @OneToMany(() => CommissionRefundsEntity, (commissionRefunds) => commissionRefunds.advisor)
+  commissionRefunds: CommissionRefundsEntity[];
 }
 
 

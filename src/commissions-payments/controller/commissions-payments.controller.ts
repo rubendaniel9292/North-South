@@ -11,7 +11,7 @@ import { CommissionRefundsEntity } from '../entities/CommissionRefunds.entity';
 export class CommissionsPaymentsController {
     constructor(
         private readonly commissionsPaymentsServices: CommissionsPaymentsService,
-        private readonly commissionRefundsRepository: CommissionsPaymentsService
+        private readonly commissionRefundsServices: CommissionsPaymentsService
     ) { }
 
     @Roles('ADMIN', 'BASIC')
@@ -35,15 +35,12 @@ export class CommissionsPaymentsController {
     @Roles('ADMIN', 'BASIC')
     @Post('register-commission-refunds')
     public async createCommissionRefunds(@Body() body: CommissionRefundsDTO) {
-        const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.createCommissionRefunds(body);
+        const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsServices.createCommissionRefunds(body);
         if (commissionRefunds) {
             return {
                 status: 'success',
                 commissionRefunds,
             };
         }
-
     }
-
-
 }

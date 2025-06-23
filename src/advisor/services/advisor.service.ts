@@ -66,7 +66,7 @@ export class AdvisorService extends ValidateEntity {
         order: {
           id: "DESC",
         },
-        relations: ['commissions', 'policies']
+        relations: ['commissions', 'policies', 'policies.commissionRefunds']
       }
       );
       await this.redisService.set(
@@ -90,7 +90,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions','commissions.statusAdvance', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissions'] }
+        { where: { id }, relations: ['commissions','commissions.statusAdvance', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissions', 'policies.commissionRefunds'] }
       );
       if (!advisorById) {
         throw new ErrorManager({
