@@ -131,7 +131,7 @@ const Home = () => {
         </p>
 
         <div className="container-fluid text-center">
-          <div className="row align-items-start justify-center-between pt-3  gap-2 ">
+          <div className="row  justify-center-between pt-3  gap-2 ">
             <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
               <div className="p-4 text-center ">
                 {!paymentStatusId ? (

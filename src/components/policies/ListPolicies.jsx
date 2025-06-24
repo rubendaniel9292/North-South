@@ -314,15 +314,7 @@ const ListPolicies = () => {
                       >
                         Actualizar
                       </button>
-                      {/*
-                      <button
-                        key={index}
-                        className="btn btn-success text-white fw-bold my-1 w-100"
-                        onClick={() => getPolicyById(policy.id, "payment")}
-                      >
-                        Añadir nota de pago
-                      </button>
-                      */}
+
                       {/*Identifica correctamente el último pago : 
                       Usando reduce() para encontrar el pago con el número más alto, independientemente del orden en el array.*/}
                       <button

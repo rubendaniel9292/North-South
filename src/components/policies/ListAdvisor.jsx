@@ -168,14 +168,7 @@ const ListAdvisor = () => {
                   <td className="d-flex gap-2">
                     {item.policies && item.policies.length >= 1 ? (
                       <>
-                        <button
-                          onClick={() =>
-                            getAvidorById(item.id, "commissionRefunds")
-                          }
-                          className="btn btn-warning fw-bold w-100 my-1"
-                        >
-                          Descontar comiciones
-                        </button>
+                 
 
                         <NavLink
                           to="/management/get-all-commissions"
@@ -201,6 +194,14 @@ const ListAdvisor = () => {
                         No se registran polizas
                       </div>
                     )}
+                           <button
+                          onClick={() =>
+                            getAvidorById(item.id, "commissionRefunds")
+                          }
+                          className="btn btn-danger fw-bold w-100 my-1"
+                        >
+                          Descontar comiciones
+                        </button>
                     <button
                       className="btn btn-success text-white fw-bold w-100 my-1"
                       onClick={() => getAvidorById(item.id, "updateAdvisor")}

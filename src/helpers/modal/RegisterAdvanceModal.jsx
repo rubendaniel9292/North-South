@@ -30,6 +30,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     return null;
   }
 
+  // Badge Bootstrap helper
+  const Badge = ({ text, color = "secondary" }) => (
+    <span className={`badge rounded-pill bg-${color} fw-semibold`}>{text}</span>
+  );
+
   // 3. ESTADOS PRINCIPALES
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState([]);
@@ -334,10 +339,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <tbody>
                     {distributedPolicies.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan="12"
-                          style={{ textAlign: "center", fontWeight: 500 }}
-                        >
+                        <td colSpan="13" className="text-center fw-bold">
                           No hay comisiones disponibles por el momento.
                         </td>
                       </tr>
@@ -362,58 +364,70 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                     .join(" ")
                                 : "N/A"}
                             </td>
-                            <td
-                              className={
-                                policy.isCommissionAnnualized === false
-                                  ? "fw-bold bg-info-subtle"
-                                  : "fw-bold bg-dark-subtle"
-                              }
-                            >
-                              {policy.isCommissionAnnualized === false
-                                ? "Normal"
-                                : "Anualizada"}
+                            {/* Frecuencia */}
+                            <td>
+                              <Badge
+                                text={
+                                  policy.isCommissionAnnualized === false
+                                    ? "Normal"
+                                    : "Anualizada"
+                                }
+                                color={
+                                  policy.isCommissionAnnualized === false
+                                    ? "info"
+                                    : "secondary"
+                                }
+                              />
                             </td>
                             <td>
                               {policy.isCommissionAnnualized === false
                                 ? policy.numberOfPaymentsAdvisor
                                 : 1}
                             </td>
-                            <td
-                              className={
-                                policy.renewalCommission === true
-                                  ? "fw-bold bg-success-subtle"
-                                  : "fw-bold bg-danger-subtle"
-                              }
-                            >
-                              {policy.renewalCommission === true ? "SI" : "NO"}
+                            {/* Comisión por renovación */}
+                            <td>
+                              <Badge
+                                text={
+                                  policy.renewalCommission === true
+                                    ? "SI"
+                                    : "NO"
+                                }
+                                color={
+                                  policy.renewalCommission === true
+                                    ? "dark"
+                                    : "danger"
+                                }
+                              />
                             </td>
-                            <td className="bg-info">
+                            {/* Las siguientes celdas solo texto, sin bg-* */}
+                            <td className="fw-bold text-primary">
                               ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
                             </td>
-                            <td className="bg-warning">
+                            <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
                             </td>
-                            <td className="bg-primary text-white">
+                            <td className="fw-bold text-success">
                               ${policy.paid?.toFixed(2) ?? "0.00"}
                             </td>
-                            <td className="bg-success text-white">
+                            <td className="fw-bold " style={{color: "#17a2b8" }}>
                               $
                               {policy.appliedHistoricalAdvance?.toFixed(2) ??
                                 "0.00"}
                             </td>
-                            <td className="bg-warning-subtle">
+                            <td className="fw-bold text-danger">
                               ${policy.refundsAmount?.toFixed(2) ?? "0.00"}
                             </td>
                             <td
-                              className={
-                                afterBalance <= 0
-                                  ? "bg-danger text-white"
-                                  : "bg-balance-color fw-bold"
-                              }
+                              className={`fw-bold ${
+                                afterBalance <= 0 ? "text-danger" : "text-dark"
+                              }`}
                             >
                               ${afterBalance.toFixed(2)}
                             </td>
-                            <td className="bg-success-subtle fw-bold">
+                            <td
+                              className="fw-bold"
+                              style={{ color: "#a259ff" }}
+                            >
                               ${policy.commissionInFavor?.toFixed(2) ?? "0.00"}
                             </td>
                             <td>
@@ -434,39 +448,42 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <tfoot>
                     <tr>
                       <th colSpan="3">Totales</th>
-                      <th colSpan="1" className="text-end">
+                      <th colSpan="1" className="text-end ">
                         Total de anticipos:
                       </th>
-                      <th className="bg-success text-white">
+                      <th className="text-white" style={{backgroundColor: "#17a2b8" }}>
                         ${advisorTotalAdvances.toFixed(2)}
                       </th>
-                      <th className="bg-info">
+                      <th className="bg-primary text-white">
                         ${globalTotals.commissionTotal?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-warning">
                         ${globalTotals.released?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th className="bg-primary text-white">
+                      <th className="bg-success text-white">
                         ${globalTotals.paid?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th className="bg-success text-white">
+                      <th className="text-white" style={{backgroundColor: "#17a2b8" }}>
                         $
                         {globalTotals.appliedHistoricalAdvance?.toFixed(2) ??
                           "0.00"}
                       </th>
-                      <th className="bg-warning-subtle">
+                      <th className="bg-danger text-white">
                         ${globalTotals.refundsAmount?.toFixed(2) ?? "0.00"}
                       </th>
                       <th
                         className={
                           globalTotals.afterBalance <= 0
                             ? "bg-danger fw-bold text-white"
-                            : "bg-balance-color fw-bold"
+                            : "bg-secondary text-white fw-bold"
                         }
                       >
                         ${globalTotals.afterBalance?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th className="bg-success-subtle fw-bold">
+                      <th
+                        className="fw-bold text-white"
+                        style={{ backgroundColor: "#a259ff" }}
+                      >
                         ${globalTotals.commissionInFavor?.toFixed(2) ?? "0.00"}
                       </th>
                     </tr>
@@ -512,165 +529,142 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               </div>
             </>
           )}
-
-          <div className="d-flex justify-content-around mt-2">
-            <form
-              onSubmit={handleSubmit}
-              id="user-form"
-              className="needs-validation was-validated"
-              noValidate
-            >
-              <div className="row">
-                {/* ...resto de tus campos... */}
-                <div className="mb-4 d-none">
-                  <label htmlFor="advisor_id" className="form-label">
-                    Id Asesor
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    className="form-control"
-                    id="advisor_id"
-                    name="advisor_id"
-                    onChange={changed}
-                    value={advisorId.id}
-                    readOnly
-                  />
-                </div>
-                <div className="col-4 mx-auto">
-                  <label className="form-label">Tipo de operación</label>
-                  <select
-                    className="form-select"
-                    value={operationType}
-                    onChange={(e) => setOperationType(e.target.value)}
-                    required
-                  >
-                    <option value="">Selecciona una opción</option>
-                    <option value="ANTICIPO">ANTICIPO</option>
-                    <option value="COMISION">COMISIÓN</option>
-                  </select>
-                </div>
-
-                <div className="mb-3 col-4">
-                  <label htmlFor="receiptNumber" className="form-label">
-                    Número de Recibo
-                  </label>
-                  <input
-                    required
-                    onChange={changed}
-                    id="receiptNumber"
-                    type="string"
-                    className="form-control"
-                    name="receiptNumber"
-                  />
-                </div>
-
-                <div className="mb-3 col-4">
-                  <label htmlFor="payment_method_id" className="form-label">
-                    Metodo de abono
-                  </label>
-                  <select
-                    className="form-select"
-                    id="payment_method_id"
-                    name="payment_method_id"
-                    onChange={changed}
-                    defaultValue={option}
-                    required
-                  >
-                    <option disabled selected value={""}>
-                      {option}
-                    </option>
-                    {paymentMethod.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.methodName}
+          <div className="card-commision shadow-sm mb-4 ">
+            <div className="card-body">
+              <form
+                onSubmit={handleSubmit}
+                id="user-form"
+                className="needs-validation was-validated"
+                noValidate
+              >
+                <div className="row g-3">
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Tipo de operación
+                    </label>
+                    <select
+                      className="form-select"
+                      value={operationType}
+                      onChange={(e) => setOperationType(e.target.value)}
+                      required
+                    >
+                      <option value="">Selecciona una opción</option>
+                      <option value="ANTICIPO">ANTICIPO</option>
+                      <option value="COMISION">COMISIÓN</option>
+                    </select>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Número de Recibo
+                    </label>
+                    <input
+                      required
+                      onChange={changed}
+                      id="receiptNumber"
+                      type="text"
+                      className="form-control"
+                      name="receiptNumber"
+                    />
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Método de abono
+                    </label>
+                    <select
+                      className="form-select"
+                      id="payment_method_id"
+                      name="payment_method_id"
+                      onChange={changed}
+                      defaultValue={option}
+                      required
+                    >
+                      <option disabled value={""}>
+                        {option}
                       </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mb-3 col-4">
-                  <label htmlFor="advanceValue" className="form-label">
-                    Valor del anticipo/comisión
-                  </label>
-                  <input
-                    ref={advanceValueRef}
-                    required
-                    type="number"
-                    className="form-control "
-                    id="advanceAmount"
-                    name="advanceAmount"
-                    step="0.01"
-                    onChange={handleAdvanceValueChange}
-                    value={advanceValue}
-                  />
-                  <div className="invalid-feedback">
-                    La comisión es mayor que la comisión de la póliza
-                    seleccionada o el campo está vacío
+                      {paymentMethod.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.methodName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Valor del anticipo/comisión
+                    </label>
+                    <input
+                      ref={advanceValueRef}
+                      required
+                      type="number"
+                      className="form-control"
+                      id="advanceAmount"
+                      name="advanceAmount"
+                      step="0.01"
+                      onChange={handleAdvanceValueChange}
+                      value={advanceValue}
+                    />
+                    <div className="invalid-feedback">
+                      La comisión es mayor que la comisión de la póliza
+                      seleccionada o el campo está vacío
+                    </div>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Fecha del anticipo
+                    </label>
+                    <input
+                      required
+                      type="date"
+                      className="form-control"
+                      id="createdAt"
+                      name="createdAt"
+                      onChange={changed}
+                    />
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-bold text-dark">
+                      Observaciones
+                    </label>
+                    <textarea
+                      className="form-control"
+                      id="observations"
+                      name="observations"
+                      onChange={changed}
+                    />
                   </div>
                 </div>
-
-                <div className="mb-3 col-4">
-                  <label htmlFor="balance" className="form-label">
-                    Fecha del anticipo
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    className="form-control"
-                    id="createdAt"
-                    name="createdAt"
-                    onChange={changed}
-                  />
+                <div className="row mt-5">
+                  <div className="col-12 d-flex justify-content-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="btn btn-success fw-bold px-4 py-2"
+                    >
+                      <FontAwesomeIcon
+                        className="me-2"
+                        icon={faFloppyDisk}
+                        beat
+                      />
+                      {isLoading
+                        ? "Registrando..."
+                        : "Registrar Comisión/Anticipo"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="btn btn-danger fw-bold px-4 py-2"
+                    >
+                      <FontAwesomeIcon
+                        className="me-2"
+                        beat
+                        icon={faRectangleXmark}
+                      />
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
-
-                <div className="mb-3 col-4">
-                  <label htmlFor="observations" className="form-label">
-                    Observaciones
-                  </label>
-                  <textarea
-                    type="text"
-                    className="form-control"
-                    id="observations"
-                    name="observations"
-                    onChange={changed}
-                  />
-                </div>
-                <div className="mt-4 col-12">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn bg-success fw-bold text-white "
-                  >
-                    {isLoading ? (
-                      <div className="spinner-border text-light" role="status">
-                        <span className="visually-hidden">Registrando...</span>
-                      </div>
-                    ) : (
-                      "Registrar Comisión/Anticipo"
-                    )}
-
-                    <FontAwesomeIcon
-                      className="mx-2 "
-                      icon={faFloppyDisk}
-                      beat
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    id="btnc"
-                    className="btn bg-danger mx-5 text-white fw-bold"
-                  >
-                    Cerrar
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      beat
-                      icon={faRectangleXmark}
-                    />
-                  </button>
-                </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </article>
       </div>

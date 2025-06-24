@@ -7,7 +7,7 @@
 }
 
 .dasboard {
-  min-height: 93vh;
+  min-height: 92vh;
 
 }
 
@@ -28,10 +28,6 @@ table tbody td {
   vertical-align: middle;
 }
 
-.card {
-  height: 15rem;
-  width: auto;
-}
 
 .card.transition:hover {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
@@ -92,8 +88,15 @@ table tbody td {
   background-color: rgb(60, 203, 20);
 }
 
-.card-commisions {
-  height: 10rem !important;
+
+.card-home {
+  height: 8rem !important;
+  width: 100%;
+}
+
+
+.card-commision {
+  height: 13rem !important;
   width: 100%;
 }
 
@@ -102,3 +105,46 @@ table tbody td {
   width: 100%;
 
 }
+
+tfoot tr {
+  border-top: 3px solid #122144;
+}
+
+.custom-thead-bg {
+  background-color: #17a2b8 !important; /* Tu azulito */
+
+}
+/*estilos del menu lateral*/
+ .menu-btn-custom {
+    padding: 1.15rem 1.3rem;
+    font-size: 1.05rem;
+    background: none;
+    border: none;
+    text-align: left;
+    transition: background 0.17s, color 0.17s;
+    width: 100%;
+    display: block;
+  }
+  .menu-btn-custom:hover,
+  .menu-btn-custom.opened,
+  .menu-btn-custom.active {
+    background: #21e6c1 !important;
+    color: #162447 !important;
+    width: 100%; 
+    display: block;
+  }
+  .submenu-btn-custom {
+    padding: 0.95rem 2.6rem 0.95rem 2.6rem;
+    font-size: 1rem;
+    background: none;
+    border: none;
+    transition: background 0.16s, color 0.16s;
+  }
+  .submenu-btn-custom:hover,
+  .submenu-btn-custom.active {
+    background: #21e6c1 !important;
+    color: #162447 !important;
+  }
+  .custom-collapse {
+    background: #233554;
+  }

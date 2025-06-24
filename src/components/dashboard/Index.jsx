@@ -1,5 +1,6 @@
 import "../../assets/css/dasboard-styles.css";
 import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPowerOff,
@@ -16,10 +17,107 @@ import useAuth from "../../hooks/useAuth";
 
 const Index = () => {
   const { auth } = useAuth();
+  const [open, setOpen] = useState(null);
+
   if (!auth) {
     console.error(auth, ": auth no esta definido!!!...");
     return null;
   }
+
+  // Menú configurado para un solo dropdown abierto a la vez
+  const menuConfig = [
+    {
+      id: "home",
+      icon: faHome,
+      label: "Inicio",
+      link: "/management/home",
+    },
+    {
+      id: "clientesMenu",
+      icon: faUsers,
+      label: "Gestión de clientes",
+      items: [
+        { label: "Registrar Cliente", link: "/management/create-customer" },
+        { label: "Listado de clientes", link: "/management/get-all-customer" },
+      ],
+    },
+    {
+      id: "tarjetasMenu",
+      icon: faCreditCard,
+      label: "Gestión de Tarjetas",
+      items: [
+        { label: "Registro de tarjetas", link: "/management/create-cards" },
+        { label: "Registro de bancos", link: "/management/create-bank" },
+        { label: "Listado de tarjetas", link: "/management/get-all-cards" },
+      ],
+    },
+    {
+      id: "cuentasMenu",
+      icon: faUniversity,
+      label: "Gestión de cuentas bancarias",
+      items: [
+        {
+          label: "Registro de cuentas bancarias",
+          link: "/management/create-bankaccounts",
+        },
+        {
+          label: "Listar cuentas bancarias",
+          link: "/management/list-bankaccounts",
+        },
+      ],
+    },
+    {
+      id: "polizasMenu",
+      icon: faFileContract,
+      label: "Gestión de Pólizas",
+      items: [
+        { label: "Registro de Polizas", link: "/management/create-policy" },
+        { label: "Listado de Pólizas", link: "/management/get-all-policy" },
+        { label: "Lista de pagos", link: "/management/get-all-payments" },
+      ],
+    },
+    {
+      id: "asesoresMenu",
+      icon: faUserTie,
+      label: "Gestión de Asesores",
+      items: [
+        { label: "Registro de Asesores", link: "/management/create-advisor" },
+        { label: "Listado de Asesores", link: "/management/get-all-advisor" },
+      ],
+    },
+    {
+      id: "companiasMenu",
+      icon: faBuilding,
+      label: "Gestión de Compañías",
+      items: [
+        {
+          label: "Registro de Compañías",
+          link: "/management/create-companies",
+        },
+        {
+          label: "Listado de Compañias",
+          link: "/management/get-all-comapanies",
+        },
+      ],
+    },
+  ];
+
+  if (auth?.role === "ADMIN") {
+    menuConfig.push({
+      id: "usuariosMenu",
+      icon: faUserCog,
+      label: "Gestión de usuarios",
+      items: [
+        { label: "Añadir usuario", link: "/management/create-user" },
+        { label: "Lista de usuarios", link: "/management/user-list" },
+      ],
+    });
+  }
+
+  const handleToggle = (id) => {
+    setOpen(open === id ? null : id);
+  };
+
   return (
     <>
       <section>
@@ -41,269 +139,68 @@ const Index = () => {
           </div>
           <div className="row dasboard">
             <div className="col-2 lateral">
-              <div>
-                <NavLink to={"/management/home"}>
-                  <button className="btnDas text-white fw-bold" type="button">
-                    <FontAwesomeIcon icon={faHome} className="me-2" />
-                    Inicio
-                  </button>
-                </NavLink>
-              </div>
-
-              {/* CLIENTES */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#clientesMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faUsers} className="me-2" />
-                  Gestión de clientes
-                </button>
-                <div className="collapse" id="clientesMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-customer"}
-                      >
-                        Registrar Cliente
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-customer"}
-                      >
-                        Listado de clientes
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* TARJETAS */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#tarjetasMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faCreditCard} className="me-2" />
-                  Gestión de Tarjetas
-                </button>
-                <div className="collapse" id="tarjetasMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-cards"}
-                      >
-                        Registro de tarjetas
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-bank"}
-                      >
-                        Registro de bancos
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-cards"}
-                      >
-                        Listado de tarjetas
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* CUENTAS BANCARIAS */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#cuentasMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faUniversity} className="me-2" />
-                  Gestión de cuentas bancarias
-                </button>
-                <div className="collapse" id="cuentasMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-bankaccounts"}
-                      >
-                        Registro de cuentas bancarias
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/list-bankaccounts"}
-                      >
-                        Listar cuentas bancarias
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* POLIZAS */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#polizasMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faFileContract} className="me-2" />
-                  Gestión de Pólizas
-                </button>
-                <div className="collapse" id="polizasMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-policy"}
-                      >
-                        Registro de Polizas
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-policy"}
-                      >
-                        Listado de Pólizas
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-payments"}
-                      >
-                        Lista de pagos
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* ASESORES */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#asesoresMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faUserTie} className="me-2" />
-                  Gestión de Asesores
-                </button>
-                <div className="collapse" id="asesoresMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-advisor"}
-                      >
-                        Registro de Asesores
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-advisor"}
-                      >
-                        Listado de Asesores
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* COMPAÑIAS */}
-              <div className="dropdown">
-                <button
-                  className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#companiasMenu"
-                  aria-expanded="false"
-                >
-                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
-                  Gestión de Compañías
-                </button>
-                <div className="collapse" id="companiasMenu">
-                  <ul className="list-unstyled mb-1">
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/create-companies"}
-                      >
-                        Registro de Compañías
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        className="dropdown-item text-white fw-bold"
-                        to={"/management/get-all-comapanies"}
-                      >
-                        Listado de Compañias
-                      </NavLink>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* USUARIOS (solo admin) */}
-              {auth.role === "ADMIN" && (
-                <div className="dropdown">
-                  <button
-                    className="dropdown-toggle btnDas text-white fw-bold d-flex align-items-center"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#usuariosMenu"
-                    aria-expanded="false"
+              {/* Menú lateral mejorado */}
+              {/* ...dentro de tu <div className="col-2 lateral">... */}
+              {menuConfig.map((item) =>
+                !item.items ? (
+                  <NavLink
+                    key={item.id}
+                    to={item.link}
+                    className="btnDas text-white fw-bold menu-btn-custom w-100"
+                    style={{ display: "block" }}
                   >
-                    <FontAwesomeIcon icon={faUserCog} className="me-2" />
-                    Gestión de usuarios
-                  </button>
-                  <div className="collapse" id="usuariosMenu">
-                    <ul className="list-unstyled mb-1">
-                      <li>
-                        <NavLink
-                          className="dropdown-item text-white fw-bold"
-                          to={"/management/create-user"}
-                        >
-                          Añadir usuario
-                        </NavLink>
-                      </li>
-                      <li>
-                        <NavLink
-                          className="dropdown-item text-white fw-bold"
-                          to={"/management/user-list"}
-                        >
-                          Lista de usuarios
-                        </NavLink>
-                      </li>
-                    </ul>
+                    <FontAwesomeIcon icon={item.icon} className="me-2" />
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <div
+                    className="dropdown"
+                    key={item.id}
+                    style={{ width: "100%" }}
+                  >
+                    <button
+                      className={`btnDas text-white fw-bold d-flex align-items-center menu-btn-custom w-100 ${
+                        open === item.id ? "opened" : ""
+                      }`}
+                      type="button"
+                      onClick={() => handleToggle(item.id)}
+                      aria-expanded={open === item.id}
+                      style={{ display: "block" }}
+                    >
+                      <FontAwesomeIcon icon={item.icon} className="me-2" />
+                      {item.label}
+                      <span className="ms-auto">
+                        {open === item.id ? "▾" : "▸"}
+                      </span>
+                    </button>
+                    <div
+                      className={`custom-collapse ${
+                        open === item.id ? "show" : ""
+                      }`}
+                      style={{
+                        maxHeight:
+                          open === item.id
+                            ? `${item.items.length * 55}px`
+                            : "0",
+                        transition: "max-height 0.25s ease",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <ul className="list-unstyled">
+                        {item.items.map((sub, idx) => (
+                          <li key={idx}>
+                            <NavLink
+                              className="dropdown-item text-white fw-bold submenu-btn-custom"
+                              to={sub.link}
+                            >
+                              {sub.label}
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                </div>
+                )
               )}
             </div>
             <div className="col-10 dasboard my-2 ms-2">

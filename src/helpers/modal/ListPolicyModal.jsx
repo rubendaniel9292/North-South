@@ -121,7 +121,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
       setIsLoading(false);
     }
   };
-
+  // Badge Bootstrap helper
+  const Badge = ({ text, color = "secondary" }) => (
+    <span className={`badge rounded-pill bg-${color} fw-semibold`}>{text}</span>
+  );
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
@@ -167,7 +170,14 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     : "NO APLICA"}
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
-                <td>{policy.renewalCommission === true ? "SÍ" : "NO"}</td>
+                <td>
+                  <Badge
+                    text={policy.renewalCommission === true ? "SI" : "NO"}
+                    color={
+                      policy.renewalCommission === true ? "dark" : "danger"
+                    }
+                  />
+                </td>
               </tr>
             </tbody>
 
@@ -191,9 +201,18 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <tbody>
               <tr>
                 <td>
-                  {policy.isCommissionAnnualized === false
-                    ? "Normal"
-                    : "Anualizada"}
+                  <Badge
+                    text={
+                      policy.isCommissionAnnualized === false
+                        ? "Normal"
+                        : "Anualizada"
+                    }
+                    color={
+                      policy.isCommissionAnnualized === false
+                        ? "info"
+                        : "secondary"
+                    }
+                  />
                 </td>
                 <td>{policy.coverageAmount}</td>
                 <td>{policy.agencyPercentage}</td>
