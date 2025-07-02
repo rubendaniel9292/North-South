@@ -38,7 +38,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     payment_frequency_id: policy.payment?.paymentFrequency.id,
     numberOfPayments: policy.numberOfPayments,
     numberOfPaymentsAdvisor: policy.numberOfPayments,
-    payment_frequency_id: policy.paymentFrequency.id,
     policy_status_id: policy.policyStatus.id,
   });
   const [types, setType] = useState([]);

@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react";
 import dayjs from "../helpers/Day";
-
+const DECIMAL_FIELDS = [
+  "coverageAmount",
+  "agencyPercentage",
+  "advisorPercentage",
+  "policyValue",
+  "policyFee",
+  "paymentsToAgency",
+  "paymentsToAdvisor",
+  "amountRefunds",
+  "advanceAmount",
+];
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
 
@@ -13,6 +23,22 @@ const UserForm = (initialObj) => {
   const changed = (changes) => {
     if (changes.target) {
       const { name, value, type } = changes.target;
+
+      // --- Validación para campos decimales ---
+      if (DECIMAL_FIELDS.includes(name)) {
+        let cleanValue = value;
+        // Si el valor es string y tiene coma, reemplaza la coma por punto
+        if (typeof cleanValue === "string") {
+          cleanValue = cleanValue.replace(",", ".");
+        }
+        // Convierte a número si es posible
+        cleanValue = cleanValue === "" ? "" : Number(cleanValue);
+        setForm((prevForm) => ({
+          ...prevForm,
+          [name]: cleanValue,
+        }));
+        return; // Ya manejamos el cambio, salimos
+      }
 
       // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas
       if (type === "text" && name !== "username" && name !== "username") {

@@ -155,8 +155,8 @@ export const getPolicyFields = (policy) => {
   const released = calculateReleasedCommissions(policy); // comisiones liberadas brutas (sin restar reembolsos)
   const releasedNet = released - refundsAmount;
 
-  const paid = Array.isArray(policy.commissionsPayments)
-    ? policy.commissionsPayments.reduce(
+  const paid = Array.isArray(policy.commissions)
+    ? policy.commissions.reduce(
         (sum, p) => sum + (Number(p.advanceAmount) || 0),
         0
       )

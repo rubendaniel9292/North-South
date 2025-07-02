@@ -168,8 +168,6 @@ const ListAdvisor = () => {
                   <td className="d-flex gap-2">
                     {item.policies && item.policies.length >= 1 ? (
                       <>
-                 
-
                         <NavLink
                           to="/management/get-all-commissions"
                           state={{
@@ -188,20 +186,21 @@ const ListAdvisor = () => {
                         >
                           Registrar Anticipio/Comisión
                         </button>
+                        <button
+                          onClick={() =>
+                            getAvidorById(item.id, "commissionRefunds")
+                          }
+                          className="btn btn-danger fw-bold w-100 my-1"
+                        >
+                          Descontar comisiones
+                        </button>
                       </>
                     ) : (
                       <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
                         No se registran polizas
                       </div>
                     )}
-                           <button
-                          onClick={() =>
-                            getAvidorById(item.id, "commissionRefunds")
-                          }
-                          className="btn btn-danger fw-bold w-100 my-1"
-                        >
-                          Descontar comiciones
-                        </button>
+
                     <button
                       className="btn btn-success text-white fw-bold w-100 my-1"
                       onClick={() => getAvidorById(item.id, "updateAdvisor")}

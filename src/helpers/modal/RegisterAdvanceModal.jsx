@@ -142,14 +142,14 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       ),
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
-
   // 13. CALCULAR EL SALDO GLOBAL TRAS EL REGISTRO
+  /*
   const afterBalanceGlobal =
     globalTotals.afterBalance -
     (Number(advanceValue) || 0) -
     advisorTotalAdvances;
-
-  // 14. CARGAR MÉTODOS DE PAGO AL MONTAR
+*/
+  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -165,7 +165,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     fetchData();
   }, []);
 
-  // 15. MANEJAR CAMBIO DE INPUT DE ANTICIPO CON VALIDACIÓN
+  // 14. MANEJAR CAMBIO DE INPUT DE ANTICIPO CON VALIDACIÓN
   const handleAdvanceValueChange = useCallback(
     (e) => {
       const inputValue = e.target.value;
@@ -409,7 +409,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                             <td className="fw-bold text-success">
                               ${policy.paid?.toFixed(2) ?? "0.00"}
                             </td>
-                            <td className="fw-bold " style={{color: "#17a2b8" }}>
+                            <td
+                              className="fw-bold "
+                              style={{ color: "#17a2b8" }}
+                            >
                               $
                               {policy.appliedHistoricalAdvance?.toFixed(2) ??
                                 "0.00"}
@@ -451,7 +454,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th colSpan="1" className="text-end ">
                         Total de anticipos:
                       </th>
-                      <th className="text-white" style={{backgroundColor: "#17a2b8" }}>
+                      <th
+                        className="text-white"
+                        style={{ backgroundColor: "#17a2b8" }}
+                      >
                         ${advisorTotalAdvances.toFixed(2)}
                       </th>
                       <th className="bg-primary text-white">
@@ -463,7 +469,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th className="bg-success text-white">
                         ${globalTotals.paid?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th className="text-white" style={{backgroundColor: "#17a2b8" }}>
+                      <th
+                        className="text-white"
+                        style={{ backgroundColor: "#17a2b8" }}
+                      >
                         $
                         {globalTotals.appliedHistoricalAdvance?.toFixed(2) ??
                           "0.00"}
@@ -548,7 +557,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       onChange={(e) => setOperationType(e.target.value)}
                       required
                     >
-                      <option value="">Selecciona una opción</option>
+                      <option selected value={""} disabled>
+                        {option}
+                      </option>
                       <option value="ANTICIPO">ANTICIPO</option>
                       <option value="COMISION">COMISIÓN</option>
                     </select>
@@ -578,7 +589,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       defaultValue={option}
                       required
                     >
-                      <option disabled value={""}>
+                      <option selected value={""} disabled>
                         {option}
                       </option>
                       {paymentMethod.map((item) => (

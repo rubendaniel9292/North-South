@@ -54,6 +54,11 @@ const ListCommissions = () => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
 
+  useEffect(() => {
+    if (advisor) {
+      console.log(advisor.policies);
+    }
+  }, [advisor]);
   // --- Filtrado de pólizas por cliente y por filtros visuales ---
   const filteredPolicies = useMemo(() => {
     let policies = advisor?.policies || [];
@@ -428,10 +433,8 @@ const ListCommissions = () => {
                           {/* Subtabla historial de pagos debajo */}
                           <tr>
                             <td colSpan={11} className="p-0">
-                              {Array.isArray(
-                                policyFiltered.commissionsPayments
-                              ) &&
-                              policyFiltered.commissionsPayments.length > 0 ? (
+                              {Array.isArray(policyFiltered.commissions) &&
+                              policyFiltered.commissions.length > 0 ? (
                                 <table className="table table-sm table-bordered text-center mb-0">
                                   <thead>
                                     <tr>
@@ -442,7 +445,7 @@ const ListCommissions = () => {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {policyFiltered.commissionsPayments.map(
+                                    {policyFiltered.commissions.map(
                                       (payment) => (
                                         <tr key={payment.id}>
                                           <td>

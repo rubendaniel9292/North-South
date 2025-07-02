@@ -73,7 +73,7 @@ const Index = () => {
       items: [
         { label: "Registro de Polizas", link: "/management/create-policy" },
         { label: "Listado de Pólizas", link: "/management/get-all-policy" },
-        { label: "Lista de pagos", link: "/management/get-all-payments" },
+        /*{ label: "Lista de pagos", link: "/management/get-all-payments" },*/
       ],
     },
     {
@@ -139,8 +139,7 @@ const Index = () => {
           </div>
           <div className="row dasboard">
             <div className="col-2 lateral">
-              {/* Menú lateral mejorado */}
-              {/* ...dentro de tu <div className="col-2 lateral">... */}
+          
               {menuConfig.map((item) =>
                 !item.items ? (
                   <NavLink
