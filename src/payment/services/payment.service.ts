@@ -31,10 +31,11 @@ export class PaymentService {
   ) { }
 
   //metodo para calcular el valor de la comision de la poliza por cada registro o renovacion segun el periodo
+  /*
   private calculateCommissionValue(paymentsToAdvisor: number, paymentFrequency: number): number {
     let commissionValue = parseFloat((paymentsToAdvisor / paymentFrequency).toFixed(2));
     return commissionValue
-  }
+  }*/
   //1: metodo para registrar un pago de poliza
 
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {

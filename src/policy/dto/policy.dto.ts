@@ -105,9 +105,6 @@ export class PolicyDTO {
   @IsBoolean()
   isCommissionAnnualized: boolean;
 
-  //@IsOptional()
-  //@IsBoolean()
-  //renewalPolicy?: boolean;
 }
 
 export class UpDatePolicyDTO {

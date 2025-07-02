@@ -124,7 +124,6 @@ export class PolicyService extends ValidateEntity {
   // Generar pagos utilizando el servicio de pagos
   private async generatePaymentsUsingService(policy: PolicyEntity, startDate: Date, today: Date, paymentFrequency: number): Promise<void> {
     try {
-
       console.log(`Generando pagos iniciales para póliza ${policy.id} desde ${startDate.toISOString()} hasta la primera renovación`);
       const policyValue = Number(policy.policyValue);
       const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
