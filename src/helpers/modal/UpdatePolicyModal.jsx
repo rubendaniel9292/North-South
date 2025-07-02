@@ -19,7 +19,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     coverageAmount: policy.coverageAmount,
     agencyPercentage: policy.agencyPercentage,
     advisorPercentage: policy.advisorPercentage,
-    coverageAmount: policy.coverageAmount,
     policyValue: policy.policyValue,
     startDate: dayjs.utc(policy.startDate).format("YYYY-MM-DD").toString(),
     endDate: dayjs.utc(policy.endDate).format("YYYY-MM-DD").toString(),
