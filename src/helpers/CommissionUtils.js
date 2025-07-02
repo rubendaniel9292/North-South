@@ -174,7 +174,6 @@ export const getPolicyFields = (policy) => {
     refundsAmount,
     afterBalance,
     commissionInFavor,
-  
   };
 };
 
@@ -208,3 +207,70 @@ export const getTotals = (policies, advanceValue = 0, operationType = "") => {
   }
   return totals;
 };
+//calculo simple de comiciones
+export const calculateAdvisorAndAgencyPayments = (
+  policyValue,
+  policyFee,
+  percentageAgency,
+  percentageAdvisor
+) => {
+  const value = Number(policyValue) - Number(policyFee);
+  const paymentAgency = parseFloat(
+    ((value * Number(percentageAgency)) / 100).toFixed(2)
+  );
+  const paymentAdvisor = parseFloat(
+    ((value * Number(percentageAdvisor)) / 100).toFixed(2)
+  );
+
+  return {
+    paymentsToAgency: paymentAgency - paymentAdvisor,
+    paymentsToAdvisor: paymentAdvisor,
+  };
+};
+  /* VERSION ANTERIOR INDIVIDUAL PARA CADA COMPONENTE
+  const calculateAdvisorPayment = useCallback(() => {
+    // Función auxiliar para agregar clase de manera segura
+    const addClassSafely = (id, className) => {
+      const element = document.getElementById(id);
+      if (element) element.classList.add(className);
+    };
+
+    const percentageAdvisor = Number(form.advisorPercentage);
+    const percentageAgency = Number(form.agencyPercentage);
+    const policyFee = Number(form.policyFee);
+    const value = Number(form.policyValue) - policyFee;
+    let paymentAvisor = 0;
+    let paymentAgency = 0;
+    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
+      paymentAgency = parseFloat(((value * percentageAgency) / 100).toFixed(2));
+      paymentAvisor = parseFloat(
+        ((value * percentageAdvisor) / 100).toFixed(2)
+      );
+
+      changed({
+        target: {
+          name: "paymentsToAgency",
+          value: paymentAgency - paymentAvisor,
+          //value: paymentAvisor,
+        },
+      });
+
+      changed({
+        target: {
+          name: "paymentsToAdvisor",
+          value: paymentAvisor,
+        },
+      });
+      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+      addClassSafely("paymentsToAgency", "is-valid");
+      addClassSafely("paymentsToAdvisor", "is-valid");
+      addClassSafely("numberOfPayments", "is-valid");
+      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
+    }
+  }, [
+    form.policyValue,
+    form.advisorPercentage,
+    form.policyFee,
+    form.agencyPercentage,
+  ]);
+  */

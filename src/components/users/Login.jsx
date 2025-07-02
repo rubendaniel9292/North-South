@@ -72,7 +72,7 @@ const Login = () => {
     setShowChangePassword(false);
     setChangePasswordUserId(null);
     // Opcional: muestra mensaje y/o vuelve a mostrar login para que el usuario ingrese con su nueva contraseña
-    window.location.reload(); // O lo que prefieras
+    window.location.reload(); // 
   };
 
   return (

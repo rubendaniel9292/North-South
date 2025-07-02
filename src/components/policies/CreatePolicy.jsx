@@ -5,6 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { useLocation } from "react-router-dom";
+
+import calculateAdvisorAndAgencyPayments from "../../helpers/CommissionUtils";
 const CreatePolicy = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({
@@ -105,49 +107,39 @@ const CreatePolicy = () => {
     changed(e);
   };
 
-  // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
+  // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado/*
   const calculateAdvisorPayment = useCallback(() => {
-    // Función auxiliar para agregar clase de manera segura
-    const addClassSafely = (id, className) => {
-      const element = document.getElementById(id);
-      if (element) element.classList.add(className);
-    };
+    const { paymentsToAgency, paymentsToAdvisor } =
+      calculateAdvisorAndAgencyPayments(
+        form.policyValue,
+        form.policyFee,
+        form.agencyPercentage,
+        form.advisorPercentage
+      );
 
-    const percentageAdvisor = Number(form.advisorPercentage);
-    const percentageAgency = Number(form.agencyPercentage);
-    const policyFee = Number(form.policyFee);
-    const value = Number(form.policyValue) - policyFee;
-    let paymentAvisor = 0;
-    let paymentAgency = 0;
-    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = parseFloat(((value * percentageAgency) / 100).toFixed(2));
-      paymentAvisor = parseFloat(((value * percentageAdvisor) / 100).toFixed(2));
-     
-      changed({
-        target: {
-          name: "paymentsToAgency",
-          value: paymentAgency - paymentAvisor,
-          //value: paymentAvisor,
-        },
-      });
+    changed({
+      target: {
+        name: "paymentsToAgency",
+        value: paymentsToAgency,
+      },
+    });
 
-      changed({
-        target: {
-          name: "paymentsToAdvisor",
-          value: paymentAvisor,
-        },
-      });
-      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
-      addClassSafely("paymentsToAgency", "is-valid");
-      addClassSafely("paymentsToAdvisor", "is-valid");
-      addClassSafely("numberOfPayments", "is-valid");
-      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
-    }
+    changed({
+      target: {
+        name: "paymentsToAdvisor",
+        value: paymentsToAdvisor,
+      },
+    });
+    // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+    addClassSafely("paymentsToAgency", "is-valid");
+    addClassSafely("paymentsToAdvisor", "is-valid");
+    addClassSafely("numberOfPayments", "is-valid");
+    addClassSafely("numberOfPaymentsAdvisor", "is-valid");
   }, [
     form.policyValue,
-    form.advisorPercentage,
     form.policyFee,
     form.agencyPercentage,
+    form.advisorPercentage,
   ]);
 
   const handlePaymentMethodChange = (e) => {

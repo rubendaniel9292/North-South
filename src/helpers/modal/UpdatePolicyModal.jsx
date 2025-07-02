@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useCallback } from "react";
-
+import calculateAdvisorAndAgencyPayments from "../../helpers/CommissionUtils";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
@@ -67,7 +67,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   }, [policy]);
 
   //handleSelectChange para manejar la selección manual del cliente
-
   const handleSelectChange = (e) => {
     handleCard_Accunt(e);
     setSelectedCustomer(e.target.value);
@@ -109,50 +108,37 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
-    // Función auxiliar para agregar clase de manera segura
-    const addClassSafely = (id, className) => {
-      const element = document.getElementById(id);
-      if (element) element.classList.add(className);
-    };
-    const value = Number(form.policyValue);
-    const percentageAdvisor = Number(form.advisorPercentage);
-    const percentageAgency = Number(form.agencyPercentage);
-    const policyFee = Number(form.policyFee);
-    let paymentAvisor = 0;
-    let paymentAgency = 0;
-    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = Number(
-        (value * percentageAgency) / 100 - policyFee
-      ).toFixed(2);
-
-      paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(
-        2
+    const { paymentsToAgency, paymentsToAdvisor } =
+      calculateAdvisorAndAgencyPayments(
+        form.policyValue,
+        form.policyFee,
+        form.agencyPercentage,
+        form.advisorPercentage
       );
-      changed({
-        target: {
-          name: "paymentsToAgency",
-          value: paymentAgency - paymentAvisor,
-        },
-      });
 
-      changed({
-        target: {
-          name: "paymentsToAdvisor",
-          value: paymentAvisor,
-        },
-      });
-      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
-      addClassSafely("paymentsToAgency", "is-valid");
-      addClassSafely("paymentsToAdvisor", "is-valid");
-      addClassSafely("numberOfPayments", "is-valid");
-      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    changed({
+      target: {
+        name: "paymentsToAgency",
+        value: paymentsToAgency,
+      },
+    });
+
+    changed({
+      target: {
+        name: "paymentsToAdvisor",
+        value: paymentsToAdvisor,
+      },
+    });
+    // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+    addClassSafely("paymentsToAgency", "is-valid");
+    addClassSafely("paymentsToAdvisor", "is-valid");
+    addClassSafely("numberOfPayments", "is-valid");
+    addClassSafely("numberOfPaymentsAdvisor", "is-valid");
   }, [
     form.policyValue,
-    form.advisorPercentage,
     form.policyFee,
     form.agencyPercentage,
+    form.advisorPercentage,
   ]);
 
   const handlePaymentMethodChange = (e) => {
