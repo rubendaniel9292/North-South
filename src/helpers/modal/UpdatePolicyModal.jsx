@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useCallback } from "react";
-import calculateAdvisorAndAgencyPayments from "../../helpers/CommissionUtils";
+import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);

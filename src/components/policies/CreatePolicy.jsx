@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { useLocation } from "react-router-dom";
 
-import calculateAdvisorAndAgencyPayments from "../../helpers/CommissionUtils";
+import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const CreatePolicy = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({
