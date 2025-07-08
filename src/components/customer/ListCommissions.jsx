@@ -30,12 +30,29 @@ const ListCommissions = () => {
   // --- Estados principales ---
   const [advisor, setAdvisor] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [typeFilter, setTypeFilter] = useState("AMBOS");
 
+  // --- Traer compañías registrado para el filstrado ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [companyResponse] = await Promise.all([
+          http.get("company/get-all-company"),
+        ]);
+        setCompanies(companyResponse.data.allCompanies);
+      } catch (error) {
+        alerts("Error", "Error fetching data.", error);
+      }
+    };
+
+    fetchData();
+  }, []);
   // --- Filtros visuales ---
   const [search, setSearch] = useState("");
   const [frequency, setFrequency] = useState("all");
   const [renewal, setRenewal] = useState("all");
-
+  const [selectedCompany, setSelectedCompany] = useState("");
   // --- Traer asesor completo con todas sus pólizas y comisiones ---
   const fetchAdvisor = useCallback(async () => {
     setIsLoading(true);
@@ -59,56 +76,110 @@ const ListCommissions = () => {
       console.log(advisor.policies);
     }
   }, [advisor]);
-  // --- Filtrado de pólizas por cliente y por filtros visuales ---
+
+  // Manejar el cambio en el filtro de búsqueda
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+  };
+
+  // Manejar el cambio en el filtro de compañía
+  const handleCompanyChange = (e) => {
+    setSelectedCompany(e.target.value);
+  };
+
+  // Manejar el cambio en el filtro de tipo
+  const handleTypeChange = (e) => {
+    setTypeFilter(e.target.value);
+  };
+
+  // Filtrar las pólizas incluyendo el filtro por compañía
+  // Filtrar las pólizas según los filtros aplicados
   const filteredPolicies = useMemo(() => {
     let policies = advisor?.policies || [];
-    // Filtrado por cliente
-    if (customerFromNav) {
-      policies = policies.filter(
-        (policy) => policy.customer && policy.customer.id === customerFromNav.id
-      );
-    }
-    // Filtros visuales
-    return policies.filter((policy) => {
-      const policyClient = policy.customer
-        ? [
-            policy.customer.firstName,
-            policy.customer.secondName,
-            policy.customer.surname,
-            policy.customer.secondSurname,
-          ]
-            .filter(Boolean)
-            .join(" ")
+    let anticipos = advisor?.commissions?.filter((c) => !c.policy_id) || [];
+
+    // Filtrar pólizas por cliente si está definido
+    if (typeFilter === "COMISIONES" || typeFilter === "AMBOS") {
+      if (customerFromNav) {
+        policies = policies.filter(
+          (policy) =>
+            policy.customer && policy.customer.id === customerFromNav.id
+        );
+      }
+      // Aplicar filtros visuales SOLO a pólizas
+      policies = policies.filter((policy) => {
+        const policyClient = policy.customer
+          ? [
+              policy.customer.firstName,
+              policy.customer.secondName,
+              policy.customer.surname,
+              policy.customer.secondSurname,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase()
+          : "";
+        const matchSearch =
+          policyClient.includes(search.toLowerCase()) ||
+          (policy.numberPolicy || "")
             .toLowerCase()
-        : "";
-      const matchSearch =
-        policyClient.includes(search.toLowerCase()) ||
-        (policy.numberPolicy || "")
-          .toLowerCase()
-          .includes(search.toLowerCase());
-      const policyFreq =
-        policy.isCommissionAnnualized === false ? "normal" : "anualizada";
-      const matchFrequency = frequency === "all" || policyFreq === frequency;
-      const matchRenewal =
-        renewal === "all" ||
-        (renewal === "yes" && policy.renewalCommission) ||
-        (renewal === "no" && !policy.renewalCommission);
-      return matchSearch && matchFrequency && matchRenewal;
-    });
-  }, [advisor, customerFromNav, search, frequency, renewal]);
+            .includes(search.toLowerCase());
+        const policyFreq =
+          policy.isCommissionAnnualized === false ? "normal" : "anualizada";
+        const matchFrequency = frequency === "all" || policyFreq === frequency;
+        const matchRenewal =
+          renewal === "all" ||
+          (renewal === "yes" && policy.renewalCommission) ||
+          (renewal === "no" && !policy.renewalCommission);
+        const matchCompany =
+          !selectedCompany ||
+          (policy.company && policy.company.companyName === selectedCompany);
+        return matchSearch && matchFrequency && matchRenewal && matchCompany;
+      });
+    }
+
+    if (typeFilter === "COMISIONES") {
+      return policies;
+    } else if (typeFilter === "ANTICIPOS") {
+      return anticipos;
+    } else if (typeFilter === "AMBOS") {
+      return [...policies, ...anticipos]; // policies ya está filtrado
+    }
+
+    return policies;
+  }, [
+    advisor,
+    customerFromNav,
+    search,
+    frequency,
+    renewal,
+    selectedCompany,
+    typeFilter,
+  ]);
 
   // --- Aplica getPolicyFields a cada póliza filtrada ---
   const filteredPoliciesWithFields = useMemo(
     () =>
-      filteredPolicies.map((policy) => ({
-        ...policy,
-        ...getPolicyFields(policy),
-      })),
+      filteredPolicies
+        .filter((policy) => policy.numberPolicy) // solo pólizas reales
+        .map((policy) => ({
+          ...policy,
+          ...getPolicyFields(policy),
+        })),
     [filteredPolicies]
   );
 
   // --- Totales globales usando los helpers ---
   const totals = useMemo(() => getTotals(filteredPolicies), [filteredPolicies]);
+
+  // --- Anticipos generales sin póliza asignada ---
+  const anticiposSinPoliza = useMemo(
+    () =>
+      advisor?.commissions
+        ? advisor.commissions.filter((c) => !c.policy_id)
+        : [],
+    [advisor]
+  );
 
   return (
     <>
@@ -158,45 +229,86 @@ const ListCommissions = () => {
               <FontAwesomeIcon icon={faFilter} className="me-2 text-primary" />
               <h5 className="mb-0 fw-bold">Opciones de filtro</h5>
             </div>
+
             <div className="row g-3">
+              {/* Filtro por tipo */}
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Tipo</label>
+                <select
+                  className="form-select"
+                  value={typeFilter}
+                  onChange={handleTypeChange}
+                >
+                  <option value="AMBOS">Ambos</option>
+                  <option value="COMISIONES">Comisiones</option>
+                  <option value="ANTICIPOS">Anticipos</option>
+                </select>
+              </div>
+
+              {/* Filtro por búsqueda */}
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Buscar</label>
                 <div className="input-group">
-                  <span className="input-group-text">
-                    <FontAwesomeIcon icon={faSearch} />
-                  </span>
                   <input
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={handleSearchChange}
                     className="form-control"
                     placeholder="Cliente o póliza..."
+                    disabled={typeFilter === "ANTICIPOS"}
                   />
                 </div>
               </div>
+
+              {/* Filtro por compañía */}
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">
+                  Filtrar por compañía
+                </label>
+                <select
+                  className="form-select"
+                  value={selectedCompany}
+                  onChange={handleCompanyChange}
+                  disabled={typeFilter === "ANTICIPOS"}
+                >
+                  <option value="">Todas las compañías</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.companyName}>
+                      {company.companyName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtro por frecuencia */}
               <div className="col-6 col-md-3">
                 <label className="form-label fw-semibold">Frecuencia</label>
                 <select
                   className="form-select"
                   value={frequency}
                   onChange={(e) => setFrequency(e.target.value)}
+                  disabled={typeFilter === "ANTICIPOS"}
                 >
                   <option value="all">Todas</option>
                   <option value="anualizada">Anualizada</option>
                   <option value="normal">Normal</option>
                 </select>
               </div>
+
+              {/* Filtro por renovación */}
               <div className="col-6 col-md-3">
                 <label className="form-label fw-semibold">Renovación</label>
                 <select
                   className="form-select"
                   value={renewal}
                   onChange={(e) => setRenewal(e.target.value)}
+                  disabled={typeFilter === "ANTICIPOS"}
                 >
                   <option value="all">Todas</option>
                   <option value="yes">Sí</option>
                   <option value="no">No</option>
                 </select>
               </div>
+
               <div className="col-12 col-md-3 d-flex align-items-end">
                 <button className="btn btn-success w-100" disabled={isLoading}>
                   <FontAwesomeIcon icon={faFile} className="me-2" />
@@ -302,200 +414,208 @@ const ListCommissions = () => {
           </div>
         </div>
 
-        {/* --- Tabla principal de polizas*/}
-        {isLoading || !advisor ? (
-          <div className="text-center my-2">
-            <span className="fw-bold">Cargando historial</span>
-            <div className="spinner-border text-success mt-3" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : (
-          <div className=" shadow-sm border-0 mb-2">
-            <div className="p-0">
-              <div className="">
-                <table className="table table-hover  mb-0 text-center">
-                  <thead className="">
-                    <tr>
-                      <th
-                        colSpan={12}
-                        className="bg-secondary fw-bold text-center text-white"
-                      >
-                        Historial de comiciones canceladas
-                      </th>
-                    </tr>
-                    <tr>
-                      <th>N° de póliza</th>
-                      <th>Compañía</th>
-                      <th>Cliente</th>
-                      <th>Frecuencia</th>
-                      <th>Pagos/Año</th>
-                      <th>Renovación</th>
-                      <th>Valor póliza</th>
-                      <th>Com. Totales</th>
-                      <th>Com. Liberadas</th>
-                      <th>Descuento (si aplica)</th>
-                      <th>Com. Pagadas</th>
-                      <th>A Favor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPoliciesWithFields.length === 0 ? (
-                      <tr>
-                        <td colSpan={11} className="text-center text-muted">
-                          <FontAwesomeIcon icon={faFile} size="2x" />
-                          <div>
-                            No existen pólizas para el asesor{" "}
-                            {advisor?.firstName} {advisor?.surname}
-                            {customerFromNav ? " y cliente seleccionado." : "."}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredPoliciesWithFields.map((policyFiltered) => (
-                        <React.Fragment key={policyFiltered.id}>
-                          <tr>
-                            <td className="fw-bold">
-                              {policyFiltered.numberPolicy}
-                            </td>
-                            <td className="fw-bold bs-tertiary-color">
-                              {policyFiltered.company.companyName}
-                            </td>
-                            <td>
-                              {policyFiltered.customer
-                                ? [
-                                    policyFiltered.customer.firstName,
-                                    policyFiltered.customer.secondName,
-                                    policyFiltered.customer.surname,
-                                    policyFiltered.customer.secondSurname,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" ")
-                                : "N/A"}
-                            </td>
-                            <td>
-                              <Badge
-                                text={
-                                  policyFiltered.isCommissionAnnualized ===
-                                  false
-                                    ? "Normal"
-                                    : "Anualizada"
-                                }
-                                color={
-                                  policyFiltered.isCommissionAnnualized ===
-                                  false
-                                    ? "info"
-                                    : "secondary"
-                                }
-                              />
-                            </td>
-                            <td>
-                              {policyFiltered.isCommissionAnnualized === false
-                                ? policyFiltered.numberOfPaymentsAdvisor
-                                : 1}
-                            </td>
-                            <td>
-                              <Badge
-                                text={
-                                  policyFiltered.renewalCommission ? "SÍ" : "NO"
-                                }
-                                color={
-                                  policyFiltered.renewalCommission
-                                    ? "dark"
-                                    : "danger"
-                                }
-                              />
-                            </td>
-                           
-                            <td className="fw-bold bs-tertiary-color">
-                              ${Number(policyFiltered.policyValue).toFixed(2)}
-                            </td>
-                            <td className="fw-bold text-primary">
-                              $
-                              {Number(policyFiltered.commissionTotal).toFixed(
-                                2
-                              )}
-                            </td>
-                            <td className="fw-bold text-warning">
-                              ${Number(policyFiltered.released).toFixed(2)}
-                            </td>
-                            <td className="fw-bold text-danger">
-                              ${Number(policyFiltered.refundsAmount).toFixed(2)}
-                            </td>
-                            <td className="fw-bold text-success">
-                              ${Number(policyFiltered.paid).toFixed(2)}
-                            </td>
-                            <td
-                              className="fw-bold"
-                              style={{ color: "#a259ff" }}
-                            >
-                              $
-                              {Number(policyFiltered.commissionInFavor).toFixed(
-                                2
-
-                              )}
-                            </td>
-                          </tr>
-                          {/* Subtabla historial de pagos debajo */}
-                          <tr>
-                            <td colSpan={11} className="p-0">
-                              {Array.isArray(policyFiltered.commissions) &&
-                              policyFiltered.commissions.length > 0 ? (
-                                <table className="table table-sm table-bordered text-center mb-0">
-                                  <thead>
-                                    <tr>
-                                      <th>Fecha de pago</th>
-                                      <th>Número de recibo</th>
-                                      <th>Comisión pagadas</th>
-                                      <th>Observaciones</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {policyFiltered.commissions.map(
-                                      (payment) => (
-                                        <tr key={payment.id}>
-                                          <td>
-                                            {payment.createdAt
-                                              ? dayjs(payment.createdAt).format(
-                                                  "DD/MM/YYYY"
-                                                )
-                                              : "-"}
-                                          </td>
-                                          <td>{payment.receiptNumber}</td>
-                                          <td>
-                                            $
-                                            {Number(
-                                              payment.advanceAmount
-                                            ).toFixed(2)}
-                                          </td>
-                                          <td>{payment.observations || "-"}</td>
-                                        </tr>
-                                      )
-                                    )}
-                                  </tbody>
-                                </table>
-                              ) : (
-                                <div className="text-center text-muted py-2">
-                                  Aún no se han registrado pagos de comisiones
-                                  para esta póliza.
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+        {/* --- Tabla principal de polizas SOLO si es COMISIONES o AMBOS --- */}
+        {(typeFilter === "COMISIONES" || typeFilter === "AMBOS") &&
+          (isLoading || !advisor ? (
+            <div className="text-center my-2">
+              <span className="fw-bold">Cargando historial</span>
+              <div className="spinner-border text-success mt-3" role="status">
+                <span className="visually-hidden">Loading...</span>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className=" shadow-sm border-0 mb-2">
+              <div className="p-0">
+                <div className="">
+                  <table className="table table-hover  mb-0 text-center">
+                    <thead className="">
+                      <tr>
+                        <th
+                          colSpan={12}
+                          className="bg-secondary fw-bold text-center text-white"
+                        >
+                          Historial de comisiones
+                        </th>
+                      </tr>
+                      <tr>
+                        <th>N° de póliza</th>
+                        <th>Compañía</th>
+                        <th>Cliente</th>
+                        <th>Frecuencia</th>
+                        <th>Pagos/Año</th>
+                        <th>Renovación</th>
+                        <th>Valor póliza</th>
+                        <th>Com. Totales</th>
+                        <th>Com. Liberadas</th>
+                        <th>Descuento (si aplica)</th>
+                        <th>Com. Pagadas</th>
+                        <th>A Favor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPoliciesWithFields.length === 0 ? (
+                        <tr>
+                          <td colSpan={11} className="text-center text-muted">
+                            <FontAwesomeIcon icon={faFile} size="2x" />
+                            <div>
+                              No existen pólizas para el asesor{" "}
+                              {advisor?.firstName} {advisor?.surname}
+                              {customerFromNav
+                                ? " y cliente seleccionado."
+                                : "."}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredPoliciesWithFields.map((policyFiltered) => (
+                          <React.Fragment key={policyFiltered.id}>
+                            <tr>
+                              <td className="fw-bold">
+                                {policyFiltered.numberPolicy}
+                              </td>
+                              <td>
+                                {policyFiltered.company?.companyName || "N/A"}
+                              </td>
 
-        {/* --- Anticipos generales sin póliza asignada  --- */}
-        {advisor &&
-          advisor.commissions &&
-          advisor.commissions.filter((c) => !c.policy_id).length > 0 && (
+                              <td>
+                                {policyFiltered.customer
+                                  ? [
+                                      policyFiltered.customer.firstName,
+                                      policyFiltered.customer.secondName,
+                                      policyFiltered.customer.surname,
+                                      policyFiltered.customer.secondSurname,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")
+                                  : "N/A"}
+                              </td>
+                              <td>
+                                <Badge
+                                  text={
+                                    policyFiltered.isCommissionAnnualized ===
+                                    false
+                                      ? "Normal"
+                                      : "Anualizada"
+                                  }
+                                  color={
+                                    policyFiltered.isCommissionAnnualized ===
+                                    false
+                                      ? "info"
+                                      : "secondary"
+                                  }
+                                />
+                              </td>
+                              <td>
+                                {policyFiltered.isCommissionAnnualized === false
+                                  ? policyFiltered.numberOfPaymentsAdvisor
+                                  : 1}
+                              </td>
+                              <td>
+                                <Badge
+                                  text={
+                                    policyFiltered.renewalCommission
+                                      ? "SÍ"
+                                      : "NO"
+                                  }
+                                  color={
+                                    policyFiltered.renewalCommission
+                                      ? "dark"
+                                      : "danger"
+                                  }
+                                />
+                              </td>
+                              <td className="fw-bold bs-tertiary-color">
+                                ${Number(policyFiltered.policyValue).toFixed(2)}
+                              </td>
+                              <td className="fw-bold text-primary">
+                                $
+                                {Number(policyFiltered.commissionTotal).toFixed(
+                                  2
+                                )}
+                              </td>
+                              <td className="fw-bold text-warning">
+                                ${Number(policyFiltered.released).toFixed(2)}
+                              </td>
+                              <td className="fw-bold text-danger">
+                                $
+                                {Number(policyFiltered.refundsAmount).toFixed(
+                                  2
+                                )}
+                              </td>
+                              <td className="fw-bold text-success">
+                                ${Number(policyFiltered.paid).toFixed(2)}
+                              </td>
+                              <td
+                                className="fw-bold"
+                                style={{ color: "#a259ff" }}
+                              >
+                                $
+                                {Number(
+                                  policyFiltered.commissionInFavor
+                                ).toFixed(2)}
+                              </td>
+                            </tr>
+                            {/* Subtabla historial de pagos debajo */}
+                            <tr>
+                              <td colSpan={11} className="p-0">
+                                {Array.isArray(policyFiltered.commissions) &&
+                                policyFiltered.commissions.length > 0 ? (
+                                  <table className="table table-sm table-bordered text-center mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th>Fecha de pago</th>
+                                        <th>Número de recibo</th>
+                                        <th>Comisión pagadas</th>
+                                        <th>Observaciones</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {policyFiltered.commissions.map(
+                                        (payment) => (
+                                          <tr key={payment.id}>
+                                            <td>
+                                              {payment.createdAt
+                                                ? dayjs(
+                                                    payment.createdAt
+                                                  ).format("DD/MM/YYYY")
+                                                : "-"}
+                                            </td>
+                                            <td>{payment.receiptNumber}</td>
+                                            <td>
+                                              $
+                                              {Number(
+                                                payment.advanceAmount
+                                              ).toFixed(2)}
+                                            </td>
+                                            <td>
+                                              {payment.observations || "-"}
+                                            </td>
+                                          </tr>
+                                        )
+                                      )}
+                                    </tbody>
+                                  </table>
+                                ) : (
+                                  <div className="text-center text-muted py-2">
+                                    Aún no se han registrado pagos de comisiones
+                                    para esta póliza.
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ))}
+
+        {/* --- Anticipos generales sin póliza asignada SOLO si es ANTICIPOS o AMBOS --- */}
+        {(typeFilter === "ANTICIPOS" || typeFilter === "AMBOS") &&
+          anticiposSinPoliza.length > 0 && (
             <div className="border-0 shadow-sm">
               <table className=" table table-hover text-center mb-0">
                 <thead>
@@ -515,22 +635,20 @@ const ListCommissions = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {advisor.commissions
-                    .filter((c) => !c.policy_id)
-                    .map((anticipo) => (
-                      <tr key={anticipo.id}>
-                        <td>
-                          {anticipo.createdAt
-                            ? dayjs(anticipo.createdAt).format("DD/MM/YYYY")
-                            : "-"}
-                        </td>
-                        <td>{anticipo.receiptNumber}</td>
-                        <td className="fw-bold" style={{ color: "#17a2b8" }}>
-                          ${Number(anticipo.advanceAmount).toFixed(2)}
-                        </td>
-                        <td>{anticipo.observations || "-"}</td>
-                      </tr>
-                    ))}
+                  {anticiposSinPoliza.map((anticipo) => (
+                    <tr key={anticipo.id}>
+                      <td>
+                        {anticipo.createdAt
+                          ? dayjs(anticipo.createdAt).format("DD/MM/YYYY")
+                          : "-"}
+                      </td>
+                      <td>{anticipo.receiptNumber}</td>
+                      <td className="fw-bold" style={{ color: "#17a2b8" }}>
+                        ${Number(anticipo.advanceAmount).toFixed(2)}
+                      </td>
+                      <td>{anticipo.observations || "-"}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
