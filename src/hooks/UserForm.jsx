@@ -25,19 +25,45 @@ const UserForm = (initialObj) => {
       const { name, value, type } = changes.target;
 
       // --- Validación para campos decimales ---
+
       if (DECIMAL_FIELDS.includes(name)) {
         let cleanValue = value;
+
         // Si el valor es string y tiene coma, reemplaza la coma por punto
-        if (typeof cleanValue === "string") {
+        if (typeof cleanValue === "string" && cleanValue.includes(",")) {
           cleanValue = cleanValue.replace(",", ".");
         }
-        // Convierte a número si es posible
-        cleanValue = cleanValue === "" ? "" : Number(cleanValue);
+
+        // Permitir que el campo quede vacío
+        if (cleanValue === "") {
+          setForm((prevForm) => ({
+            ...prevForm,
+            [name]: cleanValue,
+          }));
+          return;
+        }
+
+        // Convertir a número y validar que sea un valor decimal válido
+        const numericValue = parseFloat(cleanValue);
+        if (isNaN(numericValue)) {
+          console.error(`Valor inválido para ${name}: ${cleanValue}`);
+          return; // No actualizar el estado si el valor no es válido
+        }
+
+        // Redondear a dos decimales si es necesario
+        cleanValue = numericValue.toFixed(2);
+
+        // Actualizar el estado del formulario
         setForm((prevForm) => ({
           ...prevForm,
           [name]: cleanValue,
         }));
-        return; // Ya manejamos el cambio, salimos
+      } else {
+        // Actualizar otros campos normalmente
+        setForm((prevForm) => ({
+          ...prevForm,
+          [name]: value,
+        }));
       }
 
       // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas

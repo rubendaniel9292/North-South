@@ -12,7 +12,7 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "https://localhost", // Puerto HTTPS del backend
+        target: "https://localhost:4443", // Puerto HTTPS del backend
         changeOrigin: true,
         secure: false,
       },

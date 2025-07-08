@@ -322,6 +322,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <thead>
                     <tr>
                       <th>N° de póliza</th>
+                      <th>Compañia</th>
                       <th>Cliente</th>
                       <th>Frecuencia</th>
                       <th>Pagos por periodo/año</th>
@@ -352,6 +353,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         return (
                           <tr key={policy.id}>
                             <td className="fw-bold">{policy.numberPolicy}</td>
+                            <td className="fw-bold bs-tertiary-color">
+                              {policy.company.companyName}
+                            </td>
                             <td className="fw-bold">
                               {policy.customer
                                 ? [

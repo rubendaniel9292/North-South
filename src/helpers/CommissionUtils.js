@@ -214,20 +214,21 @@ export const calculateAdvisorAndAgencyPayments = (
   percentageAgency,
   percentageAdvisor
 ) => {
+  // Convertir valores a números para evitar problemas de tipo
   const value = Number(policyValue) - Number(policyFee);
-  const paymentAgency = parseFloat(
-    ((value * Number(percentageAgency)) / 100).toFixed(2)
-  );
-  const paymentAdvisor = parseFloat(
-    ((value * Number(percentageAdvisor)) / 100).toFixed(2)
-  );
+  const paymentAgency = (value * Number(percentageAgency)) / 100;
+  const paymentAdvisor = (value * Number(percentageAdvisor)) / 100;
 
+  // Calcular el pago a la agencia
+  const paymentsToAgency = paymentAgency - paymentAdvisor;
+
+  // Redondear los valores al final
   return {
-    paymentsToAgency: paymentAgency - paymentAdvisor,
-    paymentsToAdvisor: paymentAdvisor,
+    paymentsToAgency: Number(paymentsToAgency.toFixed(2)),
+    paymentsToAdvisor: Number(paymentAdvisor.toFixed(2)),
   };
 };
-  /* VERSION ANTERIOR INDIVIDUAL PARA CADA COMPONENTE
+/* VERSION ANTERIOR INDIVIDUAL PARA CADA COMPONENTE
   const calculateAdvisorPayment = useCallback(() => {
     // Función auxiliar para agregar clase de manera segura
     const addClassSafely = (id, className) => {

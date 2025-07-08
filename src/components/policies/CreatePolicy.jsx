@@ -86,9 +86,6 @@ const CreatePolicy = () => {
     );
     if (selectedCustomer) {
       const customerCiRuc = selectedCustomer.ci_ruc;
-      //console.log("customerCiRuc:", customerCiRuc);
-      //console.log("cards:", cards.cardNumber);
-      //console.log("accounts:", accounts);
 
       if (cards && cards.length > 0) {
         const filteredCards = cards.filter(
@@ -106,7 +103,10 @@ const CreatePolicy = () => {
 
     changed(e);
   };
-
+  const addClassSafely = (id, className) => {
+    const element = document.getElementById(id);
+    if (element) element.classList.add(className);
+  };
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado/*
   const calculateAdvisorPayment = useCallback(() => {
     const { paymentsToAgency, paymentsToAdvisor } =
@@ -427,7 +427,7 @@ const CreatePolicy = () => {
               <option selected disabled>
                 {option}
               </option>
-              {customers.map((customer) => (
+              {customers?.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {`${customer.firstName} ${customer.secondName || ""} ${
                     customer.surname
@@ -591,6 +591,7 @@ const CreatePolicy = () => {
               id="policyValue"
               name="policyValue"
               value={form.policyValue}
+              step={0.01} // Permite decimales
               onChange={changed} // Llamada a la función
             />
             <div className="invalid-feedback">
@@ -609,6 +610,7 @@ const CreatePolicy = () => {
               value={form.policyFee}
               onChange={changed} // Llamada a la función
               required
+              step={0.01} // Permite decimales
             />
             <div className="invalid-feedback">Ingrese 0 sino aplica</div>
           </div>

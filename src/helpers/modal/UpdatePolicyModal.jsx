@@ -105,6 +105,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     changed(e);
   };
 
+  const addClassSafely = (id, className) => {
+    const element = document.getElementById(id);
+    if (element) element.classList.add(className);
+  };
+
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
     const { paymentsToAgency, paymentsToAdvisor } =
@@ -551,6 +556,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     id="policyValue"
                     name="policyValue"
                     value={form.policyValue}
+                    step={"0.01"}
                     onChange={changed} // Llamada a la función
                   />
                 </div>
@@ -564,6 +570,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     id="policyFee"
                     name="policyFee"
                     value={form.policyFee}
+                    step={"0.01"}
                     onChange={changed} // Llamada a la función
                   />
                 </div>

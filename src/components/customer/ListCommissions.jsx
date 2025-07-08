@@ -326,6 +326,7 @@ const ListCommissions = () => {
                     </tr>
                     <tr>
                       <th>N° de póliza</th>
+                      <th>Compañía</th>
                       <th>Cliente</th>
                       <th>Frecuencia</th>
                       <th>Pagos/Año</th>
@@ -356,6 +357,9 @@ const ListCommissions = () => {
                           <tr>
                             <td className="fw-bold">
                               {policyFiltered.numberPolicy}
+                            </td>
+                            <td className="fw-bold bs-tertiary-color">
+                              {policyFiltered.company.companyName}
                             </td>
                             <td>
                               {policyFiltered.customer
@@ -402,6 +406,7 @@ const ListCommissions = () => {
                                 }
                               />
                             </td>
+                           
                             <td className="fw-bold bs-tertiary-color">
                               ${Number(policyFiltered.policyValue).toFixed(2)}
                             </td>
@@ -427,6 +432,7 @@ const ListCommissions = () => {
                               $
                               {Number(policyFiltered.commissionInFavor).toFixed(
                                 2
+
                               )}
                             </td>
                           </tr>
