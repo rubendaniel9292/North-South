@@ -8,6 +8,7 @@ ConfigModule.forRoot({
 
 export const CORS: CorsOptions = {
   origin: URL_ORIGIN.get('URL_ORIGIN').toString(),
+  //origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
   allowedHeaders: [

@@ -15,7 +15,6 @@ interface PolicyAdvanceDTO {
     released_commission: number;
     advance_to_apply: number;
 }
-
 interface ApplyAdvanceDistributionDTO {
     advisor_id: number;
     receiptNumber: string;
@@ -334,7 +333,7 @@ export class CommissionsPaymentsService {
     //4: registro de devolucion de anticipos
     public async createCommissionRefunds(body: CommissionRefundsDTO): Promise<CommissionRefundsEntity> {
         try {
-           // const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
+            // const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
             const cancellationDate = DateHelper.normalizeDateForDB(body.cancellationDate);
             //body.createdAt = createdAt;
             body.cancellationDate = cancellationDate;
@@ -346,6 +345,8 @@ export class CommissionsPaymentsService {
             await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSION_REFUNDS);
             await this.redisService.del('policies');
+            await this.redisService.del(`advisor:${body.advisor_id}`);
+
             return commissionRefunds;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);

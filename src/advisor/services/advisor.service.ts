@@ -66,7 +66,7 @@ export class AdvisorService extends ValidateEntity {
         order: {
           id: "DESC",
         },
-        relations: ['commissions', 'policies', 'policies.commissionRefunds']
+        relations: ['commissionRefunds', 'commissions', 'policies', 'policies.commissionRefunds']
       }
       );
       await this.redisService.set(
@@ -80,7 +80,6 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-
   //3: metodo para listar los asesores por id
   public getAdvisorById = async (id: number): Promise<AdvisorEntity> => {
     try {
@@ -90,7 +89,7 @@ export class AdvisorService extends ValidateEntity {
         return JSON.parse(cachedAdvisorById);
       }
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissions','commissions.statusAdvance', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissions', 'policies.commissionRefunds'] }
+        { where: { id }, relations: ['commissionRefunds', 'policies.company','commissions', 'commissions.statusAdvance', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissions', 'policies.commissionRefunds'] }
       );
       if (!advisorById) {
         throw new ErrorManager({

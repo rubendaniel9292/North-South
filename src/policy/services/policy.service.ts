@@ -800,6 +800,7 @@ export class PolicyService extends ValidateEntity {
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`policy:${id}`);
       await this.redisService.del('policies');
+      
 
       // Actualizar caché con los datos más recientes
       await this.redisService.set(

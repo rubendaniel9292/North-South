@@ -19,18 +19,26 @@ export class TurnstileService {
    * @throws {ErrorManager} - Lanza un error si la verificación falla.
    */
   async verifyToken(token: string, ip?: string): Promise<boolean> {
+    if (!token) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'Token Turnstile vacío o no recibido en la petición',
+      });
+    }
     const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
     const formData = new FormData();
     formData.append('secret', this.SECRET_KEY);
     formData.append('response', token);
     if (ip) formData.append('remoteip', ip);
-
+    console.log('Turnstile token recibido:', token);
     try {
+
       const response = await axios.post(url, formData, {
         headers: formData.getHeaders(),
       });
 
       const outcome = response.data;
+      console.log('Respuesta de Turnstile:', outcome); 
       if (!outcome.success) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -39,6 +47,9 @@ export class TurnstileService {
       }
       return outcome.success;
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Respuesta de Cloudflare Turnstile:', error.response.data);
+      }
       throw new ErrorManager({
         type: 'BAD_REQUEST',
         message: 'No se pudo verificar el token TurstLine',
