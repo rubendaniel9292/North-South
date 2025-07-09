@@ -249,6 +249,9 @@ const ListCommissions = () => {
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Buscar</label>
                 <div className="input-group">
+                  <span className="input-group-text">
+                    <FontAwesomeIcon icon={faSearch} />
+                  </span>
                   <input
                     value={search}
                     onChange={handleSearchChange}

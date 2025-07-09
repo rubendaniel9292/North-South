@@ -340,7 +340,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <tbody>
                     {distributedPolicies.length === 0 ? (
                       <tr>
-                        <td colSpan="13" className="text-center fw-bold">
+                        <td colSpan="14" className="text-center fw-bold">
                           No hay comisiones disponibles por el momento.
                         </td>
                       </tr>
@@ -454,7 +454,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
                   <tfoot>
                     <tr>
-                      <th colSpan="3">Totales</th>
+                      <th colSpan="4">Totales</th>
                       <th colSpan="1" className="text-end ">
                         Total de anticipos:
                       </th>
