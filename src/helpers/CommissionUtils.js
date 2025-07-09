@@ -21,6 +21,7 @@ export const calculateCommissionValue = (policy) => {
         }
       }
     }
+
     const perPayment =
       Number(policy.paymentsToAdvisor) /
       Number(policy.numberOfPaymentsAdvisor || 1);
@@ -32,42 +33,44 @@ export const calculateCommissionValue = (policy) => {
 export const calculateReleasedCommissions = (policy) => {
   if (!policy) return 0;
 
-  // PÓLIZA ANUALIZADA (con o sin comisión por renovación)
+  // PÓLIZA ANUALIZADA (sin cambios)
   if (policy.isCommissionAnnualized === true) {
-    const numPeriodos =
+    const periods =
       1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
-    return Number(policy.paymentsToAdvisor || 0) * numPeriodos;
+    return Number(policy.paymentsToAdvisor || 0) * periods;
   }
 
   // PÓLIZA NORMAL (no anualizada)
-  const advisorPercentage = Number(policy.advisorPercentage || 0) / 100;
-  let total = 0;
-  if (Array.isArray(policy.payments)) {
-    const releasedPayments = policy.payments.filter(
-      (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-    );
-    total += releasedPayments.reduce(
-      (sum, payment) => sum + Number(payment.value || 0) * advisorPercentage,
-      0
-    );
-  }
+  const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
+  const paymentPerInstallment =
+    Number(policy.paymentsToAdvisor) / numberOfPayments;
+
+  // Cuotas liberadas de la póliza principal
+  const releasedInstallments = Array.isArray(policy.payments)
+    ? policy.payments.filter(
+        (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+      ).length
+    : 0;
+
+  // Cuotas liberadas de las renovaciones, si existen
+  let releasedInstallmentsRenewals = 0;
   if (Array.isArray(policy.renewals)) {
     for (const renewal of policy.renewals) {
       if (Array.isArray(renewal.payments)) {
-        const releasedPayments = renewal.payments.filter(
+        releasedInstallmentsRenewals += renewal.payments.filter(
           (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-        );
-        total += releasedPayments.reduce(
-          (sum, payment) =>
-            sum + Number(payment.value || 0) * advisorPercentage,
-          0
-        );
+        ).length;
       }
     }
   }
-  return total;
-};
 
+  // Comisión liberada total (no se descuenta policyFee aquí, debe estar descontado en paymentsToAdvisor)
+  const totalReleased =
+    (releasedInstallments + releasedInstallmentsRenewals) *
+    paymentPerInstallment;
+
+  return totalReleased;
+};
 // 3: Suma simple de todos los anticipos del asesor (no por póliza)
 
 export const getAdvisorTotalAdvances = (advisor) =>
@@ -162,13 +165,14 @@ export const getPolicyFields = (policy) => {
       )
     : 0;
 
-  const appliedHistoricalAdvance = policy.appliedHistoricalAdvance || 0; // si tienes este campo aparte
+  const appliedHistoricalAdvance = policy.appliedHistoricalAdvance || 0;
   const afterBalance = releasedNet - paid - appliedHistoricalAdvance;
   const commissionInFavor = Math.max(afterBalance, 0);
 
   return {
     commissionTotal,
     released: released,
+    //(Number(policy.policyFee) / Number(policy.numberOfPaymentsAdvisor) || 0), // Restar la comisión de la póliza
     paid,
     appliedHistoricalAdvance,
     refundsAmount,

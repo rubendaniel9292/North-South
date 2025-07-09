@@ -142,13 +142,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       ),
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
-  // 13. CALCULAR EL SALDO GLOBAL TRAS EL REGISTRO
-  /*
-  const afterBalanceGlobal =
-    globalTotals.afterBalance -
-    (Number(advanceValue) || 0) -
-    advisorTotalAdvances;
-*/
+
   // 13. CARGAR MÉTODOS DE PAGO AL MONTAR
   useEffect(() => {
     const fetchData = async () => {
@@ -307,7 +301,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         <article className="modal-content text-center px-5 py-5">
           <div className="d-block conten-title-com rounded ">
             <h3 className="text-white fw-bold ">
-              Registro de anticipio a : {advisorId.firstName}{" "}
+              Registro de anticipio/comisión a : {advisorId.firstName}{" "}
               {advisorId.surname} {advisorId.secondSurname}{" "}
               {advisorId.secondSurname}
             </h3>

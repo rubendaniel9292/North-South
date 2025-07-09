@@ -190,13 +190,7 @@ const ListPolicies = () => {
 
   dayjs.locale("es");
 
-    // Helper para estado visual
-    const getStatusBadge = (statusId, statusName) => {
-      if (statusId === 4) return <span className="badge bg-warning text-white">{statusName}</span>;
-      if (statusId === 2 || statusId === 3) return <span className="badge bg-danger text-white">{statusName}</span>;
-      return <span className="badge bg-success">{statusName}</span>;
-    };
-
+ 
   return (
     <>
       <section>
