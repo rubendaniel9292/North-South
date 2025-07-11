@@ -113,6 +113,7 @@ export class PaymentController {
 
     //return { status: 'success', message: 'Pago manual procesado manualmente' };
   }*/
+
   @Roles('ADMIN', 'BASIC')
   @Post('manual-process-payments')
   async manualProcessPayments() {
@@ -131,4 +132,5 @@ export class PaymentController {
       };
     }
   }
+
 }

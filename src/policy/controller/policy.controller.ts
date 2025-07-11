@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Put, Get, Param, Post, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
 import { PolicyDTO, UpDatePolicyDTO } from '../dto/policy.dto';
 import { PolicyService } from '../services/policy.service';
 import { PolicyRenewalDTO } from '../dto/policy.renewal.dto';
-
+import { PolicyPeriodDataDTO } from '../dto/policy.period.data.dto';
+import { PolicyPeriodDataEntity } from '../entities/policy_period_data.entity';
 @Controller('policy')
 @UseGuards(AuthGuard, RolesGuard)
 export class PolicyController {
@@ -132,4 +133,41 @@ export class PolicyController {
     }
   }
 
+  @Roles('ADMIN', 'BASIC')
+  @Put('update-values-by-year/:policy_id/:year')
+  async updateValuesByYear(
+    @Param('policy_id') policy_id: number,
+    @Param('year') year: number,
+    @Body() updateData: PolicyPeriodDataDTO
+  ) {
+    const updateValuesByYear = await this.policyService.createOrUpdatePeriodForPolicy(policy_id, year, updateData);
+    if (updateValuesByYear) {
+      console.log("Periodo actualizado:", updateValuesByYear);
+      return {
+        status: 'success',
+        updateValuesByYear,
+      };
+    }
+    return {
+      status: 'error',
+      message: 'No se pudo actualizar el periodo',
+    };
+  }
+
+  // Endpoint para obtener todos los periodos de una póliza por ID
+  @Roles('ADMIN', 'BASIC')
+  @Get(':policy_id/periods')
+  async getPolicyPeriods(
+    @Param('policy_id') policy_id: number,
+  ) {
+    const policyPeriods = await this.policyService.getPolicyPeriods(policy_id);
+    if (policyPeriods) {
+      return {
+        status: 'success',
+        policyPeriods,
+      };
+    }
+   
+  }
 }
+

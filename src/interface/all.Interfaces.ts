@@ -132,13 +132,19 @@ export interface ICommissionsPayments {
 }
 
 export interface IStatusAdvance {
-  statusNameAdvance : string;
+  statusNameAdvance: string;
 }
 
-export interface ICommissionRefunds{
-  amountRefunds: number;	
+export interface ICommissionRefunds {
+  amountRefunds: number;
   reason: string;
   cancellationDate: Date;
   createdAt: Date;
   observations?: string;
+}
+export interface IPolicyPeriodData {
+  year: number;
+  policyValue: number;
+  agencyPercentage: number;
+  advisorPercentage: number;
 }

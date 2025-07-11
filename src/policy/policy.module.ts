@@ -19,6 +19,7 @@ import { PaymentStatusEntity } from '@/payment/entity/payment.status.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { PaymentService } from '@/payment/services/payment.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PolicyPeriodDataEntity } from './entities/policy_period_data.entity';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       RenewalEntity,
       PaymentStatusEntity,
       PaymentEntity,
+      PolicyPeriodDataEntity
     ]),
     ScheduleModule.forRoot(),
     ProvidersModule,

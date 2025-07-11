@@ -351,7 +351,7 @@ export class PaymentService {
     }
   };
 
-  // 7: Nuevo método para obtener póliza con pagos actualizados
+  // 7:  método para obtener póliza con pagos actualizados
   public async getPolicyWithPayments(id: number): Promise<PolicyEntity> {
     try {
 
@@ -385,4 +385,50 @@ export class PaymentService {
     }
   }
 
+  // 8: método para actualizar los pagos de una póliza por año
+  /*
+  async updateValuesByYear(
+    policyId: number,
+    year: number,
+    updateData: { value: number, agencyPercentage: number, advisorPercentage: number }
+  ): Promise<{ updatedPolicy: PolicyEntity; updatedPayments: PaymentEntity[] }> {
+    // 1. Buscar la póliza
+    const policy = await this.policyRepository.findOne({
+      where: { id: policyId },
+      relations: ['payments'],
+    });
+    if (!policy) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'No se encontró la póliza',
+      });
+    }
+
+    // 2. Actualizar los valores globales de la póliza (opcional según reglas de negocio)
+    // Aquí solo actualizas los valores si quieres que el valor global de la póliza también cambie.
+    // Puedes omitir esto si solo quieres actualizar los pagos del año.
+    policy.policyValue = updateData.value;
+    policy.agencyPercentage = updateData.agencyPercentage;
+    policy.advisorPercentage = updateData.advisorPercentage;
+    await this.policyRepository.save(policy);
+
+    // 3. Buscar y actualizar todos los pagos del año indicado
+    const updatedPayments: PaymentEntity[] = [];
+    for (const payment of policy.payments) {
+      const paymentYear = new Date(payment.createdAt).getFullYear();
+      if (paymentYear === year) {
+        payment.value = updateData.value;
+        payment.agencyPercentage = updateData.agencyPercentage;
+        payment.advisorPercentage = updateData.advisorPercentage;
+        await this.paymentRepository.save(payment);
+        updatedPayments.push(payment);
+      }
+    }
+
+    // 4. (Opcional) Limpiar caché relacionado, si lo usas
+    await this.redisService.del(`policy:${policyId}`);
+
+    return { updatedPolicy: policy, updatedPayments };
+  }
+*/
 }

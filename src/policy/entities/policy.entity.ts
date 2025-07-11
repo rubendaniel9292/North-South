@@ -22,6 +22,7 @@ import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { RenewalEntity } from './renewal.entity';
 import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
 import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
+import { PolicyPeriodDataEntity } from './policy_period_data.entity';
 
 @Entity({ name: 'policy' })
 export class PolicyEntity extends IdEntity implements IPolicy {
@@ -215,4 +216,10 @@ export class PolicyEntity extends IdEntity implements IPolicy {
     onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
   })
   commissionRefunds: CommissionRefundsEntity[];
+
+  @OneToMany(() => PolicyPeriodDataEntity, (period) => period.policy, {
+    cascade: true, // Opcional: para guardar periodos junto con la póliza
+  })
+  periods: PolicyPeriodDataEntity[];
+
 }

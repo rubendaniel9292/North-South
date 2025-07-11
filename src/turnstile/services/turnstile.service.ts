@@ -30,7 +30,7 @@ export class TurnstileService {
     formData.append('secret', this.SECRET_KEY);
     formData.append('response', token);
     if (ip) formData.append('remoteip', ip);
-    console.log('Turnstile token recibido:', token);
+    //console.log('Turnstile token recibido:', token);
     try {
 
       const response = await axios.post(url, formData, {
@@ -38,7 +38,7 @@ export class TurnstileService {
       });
 
       const outcome = response.data;
-      console.log('Respuesta de Turnstile:', outcome); 
+      //console.log('Respuesta de Turnstile:', outcome); 
       if (!outcome.success) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',

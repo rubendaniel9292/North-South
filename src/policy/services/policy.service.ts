@@ -18,6 +18,8 @@ import { RedisModuleService } from '@/redis-module/services/redis-module.service
 import { CacheKeys } from '@/constants/cache.enum';
 import { PolicyStatusEntity } from '../entities/policy_status.entity';
 import { DateHelper } from '@/helpers/date.helper';
+import { PolicyPeriodDataDTO } from '../dto/policy.period.data.dto';
+import { PolicyPeriodDataEntity } from '../entities/policy_period_data.entity';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
@@ -37,6 +39,9 @@ export class PolicyService extends ValidateEntity {
 
     @InjectRepository(PolicyStatusEntity)
     private readonly policyStatusRepository: Repository<PolicyStatusEntity>,
+
+    @InjectRepository(PolicyPeriodDataEntity)
+    private readonly policyPeriodDataRepository: Repository<PolicyPeriodDataEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -119,6 +124,18 @@ export class PolicyService extends ValidateEntity {
     }
 
     return valueToPay;
+  }
+  // Utilidad para buscar el advisor_id si no lo tienes disponible
+  private async getAdvisorIdByPolicyId(policyId: number): Promise<number | null> {
+    try {
+      const policy = await this.policyRepository.findOne({
+        where: { id: policyId },
+        select: ['advisor_id'],
+      });
+      return policy ? policy.advisor_id : null;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
   }
 
   // Generar pagos utilizando el servicio de pagos
@@ -234,10 +251,29 @@ export class PolicyService extends ValidateEntity {
   }
 
   // Método para crear una renovación y sus pagos correspondientes
-  private async createRenewalWithPayments(renewalData: PolicyRenewalDTO, policy: PolicyEntity, renewalDate: Date): Promise<void> {
+  private async createRenewalWithPayments(
+    renewalData: PolicyRenewalDTO,
+    policy: PolicyEntity,
+    renewalDate: Date
+  ): Promise<void> {
     try {
       // 1. Crear la renovación
       const renewal = await this.policyRenevalMethod.save(renewalData);
+
+      // 1.1 Crear el periodo anual para la renovación
+      const renewalYear = new Date(renewalData.createdAt).getFullYear();
+      await this.createOrUpdatePeriodForPolicy(
+        policy.id,
+        renewalYear,
+        {
+          policy_id: policy.id,
+          year: renewalYear,
+          policyValue: policy.policyValue,
+          agencyPercentage: policy.agencyPercentage,
+          advisorPercentage: policy.advisorPercentage,
+        }
+      );
+      console.log('Creando periodo de renovación (auto)', { policyId: policy.id, renewalYear });
 
       // 2. Obtener la póliza actualizada con todos sus pagos
       const updatedPolicy = await this.findPolicyById(policy.id);
@@ -250,7 +286,6 @@ export class PolicyService extends ValidateEntity {
 
       // 4. Calcular cuántos pagos se deben generar según la frecuencia
       const paymentFrequency = Number(policy.payment_frequency_id);
-
       const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, policy.numberOfPayments);
 
       // 5. Generar solo los pagos necesarios para este ciclo (hasta la fecha actual)
@@ -347,11 +382,25 @@ export class PolicyService extends ValidateEntity {
       await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
       // Crear renovaciones automáticas
       await this.handleRenewals(newPolicy, startDate, today);
-      // Invalidar cachés, pasando el ID del asesor relacionado
-      await this.invalidateCaches(newPolicy.advisor_id);
-      // Invalidar cachés
-      //await this.invalidateCaches();
 
+      // Crear o actualizar el periodo anual inicial en la tabla de periodos
+      const year = new Date(newPolicy.startDate).getFullYear();
+      await this.createOrUpdatePeriodForPolicy(
+        newPolicy.id,
+        year,
+        {
+          policy_id: newPolicy.id,
+          year,
+          policyValue: newPolicy.policyValue,
+          agencyPercentage: newPolicy.agencyPercentage,
+          advisorPercentage: newPolicy.advisorPercentage,
+        }
+      );
+
+      this.validatePolicyValue(Number(newPolicy.policyValue));
+
+      await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
+      await this.invalidateCaches(newPolicy.advisor_id);
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -396,7 +445,8 @@ export class PolicyService extends ValidateEntity {
           'creditCard',
           'creditCard.bank',
           'renewals',
-          'commissionRefunds'
+          'commissionRefunds',
+          'periods',
         ],
         select: {
           company: {
@@ -493,7 +543,8 @@ export class PolicyService extends ValidateEntity {
           'payments',
           'payments.paymentStatus',
           'renewals',
-          'commissionRefunds'
+          'commissionRefunds',
+          'periods'
         ],
         select: {
           id: true,
@@ -675,7 +726,8 @@ export class PolicyService extends ValidateEntity {
           'payments.paymentStatus',
           'renewals',
           'commissions',
-          'commissionRefunds'
+          'commissionRefunds',
+          'periods',
         ],
         select: {
           customer: {
@@ -800,7 +852,7 @@ export class PolicyService extends ValidateEntity {
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`policy:${id}`);
       await this.redisService.del('policies');
-      
+
 
       // Actualizar caché con los datos más recientes
       await this.redisService.set(
@@ -830,10 +882,43 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
+      // --- VERIFICACIÓN DE DUPLICADO ---
+      const existingRenewal = await this.policyRenevalMethod.findOne({
+        where: {
+          policy_id: body.policy_id,
+          renewalNumber: body.renewalNumber,
+        }
+      });
+      if (existingRenewal) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: `Ya existe una renovación N°${body.renewalNumber} para esta póliza.`,
+        });
+      }
       const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
       body.createdAt = createdAt;
 
       const newRenewal = await this.policyRenevalMethod.save(body);
+      // (¡AQUÍ!)
+      // Crear o actualizar el periodo anual para la renovación
+      const renewalYear = new Date(body.createdAt).getFullYear();
+
+      console.log('Creando periodo de renovación: ', {
+        policyId: policy.id,
+        renewalYear,
+        bodyCreatedAt: body.createdAt
+      });
+      await this.createOrUpdatePeriodForPolicy(
+        policy.id,
+        renewalYear,
+        {
+          policy_id: policy.id,
+          year: renewalYear,
+          policyValue: policy.policyValue,
+          agencyPercentage: policy.agencyPercentage,
+          advisorPercentage: policy.advisorPercentage,
+        }
+      );
 
       // Verificar si es la primera renovación y generar pagos faltantes del ciclo 1
       if (body.renewalNumber === 1) {
@@ -949,6 +1034,101 @@ export class PolicyService extends ValidateEntity {
       // Avanzar la fecha según la frecuencia de pago
       currentDate = this.advanceDate(currentDate, paymentFrequency, policy, startDate, policy.numberOfPayments);
 
+    }
+  }
+
+  //13: Método para crear/actualizar  periodos para actualizar valores y % de comisiones para el calculo correcto de comiciones
+  public async createOrUpdatePeriodForPolicy(
+    policy_id: number,
+    year: number,
+    data: {
+      policy_id: number;
+      year: number;
+      policyValue: number;
+      agencyPercentage: number;
+      advisorPercentage: number;
+    }
+  ): Promise<PolicyPeriodDataEntity> {
+    try {
+
+      // Buscar periodo existente
+      let period = await this.policyPeriodDataRepository.findOne({
+        where: { policy_id: policy_id, year },
+      });
+
+      let savedPeriod: PolicyPeriodDataEntity;
+
+
+      if (!period) {
+        // Crear nuevo periodo
+        const newPeriod = this.policyPeriodDataRepository.create({
+          policy_id: data.policy_id,
+          year: data.year,
+          policyValue: data.policyValue,
+          agencyPercentage: data.agencyPercentage,
+          advisorPercentage: data.advisorPercentage,
+        });
+        savedPeriod = await this.policyPeriodDataRepository.save(newPeriod);
+      } else {
+        // Actualizar datos del periodo existente
+        period.policyValue = data.policyValue;
+        period.agencyPercentage = data.agencyPercentage;
+        period.advisorPercentage = data.advisorPercentage;
+        savedPeriod = await this.policyPeriodDataRepository.save(period);
+      }
+
+
+      // --- INVALIDACIÓN DE CACHÉS ---
+      // Por póliza
+      const policyPeriodsCacheKey = `policy:${policy_id}:periods`;
+      await this.redisService.del(policyPeriodsCacheKey);
+
+      // Por asesor
+      const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
+      if (advisorId) {
+        const advisorCacheKey = `advisor:${advisorId}:policies`;
+        await this.redisService.del(advisorCacheKey);
+      }
+
+      // Por renovaciones
+      const renewalsCacheKey = `policy:${policy_id}:renewals`;
+      await this.redisService.del(renewalsCacheKey);
+
+
+      return savedPeriod;
+    } catch (error) {
+
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  //14: Método para obtener el periodo anual de una póliza, con caché
+  public async getPolicyPeriods(policy_id: number): Promise<PolicyPeriodDataEntity[]> {
+    try {
+      if (!policy_id) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'El ID de póliza es obligatorio.',
+        });
+      }
+
+      const cacheKey = `policy:${policy_id}:periods`;
+      const cachedPeriods = await this.redisService.get(cacheKey);
+      if (cachedPeriods) {
+        return JSON.parse(cachedPeriods);
+      }
+
+      const policyPeriods: PolicyPeriodDataEntity[] = await this.policyPeriodDataRepository.find({
+        where: { policy_id: policy_id },
+        order: { year: 'ASC' }
+      });
+
+      // Guardar en caché por 9 horas (32400 segundos)
+      await this.redisService.set(cacheKey, JSON.stringify(policyPeriods), 32400);
+
+      return policyPeriods;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 }
