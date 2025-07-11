@@ -13,6 +13,7 @@ import UpdatePolicyModal from "./UpdatePolicyModal";
 import RenewallPolicyModal from "./RenewallPolicyModal";
 import CommissionHistoryModal from "./CommissionHistoryModal";
 import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
+import EditPolicyValuesModal from "./ EditPolicyValuesModal";
 export default function Modal({
   isOpen,
   onClose,
@@ -28,6 +29,7 @@ export default function Modal({
   onPolicyUpdated,
   commissionHistory,
   commissionRefunds,
+  editPoliciesValues,
 }) {
   if (!isOpen) return null;
 
@@ -108,6 +110,15 @@ export default function Modal({
             commissionRefunds={commissionRefunds}
           ></RegisterCommissionRefunds>
         );
+      case "editPoliciesValues":
+        return (
+          <EditPolicyValuesModal
+            onClose={onClose}
+            policy={policy}
+            editPoliciesValues={editPoliciesValues}
+            onPolicyUpdated={onPolicyUpdated}
+          />
+        );
       default:
         return null;
     }
@@ -138,6 +149,7 @@ Modal.propTypes = {
     PropTypes.number,
     PropTypes.object,
   ]),
+  editPoliciesValues: PropTypes.array.isRequired,
   onAdvisorUpdated: PropTypes.func.isRequired,
   onCustomerUpdated: PropTypes.func.isRequired,
   onPolicyUpdated: PropTypes.func.isRequired,

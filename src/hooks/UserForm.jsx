@@ -13,7 +13,8 @@ const DECIMAL_FIELDS = [
 ];
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
-
+  
+ 
   useEffect(() => {
     if (!form.password && !form.username && !form.cardNumber && !form.code) {
       console.log("Estado actualizado del formulario:", form);

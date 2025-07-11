@@ -5,14 +5,13 @@ import http from "../../helpers/Http";
 import dayjs from "dayjs";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilePdf, faTimes, faEdit } from "@fortawesome/free-solid-svg-icons";
 import "dayjs/locale/es";
 const ListPolicies = () => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
+
 
   const itemsPerPage = 5; // Número de asesor por página
   //conseguir la poliza por id
@@ -111,7 +110,6 @@ const ListPolicies = () => {
   }, [getAllPolicies]);
 
   //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
-  // ... existing code ...
   const handlePolicyUpdated = (policyUpdated) => {
     if (!policyUpdated) return;
 
@@ -190,7 +188,6 @@ const ListPolicies = () => {
 
   dayjs.locale("es");
 
- 
   return (
     <>
       <section>
@@ -295,6 +292,12 @@ const ListPolicies = () => {
                     </td>
                     <td>{policy.observations || "N/A"}</td>
                     <td className="d-flex gap-2">
+                      <button
+                        className="btn btn-info text-white fw-bold my-1 w-100"
+                        onClick={() => getPolicyById(policy.id, "editPoliciesValues")}
+                      >
+                        Actualizar valores y porcentajes
+                      </button>
                       <button
                         className="btn btn-primary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "info")}
