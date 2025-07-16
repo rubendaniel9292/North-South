@@ -4,6 +4,7 @@ import {
   IsString,
   IsInt,
   IsDate,
+  IsNumber,
 } from 'class-validator';
 
 export class PolicyRenewalDTO {
@@ -22,4 +23,32 @@ export class PolicyRenewalDTO {
   @IsOptional()
   @IsString()
   observations?: string;
+
+  @IsOptional()
+  @IsNumber()
+  policyValue?: number;
+
+  @IsOptional()
+  @IsNumber()
+  agencyPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  advisorPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  coverageAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  paymentsToAgency?: number;
+
+  @IsOptional()
+  @IsNumber()
+  paymentsToAdvisor?: number
+
+  @IsOptional()
+  @IsNumber()
+  policyFee?: number;
 }

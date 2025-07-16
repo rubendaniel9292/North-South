@@ -825,9 +825,13 @@ export class PolicyService extends ValidateEntity {
       const policy: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
       });
-      //const endDate = new Date(updateData.endDate);
-      const endDate = DateHelper.normalizeDateForDB(updateData.endDate);
-      const startDate = DateHelper.normalizeDateForDB(updateData.startDate);
+
+      const startDate = updateData.startDate
+        ? DateHelper.normalizeDateForDB(updateData.startDate)
+        : policy.startDate;
+      const endDate = updateData.endDate
+        ? DateHelper.normalizeDateForDB(updateData.endDate)
+        : policy.endDate;
       updateData.startDate = startDate;
       updateData.endDate = endDate;
 
@@ -872,8 +876,7 @@ export class PolicyService extends ValidateEntity {
     body: PolicyRenewalDTO,
   ): Promise<RenewalEntity> => {
     try {
-
-      // Obtener la póliza completa
+      // 1. Buscar la póliza
       const policy = await this.findPolicyById(body.policy_id);
       // validar si la póliza existe antes de registrar la renovacion
       if (!policy) {
@@ -882,7 +885,7 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      // --- VERIFICACIÓN DE DUPLICADO ---
+      // 2. Validar duplicado de renovación
       const existingRenewal = await this.policyRenevalMethod.findOne({
         where: {
           policy_id: body.policy_id,
@@ -898,11 +901,31 @@ export class PolicyService extends ValidateEntity {
       const createdAt = DateHelper.normalizeDateForDB(body.createdAt);
       body.createdAt = createdAt;
 
+      // 3. ACTUALIZAR la póliza con los nuevos valores recibidos del frontend
+      await this.updatedPolicy(policy.id, {
+        coverageAmount: body.coverageAmount,
+        policyValue: body.policyValue,
+        policyFee: body.policyFee,
+        agencyPercentage: body.agencyPercentage,
+        advisorPercentage: body.advisorPercentage,
+        paymentsToAgency: body.paymentsToAgency,
+        paymentsToAdvisor: body.paymentsToAdvisor,
+      });
+      /*
+      policy.coverageAmount = body.coverageAmount;
+      policy.policyValue = body.policyValue;
+      policy.agencyPercentage = body.agencyPercentage;
+      policy.advisorPercentage = body.advisorPercentage;
+      policy.paymentsToAgency = body.paymentsToAgency;
+      policy.paymentsToAdvisor = body.paymentsToAdvisor;
+      policy.policyFee = body.policyFee;
+      */
+      //await this.policyRepository.save(policy);
+      // 4. Registrar la renovación
       const newRenewal = await this.policyRenevalMethod.save(body);
-      // (¡AQUÍ!)
-      // Crear o actualizar el periodo anual para la renovación
-      const renewalYear = new Date(body.createdAt).getFullYear();
 
+      // 5. Crear o actualizar el periodo anual usando los NUEVOS valores de la póliza
+      const renewalYear = new Date(body.createdAt).getFullYear();
       console.log('Creando periodo de renovación: ', {
         policyId: policy.id,
         renewalYear,

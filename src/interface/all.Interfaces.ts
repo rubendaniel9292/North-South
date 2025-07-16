@@ -114,6 +114,13 @@ export interface IRenewall {
   observations?: string;
   createdAt: Date;
   updatedAt?: Date;
+  policyValue?: number;
+  agencyPercentage?: number;
+  advisorPercentage?: number;
+  coverageAmount?: number;
+  paymentsToAgency?: number;
+  paymentsToAdvisor?: number
+  policyFee?: number;
 }
 
 export interface IAdvance {
