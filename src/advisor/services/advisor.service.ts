@@ -1,7 +1,7 @@
 import { AdvisorEntity } from '../entities/advisor.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { ValidateEntity } from '@/helpers/validations';
 import { ErrorManager } from '@/helpers/error.manager';
 import { AdvisorDTO } from '../dto/advisor.dto';
@@ -12,7 +12,7 @@ export class AdvisorService extends ValidateEntity {
   constructor(
     @InjectRepository(AdvisorEntity)
     private readonly advisdorRepository: Repository<AdvisorEntity>,
-    private readonly redisService: RedisModuleService
+    private readonly redisService: RedisModuleService,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(advisdorRepository);
@@ -20,13 +20,12 @@ export class AdvisorService extends ValidateEntity {
   //1:metodo para registrar un asesor
   public createAdvisor = async (body: AdvisorDTO): Promise<AdvisorEntity> => {
     try {
-
       await this.validateInput(body, 'advisor');
       const birthday = DateHelper.normalizeDateForDB(body.birthdate);
       body.birthdate = birthday;
       body.firstName = body.firstName.toUpperCase();
       body.secondName = body.secondName.toUpperCase();
-      body.surname = body.surname.toUpperCase()
+      body.surname = body.surname.toUpperCase();
       body.secondSurname = body.secondSurname.toUpperCase();
       const newAdvisor: AdvisorEntity =
         await this.advisdorRepository.save(body);
@@ -58,17 +57,22 @@ export class AdvisorService extends ValidateEntity {
           { surname: searchCondition },
           { ci_ruc: searchCondition },
           { secondSurname: searchCondition },
-          { secondName: searchCondition }
+          { secondName: searchCondition },
         );
       }
       const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find({
         where: whereConditions.length ? whereConditions : undefined,
         order: {
-          id: "DESC",
+          id: 'DESC',
         },
-        relations: ['commissionRefunds', 'commissions', 'policies', 'policies.commissionRefunds']
-      }
-      );
+        relations: [
+          'commissionRefunds',
+          'commissions',
+          'policies',
+          'policies.periods',
+          'policies.commissionRefunds',
+        ],
+      });
       await this.redisService.set(
         'allAdvisors',
         JSON.stringify(allAdvisors),
@@ -83,14 +87,27 @@ export class AdvisorService extends ValidateEntity {
   //3: metodo para listar los asesores por id
   public getAdvisorById = async (id: number): Promise<AdvisorEntity> => {
     try {
-
       const cachedAdvisorById = await this.redisService.get(`advisor:${id}`);
       if (cachedAdvisorById) {
         return JSON.parse(cachedAdvisorById);
       }
-      const advisorById: AdvisorEntity = await this.advisdorRepository.findOne(
-        { where: { id }, relations: ['commissionRefunds', 'policies.company','commissions', 'commissions.statusAdvance', 'policies.renewals', 'policies', 'policies.customer', 'policies.payments', 'policies.payments.paymentStatus', 'policies.commissions', 'policies.commissionRefunds'] }
-      );
+      const advisorById: AdvisorEntity = await this.advisdorRepository.findOne({
+        where: { id },
+        relations: [
+          'commissionRefunds',
+          'policies.company',
+          'commissions',
+          'policies.periods',
+          'commissions.statusAdvance',
+          'policies.renewals',
+          'policies',
+          'policies.customer',
+          'policies.payments',
+          'policies.payments.paymentStatus',
+          'policies.commissions',
+          'policies.commissionRefunds',
+        ],
+      });
       if (!advisorById) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -98,20 +115,26 @@ export class AdvisorService extends ValidateEntity {
         });
       }
 
-      await this.redisService.set(`advisor:${id}`, JSON.stringify(advisorById), 32400); // TTL de 9 horas
+      await this.redisService.set(
+        `advisor:${id}`,
+        JSON.stringify(advisorById),
+        32400,
+      ); // TTL de 9 horas
       return advisorById;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
 
-  //3: Método para actualizar un cliente  
+  //3: Método para actualizar un cliente
   public updateAvisor = async (
     id: number,
     updateData: Partial<AdvisorEntity>,
   ): Promise<AdvisorEntity> => {
     try {
-      const advisor: AdvisorEntity = await this.advisdorRepository.findOne({ where: { id } });
+      const advisor: AdvisorEntity = await this.advisdorRepository.findOne({
+        where: { id },
+      });
       if (!advisor) {
         throw new ErrorManager({
           type: 'NOT_FOUND',
@@ -140,11 +163,12 @@ export class AdvisorService extends ValidateEntity {
         relations: [
           'commissions',
           'policies',
-          'policies.customer',                 // <-- ¡IMPORTANTE!
+          'policies.customer',
+          'policies.periods', // <-- ¡IMPORTANTE!
           'policies.payments',
           'policies.payments.paymentStatus',
-          'policies.commissions'
-        ]
+          'policies.commissions',
+        ],
       });
 
       // Actualizar caché con los datos más recientes incluyendo relaciones
@@ -157,5 +181,5 @@ export class AdvisorService extends ValidateEntity {
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
-  }
+  };
 }

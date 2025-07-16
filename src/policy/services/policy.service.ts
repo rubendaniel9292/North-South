@@ -1120,7 +1120,7 @@ export class PolicyService extends ValidateEntity {
 
       return savedPeriod;
     } catch (error) {
-
+      console.error('Error al invalidar caché:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }

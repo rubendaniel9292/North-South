@@ -136,8 +136,8 @@ export class PolicyController {
   @Roles('ADMIN', 'BASIC')
   @Put('update-values-by-year/:policy_id/:year')
   async updateValuesByYear(
-    @Param('policy_id') policy_id: number,
-    @Param('year') year: number,
+    @Param('policy_id', ParseIntPipe) policy_id: number,
+    @Param('year', ParseIntPipe) year: number,
     @Body() updateData: PolicyPeriodDataDTO
   ) {
     const updateValuesByYear = await this.policyService.createOrUpdatePeriodForPolicy(policy_id, year, updateData);
@@ -148,10 +148,7 @@ export class PolicyController {
         updateValuesByYear,
       };
     }
-    return {
-      status: 'error',
-      message: 'No se pudo actualizar el periodo',
-    };
+
   }
 
   // Endpoint para obtener todos los periodos de una póliza por ID
@@ -167,7 +164,7 @@ export class PolicyController {
         policyPeriods,
       };
     }
-   
+
   }
 }
 
