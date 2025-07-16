@@ -26,6 +26,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     paymentsToAgency: policy.paymentsToAgency,
     paymentsToAdvisor: policy.paymentsToAdvisor,
   });
+
+  const [formError, setFormError] = useState("");
   const addClassSafely = (id, className) => {
     const element = document.getElementById(id);
     if (element) element.classList.add(className);
@@ -96,9 +98,22 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-
+  const lastRenewalYear = policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year || new Date(policy.startDate).getFullYear();
   const renewalAndUpdatePolicy = async (e) => {
     e.preventDefault();
+    const renewalDateValue = document.getElementById('createdAt').value;
+    const enteredYear = new Date(renewalDateValue).getFullYear();
+
+    // Validation: year must be greater than last renewal year
+    if (enteredYear < lastRenewalYear) {
+      addClassSafely('createdAt', 'is-invalid');
+      setFormError(`El año de renovación debe ser mayor a ${lastRenewalYear}`);
+      return;
+    } else {
+      document.getElementById('createdAt').classList.remove('is-invalid');
+      addClassSafely('createdAt', 'is-valid');
+      setFormError('');
+    }
     setIsLoading(true);
     try {
       // 2. actualizar y renovar la póliza
@@ -283,6 +298,11 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     name="createdAt"
                     onChange={changed}
                   />
+                  {formError && (
+                    <div className="invalid-feedback d-block">
+                      {formError}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-3 col-2">

@@ -13,7 +13,7 @@ import UpdatePolicyModal from "./UpdatePolicyModal";
 import RenewallPolicyModal from "./RenewallPolicyModal";
 import CommissionHistoryModal from "./CommissionHistoryModal";
 import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
-import EditPolicyValuesModal from "./ EditPolicyValuesModal";
+import EditPolicyValuesModal from "./EditPolicyValuesModal";
 export default function Modal({
   isOpen,
   onClose,

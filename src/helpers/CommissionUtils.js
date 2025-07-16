@@ -28,7 +28,16 @@ export const calculateCommissionValue = (policy) => {
     return perPayment * totalPagos;
   }
 };
+//calcular comiciones en base al periodo
 
+export const calculateTotalAdvisorCommissionsPerPeriods = (policy) => {
+  if (!policy || !policy.periods || !Array.isArray(policy.periods)) return 0;
+  return policy.periods.reduce((sum, period) => {
+    const policyValue = Number((period.value ?? period.policyValue ?? period.policy_value) || 0);
+    const advisorPercentage = Number((period.advisorPercentage ?? period.advisor_percentage) || 0);
+    return sum + (policyValue * advisorPercentage / 100);
+  }, 0);
+};
 //ELPER 2: CALCULATE RELEASED COMMISSIONS
 export const calculateReleasedCommissions = (policy) => {
   if (!policy) return 0;
@@ -154,7 +163,10 @@ export const getPolicyFields = (policy) => {
     0
   );
   // Comisiones liberadas netas
-  const commissionTotal = calculateCommissionValue(policy); // total comisión posible de la póliza
+  //const commissionTotal = calculateCommissionValue(policy); // total comisión posible de la póliza sin tomar en cuenta los % y valroes reales de los periodos
+  //const commissionTotal = calculateTotalCommissionsPerPeriod(policy, "advisor");
+  const commissionTotal = calculateTotalAdvisorCommissionsPerPeriods(policy);
+  // O "agency" según lo que quieras mostrar
   const released = calculateReleasedCommissions(policy); // comisiones liberadas brutas (sin restar reembolsos)
   const releasedNet = released - refundsAmount;
 

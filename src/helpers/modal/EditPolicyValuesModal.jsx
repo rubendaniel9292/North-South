@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
-import http from "../../helpers/Http";
-import alerts from "../../helpers/Alerts";
+import http from "../Http";
+import alerts from "../Alerts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk, faTimes } from "@fortawesome/free-solid-svg-icons";
 import UserForm from "../../hooks/UserForm";
@@ -13,7 +13,7 @@ const getInitialYear = (policy) => {
   return new Date().getFullYear(); // Fallback
 };
 
-const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
+const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
   // Inicializa el form SOLO una vez, con valores básicos. No se re-inicializa automáticamente.
   // Usa los periodos del policy si existen, si no genera uno por defecto
   const initialPeriods =
@@ -53,9 +53,11 @@ const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
       const periods = Array.isArray(res.data)
         ? res.data.map((period) => ({
             year: period.year,
-            value: period.policyValue,
-            agencyPercentage: period.agencyPercentage,
-            advisorPercentage: period.advisorPercentage,
+            value: period.policyValue ?? period.policy_value, // <-- añade esto
+            agencyPercentage:
+              period.agencyPercentage ?? period.agency_percentage, // <-- y esto
+            advisorPercentage:
+              period.advisorPercentage ?? period.advisor_percentage, // <-- y esto
             isChanged: false,
           }))
         : [];
@@ -137,7 +139,8 @@ const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
         return;
       }
     }
-
+    console.log("INICIO ENVÍO PERIODOS", periodsToUpdate);
+    console.log("Voy a ejecutar el handleUpdate");
     try {
       const responses = await Promise.allSettled(
         periodsToUpdate.map((row) =>
@@ -150,11 +153,17 @@ const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
           })
         )
       );
-
-      // responses es un array de { status: "fulfilled", value: ... } o { status: "rejected", reason: ... }
+      // Log de la respuesta para depuración
+      console.log("RESPONSES:", responses);
+      // Busca al menos un éxito real, según la estructura del response
       const fulfilled = responses.filter((res) => res.status === "fulfilled");
+      console.log("FULFILLED:", fulfilled);
       const atLeastOneSuccess = fulfilled.some(
-        (res) => res.value.data?.status === "success"
+        (res) =>
+          // Si tu helper http retorna el objeto Axios completo
+          res.value?.data?.status === "success" ||
+          // Si retorna directamente el objeto JSON (fetch)
+          res.value?.status === "success"
       );
 
       if (atLeastOneSuccess) {
@@ -164,14 +173,19 @@ const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
           "success"
         );
         await fetchPeriods();
-        onUpdated();
+        onPolicyUpdated();
         onClose();
       } else {
+        console.log(
+          "RESPONSES DENTRO DEL ELSE:",
+          JSON.stringify(responses, null, 2)
+        );
         alerts("Error", "No se pudo actualizar ningún periodo", "error");
         onClose();
       }
     } catch (error) {
       // Este catch solo se ejecutaría si Promise.allSettled lanza error, lo cual es raro.
+      console.log("ERROR EN CATCH:", error); //
       alerts("Error", "No se pudo actualizar los valores", "error");
       setIsLoading(false);
       onClose();
@@ -291,6 +305,7 @@ const EditPolicyValuesModal = ({ policy, onClose, onUpdated }) => {
                 disabled={isLoading}
               >
                 {isLoading ? "Actualizando..." : "ACTUALIZAR CAMPOS"}
+
                 <FontAwesomeIcon
                   className="ms-2"
                   icon={faFloppyDisk}
