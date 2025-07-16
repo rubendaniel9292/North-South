@@ -6,11 +6,11 @@ import http from "../../helpers/Http";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import dayjs from "dayjs";
-import "dayjs/locale/es";
+//import dayjs from "dayjs";
+//import "dayjs/locale/es";
 import { useCallback } from "react";
-
-const RenewallPolicyModal = ({ policy, onClose }) => {
+import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
+const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
 
   console.log("poliza obtenida: ", policy);
@@ -18,7 +18,18 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
   const { form, changed, setForm } = UserForm({
     policy_id: policy.id,
     //createdAt:  dayjs(form.createdAt).toISOString(), // Usar versión ISO o convertir
+    coverageAmount: policy.coverageAmount,
+    policyValue: policy.policyValue,
+    policyFee: policy.policyFee || 0,
+    agencyPercentage: policy.agencyPercentage,
+    advisorPercentage: policy.advisorPercentage,
+    paymentsToAgency: policy.paymentsToAgency,
+    paymentsToAdvisor: policy.paymentsToAdvisor,
   });
+  const addClassSafely = (id, className) => {
+    const element = document.getElementById(id);
+    if (element) element.classList.add(className);
+  };
 
   const [isDataValid, setIsDataValid] = useState(true);
 
@@ -38,15 +49,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
       }));
     }
   }, [policy]);
-  /*
-  useEffect(() => {
-    if (policy) {
-      setForm((prev) => ({
-        ...prev,
-      }));
-    }
-  }, [policy]);
-*/
+
   useEffect(() => {
     if (!policy) {
       console.error("Error al recibir el objeto", policy);
@@ -54,82 +57,57 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
       return null;
     }
   }, [policy]);
-  // Manejo especial para el campo de fecha
-  /*
-  const handleDateChange = (e) => {
-    const { value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      createdAt: value,
-    }));
-  };
-*/
+
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
-  /*
   const calculateAdvisorPayment = useCallback(() => {
-    const value = Number(form.policyValue);
-    const percentageAdvisor = Number(form.advisorPercentage);
-    const percentageAgency = Number(form.agencyPercentage);
-    const policyFee = Number(form.policyFee);
-    let paymentAvisor = 0;
-    let paymentAgency = 0;
-    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = Number(
-        (value * percentageAgency) / 100 - policyFee
-      ).toFixed(2);
-
-      paymentAvisor = Number((paymentAgency * percentageAdvisor) / 100).toFixed(
-        2
+    const { paymentsToAgency, paymentsToAdvisor } =
+      calculateAdvisorAndAgencyPayments(
+        form.policyValue,
+        form.policyFee,
+        form.agencyPercentage,
+        form.advisorPercentage
       );
-      changed({
-        target: {
-          name: "paymentsToAgency",
-          value: paymentAgency - paymentAvisor,
-        },
-      });
 
-      changed({
-        target: {
-          name: "paymentsToAdvisor",
-          value: paymentAvisor,
-        },
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    changed({
+      target: {
+        name: "paymentsToAgency",
+        value: paymentsToAgency,
+      },
+    });
+
+    changed({
+      target: {
+        name: "paymentsToAdvisor",
+        value: paymentsToAdvisor,
+      },
+    });
+    // Agregar clase is-valid a los campos calculados automáticamente de manera segura
+    addClassSafely("paymentsToAgency", "is-valid");
+    addClassSafely("paymentsToAdvisor", "is-valid");
+    addClassSafely("numberOfPayments", "is-valid");
+    addClassSafely("numberOfPaymentsAdvisor", "is-valid");
   }, [
     form.policyValue,
-    form.advisorPercentage,
     form.policyFee,
     form.agencyPercentage,
+    form.advisorPercentage,
   ]);
-*/
-/*
+
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-*/
+
   const renewalAndUpdatePolicy = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // 2. actualizar y renovar la póliza
+
       const renewalData = {
         policy_id: policy.id,
         renewalNumber: form.renewalNumber,
         createdAt: form.createdAt,
         observations: form.observations || "",
-      };
-
-      const renewalRequest = await http.post(
-        "policy/register-renewal",
-        renewalData
-      );
-      if (renewalRequest.data.status !== "success") {
-        throw new Error("Error al registrar la renovación");
-      }
-
-      // 2. Luego actualizar la póliza
-      /*
-      const policyData = {
         coverageAmount: form.coverageAmount,
         policyValue: form.policyValue,
         policyFee: form.policyFee,
@@ -138,12 +116,12 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
         paymentsToAgency: form.paymentsToAgency,
         paymentsToAdvisor: form.paymentsToAdvisor,
       };
-      /*
-      const policyRequest = await http.post(
-        `policy/update-policy/${policy.id}`,
-        policyData
+
+      const renewalRequest = await http.post(
+        "policy/register-renewal",
+        renewalData
       );
-*/
+
       if (renewalRequest.data.status === "success") {
         alerts(
           "Renovación exitosa",
@@ -152,10 +130,8 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
         );
 
         // Llamar a la función de callback para propagar el cambio
-        /*
-        if (typeof onPolicyUpdated === "function") {
-          onPolicyUpdated(policyRequest.data.policyUpdate);
-        }*/
+
+        onPolicyUpdated(renewalRequest.data.newRenewal);
         setTimeout(() => {
           onClose();
         }, 500);
@@ -190,9 +166,13 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
             </h3>
           </div>
           <div className="justify-content-around mt-1">
-            <form onSubmit={renewalAndUpdatePolicy} id="user-form">
+            <form
+              onSubmit={renewalAndUpdatePolicy}
+              id="user-form"
+              className="needs-validation was-validated"
+            >
               <div className="row pt-3 fw-bold">
-                <div className="mb-3  d-none">
+                <div className="d-none">
                   <label htmlFor="policy_id" className="form-label">
                     Id de Póliza
                   </label>
@@ -206,7 +186,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     readOnly
                   />
                 </div>
-                <div className="mb-3 col-4">
+                <div className="mb-3 col-2">
                   <label htmlFor="numberRenewal" className="form-label">
                     Número de renovación
                   </label>
@@ -217,12 +197,12 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     type="number"
                     className="form-control"
                     name="renewalNumber"
-                    value={form.renewalNumber}
+                    value={form.renewalNumber || 1}
                     onChange={changed}
                   />
                 </div>
-                {/* 
-                <div className="mb-3 col-3">
+
+                <div className="mb-3 col-2">
                   <label htmlFor="coverageAmount" className="form-label">
                     Monto de Cobertura
                   </label>
@@ -236,7 +216,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     value={form.coverageAmount}
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="policyValue" className="form-label">
                     Valor de la Póliza
                   </label>
@@ -250,7 +230,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="policyFee" className="form-label">
                     Derecho de póliza
                   </label>
@@ -263,7 +243,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     onChange={changed} // Llamada a la función
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="agencyPercentage" className="form-label">
                     Procentaje de la Agencia
                   </label>
@@ -277,7 +257,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     value={form.agencyPercentage}
                   />
                 </div>
-                <div className="mb-3 col-3">
+                <div className="mb-3 col-2">
                   <label htmlFor="advisorPercentage" className="form-label">
                     Porcentaje del Asesor
                   </label>
@@ -291,37 +271,7 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     value={form.advisorPercentage}
                   />
                 </div>
-
-                <div className="d-none">
-                  <label htmlFor="paymentsToAgency" className="form-label">
-                    Comisiones de la agencia
-                  </label>
-                  <input
-                    readOnly
-                    required
-                    type="number"
-                    className="form-control"
-                    id=" paymentsToAgency"
-                    name=" paymentsToAgency"
-                    value={form.paymentsToAgency || 0}
-                  />
-                </div>
-                <div className="d-none">
-                  <label htmlFor="paymentsToAdvisor" className="form-label">
-                    Comisiones de asesor
-                  </label>
-                  <input
-                    readOnly
-                    required
-                    type="number"
-                    className="form-control"
-                    id="paymentsToAdvisor"
-                    name="paymentsToAdvisor"
-                    value={form.paymentsToAdvisor || 0}
-                  />
-                </div>
-*/}
-                <div className="mb-3 col-4 ">
+                <div className="mb-3 col-2">
                   <label htmlFor="balance" className="form-label">
                     Fecha de renovacion
                   </label>
@@ -335,7 +285,35 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                   />
                 </div>
 
-                <div className="mb-2 col-4">
+                <div className="mb-3 col-2">
+                  <label htmlFor="paymentsToAgency" className="form-label">
+                    Comisiones de la agencia
+                  </label>
+                  <input
+                    readOnly
+                    required
+                    type="number"
+                    className="form-control"
+                    id=" paymentsToAgency"
+                    name=" paymentsToAgency"
+                    value={form.paymentsToAgency || 0}
+                  />
+                </div>
+                <div className="mb-3 col-2">
+                  <label htmlFor="paymentsToAdvisor" className="form-label">
+                    Comisiones de asesor
+                  </label>
+                  <input
+                    readOnly
+                    required
+                    type="number"
+                    className="form-control"
+                    id="paymentsToAdvisor"
+                    name="paymentsToAdvisor"
+                    value={form.paymentsToAdvisor || 0}
+                  />
+                </div>
+                <div className="mb-2 col-6">
                   <label htmlFor="observations" className="form-label">
                     Observaciones
                   </label>
@@ -345,10 +323,10 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
                     id="observations"
                     name="observations"
                     onChange={changed}
-                    value={form.observations || ""}
+                    value={""}
                   />
                 </div>
-                <div className="mt-2 col-">
+                <div className="mt-2">
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -393,6 +371,13 @@ const RenewallPolicyModal = ({ policy, onClose }) => {
 RenewallPolicyModal.propTypes = {
   policy: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
+    coverageAmount: PropTypes.number.isRequired,
+    policyValue: PropTypes.number.isRequired,
+    policyFee: PropTypes.number.isRequired,
+    agencyPercentage: PropTypes.number.isRequired,
+    advisorPercentage: PropTypes.number.isRequired,
+    paymentsToAgency: PropTypes.number.isRequired,
+    paymentsToAdvisor: PropTypes.number.isRequired,
     renewals: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
