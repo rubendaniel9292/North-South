@@ -12,7 +12,6 @@ const ListPolicies = () => {
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
 
-
   const itemsPerPage = 5; // Número de asesor por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
@@ -85,7 +84,7 @@ const ListPolicies = () => {
       console.error("Error registering payment:", error);
     }
   }, []);
-  // Función para recargar la póliza específica
+
 
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
@@ -100,13 +99,6 @@ const ListPolicies = () => {
 
   useEffect(() => {
     getAllPolicies();
-    // intervalo para actualizar las pólizas cada 30 segundos active automáticamente cuando el saldo pendiente llegue a 0
-    /*
-    const intervalId = setInterval(() => {
-      getAllPolicies();
-      // Limpiar el intervalo cuando el componente se desmonte
-      return () => clearInterval(intervalId);
-    }, 30000);*/
   }, [getAllPolicies]);
 
   //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
@@ -131,6 +123,7 @@ const ListPolicies = () => {
             paymentMethod: policyUpdated.paymentMethod || p.paymentMethod,
             paymentFrequency:
               policyUpdated.paymentFrequency || p.paymentFrequency,
+            
           };
 
           return updatedPolicy;
@@ -294,7 +287,9 @@ const ListPolicies = () => {
                     <td className="d-flex gap-2">
                       <button
                         className="btn btn-info text-white fw-bold my-1 w-100"
-                        onClick={() => getPolicyById(policy.id, "editPoliciesValues")}
+                        onClick={() =>
+                          getPolicyById(policy.id, "editPoliciesValues")
+                        }
                       >
                         Actualizar valores y porcentajes
                       </button>

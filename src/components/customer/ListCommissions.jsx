@@ -11,7 +11,10 @@ import {
   faDollarSign,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
+import {
+  getTotals,
+  getPolicyFields,
+} from "../../helpers/CommissionUtils";
 
 // Badge Bootstrap helper
 const Badge = ({ text, color = "secondary" }) => (
@@ -93,7 +96,7 @@ const ListCommissions = () => {
   };
 
   // Filtrar las pólizas incluyendo el filtro por compañía
-  // Filtrar las pólizas según los filtros aplicados
+
   const filteredPolicies = useMemo(() => {
     let policies = advisor?.policies || [];
     let anticipos = advisor?.commissions?.filter((c) => !c.policy_id) || [];
@@ -164,7 +167,7 @@ const ListCommissions = () => {
         .filter((policy) => policy.numberPolicy) // solo pólizas reales
         .map((policy) => ({
           ...policy,
-          ...getPolicyFields(policy),
+          ...getPolicyFields(policy), // Usa la lógica de pagos generados
         })),
     [filteredPolicies]
   );
@@ -560,7 +563,7 @@ const ListCommissions = () => {
                             </tr>
                             {/* Subtabla historial de pagos debajo */}
                             <tr>
-                              <td colSpan={11} className="p-0">
+                              <td colSpan={12} className="p-0">
                                 {Array.isArray(policyFiltered.commissions) &&
                                 policyFiltered.commissions.length > 0 ? (
                                   <table className="table table-sm table-bordered text-center mb-0">

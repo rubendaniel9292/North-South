@@ -24,6 +24,7 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
           value: period.policyValue,
           agencyPercentage: period.agencyPercentage,
           advisorPercentage: period.advisorPercentage,
+          policyFee: period.policyFee,
           isChanged: false,
         }))
       : [
@@ -33,6 +34,7 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
             value: policy.policyValue,
             agencyPercentage: policy.agencyPercentage,
             advisorPercentage: policy.advisorPercentage,
+            policyFee: policy.policyFee,
             isChanged: false,
           },
         ];
@@ -53,11 +55,13 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
       const periods = Array.isArray(res.data)
         ? res.data.map((period) => ({
             year: period.year,
-            value: period.policyValue ?? period.policy_value, // <-- añade esto
+            value: period.policyValue ?? period.policy_value,
             agencyPercentage:
-              period.agencyPercentage ?? period.agency_percentage, // <-- y esto
+              period.agencyPercentage ?? period.agency_percentage,
             advisorPercentage:
-              period.advisorPercentage ?? period.advisor_percentage, // <-- y esto
+              period.advisorPercentage ?? period.advisor_percentage,
+            policyFee: period.policyFee ?? period.policy_fee,
+
             isChanged: false,
           }))
         : [];
@@ -128,7 +132,10 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
         row.agencyPercentage > 100 ||
         isNaN(row.advisorPercentage) ||
         row.advisorPercentage < 0 ||
-        row.advisorPercentage > 100
+        row.advisorPercentage > 100 ||
+        row.policyFee === "" ||
+        isNaN(row.policyFee) ||
+        row.policyFee < 0
       ) {
         alerts(
           "Error de validación",
@@ -139,8 +146,7 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
         return;
       }
     }
-    console.log("INICIO ENVÍO PERIODOS", periodsToUpdate);
-    console.log("Voy a ejecutar el handleUpdate");
+
     try {
       const responses = await Promise.allSettled(
         periodsToUpdate.map((row) =>
@@ -150,14 +156,14 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
             policyValue: parseFloat(row.value),
             agencyPercentage: parseFloat(row.agencyPercentage),
             advisorPercentage: parseFloat(row.advisorPercentage),
+            policyFee: parseFloat(row.policyFee),
           })
         )
       );
-      // Log de la respuesta para depuración
-      console.log("RESPONSES:", responses);
+
       // Busca al menos un éxito real, según la estructura del response
       const fulfilled = responses.filter((res) => res.status === "fulfilled");
-      console.log("FULFILLED:", fulfilled);
+
       const atLeastOneSuccess = fulfilled.some(
         (res) =>
           // Si tu helper http retorna el objeto Axios completo
@@ -176,10 +182,6 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
         onPolicyUpdated();
         onClose();
       } else {
-        console.log(
-          "RESPONSES DENTRO DEL ELSE:",
-          JSON.stringify(responses, null, 2)
-        );
         alerts("Error", "No se pudo actualizar ningún periodo", "error");
         onClose();
       }
@@ -220,11 +222,11 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
       <article className="modal-content text-center">
         <div className="container py-2">
           <h2 className="">Editar valores y porcentajes por año</h2>
-          <div className="mb-1">
+          <div className="py-1">
             <strong>Póliza:</strong>{" "}
             <span className="badge bg-secondary">{policy.numberPolicy}</span>
           </div>
-          <div className="mb-3">
+          <div className="py-1">
             <strong>Cliente:</strong> {getCustomerName()}
           </div>
 
@@ -250,7 +252,7 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={policy.id}
                   />
                 </div>
-                <div className="col-3  mt-1">
+                <div className="col-2  mt-1">
                   <label className="form-label fw-semibold mx-1">
                     VALOR DE LA PÓLIZA
                   </label>
@@ -264,8 +266,25 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                     min="0"
                   />
                 </div>
-                <div className="col-3 mt-1">
-                  <label className="form-label">% AGENCIA</label>
+                <div className="col-2 mt-1">
+                  <label className="form-label fw-semibold mx-1">
+                    DERECHO DE PÓLIZA
+                  </label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    value={row.policyFee}
+                    onChange={(e) =>
+                      handleFieldChange(idx, "policyFee", e.target.value)
+                    }
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="col-2 mt-1">
+                  <label className="form-label fw-semibold mx-1">
+                    % AGENCIA
+                  </label>
                   <input
                     type="number"
                     className="form-control form-control-sm"
@@ -277,8 +296,10 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                     max="100"
                   />
                 </div>
-                <div className="col-3 mt-1">
-                  <label className="form-label">% ASESOR</label>
+                <div className="col-2 mt-1">
+                  <label className="form-label fw-semibold mx-1">
+                    % ASESOR
+                  </label>
                   <input
                     type="number"
                     className="form-control form-control-sm"
@@ -336,6 +357,7 @@ EditPolicyValuesModal.propTypes = {
     numberPolicy: PropTypes.string,
     policyValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     agencyPercentage: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    policyFee: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     advisorPercentage: PropTypes.oneOfType([
       PropTypes.string,
       PropTypes.number,

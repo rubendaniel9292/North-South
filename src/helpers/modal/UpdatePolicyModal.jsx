@@ -11,20 +11,27 @@ import "dayjs/locale/es";
 import { useCallback } from "react";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
+  //pbeneres valor, % y derecho de poliza
+  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed, setForm } = UserForm({
     numberPolicy: policy.numberPolicy,
     coverageAmount: policy.coverageAmount,
-    agencyPercentage: policy.agencyPercentage,
-    advisorPercentage: policy.advisorPercentage,
-    policyValue: policy.policyValue,
+    //agencyPercentage: policy.agencyPercentage,
+    //advisorPercentage: policy.advisorPercentage,
+    //policyValue: policy.policyValue,
+    //policyFee: policy.policyFee,
+    agencyPercentage: lastPeriod.agencyPercentage,
+    advisorPercentage: lastPeriod.advisorPercentage,
+    policyValue: lastPeriod.policyValue,
+    policyFee: lastPeriod.policyFee,
     startDate: dayjs.utc(policy.startDate).format("YYYY-MM-DD").toString(),
     endDate: dayjs.utc(policy.endDate).format("YYYY-MM-DD").toString(),
     paymentsToAdvisor: policy.paymentsToAdvisor,
     paymentsToAgency: policy.paymentsToAgency,
-    policyFee: policy.policyFee,
+  
     observations: policy.observations,
     renewalCommission: policy.renewalCommission,
     policy_type_id: policy.policyType.id,
@@ -906,6 +913,20 @@ UpdatePolicyModal.propTypes = {
         createdAt: PropTypes.string.isRequired,
       }).isRequired
     ),
+
+    periods: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired,
+        year: PropTypes.number.isRequired,
+        policy_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired,
+        advisorPercentage: PropTypes.number.isRequired,
+        agencyPercentage: PropTypes.number.isRequired,
+        policyValue: PropTypes.number.isRequired,
+        policyFee: PropTypes.number,
+      })
+    ).isRequired,
   }).isRequired,
 
   onClose: PropTypes.func.isRequired,

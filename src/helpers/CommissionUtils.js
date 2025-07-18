@@ -1,87 +1,117 @@
-//HELPER 1: CALCULATE COMMISSION VALUE
-export const calculateCommissionValue = (policy) => {
-  if (!policy) return 0;
-
-  if (!policy.renewalCommission) {
-    return Number(policy.paymentsToAdvisor) || 0;
-  }
-
-  if (policy.isCommissionAnnualized === true) {
-    const numPeriodos =
-      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
-    return numPeriodos * (Number(policy.paymentsToAdvisor) || 0);
-  } else {
-    let totalPagos = Array.isArray(policy.payments)
-      ? policy.payments.length
-      : 0;
-    if (Array.isArray(policy.renewals)) {
-      for (const renewal of policy.renewals) {
-        if (Array.isArray(renewal.payments)) {
-          totalPagos += renewal.payments.length;
-        }
-      }
-    }
-
-    const perPayment =
-      Number(policy.paymentsToAdvisor) /
-      Number(policy.numberOfPaymentsAdvisor || 1);
-    return perPayment * totalPagos;
-  }
+// Comisión de asesor/agencia por periodo (teórico, por periodo)
+export const calculateAdvisorCommissionPerPeriod = (period) => {
+  if (!period) return 0;
+  const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+  const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+  const advisorPercentage = Number(
+    period.advisorPercentage ?? period.advisor_percentage ?? 0
+  );
+  return ((policyValue - policyFee) * advisorPercentage) / 100;
 };
-//calcular comiciones en base al periodo
-
-export const calculateTotalAdvisorCommissionsPerPeriods = (policy) => {
-  if (!policy || !policy.periods || !Array.isArray(policy.periods)) return 0;
-  return policy.periods.reduce((sum, period) => {
-    const policyValue = Number((period.value ?? period.policyValue ?? period.policy_value) || 0);
-    const advisorPercentage = Number((period.advisorPercentage ?? period.advisor_percentage) || 0);
-    return sum + (policyValue * advisorPercentage / 100);
-  }, 0);
+/*
+export const calculateAgencyCommissionPerPeriod = (period) => {
+  if (!period) return 0;
+  const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+  const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+  const agencyPercentage = Number(
+    period.agencyPercentage ?? period.agency_percentage ?? 0
+  );
+  return ((policyValue - policyFee) * agencyPercentage) / 100;
 };
-//ELPER 2: CALCULATE RELEASED COMMISSIONS
-export const calculateReleasedCommissions = (policy) => {
-  if (!policy) return 0;
+*/
 
-  // PÓLIZA ANUALIZADA (sin cambios)
-  if (policy.isCommissionAnnualized === true) {
-    const periods =
-      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
-    return Number(policy.paymentsToAdvisor || 0) * periods;
+// Comisión por pagos generados (pagos existentes, no teórica)
+export const getAdvisorCommissionForPayment = (payment, policy) => {
+  let period = null;
+  if (payment.year) {
+    period = policy.periods?.find(
+      (p) => Number(p.year) === Number(payment.year)
+    );
   }
-
-  // PÓLIZA NORMAL (no anualizada)
-  const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
-  const paymentPerInstallment =
-    Number(policy.paymentsToAdvisor) / numberOfPayments;
-
-  // Cuotas liberadas de la póliza principal
-  const releasedInstallments = Array.isArray(policy.payments)
-    ? policy.payments.filter(
-        (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-      ).length
-    : 0;
-
-  // Cuotas liberadas de las renovaciones, si existen
-  let releasedInstallmentsRenewals = 0;
-  if (Array.isArray(policy.renewals)) {
-    for (const renewal of policy.renewals) {
-      if (Array.isArray(renewal.payments)) {
-        releasedInstallmentsRenewals += renewal.payments.filter(
-          (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
-        ).length;
-      }
-    }
+  if (!period && payment.periodId) {
+    period = policy.periods?.find((p) => p.id === payment.periodId);
   }
-
-  // Comisión liberada total (no se descuenta policyFee aquí, debe estar descontado en paymentsToAdvisor)
-  const totalReleased =
-    (releasedInstallments + releasedInstallmentsRenewals) *
-    paymentPerInstallment;
-
-  return totalReleased;
+  if (!period && policy.periods?.length) {
+    period = policy.periods[policy.periods.length - 1];
+  }
+  if (!period) return 0;
+  const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+  const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+  const advisorPercentage = Number(
+    period.advisorPercentage ?? period.advisor_percentage ?? 0
+  );
+  const numPayments = Number(
+    period.numberOfPaymentsAdvisor ?? policy.numberOfPaymentsAdvisor ?? 1
+  );
+  return ((policyValue - policyFee) * advisorPercentage) / 100 / numPayments;
 };
-// 3: Suma simple de todos los anticipos del asesor (no por póliza)
-
+/*
+export const getAgencyCommissionForPayment = (payment, policy) => {
+  let period = null;
+  if (payment.year) {
+    period = policy.periods?.find(
+      (p) => Number(p.year) === Number(payment.year)
+    );
+  }
+  if (!period && payment.periodId) {
+    period = policy.periods?.find((p) => p.id === payment.periodId);
+  }
+  if (!period && policy.periods?.length) {
+    period = policy.periods[policy.periods.length - 1];
+  }
+  if (!period) return 0;
+  const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+  const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+  const agencyPercentage = Number(
+    period.agencyPercentage ?? period.agency_percentage ?? 0
+  );
+  const numPayments = Number(
+    period.numberOfPaymentsAdvisor ?? policy.numberOfPaymentsAdvisor ?? 1
+  );
+  return ((policyValue - policyFee) * agencyPercentage) / 100 / numPayments;
+};
+*/
+// Comisión total generada (solo pagos creados)
+export const calculateTotalAdvisorCommissionsGenerated = (policy) => {
+  if (!policy || !Array.isArray(policy.payments)) return 0;
+  return policy.payments.reduce(
+    (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
+    0
+  );
+};
+/*
+export const calculateTotalAgencyCommissionsGenerated = (policy) => {
+  if (!policy || !Array.isArray(policy.payments)) return 0;
+  return policy.payments.reduce(
+    (total, payment) => total + getAgencyCommissionForPayment(payment, policy),
+    0
+  );
+};
+*/
+// Comisión liberada: solo pagos creados y liberados (AL DÍA)
+export const calculateReleasedCommissionsGenerated = (policy) => {
+  if (!policy || !Array.isArray(policy.payments)) return 0;
+  return policy.payments
+    .filter((payment) => payment.paymentStatus && payment.paymentStatus.id == 2)
+    .reduce(
+      (total, payment) =>
+        total + getAdvisorCommissionForPayment(payment, policy),
+      0
+    );
+};
+/*
+export const calculateReleasedAgencyCommissionsGenerated = (policy) => {
+  if (!policy || !Array.isArray(policy.payments)) return 0;
+  return policy.payments
+    .filter((payment) => payment.paymentStatus && payment.paymentStatus.id == 2)
+    .reduce(
+      (total, payment) =>
+        total + getAgencyCommissionForPayment(payment, policy),
+      0
+    );
+};
+*/
+// Suma simple de todos los anticipos del asesor (no por póliza)
 export const getAdvisorTotalAdvances = (advisor) =>
   advisor && advisor.commissions
     ? advisor.commissions
@@ -95,19 +125,18 @@ export const getAdvisorTotalAdvances = (advisor) =>
         .reduce((sum, advance) => sum + Number(advance.advanceAmount || 0), 0)
     : 0;
 
-// 4. Reparte el anticipo histórico entre las pólizas, de arriba hacia abajo
+// Reparte anticipo histórico entre las pólizas
 export const applyHistoricalAdvance = (policies, totalAdvance) => {
-  // Ordena por commissionInFavor de mayor a menor
   const sortedPolicies = [...policies]
     .map((policy) => {
-      const released = calculateReleasedCommissions(policy);
+      const released = calculateReleasedCommissionsGenerated(policy);
       const paid = Array.isArray(policy.commissions)
         ? policy.commissions.reduce(
             (sum, p) => sum + (Number(p.advanceAmount) || 0),
             0
           )
         : 0;
-      const totalCommission = calculateCommissionValue(policy); // <--- ¡AQUÍ!
+      const totalCommission = calculateTotalAdvisorCommissionsGenerated(policy);
       return {
         ...policy,
         released,
@@ -125,19 +154,17 @@ export const applyHistoricalAdvance = (policies, totalAdvance) => {
       appliedHistoricalAdvance = Math.min(policy.commissionInFavor, remaining);
       remaining -= appliedHistoricalAdvance;
     }
-    // El saldo a favor después de aplicar el anticipo histórico:
     const newCommissionInFavor =
       policy.commissionInFavor - appliedHistoricalAdvance;
     return {
       ...policy,
       commissionInFavor: newCommissionInFavor,
       appliedHistoricalAdvance,
-      // totalCommission ya viene copiado
     };
   });
 };
 
-//5:
+// Distribuye el anticipo entre las pólizas según saldo a favor
 export const distributeAdvance = (policies, advanceAmount) => {
   const sortedPolicies = [...policies].sort(
     (a, b) => b.commissionInFavor - a.commissionInFavor
@@ -155,19 +182,14 @@ export const distributeAdvance = (policies, advanceAmount) => {
   });
 };
 
-// Para totales globales
+// Helper principal para mostrar campos principales
 export const getPolicyFields = (policy) => {
-  // Suma de reembolsos
   const refundsAmount = (policy.commissionRefunds || []).reduce(
     (acc, curr) => acc + Number(curr.amountRefunds || 0),
     0
   );
-  // Comisiones liberadas netas
-  //const commissionTotal = calculateCommissionValue(policy); // total comisión posible de la póliza sin tomar en cuenta los % y valroes reales de los periodos
-  //const commissionTotal = calculateTotalCommissionsPerPeriod(policy, "advisor");
-  const commissionTotal = calculateTotalAdvisorCommissionsPerPeriods(policy);
-  // O "agency" según lo que quieras mostrar
-  const released = calculateReleasedCommissions(policy); // comisiones liberadas brutas (sin restar reembolsos)
+  const commissionTotal = calculateTotalAdvisorCommissionsGenerated(policy);
+  const released = calculateReleasedCommissionsGenerated(policy);
   const releasedNet = released - refundsAmount;
 
   const paid = Array.isArray(policy.commissions)
@@ -182,9 +204,8 @@ export const getPolicyFields = (policy) => {
   const commissionInFavor = Math.max(afterBalance, 0);
 
   return {
-    commissionTotal,
-    released: released,
-    //(Number(policy.policyFee) / Number(policy.numberOfPaymentsAdvisor) || 0), // Restar la comisión de la póliza
+    commissionTotal, // suma solo pagos creados (no futuros)
+    released,
     paid,
     appliedHistoricalAdvance,
     refundsAmount,
@@ -193,7 +214,7 @@ export const getPolicyFields = (policy) => {
   };
 };
 
-//Sumatorias globales (solo para COMISION)
+// Sumatorias globales (solo para COMISION)
 export const getTotals = (policies, advanceValue = 0, operationType = "") => {
   const totals = policies.reduce(
     (acc, policy) => {
@@ -217,77 +238,26 @@ export const getTotals = (policies, advanceValue = 0, operationType = "") => {
       commissionInFavor: 0,
     }
   );
-  // Si tienes lógica de anticipo global, aplícala acá si es necesario
   if (operationType === "COMISION" && policies.length > 0 && advanceValue) {
     totals.afterBalance -= Number(advanceValue);
   }
   return totals;
 };
-//calculo simple de comiciones
+
+// Cálculo simple de comisiones por valores puntuales
+
 export const calculateAdvisorAndAgencyPayments = (
   policyValue,
   policyFee,
   percentageAgency,
   percentageAdvisor
 ) => {
-  // Convertir valores a números para evitar problemas de tipo
   const value = Number(policyValue) - Number(policyFee);
   const paymentAgency = (value * Number(percentageAgency)) / 100;
   const paymentAdvisor = (value * Number(percentageAdvisor)) / 100;
-
-  // Calcular el pago a la agencia
   const paymentsToAgency = paymentAgency - paymentAdvisor;
-
-  // Redondear los valores al final
   return {
     paymentsToAgency: Number(paymentsToAgency.toFixed(2)),
     paymentsToAdvisor: Number(paymentAdvisor.toFixed(2)),
   };
 };
-/* VERSION ANTERIOR INDIVIDUAL PARA CADA COMPONENTE
-  const calculateAdvisorPayment = useCallback(() => {
-    // Función auxiliar para agregar clase de manera segura
-    const addClassSafely = (id, className) => {
-      const element = document.getElementById(id);
-      if (element) element.classList.add(className);
-    };
-
-    const percentageAdvisor = Number(form.advisorPercentage);
-    const percentageAgency = Number(form.agencyPercentage);
-    const policyFee = Number(form.policyFee);
-    const value = Number(form.policyValue) - policyFee;
-    let paymentAvisor = 0;
-    let paymentAgency = 0;
-    if (!isNaN(value) && !isNaN(percentageAdvisor) && !isNaN(policyFee)) {
-      paymentAgency = parseFloat(((value * percentageAgency) / 100).toFixed(2));
-      paymentAvisor = parseFloat(
-        ((value * percentageAdvisor) / 100).toFixed(2)
-      );
-
-      changed({
-        target: {
-          name: "paymentsToAgency",
-          value: paymentAgency - paymentAvisor,
-          //value: paymentAvisor,
-        },
-      });
-
-      changed({
-        target: {
-          name: "paymentsToAdvisor",
-          value: paymentAvisor,
-        },
-      });
-      // Agregar clase is-valid a los campos calculados automáticamente de manera segura
-      addClassSafely("paymentsToAgency", "is-valid");
-      addClassSafely("paymentsToAdvisor", "is-valid");
-      addClassSafely("numberOfPayments", "is-valid");
-      addClassSafely("numberOfPaymentsAdvisor", "is-valid");
-    }
-  }, [
-    form.policyValue,
-    form.advisorPercentage,
-    form.policyFee,
-    form.agencyPercentage,
-  ]);
-  */

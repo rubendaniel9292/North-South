@@ -13,8 +13,8 @@ import {
   loadSelectedPolicies,
 } from "../../helpers/localStorageUtils";
 import {
-  calculateCommissionValue,
-  calculateReleasedCommissions,
+  calculateTotalAdvisorCommissionsGenerated,
+  calculateReleasedCommissionsGenerated,
   getAdvisorTotalAdvances,
   applyHistoricalAdvance,
   distributeAdvance,
@@ -56,18 +56,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   // 5. MEMOIZAR POLIZAS CON ANTICIPO HISTÓRICO APLICADO
   const policiesWithFavor = useMemo(
-    () =>
-      applyHistoricalAdvance(
-        selectedPolicies,
-        advisorTotalAdvances,
-        calculateCommissionValue,
-        calculateReleasedCommissions
-      ),
+    () => applyHistoricalAdvance(selectedPolicies, advisorTotalAdvances),
     [selectedPolicies, advisorTotalAdvances]
   );
 
   // 6. DISTRIBUIR EL VALOR ACTUAL DEL FORMULARIO ENTRE LAS POLIZAS
-
   const distributedPolicies = useMemo(
     () =>
       distributeAdvance(policiesWithFavor, advanceValue).map((policy) => ({
@@ -94,8 +87,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   useEffect(() => {
     if (operationType === "COMISION" && Array.isArray(advisorId.policies)) {
       const releasedPolicies = advisorId.policies.filter((policy) => {
-        const released = calculateReleasedCommissions(policy);
-        const total = calculateCommissionValue(policy);
+        const released = calculateReleasedCommissionsGenerated(policy);
+        const total = calculateTotalAdvisorCommissionsGenerated(policy);
         const paid = Array.isArray(policy.commissions)
           ? policy.commissions.reduce(
               (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
@@ -122,24 +115,14 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   // 11. FUNCION PARA OBTENER CAMPOS DE POLIZA (PASADA AL HELPER)
   const policyFieldsHelper = useCallback(
-    (policy) =>
-      getPolicyFields(
-        policy,
-        calculateCommissionValue,
-        calculateReleasedCommissions
-      ),
+    (policy) => getPolicyFields(policy),
     []
   );
 
   // 12. OBTENER TOTALES GLOBALES USANDO EL HELPER
   const globalTotals = useMemo(
     () =>
-      getTotals(
-        distributedPolicies,
-        advanceValue,
-        operationType,
-        policyFieldsHelper
-      ),
+      getTotals(distributedPolicies, advanceValue, operationType, policyFieldsHelper),
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
@@ -268,7 +251,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
         if (response.data.status === "success") {
           if (typeof refreshAdvisor === "function") await refreshAdvisor();
-          //await getAllPayments().then(setAllPayments);
           alerts(
             "Registro exitoso",
             "Anticipo registrado correctamente",
@@ -742,17 +724,17 @@ RegisterAdvanceModal.propTypes = {
         ),
         customer: PropTypes.shape({
           id: PropTypes.number,
-          firstName: PropTypes.string.isRequierd,
-          secondName: PropTypes.stringisRequierd,
-          surname: PropTypes.string.isRequierd,
-          secondSurname: PropTypes.string.isRequierd,
+          firstName: PropTypes.string,
+          secondName: PropTypes.string,
+          surname: PropTypes.string,
+          secondSurname: PropTypes.string,
         }),
         commissionsRefunds: PropTypes.arrayOf(
           PropTypes.shape({
-            id: PropTypes.numberisRequierd,
-            amountRefunds: PropTypes.number.isRequierd,
-            cancellationDate: PropTypes.string.isRequierd,
-            reason: PropTypes.string.isRequierd,
+            id: PropTypes.number,
+            amountRefunds: PropTypes.number,
+            cancellationDate: PropTypes.string,
+            reason: PropTypes.string,
           })
         ),
       })
