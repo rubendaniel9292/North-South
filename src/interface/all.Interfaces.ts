@@ -154,4 +154,5 @@ export interface IPolicyPeriodData {
   policyValue: number;
   agencyPercentage: number;
   advisorPercentage: number;
+  policyFee: number;
 }

@@ -21,6 +21,9 @@ export class PolicyPeriodDataEntity extends IdEntity implements IPolicyPeriodDat
     @Column('decimal', { precision: 5, scale: 2 })
     advisorPercentage: number;
 
+    @Column('decimal', { precision: 12, scale: 2, nullable: true })
+    policyFee: number;
+
     @ManyToOne(() => PolicyEntity, policy => policy.periods, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;

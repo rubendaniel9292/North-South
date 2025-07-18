@@ -20,6 +20,11 @@ export class PolicyPeriodDataDTO {
     @IsNotEmpty()
     @IsNumber()
     @Type(() => Number)
+    policyFee: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    @Type(() => Number)
     agencyPercentage: number;
 
     @IsNotEmpty()

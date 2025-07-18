@@ -271,6 +271,7 @@ export class PolicyService extends ValidateEntity {
           policyValue: policy.policyValue,
           agencyPercentage: policy.agencyPercentage,
           advisorPercentage: policy.advisorPercentage,
+          policyFee: policy.policyFee, // Asegúrate de que este campo esté definido en tu DTO y entidad
         }
       );
       console.log('Creando periodo de renovación (auto)', { policyId: policy.id, renewalYear });
@@ -394,6 +395,7 @@ export class PolicyService extends ValidateEntity {
           policyValue: newPolicy.policyValue,
           agencyPercentage: newPolicy.agencyPercentage,
           advisorPercentage: newPolicy.advisorPercentage,
+          policyFee: newPolicy.policyFee,
         }
       );
 
@@ -852,6 +854,21 @@ export class PolicyService extends ValidateEntity {
       // Guardar la política actualizada en la base de datos
       const policyUpdate: PolicyEntity =
         await this.policyRepository.save(policy);
+      // --- NUEVO: Actualizar periodo anual ---
+      // Determina el año que quieres actualizar (ejemplo: el año actual)
+      const currentYear = new Date().getFullYear();
+      await this.createOrUpdatePeriodForPolicy(
+        id,
+        currentYear, // o el año del periodo que corresponda
+        {
+          policy_id: id,
+          year: currentYear,
+          policyValue: policyUpdate.policyValue,
+          agencyPercentage: policyUpdate.agencyPercentage,
+          advisorPercentage: policyUpdate.advisorPercentage,
+          policyFee: policyUpdate.policyFee,
+        }
+      );
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`policy:${id}`);
@@ -940,6 +957,7 @@ export class PolicyService extends ValidateEntity {
           policyValue: policy.policyValue,
           agencyPercentage: policy.agencyPercentage,
           advisorPercentage: policy.advisorPercentage,
+          policyFee: policy.policyFee,
         }
       );
 
@@ -1070,6 +1088,7 @@ export class PolicyService extends ValidateEntity {
       policyValue: number;
       agencyPercentage: number;
       advisorPercentage: number;
+      policyFee: number;
     }
   ): Promise<PolicyPeriodDataEntity> {
     try {
@@ -1090,6 +1109,7 @@ export class PolicyService extends ValidateEntity {
           policyValue: data.policyValue,
           agencyPercentage: data.agencyPercentage,
           advisorPercentage: data.advisorPercentage,
+          policyFee: data.policyFee,
         });
         savedPeriod = await this.policyPeriodDataRepository.save(newPeriod);
       } else {
@@ -1097,6 +1117,7 @@ export class PolicyService extends ValidateEntity {
         period.policyValue = data.policyValue;
         period.agencyPercentage = data.agencyPercentage;
         period.advisorPercentage = data.advisorPercentage;
+        period.policyFee = data.policyFee;
         savedPeriod = await this.policyPeriodDataRepository.save(period);
       }
 

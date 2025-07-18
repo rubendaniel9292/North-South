@@ -36,6 +36,20 @@ export class PaymentService {
     let commissionValue = parseFloat((paymentsToAdvisor / paymentFrequency).toFixed(2));
     return commissionValue
   }*/
+
+  //invalidad caches
+  private async invalidatePolicyRelatedCache(policy: PolicyEntity) {
+    await this.redisService.del(`policy:${policy.id}`);
+    await this.redisService.del('payments');
+    await this.redisService.del('paymentsByStatus:general');
+    await this.redisService.del(`paymentsByStatus:${policy.company?.id}`);
+    await this.redisService.del(`advisor:${policy.advisor?.id}`);
+    // Si tienes renovaciones/periodos
+    for (const renewal of policy.renewals ?? []) {
+      await this.redisService.del(`renewal:${renewal.id}`);
+      await this.redisService.del(`policyRenewal:${policy.id}:${renewal.id}`);
+    }
+  }
   //1: metodo para registrar un pago de poliza
 
   public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
@@ -92,27 +106,12 @@ export class PaymentService {
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
       }
 
-      const newPayment = await this.paymentRepository.save(body);
-      await this.redisService.del(`newPayment:${newPayment.id}`);
-      await this.redisService.del('payments');
-      await this.redisService.del('paymentsByStatus:general');
-      // Usar directamente el policy_id del body
-      await this.redisService.del(`policy:${body.policy_id}`);
+      // INVALIDAR TODAS LAS KEYS RELACIONADAS
+      // INVALIDAR caché relacionado
+      await this.invalidatePolicyRelatedCache(policy);
 
-      //OJO: SE ETRA CREANDO EL PRIMER PAGO DE COMOSION POR REGISTRO DE POLIZA
-      //const commission = this.calculateCommissionValue(policy.paymentsToAdvisor, policy.payment_frequency_id);
-      // Crear el pago de comisión
-      /*
-      const commissionPayment = {
-        value: commission,
-        number_payment: 1,
-        payment_frequency_id: policy.payment_frequency_id,
-        policy_id: policy.id,
-        status_payment_id: 1,
-        createdAt: DateHelper.normalizeDateForDB(new Date()),
-      };*/
-      // Guardar el pago de comisión
-      //await this.commissionsPaymentsService.createCommissionPayment(commissionPayment);
+      const newPayment = await this.paymentRepository.save(body);
+
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -317,7 +316,6 @@ export class PaymentService {
       }
 
       // Calcular el nuevo valor pendiente
-
       const newPendingValue = payment.pending_value;
       updateData.updatedAt = DateHelper.normalizeDateForComparison(new Date());
 
@@ -330,20 +328,10 @@ export class PaymentService {
       Object.assign(payment, updateData);
 
       const paymentUpdated = await this.paymentRepository.save(payment);
-      // Limpiar todas las claves de caché relevantes
-      await this.redisService.del(`newPayment:${id}`);
-      await this.redisService.del('payments');
-      await this.redisService.del('paymentsByStatus:general');
-      if (payment.policies?.id) {
-        await this.redisService.del(`policy:${payment.policies.id}`);
-      }
-      if (payment.policies?.company?.id) {
-        await this.redisService.del(`paymentsByStatus:${payment.policies.company.id}`);
-      }
-      // Si tu modelo de asesor usa cache por id:
-      if (payment.policies?.advisor?.id) {
-        await this.redisService.del(`advisor:${payment.policies.advisor.id}`);
-      }
+
+      // INVALIDAR TODAS LAS KEYS RELACIONADAS
+      const policy = payment.policies;
+      await this.invalidatePolicyRelatedCache(policy);
 
       return paymentUpdated;
     } catch (error) {
