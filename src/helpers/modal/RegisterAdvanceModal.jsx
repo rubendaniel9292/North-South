@@ -122,7 +122,12 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   // 12. OBTENER TOTALES GLOBALES USANDO EL HELPER
   const globalTotals = useMemo(
     () =>
-      getTotals(distributedPolicies, advanceValue, operationType, policyFieldsHelper),
+      getTotals(
+        distributedPolicies,
+        advanceValue,
+        operationType,
+        policyFieldsHelper
+      ),
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
@@ -304,6 +309,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th>Pagos por periodo/año</th>
                       <th>Comisión por renovación</th>
                       <th>Comisiones totales</th>
+                      <th>N° de com. Liberadas</th>
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
@@ -316,7 +322,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <tbody>
                     {distributedPolicies.length === 0 ? (
                       <tr>
-                        <td colSpan="14" className="text-center fw-bold">
+                        <td colSpan="15" className="text-center fw-bold">
                           No hay comisiones disponibles por el momento.
                         </td>
                       </tr>
@@ -325,6 +331,16 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         const afterBalance =
                           policy.commissionInFavor -
                           (policy.advanceApplied || 0);
+
+                        // Calcular pagos liberados (AL DÍA) y total de pagos
+                        const releasedPayments =
+                          policy.payments?.filter(
+                            (payment) =>
+                              payment.paymentStatus &&
+                              payment.paymentStatus.id == 2
+                          ).length || 0;
+                        const totalPayments =
+                          policy.payments?.length || 0;
 
                         return (
                           <tr key={policy.id}>
@@ -383,6 +399,20 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                             <td className="fw-bold text-primary">
                               ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
                             </td>
+                                <td>
+                                  <Badge
+                                    text={
+                                      releasedPayments + "/" + totalPayments
+                                    }
+                                    color={
+                                      releasedPayments === totalPayments
+                                        ? "success"
+                                        : releasedPayments > 0
+                                        ? "warning"
+                                        : "secondary"
+                                    }
+                                  />
+                                </td>
                             <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
                             </td>
@@ -430,7 +460,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
                   <tfoot>
                     <tr>
-                      <th colSpan="4">Totales</th>
+                      <th colSpan="5">Totales</th>
                       <th colSpan="1" className="text-end ">
                         Total de anticipos:
                       </th>

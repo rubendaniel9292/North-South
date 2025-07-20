@@ -57,7 +57,7 @@ const CreateBankAccount = () => {
           "Cuenta registrada registrado correctamente",
           "success"
         );
-        //document.querySelector("#user-form").reset();
+        document.querySelector("#user-form").reset();
       } else {
         //setSaved('error');
         alerts(

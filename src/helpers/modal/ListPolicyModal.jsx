@@ -127,7 +127,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
   );
 
   // obtener último periodo registrado (por año mayor):
-  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+ const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+ console.log('periods:', policy.periods);
+console.log('lastPeriod:', lastPeriod);
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">

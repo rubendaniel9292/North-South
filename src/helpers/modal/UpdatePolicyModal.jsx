@@ -31,7 +31,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     endDate: dayjs.utc(policy.endDate).format("YYYY-MM-DD").toString(),
     paymentsToAdvisor: policy.paymentsToAdvisor,
     paymentsToAgency: policy.paymentsToAgency,
-  
     observations: policy.observations,
     renewalCommission: policy.renewalCommission,
     policy_type_id: policy.policyType.id,

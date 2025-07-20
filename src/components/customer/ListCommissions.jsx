@@ -11,10 +11,7 @@ import {
   faDollarSign,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  getTotals,
-  getPolicyFields,
-} from "../../helpers/CommissionUtils";
+import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
 
 // Badge Bootstrap helper
 const Badge = ({ text, color = "secondary" }) => (
@@ -28,6 +25,7 @@ const ListCommissions = () => {
   if (!advisorFromNav) {
     return <div>Error: No se recibió asesor.</div>;
   }
+
   const customerFromNav = location.state?.customer;
 
   // --- Estados principales ---
@@ -51,6 +49,8 @@ const ListCommissions = () => {
 
     fetchData();
   }, []);
+
+  //console.log("periodos del asesor: ", advisor.policies.periods);
   // --- Filtros visuales ---
   const [search, setSearch] = useState("");
   const [frequency, setFrequency] = useState("all");
@@ -73,13 +73,14 @@ const ListCommissions = () => {
   useEffect(() => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
-
+/*
   useEffect(() => {
     if (advisor) {
       console.log(advisor.policies);
+      //testNewExamplePolicy(advisor.policies); en caso de querer probar un ejemplo
     }
   }, [advisor]);
-
+*/
   // Manejar el cambio en el filtro de búsqueda
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -444,13 +445,14 @@ const ListCommissions = () => {
                         </th>
                       </tr>
                       <tr>
+                        {/*  <th>Valor póliza</th>*/}
                         <th>N° de póliza</th>
                         <th>Compañía</th>
                         <th>Cliente</th>
                         <th>Frecuencia</th>
                         <th>Pagos/Año</th>
                         <th>Renovación</th>
-                        <th>Valor póliza</th>
+                         <th>N° de Com. Liberadas</th>
                         <th>Com. Totales</th>
                         <th>Com. Liberadas</th>
                         <th>Descuento (si aplica)</th>
@@ -461,7 +463,7 @@ const ListCommissions = () => {
                     <tbody>
                       {filteredPoliciesWithFields.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="text-center text-muted">
+                          <td colSpan={13} className="text-center text-muted">
                             <FontAwesomeIcon icon={faFile} size="2x" />
                             <div>
                               No existen pólizas para el asesor{" "}
@@ -473,144 +475,194 @@ const ListCommissions = () => {
                           </td>
                         </tr>
                       ) : (
-                        filteredPoliciesWithFields.map((policyFiltered) => (
-                          <React.Fragment key={policyFiltered.id}>
-                            <tr>
-                              <td className="fw-bold">
-                                {policyFiltered.numberPolicy}
-                              </td>
-                              <td>
-                                {policyFiltered.company?.companyName || "N/A"}
-                              </td>
+                        filteredPoliciesWithFields.map((policyFiltered) => {
+                          // Calcular pagos liberados (AL DÍA) y total de pagos
+                          const releasedPayments =
+                            policyFiltered.payments?.filter(
+                              (payment) =>
+                                payment.paymentStatus &&
+                                payment.paymentStatus.id == 2
+                            ).length || 0;
+                          const totalPayments =
+                            policyFiltered.payments?.length || 0;
 
-                              <td>
-                                {policyFiltered.customer
-                                  ? [
-                                      policyFiltered.customer.firstName,
-                                      policyFiltered.customer.secondName,
-                                      policyFiltered.customer.surname,
-                                      policyFiltered.customer.secondSurname,
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" ")
-                                  : "N/A"}
-                              </td>
-                              <td>
-                                <Badge
-                                  text={
-                                    policyFiltered.isCommissionAnnualized ===
-                                    false
-                                      ? "Normal"
-                                      : "Anualizada"
-                                  }
-                                  color={
-                                    policyFiltered.isCommissionAnnualized ===
-                                    false
-                                      ? "info"
-                                      : "secondary"
-                                  }
-                                />
-                              </td>
-                              <td>
-                                {policyFiltered.isCommissionAnnualized === false
-                                  ? policyFiltered.numberOfPaymentsAdvisor
-                                  : 1}
-                              </td>
-                              <td>
-                                <Badge
-                                  text={
-                                    policyFiltered.renewalCommission
-                                      ? "SÍ"
-                                      : "NO"
-                                  }
-                                  color={
-                                    policyFiltered.renewalCommission
-                                      ? "dark"
-                                      : "danger"
-                                  }
-                                />
-                              </td>
-                              <td className="fw-bold bs-tertiary-color">
-                                ${Number(policyFiltered.policyValue).toFixed(2)}
-                              </td>
-                              <td className="fw-bold text-primary">
-                                $
-                                {Number(policyFiltered.commissionTotal).toFixed(
-                                  2
-                                )}
-                              </td>
-                              <td className="fw-bold text-warning">
-                                ${Number(policyFiltered.released).toFixed(2)}
-                              </td>
-                              <td className="fw-bold text-danger">
-                                $
-                                {Number(policyFiltered.refundsAmount).toFixed(
-                                  2
-                                )}
-                              </td>
-                              <td className="fw-bold text-success">
-                                ${Number(policyFiltered.paid).toFixed(2)}
-                              </td>
-                              <td
-                                className="fw-bold"
-                                style={{ color: "#a259ff" }}
-                              >
-                                $
-                                {Number(
-                                  policyFiltered.commissionInFavor
-                                ).toFixed(2)}
-                              </td>
-                            </tr>
-                            {/* Subtabla historial de pagos debajo */}
-                            <tr>
-                              <td colSpan={12} className="p-0">
-                                {Array.isArray(policyFiltered.commissions) &&
-                                policyFiltered.commissions.length > 0 ? (
-                                  <table className="table table-sm table-bordered text-center mb-0">
-                                    <thead>
-                                      <tr>
-                                        <th>Fecha de pago</th>
-                                        <th>Número de recibo</th>
-                                        <th>Comisión pagadas</th>
-                                        <th>Observaciones</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {policyFiltered.commissions.map(
-                                        (payment) => (
-                                          <tr key={payment.id}>
-                                            <td>
-                                              {payment.createdAt
-                                                ? dayjs(
-                                                    payment.createdAt
-                                                  ).format("DD/MM/YYYY")
-                                                : "-"}
-                                            </td>
-                                            <td>{payment.receiptNumber}</td>
-                                            <td>
-                                              $
-                                              {Number(
-                                                payment.advanceAmount
-                                              ).toFixed(2)}
-                                            </td>
-                                            <td>
-                                              {payment.observations || "-"}
-                                            </td>
-                                          </tr>
-                                        )
-                                      )}
-                                    </tbody>
-                                  </table>
-                                ) : (
-                                  <div className="text-center text-muted py-2">
-                                    Aún no se han registrado pagos de comisiones
-                                    para esta póliza.
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          </React.Fragment>
-                        ))
+                          return (
+                            <React.Fragment key={policyFiltered.id}>
+                              <tr>
+                                <td className="fw-bold">
+                                  {policyFiltered.numberPolicy}
+                                </td>
+                                <td>
+                                  {policyFiltered.company?.companyName || "N/A"}
+                                </td>
+
+                                <td>
+                                  {policyFiltered.customer
+                                    ? [
+                                        policyFiltered.customer.firstName,
+                                        policyFiltered.customer.secondName,
+                                        policyFiltered.customer.surname,
+                                        policyFiltered.customer.secondSurname,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" ")
+                                    : "N/A"}
+                                </td>
+                                <td>
+                                  <Badge
+                                    text={
+                                      policyFiltered.isCommissionAnnualized ===
+                                      false
+                                        ? "Normal"
+                                        : "Anualizada"
+                                    }
+                                    color={
+                                      policyFiltered.isCommissionAnnualized ===
+                                      false
+                                        ? "info"
+                                        : "secondary"
+                                    }
+                                  />
+                                </td>
+                                <td>
+                                  {policyFiltered.isCommissionAnnualized ===
+                                  false
+                                    ? policyFiltered.numberOfPaymentsAdvisor
+                                    : 1}
+                                </td>
+                                <td>
+                                  <Badge
+                                    text={
+                                      policyFiltered.renewalCommission
+                                        ? "SÍ"
+                                        : "NO"
+                                    }
+                                    color={
+                                      policyFiltered.renewalCommission
+                                        ? "dark"
+                                        : "danger"
+                                    }
+                                  />
+                                </td>
+                                {/* Nueva columna de progreso de pagos */}
+                                <td>
+                                  <Badge
+                                    text={
+                                      releasedPayments + "/" + totalPayments
+                                    }
+                                    color={
+                                      releasedPayments === totalPayments
+                                        ? "success"
+                                        : releasedPayments > 0
+                                        ? "warning"
+                                        : "secondary"
+                                    }
+                                  />
+                                </td>
+                                {/* Muestra los totales de la póliza */}
+                                {/*<td className="fw-bold bs-tertiary-color">
+                                  $
+                                  {Number(policyFiltered.policyValue).toFixed(
+                                    2
+                                  )}
+                                </td> */}
+
+                                <td className="fw-bold text-primary">
+                                  $
+                                  {Number(
+                                    policyFiltered.commissionTotal
+                                  ).toFixed(2)}
+                                </td>
+                                <td className="fw-bold text-warning">
+                                  ${Number(policyFiltered.released).toFixed(2)}
+                                </td>
+                                <td className="fw-bold text-danger">
+                                  $
+                                  {Number(policyFiltered.refundsAmount).toFixed(
+                                    2
+                                  )}
+                                </td>
+                                <td className="fw-bold text-success">
+                                  ${Number(policyFiltered.paid).toFixed(2)}
+                                </td>
+                                <td
+                                  className="fw-bold"
+                                  style={{ color: "#a259ff" }}
+                                >
+                                  $
+                                  {Number(
+                                    policyFiltered.commissionInFavor
+                                  ).toFixed(2)}
+                                </td>
+                              </tr>
+                              {/* Subtabla historial de pagos debajo */}
+                              <tr>
+                                <td colSpan={13} className="p-0">
+                                  {Array.isArray(policyFiltered.commissions) &&
+                                  policyFiltered.commissions.length > 0 ? (
+                                    <table className="table table-sm table-bordered text-center mb-0">
+                                      <thead>
+                                        <tr>
+                                          <th>Fecha de pago</th>
+                                          <th>Número de recibo</th>
+                                          <th>N° Com. Pagadas</th>
+                                          <th>Comisión pagadas</th>
+                                          <th>Observaciones</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {policyFiltered.commissions.map(
+                                          (payment, index) => {
+                                            // Calcular cuántas comisiones se han pagado hasta este punto
+                                            const paidCommissions = index + 1;
+                                            const totalCommissions = policyFiltered.commissions.length;
+                                            
+                                            return (
+                                              <tr key={payment.id}>
+                                                <td>
+                                                  {payment.createdAt
+                                                    ? dayjs(
+                                                        payment.createdAt
+                                                      ).format("DD/MM/YYYY")
+                                                    : "-"}
+                                                </td>
+                                                <td>{payment.receiptNumber}</td>
+                                                <td>
+                                                  <Badge
+                                                    text={paidCommissions + "/" + totalCommissions}
+                                                    color={
+                                                      paidCommissions === totalCommissions
+                                                        ? "success"
+                                                        : "info"
+                                                    }
+                                                  />
+                                                </td>
+                                                <td>
+                                                  $
+                                                  {Number(
+                                                    payment.advanceAmount
+                                                  ).toFixed(2)}
+                                                </td>
+                                                <td>
+                                                  {payment.observations || "-"}
+                                                </td>
+                                              </tr>
+                                            );
+                                          }
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  ) : (
+                                    <div className="text-center text-muted py-2">
+                                      Aún no se han registrado pagos de
+                                      comisiones para esta póliza.
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

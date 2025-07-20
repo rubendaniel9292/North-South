@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback } from "react";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
+  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
   if (!policy) return null;
 
   console.log("poliza obtenida: ", policy);
@@ -19,12 +20,12 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     policy_id: policy.id,
     //createdAt:  dayjs(form.createdAt).toISOString(), // Usar versión ISO o convertir
     coverageAmount: policy.coverageAmount,
-    policyValue: policy.policyValue,
-    policyFee: policy.policyFee || 0,
-    agencyPercentage: policy.agencyPercentage,
-    advisorPercentage: policy.advisorPercentage,
-    paymentsToAgency: policy.paymentsToAgency,
-    paymentsToAdvisor: policy.paymentsToAdvisor,
+    agencyPercentage: lastPeriod.agencyPercentage,
+    advisorPercentage: lastPeriod.advisorPercentage,
+    policyValue: lastPeriod.policyValue,
+    policyFee: lastPeriod.policyFee,
+    paymentsToAgency: policy.paymentsToAgency || 0,
+    paymentsToAdvisor: policy.paymentsToAdvisor || 0,
   });
 
   const [formError, setFormError] = useState("");
@@ -98,21 +99,23 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-  const lastRenewalYear = policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year || new Date(policy.startDate).getFullYear();
+  const lastRenewalYear =
+    policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year ||
+    new Date(policy.startDate).getFullYear();
   const renewalAndUpdatePolicy = async (e) => {
     e.preventDefault();
-    const renewalDateValue = document.getElementById('createdAt').value;
+    const renewalDateValue = document.getElementById("createdAt").value;
     const enteredYear = new Date(renewalDateValue).getFullYear();
 
     // Validation: year must be greater than last renewal year
     if (enteredYear < lastRenewalYear) {
-      addClassSafely('createdAt', 'is-invalid');
+      addClassSafely("createdAt", "is-invalid");
       setFormError(`El año de renovación debe ser mayor a ${lastRenewalYear}`);
       return;
     } else {
-      document.getElementById('createdAt').classList.remove('is-invalid');
-      addClassSafely('createdAt', 'is-valid');
-      setFormError('');
+      document.getElementById("createdAt").classList.remove("is-invalid");
+      addClassSafely("createdAt", "is-valid");
+      setFormError("");
     }
     setIsLoading(true);
     try {
@@ -299,9 +302,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed}
                   />
                   {formError && (
-                    <div className="invalid-feedback d-block">
-                      {formError}
-                    </div>
+                    <div className="invalid-feedback d-block">{formError}</div>
                   )}
                 </div>
 

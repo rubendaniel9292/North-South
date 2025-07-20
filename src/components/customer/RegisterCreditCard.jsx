@@ -70,7 +70,11 @@ const RegisterCreditCard = () => {
   return (
     <>
       <div className="container-fluid">
-        <form onSubmit={savedCard} id="user-form" className="needs-validation was-validated">
+        <form
+          onSubmit={savedCard}
+          id="user-form"
+          className="needs-validation was-validated"
+        >
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
@@ -82,9 +86,10 @@ const RegisterCreditCard = () => {
                 name="customers_id"
                 onChange={changed}
                 required
-              
               >
-                <option disabled selected value={""}>{option}</option>
+                <option disabled selected value={""}>
+                  {option}
+                </option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {`${customer.firstName} ${customer.secondName || ""} ${
@@ -113,10 +118,14 @@ const RegisterCreditCard = () => {
               </label>
               <input
                 required
-                type="text"
+                 type="password"
                 className="form-control"
                 id="code"
                 name="code"
+                pattern="[0-9]{3,4}"
+                maxLength="4"
+                placeholder="CVV"
+                title="Ingrese un código de 3 o 4 dígitos"
                 onChange={changed}
               />
             </div>
@@ -145,7 +154,9 @@ const RegisterCreditCard = () => {
                 onChange={changed}
                 required
               >
-                <option disabled selected value={""}>{option}</option>
+                <option disabled selected value={""}>
+                  {option}
+                </option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.cardName}
@@ -164,7 +175,9 @@ const RegisterCreditCard = () => {
                 onChange={changed}
                 required
               >
-                <option disabled selected value={""}>{option}</option>
+                <option disabled selected value={""}>
+                  {option}
+                </option>
                 {banks.map((bank) => (
                   <option key={bank.id} value={bank.id}>
                     {bank.bankName}
