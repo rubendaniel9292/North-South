@@ -38,16 +38,43 @@ export class PaymentService {
   }*/
 
   //invalidad caches
+  //invalidad caches
   private async invalidatePolicyRelatedCache(policy: PolicyEntity) {
-    await this.redisService.del(`policy:${policy.id}`);
-    await this.redisService.del('payments');
-    await this.redisService.del('paymentsByStatus:general');
-    await this.redisService.del(`paymentsByStatus:${policy.company?.id}`);
-    await this.redisService.del(`advisor:${policy.advisor?.id}`);
-    // Si tienes renovaciones/periodos
-    for (const renewal of policy.renewals ?? []) {
-      await this.redisService.del(`renewal:${renewal.id}`);
-      await this.redisService.del(`policyRenewal:${policy.id}:${renewal.id}`);
+    try {
+      // Cachés básicos de la póliza
+      await this.redisService.del(`policy:${policy.id}`);
+      await this.redisService.del('policies');
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+      await this.redisService.del(`policy:${policy.id}:periods`);
+      await this.redisService.del(`policy:${policy.id}:renewals`);
+      await this.redisService.del(`policy:${policy.id}:commissions`);
+      await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
+
+      // Cachés por compañía (si existe)
+      if (policy.company?.id) {
+        await this.redisService.del(`paymentsByStatus:${policy.company.id}`);
+      }
+
+      // Cachés del asesor (si existe)
+      if (policy.advisor_id) {
+        await this.redisService.del(`advisor:${policy.advisor_id}`);
+        await this.redisService.del('allAdvisors');
+        await this.redisService.del(`advisor:${policy.advisor_id}:policies`);
+        await this.redisService.del(`advisor:${policy.advisor_id}:policies.periods`);
+        await this.redisService.del(`advisor:${policy.advisor_id}:periods`);
+        await this.redisService.del(`commissions:${policy.advisor_id}`);
+      }
+
+      // Cachés de renovaciones (si existen)
+      if (policy.renewals && policy.renewals.length > 0) {
+        for (const renewal of policy.renewals) {
+          await this.redisService.del(`renewal:${renewal.id}`);
+          await this.redisService.del(`policyRenewal:${policy.id}:${renewal.id}`);
+        }
+      }
+    } catch (error) {
+      console.warn('Warning: Could not invalidate some cache keys:', error.message);
     }
   }
   //1: metodo para registrar un pago de poliza
@@ -57,7 +84,7 @@ export class PaymentService {
       // validar si la póliza existe antes de registrar el pago.
       const policy = await this.policyRepository.findOne({
         where: { id: body.policy_id },
-        relations: ['payments', 'renewals']
+        relations: ['payments', 'renewals', 'periods']
       });
 
       if (!policy) {
@@ -106,12 +133,10 @@ export class PaymentService {
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
       }
 
-      // INVALIDAR TODAS LAS KEYS RELACIONADAS
-      // INVALIDAR caché relacionado
-      await this.invalidatePolicyRelatedCache(policy);
 
       const newPayment = await this.paymentRepository.save(body);
-
+      // INVALIDAR caché relacionado
+      await this.invalidatePolicyRelatedCache(policy);
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -120,17 +145,18 @@ export class PaymentService {
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
-      /*
+      
       const cachedPayments = await this.redisService.get('payments');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
-      }*/
+      }
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         order: {
           id: 'DESC',
         },
         relations: [
           'policies',
+          'policies.periods',
           'paymentStatus',
           'policies.paymentFrequency',
           'policies.payments',
@@ -150,7 +176,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      //await this.redisService.set('payments', JSON.stringify(payments), 32400); // TTL de 1 hora
+      await this.redisService.set('payments', JSON.stringify(payments), 32400); 
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -167,7 +193,7 @@ export class PaymentService {
       }*/
       const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
-        relations: ['policies', 'paymentStatus'],
+        relations: ['policies', 'policies.periods', 'paymentStatus'],
         select: {
           policies: {
             id: true,

@@ -203,6 +203,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       };
 
       const savedPayment = await this.paymentService.createPayment(newPayment);
+      console.log(`Pago automático creado: ${savedPayment.id} para póliza ${policy.id}`);
       return savedPayment;
     } catch (error) {
       console.error('Error al crear pago:', error);

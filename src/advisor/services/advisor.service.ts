@@ -43,9 +43,12 @@ export class AdvisorService extends ValidateEntity {
   public getAllAdvisors = async (search?: string) => {
     try {
       // Verificar si los datos están en Redis
-      const cachedAllAdvisors = await this.redisService.get('allAdvisors');
-      if (cachedAllAdvisors) {
-        return JSON.parse(cachedAllAdvisors);
+      // Solo usar caché si no hay búsqueda específica
+      if (!search) {
+        const cachedAllAdvisors = await this.redisService.get('allAdvisors');
+        if (cachedAllAdvisors) {
+          return JSON.parse(cachedAllAdvisors);
+        }
       }
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
@@ -73,11 +76,14 @@ export class AdvisorService extends ValidateEntity {
           'policies.commissionRefunds',
         ],
       });
-      await this.redisService.set(
-        'allAdvisors',
-        JSON.stringify(allAdvisors),
-        32400,
-      ); // TTL de 9 horas
+      // Solo guardar en caché si no hubo búsqueda
+      if (!search) {
+        await this.redisService.set(
+          'allAdvisors',
+          JSON.stringify(allAdvisors),
+          32400,
+        ); // TTL de 9 horas
+      }
       return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -126,7 +132,7 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-  //3: Método para actualizar un cliente
+  //4: Método para actualizar un asesor
   public updateAvisor = async (
     id: number,
     updateData: Partial<AdvisorEntity>,
@@ -141,13 +147,18 @@ export class AdvisorService extends ValidateEntity {
           message: 'No se encontró el cliente',
         });
       }
-      // Convertir a mayúsculas y asignar de nuevo
-      const birthday = DateHelper.normalizeDateForDB(updateData.birthdate);
-      updateData.birthdate = birthday;
-      updateData.firstName = updateData.firstName.toUpperCase();
-      updateData.secondName = updateData.secondName.toUpperCase();
-      updateData.surname = updateData.surname.toUpperCase();
-      updateData.secondSurname = updateData.secondSurname.toUpperCase();
+      
+      // Normalizar fecha si existe
+      if (updateData.birthdate) {
+        const birthday = DateHelper.normalizeDateForDB(updateData.birthdate);
+        updateData.birthdate = birthday;
+      }
+
+      // Convertir a mayúsculas solo si los campos existen
+      if (updateData.firstName) updateData.firstName = updateData.firstName.toUpperCase();
+      if (updateData.secondName) updateData.secondName = updateData.secondName.toUpperCase();
+      if (updateData.surname) updateData.surname = updateData.surname.toUpperCase();
+      if (updateData.secondSurname) updateData.secondSurname = updateData.secondSurname.toUpperCase();
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(advisor, updateData);
       // Guardar el cliente actualizado en la base de datos
@@ -164,7 +175,8 @@ export class AdvisorService extends ValidateEntity {
           'commissions',
           'policies',
           'policies.customer',
-          'policies.periods', // <-- ¡IMPORTANTE!
+          'policies.periods',
+          'policies.periods',
           'policies.payments',
           'policies.payments.paymentStatus',
           'policies.commissions',

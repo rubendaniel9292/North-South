@@ -12,7 +12,7 @@ export class RedisModuleService {
         if (ttl) {
             await this.redisClient.expire(key, ttl);
         }
-    }
+    } 
 
     async get(key: string): Promise<any> {
         const value = await this.redisClient.get(key);
