@@ -309,7 +309,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th>Pagos por periodo/año</th>
                       <th>Comisión por renovación</th>
                       <th>Comisiones totales</th>
-                      <th>N° de com. Liberadas</th>
+                      <th>Com. Individual</th>
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
@@ -339,8 +339,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                               payment.paymentStatus &&
                               payment.paymentStatus.id == 2
                           ).length || 0;
-                        const totalPayments =
-                          policy.payments?.length || 0;
+                        const totalPayments = policy.payments?.length || 0;
 
                         return (
                           <tr key={policy.id}>
@@ -399,20 +398,19 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                             <td className="fw-bold text-primary">
                               ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
                             </td>
-                                <td>
-                                  <Badge
-                                    text={
-                                      releasedPayments + "/" + totalPayments
-                                    }
-                                    color={
-                                      releasedPayments === totalPayments
-                                        ? "success"
-                                        : releasedPayments > 0
-                                        ? "warning"
-                                        : "secondary"
-                                    }
-                                  />
-                                </td>
+                            <td>
+                              <Badge
+                                text={releasedPayments + "/" + totalPayments}
+                                color={
+                                  releasedPayments === totalPayments
+                                    ? "success"
+                                    : releasedPayments > 0
+                                    ? "warning"
+                                    : "secondary"
+                                }
+                              />
+                            </td>
+                      
                             <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
                             </td>

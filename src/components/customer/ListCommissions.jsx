@@ -73,7 +73,7 @@ const ListCommissions = () => {
   useEffect(() => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
-/*
+  /*
   useEffect(() => {
     if (advisor) {
       console.log(advisor.policies);
@@ -438,7 +438,7 @@ const ListCommissions = () => {
                     <thead className="">
                       <tr>
                         <th
-                          colSpan={12}
+                          colSpan={13}
                           className="bg-secondary fw-bold text-center text-white"
                         >
                           Historial de comisiones
@@ -452,8 +452,9 @@ const ListCommissions = () => {
                         <th>Frecuencia</th>
                         <th>Pagos/Año</th>
                         <th>Renovación</th>
-                         <th>N° de Com. Liberadas</th>
+                        <th>N° de Com. Liberadas</th>
                         <th>Com. Totales</th>
+                        <th>Com. Individual</th>
                         <th>Com. Liberadas</th>
                         <th>Descuento (si aplica)</th>
                         <th>Com. Pagadas</th>
@@ -573,6 +574,17 @@ const ListCommissions = () => {
                                     policyFiltered.commissionTotal
                                   ).toFixed(2)}
                                 </td>
+                                <td className="fw-bold text-info">
+                                  <div>
+                                    $
+                                    {Number(
+                                      policyFiltered.individualCommission
+                                    ).toFixed(2)}
+                                  </div>
+                                  <small className="text-muted">
+                                    {policyFiltered.frequencyText}
+                                  </small>
+                                </td>
                                 <td className="fw-bold text-warning">
                                   ${Number(policyFiltered.released).toFixed(2)}
                                 </td>
@@ -615,8 +627,9 @@ const ListCommissions = () => {
                                           (payment, index) => {
                                             // Calcular cuántas comisiones se han pagado hasta este punto
                                             const paidCommissions = index + 1;
-                                            const totalCommissions = policyFiltered.commissions.length;
-                                            
+                                            const totalCommissions =
+                                              policyFiltered.commissions.length;
+
                                             return (
                                               <tr key={payment.id}>
                                                 <td>
@@ -629,9 +642,14 @@ const ListCommissions = () => {
                                                 <td>{payment.receiptNumber}</td>
                                                 <td>
                                                   <Badge
-                                                    text={paidCommissions + "/" + totalCommissions}
+                                                    text={
+                                                      paidCommissions +
+                                                      "/" +
+                                                      totalCommissions
+                                                    }
                                                     color={
-                                                      paidCommissions === totalCommissions
+                                                      paidCommissions ===
+                                                      totalCommissions
                                                         ? "success"
                                                         : "info"
                                                     }

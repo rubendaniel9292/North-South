@@ -404,6 +404,43 @@ export const calculateTotalAdvisorCommissionsGeneratedByPeriods = (policy) => {
 
 // Helper principal para mostrar campos principales
 export const getPolicyFields = (policy) => {
+   // NUEVO: Calcular comisión individual según frecuencia
+  const calculateIndividualCommission = () => {
+    if (!policy.paymentsToAdvisor || !policy.numberOfPaymentsAdvisor) {
+      return 0;
+    }
+
+    const totalCommissionToAdvisor = parseFloat(policy.paymentsToAdvisor);
+    const numberOfPayments = parseInt(policy.numberOfPaymentsAdvisor);
+    
+    // Si es anualizada, se paga todo de una vez al año
+    if (policy.isCommissionAnnualized === true) {
+      return totalCommissionToAdvisor;
+    }
+    
+    // Si es normal, se divide entre el número de pagos
+    return totalCommissionToAdvisor / numberOfPayments;
+  };
+   // NUEVO: Obtener texto de frecuencia para mostrar
+  const getFrequencyText = () => {
+    if (policy.isCommissionAnnualized === true) {
+      return "anual";
+    }
+
+    const paymentsPerYear = parseInt(policy.numberOfPaymentsAdvisor);
+    switch (paymentsPerYear) {
+      case 12:
+        return "Mensual";
+      case 4:
+        return "Trimestral";
+      case 2:
+        return "Semestral";
+      case 1:
+        return "Anual";
+      default:
+        return `Cada ${12 / paymentsPerYear} meses`;
+    }
+  };
   const refundsAmount = (policy.commissionRefunds || []).reduce(
     (acc, curr) => acc + Number(curr.amountRefunds || 0),
     0
@@ -432,6 +469,8 @@ export const getPolicyFields = (policy) => {
     refundsAmount: Number(refundsAmount.toFixed(2)),
     afterBalance: Number(afterBalance.toFixed(2)),
     commissionInFavor: Number(commissionInFavor.toFixed(2)),
+    individualCommission: calculateIndividualCommission(),
+    frequencyText: getFrequencyText(),
   };
 };
 // Sumatorias globales (solo para COMISION)
