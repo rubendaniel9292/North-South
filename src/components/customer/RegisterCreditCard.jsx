@@ -25,8 +25,6 @@ const RegisterCreditCard = () => {
         const banksData = banksResponse.data?.allBanks || [];
         const typesData = typesResponse.data?.allTypes || [];
 
-        console.log(customersData, banksData, typesData);
-
         setCustomer(customersData);
         setBanks(banksData);
         setTypes(typesData);
@@ -43,8 +41,19 @@ const RegisterCreditCard = () => {
     setIsLoading(true);
     try {
       e.preventDefault();
-      let newCard = form;
-      const request = await http.post(`creditcard/register-card`, newCard);
+
+      // Construir la fecha de vencimiento con día 1
+      const expirationDate =
+        form.expirationMonth && form.expirationYear
+          ? `${form.expirationYear}-${form.expirationMonth}-01`
+          : null;
+
+      // Preparar los datos con la fecha construida
+      const cardData = {
+        ...form,
+        expirationDate: expirationDate,
+      };
+      const request = await http.post(`creditcard/register-card`, cardData);
       if (request.data.status === "success") {
         alerts(
           "Registro exitoso",
@@ -112,36 +121,68 @@ const RegisterCreditCard = () => {
                 onChange={changed}
               />
             </div>
+            
             <div className="mb-3 col-3">
-              <label htmlFor="cardNumber" className="form-label">
-                Código
+              <label htmlFor="code" className="form-label">
+                Código CVV
               </label>
               <input
                 required
-                 type="password"
+                type="text"
                 className="form-control"
                 id="code"
                 name="code"
                 pattern="[0-9]{3,4}"
                 maxLength="4"
-                placeholder="CVV"
+                placeholder="123"
                 title="Ingrese un código de 3 o 4 dígitos"
                 onChange={changed}
               />
             </div>
 
             <div className="mb-3 col-3">
-              <label htmlFor="text" className="form-label">
-                Fecha de vencimiento
+              <label htmlFor="expirationMonth" className="form-label">
+                Mes de Vencimiento
               </label>
-              <input
-                required
-                type="date"
-                className="form-control"
-                id="expirationDate"
-                name="expirationDate"
+              <select
+                className="form-select"
+                id="expirationMonth"
+                name="expirationMonth"
                 onChange={changed}
-              />
+                required
+              >
+                <option disabled selected value="">
+                  Seleccione mes
+                </option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1).padStart(2, "0")}>
+                    {String(i + 1).padStart(2, "0")} -{" "}
+                    {new Date(0, i).toLocaleString("es", { month: "long" })}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3 col-3">
+              <label htmlFor="expirationYear" className="form-label">
+                Año de Vencimiento
+              </label>
+              <select
+                className="form-select"
+                id="expirationYear"
+                name="expirationYear"
+                onChange={changed}
+                required
+              >
+                <option disabled selected value="">
+                  Seleccione año
+                </option>
+                {Array.from({ length: 15 }, (_, i) => (
+                  <option key={2025 + i} value={2025 + i}>
+                    {2025 + i}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="card_option_id" className="form-label">

@@ -70,6 +70,12 @@ body.modal-open {
 
         .modal-content-renewal {
             max-width: 70% !important;
+
+
+        }
+
+        .modal-content-regcard {
+            max-width: 70% !important;
         }
     }
 }

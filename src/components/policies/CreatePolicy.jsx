@@ -8,6 +8,8 @@ import { useLocation } from "react-router-dom";
 
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const CreatePolicy = () => {
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({
     numberOfPayments: "",
@@ -27,6 +29,25 @@ const CreatePolicy = () => {
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
   const [errorAdvisorPercentage, setErrorAdvisorPercentage] = useState("");
+  const [cardTypes, setCardTypes] = useState([]);
+
+  // Estados para manejo de registro inline de tarjetas y cuentas
+  const [cardFormData, setCardFormData] = useState({
+    cardNumber: "",
+    cvv: "",
+    expirationMonth: "",
+    expirationYear: "",
+    bank_id: "",
+    card_type_id: "",
+  });
+  const [accountFormData, setAccountFormData] = useState({
+    accountNumber: "",
+    bank_id: "",
+    account_type_id: "",
+  });
+  const [banks, setBanks] = useState([]);
+
+  const [accountTypes, setAccountTypes] = useState([]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -47,23 +68,24 @@ const CreatePolicy = () => {
           http.get("customers/get-all-customer"),
           http.get("advisor/get-all-advisor"),
           http.get("policy/get-payment-method"),
+
           http.get(`creditcard/all-cards-rp`),
           http.get("bankaccount/get-all-account"),
         ]);
 
-        setType(typeResponse.data.allTypePolicy);
-        setCompanies(companyResponse.data.allCompanies);
-        setFrequency(frecuencyResponse.data.allFrecuency);
-        setCustomer(customerResponse.data.allCustomer);
-        setAdvisor(advisorResponse.data.allAdvisors);
-        setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
-        setCards(creditCardResponse.data.allCards);
-        setAccounts(accountResponse.data.allBankAccounts);
+        setType(typeResponse.data?.allTypePolicy);
+        setCompanies(companyResponse.data?.allCompanies);
+        setFrequency(frecuencyResponse.data?.allFrecuency);
+        setCustomer(customerResponse.data?.allCustomer);
+        setAdvisor(advisorResponse.data?.allAdvisors);
+        setPaymentMethod(paymentMethodResponse?.data.allPaymentMethod);
+        setCards(creditCardResponse.data?.allCards);
+        setAccounts(accountResponse.data?.allBankAccounts);
 
         // Cargar datos adicionales para registro inline (opcional)
         try {
           const banksResponse = await http.get("creditcard/all-banks");
-          setBanks(banksResponse.data.allBanks);
+          setBanks(banksResponse.data?.allBanks);
         } catch (banksError) {
           console.error("Error cargando bancos:", banksError);
           setBanks([]);
@@ -71,7 +93,8 @@ const CreatePolicy = () => {
 
         try {
           const cardTypesResponse = await http.get("creditcard/all-types");
-          setCardTypes(cardTypesResponse.data.allCardTypes);
+          console.log("Tipos de tarjeta:", cardTypesResponse.data);
+          setCardTypes(cardTypesResponse.data?.allTypes || []);
         } catch (cardTypesError) {
           console.error("Error cargando tipos de tarjeta:", cardTypesError);
           setCardTypes([]);
@@ -79,9 +102,9 @@ const CreatePolicy = () => {
 
         try {
           const accountTypesResponse = await http.get(
-            "bankaccount/get-account-types"
+            "bankaccount/all-type-accounts"
           );
-          setAccountTypes(accountTypesResponse.data.allAccountTypes);
+          setAccountTypes(accountTypesResponse.data?.allTypeAccounts || []);
         } catch (accountTypesError) {
           console.error("Error cargando tipos de cuenta:", accountTypesError);
           setAccountTypes([]);
@@ -98,24 +121,6 @@ const CreatePolicy = () => {
 
     fetchData();
   }, []);
-  // Estados para manejo de registro inline de tarjetas y cuentas
-  const [cardFormData, setCardFormData] = useState({
-    cardNumber: "",
-    cvv: "",
-    expirationMonth: "",
-    expirationYear: "",
-    bank_id: "",
-    card_type_id: "",
-  });
-  const [accountFormData, setAccountFormData] = useState({
-    accountNumber: "",
-    bank_id: "",
-    account_type_id: "",
-  });
-  const [banks, setBanks] = useState([]);
-  const [cardTypes, setCardTypes] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
-
   const location = useLocation();
   // Obtenemos el cliente pasado por NavLink, si lo hay
   const customerFromNav = location.state?.customer;
@@ -319,10 +324,41 @@ const CreatePolicy = () => {
     }));
   };
 
+  // Funciones para cerrar modales
+  const handleCloseCardModal = () => {
+    setShowCardModal(false);
+    setCardFormData({
+      cardNumber: "",
+      code: "",
+      expirationMonth: "",
+      expirationYear: "",
+      bank_id: "",
+      card_option_id: "",
+    });
+  };
+
+  const handleCloseAccountModal = () => {
+    setShowAccountModal(false);
+    setAccountFormData({
+      accountNumber: "",
+      bank_id: "",
+    });
+  };
+
   const saveInlineCard = async () => {
     try {
+      // Construir la fecha de vencimiento con día 1
+      const expirationDate =
+        cardFormData.expirationMonth && cardFormData.expirationYear
+          ? `${cardFormData.expirationYear}-${cardFormData.expirationMonth}-01`
+          : null;
+
       const cardData = {
-        ...cardFormData,
+        cardNumber: cardFormData.cardNumber,
+        code: cardFormData.cvv,
+        expirationDate: expirationDate, // Fecha completa con día 1
+        bank_id: parseInt(cardFormData.bank_id),
+        card_option_id: parseInt(cardFormData.card_type_id),
         customers_id: parseInt(selectedCustomer),
       };
 
@@ -360,11 +396,11 @@ const CreatePolicy = () => {
         // Limpiar formulario
         setCardFormData({
           cardNumber: "",
-          cvv: "",
+          code: "",
           expirationMonth: "",
           expirationYear: "",
           bank_id: "",
-          card_type_id: "",
+          card_option_id: "",
         });
       }
     } catch (error) {
@@ -716,83 +752,19 @@ const CreatePolicy = () => {
                   ))}
                 </select>
               ) : (
-                <div className="border rounded p-3 bg-light">
+                <div className="border rounded p-1 bg-light">
                   <div className="mb-2">
                     <small className="text-muted">
                       Este cliente no tiene cuentas bancarias registradas.
-                      Complete los siguientes campos:
                     </small>
                   </div>
-
-                  <div className="row">
-                    <div className="col-12 mb-2">
-                      <label htmlFor="accountNumber" className="form-label">
-                        Número de Cuenta
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        id="accountNumber"
-                        name="accountNumber"
-                        value={accountFormData.accountNumber}
-                        onChange={handleAccountFormChange}
-                        required
-                        placeholder="Ej: 1234567890"
-                      />
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="bank_id" className="form-label">
-                        Banco
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="bank_id"
-                        name="bank_id"
-                        value={accountFormData.bank_id}
-                        onChange={handleAccountFormChange}
-                        required
-                      >
-                        <option value="">Seleccione un banco</option>
-                        {banks.map((bank) => (
-                          <option key={bank.id} value={bank.id}>
-                            {bank.bankName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="account_type_id" className="form-label">
-                        Tipo de Cuenta
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="account_type_id"
-                        name="account_type_id"
-                        value={accountFormData.account_type_id}
-                        onChange={handleAccountFormChange}
-                        required
-                      >
-                        <option value="">Seleccione tipo</option>
-                        {accountTypes.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.typeName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-12">
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={saveInlineAccount}
-                      >
-                        Registrar Cuenta
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm mt-2"
+                    onClick={() => setShowAccountModal(true)}
+                  >
+                    Registrar Nueva Cuenta
+                  </button>
                 </div>
               )}
 
@@ -831,150 +803,363 @@ const CreatePolicy = () => {
                 <div className="border rounded p-3 bg-light">
                   <div className="mb-2">
                     <small className="text-muted">
-                      Este cliente no tiene tarjetas registradas. Complete los
-                      siguientes campos:
+                      Este cliente no tiene tarjetas registradas. tarjeta
                     </small>
                   </div>
-
-                  <div className="row">
-                    <div className="col-8 mb-2">
-                      <label htmlFor="cardNumber" className="form-label">
-                        Número de Tarjeta
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        id="cardNumber"
-                        name="cardNumber"
-                        value={cardFormData.cardNumber}
-                        onChange={handleCardFormChange}
-                        required
-                        placeholder="**** **** **** 1234"
-                        pattern="[0-9]{16}"
-                        maxLength="16"
-                      />
-                    </div>
-
-                    <div className="col-4 mb-2">
-                      <label htmlFor="cvv" className="form-label">
-                        CVV
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        id="cvv"
-                        name="cvv"
-                        value={cardFormData.cvv}
-                        onChange={handleCardFormChange}
-                        required
-                        placeholder="123"
-                        pattern="[0-9]{3,4}"
-                        maxLength="4"
-                      />
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="expirationMonth" className="form-label">
-                        Mes de Vencimiento
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="expirationMonth"
-                        name="expirationMonth"
-                        value={cardFormData.expirationMonth}
-                        onChange={handleCardFormChange}
-                        required
-                      >
-                        <option value="">Mes</option>
-                        {Array.from({ length: 12 }, (_, i) => (
-                          <option
-                            key={i + 1}
-                            value={String(i + 1).padStart(2, "0")}
-                          >
-                            {String(i + 1).padStart(2, "0")}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="expirationYear" className="form-label">
-                        Año de Vencimiento
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="expirationYear"
-                        name="expirationYear"
-                        value={cardFormData.expirationYear}
-                        onChange={handleCardFormChange}
-                        required
-                      >
-                        <option value="">Año</option>
-                        {Array.from({ length: 15 }, (_, i) => (
-                          <option key={2025 + i} value={2025 + i}>
-                            {2025 + i}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="bank_id" className="form-label">
-                        Banco Emisor
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="bank_id"
-                        name="bank_id"
-                        value={cardFormData.bank_id}
-                        onChange={handleCardFormChange}
-                        required
-                      >
-                        <option value="">Seleccione un banco</option>
-                        {banks.map((bank) => (
-                          <option key={bank.id} value={bank.id}>
-                            {bank.bankName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-6 mb-2">
-                      <label htmlFor="card_type_id" className="form-label">
-                        Tipo de Tarjeta
-                      </label>
-                      <select
-                        className="form-select form-select-sm"
-                        id="card_type_id"
-                        name="card_type_id"
-                        value={cardFormData.card_type_id}
-                        onChange={handleCardFormChange}
-                        required
-                      >
-                        <option value="">Seleccione tipo</option>
-                        {cardTypes.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.typeName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-12">
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={saveInlineCard}
-                      >
-                        Registrar Tarjeta
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm mt-2"
+                    onClick={() => setShowCardModal(true)}
+                  >
+                    Registrar Nueva Tarjeta
+                  </button>
                 </div>
               )}
 
               <div className="invalid-feedback">
                 Por favor escoja o registre una tarjeta.
+              </div>
+            </div>
+          )}
+          {showCardModal && (
+            <div
+              className="modal show d-block"
+              tabIndex="-1"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            >
+              <div className="modal-dialog modal-dialog-centered modal-lg">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">
+                      Registrar Nueva Tarjeta de Crédito
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={handleCloseCardModal}
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="row mx-1 my-1">
+                      <div className="col-12 mb-3">
+                        <label
+                          htmlFor="customers_id_card"
+                          className="form-label"
+                        >
+                          Cliente
+                        </label>
+                        <select
+                          className="form-select"
+                          id="customers_id_card"
+                          name="customers_id"
+                          value={selectedCustomer}
+                          disabled
+                          required
+                        >
+                          <option value="">Cliente seleccionado</option>
+                          {customers?.map((customer) => (
+                            <option key={customer.id} value={customer.id}>
+                              {`${customer.firstName} ${
+                                customer.secondName || ""
+                              } ${customer.surname} ${
+                                customer.secondSurname || ""
+                              }`.trim()}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted">
+                          La tarjeta se registrará para el cliente seleccionado
+                          en el formulario principal
+                        </small>
+                      </div>
+
+                      <div className="col-8 mb-3">
+                        <label htmlFor="cardNumber" className="form-label">
+                          Número de Tarjeta
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="cardNumber"
+                          name="cardNumber"
+                          value={cardFormData.cardNumber}
+                          onChange={handleCardFormChange}
+                          required
+                          placeholder="**** **** **** 1234"
+                          pattern="[0-9]{16}"
+                          maxLength="16"
+                        />
+                      </div>
+
+                      <div className="col-4 mb-3">
+                        <label htmlFor="code" className="form-label">
+                          CVV
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="code"
+                          name="code"
+                          value={cardFormData.cvv}
+                          onChange={handleCardFormChange}
+                          required
+                          placeholder="123"
+                          pattern="[0-9]{3,4}"
+                          maxLength="4"
+                        />
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="expirationMonth" className="form-label">
+                          Mes de Vencimiento
+                        </label>
+                        <select
+                          className="form-select"
+                          id="expirationMonth"
+                          name="expirationMonth"
+                          value={cardFormData.expirationMonth}
+                          onChange={handleCardFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione mes
+                          </option>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <option
+                              key={i + 1}
+                              value={String(i + 1).padStart(2, "0")}
+                            >
+                              {String(i + 1).padStart(2, "0")} -{" "}
+                              {new Date(0, i).toLocaleString("es", {
+                                month: "long",
+                              })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="expirationYear" className="form-label">
+                          Año de Vencimiento
+                        </label>
+                        <select
+                          className="form-select"
+                          id="expirationYear"
+                          name="expirationYear"
+                          value={cardFormData.expirationYear}
+                          onChange={handleCardFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione año
+                          </option>
+                          {Array.from({ length: 15 }, (_, i) => (
+                            <option key={2025 + i} value={2025 + i}>
+                              {2025 + i}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="bank_id_card" className="form-label">
+                          Banco Emisor
+                        </label>
+                        <select
+                          className="form-select"
+                          id="bank_id_card"
+                          name="bank_id"
+                          value={cardFormData.bank_id}
+                          onChange={handleCardFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione un banco
+                          </option>
+                          {banks.map((bank) => (
+                            <option key={bank.id} value={bank.id}>
+                              {bank.bankName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="card_type_id" className="form-label">
+                          Tipo de Tarjeta
+                        </label>
+                        <select
+                          className="form-select"
+                          id="card_option_id"
+                          name="card_option_id"
+                          value={cardFormData.card_option_id}
+                          onChange={handleCardFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione tipo
+                          </option>
+                          {cardTypes.map((type) => (
+                            <option key={type.id} value={type.id}>
+                              {type.cardName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleCloseCardModal}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={saveInlineCard}
+                    >
+                      Registrar Tarjeta
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {showAccountModal && (
+            <div
+              className="modal show d-block"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            >
+              <div className="modal-dialog modal-dialog-centered modal-lg">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">
+                      Registrar Nueva Cuenta Bancaria
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={handleCloseAccountModal}
+                    ></button>
+                  </div>
+                  <div className="modal-body ">
+                    {/* Campo de Cliente (obligatorio) */}
+
+                    <div className="row mx-1 my-1">
+                      <div className="col-12 mb-3">
+                        <label
+                          htmlFor="customers_id_account"
+                          className="form-label"
+                        >
+                          Cliente
+                        </label>
+                        <select
+                          className="form-select"
+                          id="customers_id_account"
+                          name="customers_id"
+                          value={selectedCustomer}
+                          disabled
+                          required
+                        >
+                          <option value="">Cliente seleccionado</option>
+                          {customers?.map((customer) => (
+                            <option key={customer.id} value={customer.id}>
+                              {`${customer.firstName} ${
+                                customer.secondName || ""
+                              } ${customer.surname} ${
+                                customer.secondSurname || ""
+                              }`.trim()}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted">
+                          La cuenta se registrará para el cliente seleccionado
+                          en el formulario principal
+                        </small>
+                      </div>
+                      <div className="col-12 mb-3">
+                        <label htmlFor="accountNumber" className="form-label">
+                          Número de Cuenta
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="accountNumber"
+                          name="accountNumber"
+                          value={accountFormData.accountNumber}
+                          onChange={handleAccountFormChange}
+                          required
+                          placeholder="Ej: 1234567890"
+                        />
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="bank_id_account" className="form-label">
+                          Banco
+                        </label>
+                        <select
+                          className="form-select"
+                          id="bank_id_account"
+                          name="bank_id"
+                          value={accountFormData.bank_id}
+                          onChange={handleAccountFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione un banco
+                          </option>
+                          {banks.map((bank) => (
+                            <option key={bank.id} value={bank.id}>
+                              {bank.bankName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-6 mb-3">
+                        <label htmlFor="account_type_id" className="form-label">
+                          Tipo de Cuenta
+                        </label>
+                        <select
+                          className="form-select"
+                          id="account_type_id"
+                          name="account_type_id"
+                          value={accountFormData.account_type_id}
+                          onChange={handleAccountFormChange}
+                          required
+                        >
+                          <option disabled selected value="">
+                            Seleccione tipo
+                          </option>
+                          {accountTypes.map((type) => (
+                            <option key={type.id} value={type.id}>
+                              {type.typeName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleCloseAccountModal}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={saveInlineAccount}
+                    >
+                      Registrar Cuenta
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
