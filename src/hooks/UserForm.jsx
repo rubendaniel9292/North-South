@@ -13,10 +13,9 @@ const DECIMAL_FIELDS = [
 ];
 const UserForm = (initialObj) => {
   const [form, setForm] = useState(initialObj);
-  
- 
+
   useEffect(() => {
-    if (!form.password && !form.userName && !form.cardNumber && !form.code) {
+    if (!form.password && !form.username && !form.cardNumber && !form.code) {
       console.log("Estado actualizado del formulario:", form);
     }
   }, [form]);
@@ -68,7 +67,13 @@ const UserForm = (initialObj) => {
       }
 
       // Si es un campo de texto (excepto password y ci_ruc), convertir a mayúsculas
-      if (type === "text" && name !== "ci_ruc" && name !== "userName" && name !== "password") {
+      if (
+        type === "text" &&
+        name !== "ci_ruc" &&
+        name !== "username" &&
+        name !== "password" &&
+        name !== "description"
+      ) {
         setForm((prevForm) => ({
           ...prevForm,
           [name]: value.toUpperCase(),

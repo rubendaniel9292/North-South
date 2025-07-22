@@ -3,16 +3,21 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import "@fontsource/roboto/500.css";
 import { NavLink } from "react-router-dom";
-
+import useAuth from "../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleExclamation,
   faClock,
   faWallet,
   faCreditCard,
+  faListCheck,
+  faPlus,
+  faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import Modal from "../../helpers/modal/Modal";
 const Home = () => {
+  const { auth, loading } = useAuth();
+
   const [cards, setCards] = useState([]);
   const [cardStatus, setCardStatus] = useState(false);
 
@@ -24,6 +29,9 @@ const Home = () => {
 
   const [payments, setPayments] = useState([]);
   const [paymentStatusId, setPaymentStatus] = useState(false);
+
+  const [task, setTask] = useState([]); // Estado para las tareas pendientes
+  const [taskStatus, setTaskStatus] = useState(false); // Nuevo estado para controlar si hay tareas
 
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
@@ -103,16 +111,49 @@ const Home = () => {
       console.error("Error fetching póilzas:", error);
     }
   }, []);
+
+  const getTask = useCallback(async (userId) => {
+    try {
+      // Usar el endpoint específico que creaste
+      const response = await http.get(`/users/get-task/${userId}/tasks`);
+      if (response.data.status === "success") {
+        setTask(response.data.tasks);
+        setTaskStatus(response.data.tasks.length > 0);
+      } else {
+        setTaskStatus(false);
+        console.error("Error fetching tasks:", response.message);
+      }
+    } catch (error) {
+      setTaskStatus(false);
+      console.error("Error fetching tasks:", error);
+    }
+  }, []);
+
+  //auth.uuid && getTask(auth.uuid); // Llamar a getTask solo si auth.uuid está disponible
+
+  // Función para manejar cuando se crea una nueva tarea
+  const handleTaskCreated = (newTask) => {
+    setTask((prevTasks) => [...prevTasks, newTask]);
+    setTaskStatus(true);
+  };
+
+  //  SOLO ejecutar una vez cuando auth.uuid esté disponible
   useEffect(() => {
-    getAllCardsExpireds();
-    getAllPoliciesStatus();
-    getAllPolicies();
-    getPaymenstByStatus();
+    if (!loading && auth?.uuid) {
+      getAllCardsExpireds();
+      getAllPoliciesStatus();
+      getAllPolicies();
+      getPaymenstByStatus();
+      getTask(auth.uuid);
+    }
   }, [
+    loading, // Solo depende de loading y auth.uuid
+    auth?.uuid, // Solo se ejecuta cuando cambie el usuario o cuando termine de cargar
     getAllCardsExpireds,
     getAllPoliciesStatus,
     getAllPolicies,
     getPaymenstByStatus,
+    getTask,
   ]);
   const openModal = () => {
     setShowModal(true);
@@ -349,6 +390,91 @@ const Home = () => {
                 )}
               </div>
             </div>
+            {/* Reemplazar la última tarjeta con la tarjeta de tareas corregida */}
+            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
+              <div className="p-4 text-center">
+                {!taskStatus ? (
+                  <>
+                    <div
+                      className="d-inline-flex p-3 rounded-circle mb-3"
+                      style={{ backgroundColor: "rgba(255, 149, 0, 0.1)" }}
+                    >
+                      <FontAwesomeIcon
+                        size={24}
+                        style={{ color: "#ff9500" }}
+                        icon={faListCheck}
+                      />
+                    </div>
+                    <h4 className="mb-3">Tareas pendientes</h4>
+                    <p
+                      className="fs-4 fw-bold mb-3"
+                      style={{ color: "#ff9500" }}
+                    >
+                      No hay tareas pendientes
+                    </p>
+
+                    {/* Botón crear siempre disponible */}
+                    <button
+                      className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 mx-auto"
+                      onClick={() => {
+                        setModalType("task");
+                        openModal();
+                      }}
+                      title="Crear nueva tarea"
+                    >
+                      <FontAwesomeIcon icon={faPlus} size="sm" />
+                      Crear Tarea
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div
+                      className="d-inline-flex p-3 rounded-circle mb-3"
+                      style={{ backgroundColor: "rgba(255, 149, 0, 0.1)" }}
+                    >
+                      <FontAwesomeIcon
+                        size={24}
+                        style={{ color: "#ff9500" }}
+                        icon={faListCheck}
+                        bounce
+                      />
+                    </div>
+                    <h4 className="mb-3">Tareas pendientes</h4>
+                    <p
+                      className="fs-1 fw-bold mb-3"
+                      style={{ color: "#ff9500" }}
+                    >
+                      {task.length}
+                    </p>
+
+                    {/* Ambos botones cuando hay tareas */}
+                    <div className="d-flex gap-2 justify-content-center">
+                      <button
+                        className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                        onClick={() => {
+                          setModalType("task");
+                          openModal();
+                        }}
+                        title="Crear nueva tarea"
+                      >
+                        <FontAwesomeIcon icon={faPlus} size="sm" />
+                        Crear
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                        onClick={() => {
+                          console.log("Modal de ver tareas - por implementar");
+                        }}
+                        title="Ver tareas pendientes"
+                      >
+                        <FontAwesomeIcon icon={faEye} size="sm" />
+                        Ver
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -360,6 +486,9 @@ const Home = () => {
             policies={policies}
             cards={cards}
             payments={payments}
+            task={task}
+            userId={auth?.uuid}
+            onTaskCreated={handleTaskCreated}
           ></Modal>
         )}
       </section>

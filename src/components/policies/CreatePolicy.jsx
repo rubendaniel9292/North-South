@@ -515,12 +515,14 @@ const CreatePolicy = () => {
         const request = await http.post("policy/register-policy", form);
         if (request.data.status === "success") {
           console.log("Poliza registrada: ", request.data);
-          alerts(
-            "Registro exitoso",
-            "Póliza registrada correctamente",
-            "success"
-          );
-          document.querySelector("#user-form").reset();
+          setTimeout(() => {
+            alerts(
+              "Registro exitoso",
+              "Póliza registrada correctamente",
+              "success"
+            );
+            document.querySelector("#user-form").reset();
+          }, 500);
         } else {
           alerts(
             "Error",
@@ -800,7 +802,7 @@ const CreatePolicy = () => {
                   ))}
                 </select>
               ) : (
-                <div className="border rounded p-3 bg-light">
+                <div className="border rounded p-1 bg-light">
                   <div className="mb-2">
                     <small className="text-muted">
                       Este cliente no tiene tarjetas registradas. tarjeta

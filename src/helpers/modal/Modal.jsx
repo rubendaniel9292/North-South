@@ -14,6 +14,7 @@ import RenewallPolicyModal from "./RenewallPolicyModal";
 import CommissionHistoryModal from "./CommissionHistoryModal";
 import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
 import EditPolicyValuesModal from "./EditPolicyValuesModal";
+import CreateTaskModal from "./CreateTaskModal";
 export default function Modal({
   isOpen,
   onClose,
@@ -30,6 +31,8 @@ export default function Modal({
   commissionHistory,
   commissionRefunds,
   editPoliciesValues,
+  userId,
+  onTaskCreated,
 }) {
   if (!isOpen) return null;
 
@@ -119,6 +122,14 @@ export default function Modal({
             onPolicyUpdated={onPolicyUpdated}
           />
         );
+      case "task":
+        return (
+          <CreateTaskModal
+            onClose={onClose}
+            userId={userId}
+            onTaskCreated={onTaskCreated}
+          />
+        );
       default:
         return null;
     }
@@ -156,4 +167,7 @@ Modal.propTypes = {
   onPaymentUpdated: PropTypes.func.isRequired,
   commissionHistory: PropTypes.func.isRequired,
   commissionRefunds: PropTypes.func.isRequired,
+  task: PropTypes.object.isRequired,
+  userId: PropTypes.string, // Nueva prop
+  onTaskCreated: PropTypes.func, // Nueva prop
 };
