@@ -1,0 +1,23 @@
+
+
+import { Column, Entity, ManyToMany, JoinColumn } from 'typeorm';
+import { ITask } from '@/interface/all.Interfaces';
+import { UserEntity } from './user.entity';
+import { IdEntity } from '@/config/id.entity';
+
+@Entity({ name: 'task' })
+export class TaskEntity extends IdEntity implements ITask {
+    @Column()
+    description: string;
+
+    @Column()
+    statusTask: number;
+
+    @Column()
+    users_uuid: string;
+
+    //relacion muchos a uno: una tarea pertenece a un usuario
+    @ManyToMany(() => UserEntity, (user) => user.tasks)
+    @JoinColumn({ name: 'users_uuid' })
+    users: UserEntity;
+}

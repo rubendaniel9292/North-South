@@ -8,6 +8,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Put,
@@ -15,11 +16,12 @@ import {
 } from '@nestjs/common';
 import { UpdateUserDTO, UserDTO } from '../dto/user.dto';
 import { UserService } from '../services/user.service';
+import { TaskDTO } from '../dto/task.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   //@AccessPublic()
   @Roles('ADMIN') //solo usuarios de tipo admin pordran agrear otros usuarios
@@ -72,6 +74,41 @@ export class UserController {
     return {
       status: 'success',
       updatedUser,
+    };
+  }
+
+  @Roles('BASIC', 'ADMIN')
+  @Post(':id/tasks')
+  public async createTask(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: TaskDTO
+  ) {
+    const newTask = await this.userService.createTask(id, body);
+    return {
+      status: 'success',
+      newTask,
+    };
+  }
+
+  @Roles('BASIC', 'ADMIN')
+  @Get('get-task/:id/tasks')
+  public async getTasksByUserId(@Param('id', new ParseUUIDPipe()) id: string) {
+    const tasks = await this.userService.getTasksByUserId(id);
+    return {
+      status: 'success',
+      tasks,
+    };
+  }
+
+  @Roles('BASIC', 'ADMIN')
+  @Delete('delete-tasks/:taskId')
+  public async deleteTask(
+    @Param('taskId',  ParseIntPipe) taskId: number,
+  ) {
+    const deleteTask = await this.userService.deleteTask(taskId);
+    return {
+      status: 'success',
+      deleteTask,
     };
   }
 }

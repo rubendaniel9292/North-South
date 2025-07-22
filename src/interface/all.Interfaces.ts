@@ -156,3 +156,9 @@ export interface IPolicyPeriodData {
   advisorPercentage: number;
   policyFee: number;
 }
+
+export interface ITask{
+  
+  description: string;  
+  statusTask: number;
+}

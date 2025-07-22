@@ -1,3 +1,4 @@
+import { TaskDTO } from './../dto/task.dto';
 import { UserEntity } from './../entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,14 +7,15 @@ import { DeleteResult, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt-updated';
 import { ErrorManager } from 'src/helpers/error.manager';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
-
-
+import { TaskEntity } from '../entities/task.entity';
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly redisService: RedisModuleService,
+    @InjectRepository(TaskEntity)
+    private readonly taskRepository: Repository<TaskEntity>,
   ) { }
 
 
@@ -137,12 +139,12 @@ export class UserService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //5: metodo para actualizar la contraseña
 
+  //5: metodo para actualizar la contraseña
   public updateUser = async (id: string, updateData: Partial<UpdateUserDTO>): Promise<UserEntity> => {
     try {
       await this.userRepository.update({ uuid: id }, updateData);
-      const updatedUser = await this.userRepository.findOne({ where: { uuid: id } });
+      const updatedUser: UserEntity = await this.userRepository.findOne({ where: { uuid: id } });
       if (!updatedUser) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -155,4 +157,57 @@ export class UserService {
     }
   };
 
+  //6: Registro de tareas de un usuario
+  public createTask = async (userId: string, body: TaskDTO): Promise<TaskEntity> => {
+    try {
+      const user: UserEntity = await this.userRepository.findOne({ where: { uuid: userId } });
+      if (!user) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Usuario no encontrado',
+        });
+      }
+      // Asignar los datos de la tarea
+      const newTask: TaskEntity = await this.taskRepository.save(body);
+      await this.redisService.set(`task:${newTask.id}`, JSON.stringify(newTask), 32400);
+      return newTask;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  //7: Obtener las tareas de un usuario
+  public getTasksByUserId = async (userId: string): Promise<TaskEntity[]> => {
+    try {
+      const cachedTasks = await this.redisService.get(`tasks:${userId}`);
+      if (cachedTasks) {
+        return JSON.parse(cachedTasks);
+      }
+      const tasks: TaskEntity[] = await this.taskRepository.find({
+        where: { users_uuid: userId },
+      });
+      await this.redisService.set(`tasks:${userId}`, JSON.stringify(tasks), 32400);
+      return tasks;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  //8: metodo para elimiar una tarea por id (dar por termianda la tarea)
+  public deleteTask = async (taskId: number): Promise<DeleteResult | undefined> => {
+    try {
+      const deletedTask: DeleteResult = await this.taskRepository.delete(taskId);
+      if (deletedTask.affected === 0) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se pudo eliminar la tarea',
+        });
+      }
+      // Eliminar la tarea de Redis
+      await this.redisService.del(`task:${taskId}`);
+      return deletedTask;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
 }

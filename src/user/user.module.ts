@@ -5,9 +5,11 @@ import { UserEntity } from './entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProvidersModule } from 'src/providers/providers.module';
 import { HttpCustomService } from 'src/providers/http/http.service';
+import { TaskEntity } from './entities/task.entity';
+
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity]), ProvidersModule],
+  imports: [TypeOrmModule.forFeature([UserEntity, TaskEntity]), ProvidersModule],
   providers: [UserService, HttpCustomService],
   controllers: [UserController],
   exports: [UserService, TypeOrmModule],

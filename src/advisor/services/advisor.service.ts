@@ -147,7 +147,7 @@ export class AdvisorService extends ValidateEntity {
           message: 'No se encontró el cliente',
         });
       }
-      
+
       // Normalizar fecha si existe
       if (updateData.birthdate) {
         const birthday = DateHelper.normalizeDateForDB(updateData.birthdate);
@@ -169,7 +169,7 @@ export class AdvisorService extends ValidateEntity {
       await this.redisService.del('allAdvisors');
 
       // Obtener el asesor actualizado con todas sus relaciones
-      const advisorWithRelations = await this.advisdorRepository.findOne({
+      const advisorWithRelations: AdvisorEntity = await this.advisdorRepository.findOne({
         where: { id },
         relations: [
           'commissions',
