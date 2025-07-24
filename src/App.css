@@ -96,3 +96,12 @@ body.modal-open {
     min-height: 87vh;
 
 }
+
+.bt-task {
+    background-color:  #ff9500;
+   
+}
+.bt-task:hover {
+    background-color:  #ff9500 !important;
+    
+}

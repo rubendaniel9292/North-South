@@ -39,6 +39,9 @@ const Login = () => {
       });
       if (request.data.mustChangePassword) {
         // Mostrar modal de cambio de contraseña
+        // ✅ LIMPIAR tokens antes de mostrar cambio de contraseña
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setChangePasswordUserId(request.data.userId);
         setShowChangePassword(true);
         return;
@@ -65,14 +68,31 @@ const Login = () => {
         "Error completo:",
         error.response || error.request || error
       );
-      alerts("Error", `Error de conexión: ${error.message}`, "error");
+      // Manejar diferentes tipos de errores
+      if (error.response?.status === 401) {
+        alerts(
+          "Error",
+          "Token expirado o inválido. Intenta nuevamente.",
+          "error"
+        );
+      } else if (error.response?.data?.message) {
+        alerts("Error", error.response.data.message, "error");
+      } else {
+        alerts("Error", `Error de conexión: ${error.message}`, "error");
+      }
     }
   };
   const handlePasswordChanged = () => {
     setShowChangePassword(false);
     setChangePasswordUserId(null);
+    // ✅ Asegurar que no queden tokens residuales
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // ✅ Limpiar el formulario y captcha para que ingrese credenciales frescas
+    setTurnstileToken("");
     // Opcional: muestra mensaje y/o vuelve a mostrar login para que el usuario ingrese con su nueva contraseña
-    window.location.reload(); // 
+    window.location.reload(); //
   };
 
   return (

@@ -30,7 +30,7 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
         const response = await http.post(`/users/${userId}/tasks`, taskData);
 
         if (response.data.status === "success") {
-          alerts.success(
+          alerts(
             "Registro exitoso",
             "Tarea creada exitosamente",
             "success"
@@ -40,13 +40,11 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
 
           onClose();
         } else {
-          alerts.error("Error al crear la tarea");
+          alerts("Error al crear la tarea");
         }
       } catch (error) {
         console.error("Error creating task:", error);
-        alerts.error(
-          error.response?.data?.message || "Error al crear la tarea"
-        );
+        alerts(error.response?.data?.message || "Error al crear la tarea");
       } finally {
         setIsLoading(false);
       }

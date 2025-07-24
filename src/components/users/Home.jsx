@@ -115,7 +115,8 @@ const Home = () => {
   const getTask = useCallback(async (userId) => {
     try {
       // Usar el endpoint específico que creaste
-      const response = await http.get(`/users/get-task/${userId}/tasks`);
+      const response = await http.get(`users/get-task/${userId}/tasks`);
+      console.log("response", response.data.tasks);
       if (response.data.status === "success") {
         setTask(response.data.tasks);
         setTaskStatus(response.data.tasks.length > 0);
@@ -129,12 +130,14 @@ const Home = () => {
     }
   }, []);
 
-  //auth.uuid && getTask(auth.uuid); // Llamar a getTask solo si auth.uuid está disponible
-
   // Función para manejar cuando se crea una nueva tarea
   const handleTaskCreated = (newTask) => {
     setTask((prevTasks) => [...prevTasks, newTask]);
     setTaskStatus(true);
+    // Refrescar las tareas desde el servidor para asegurar sincronización
+    if (auth?.uuid) {
+      getTask(auth.uuid);
+    }
   };
 
   //  SOLO ejecutar una vez cuando auth.uuid esté disponible
@@ -144,7 +147,12 @@ const Home = () => {
       getAllPoliciesStatus();
       getAllPolicies();
       getPaymenstByStatus();
-      getTask(auth.uuid);
+      // Ejecutar getTask de forma independiente para que no afecte las otras funciones
+      getTask(auth.uuid).catch((error) => {
+        console.warn("Error al obtener tareas:", error);
+        // Asegurar que taskStatus se mantenga en false si hay error
+        setTaskStatus(false);
+      });
     }
   }, [
     loading, // Solo depende de loading y auth.uuid
@@ -161,7 +169,30 @@ const Home = () => {
   const closeModal = () => {
     setShowModal(false);
   };
+  //  SOLO ejecutar una vez cuando auth.uuid esté disponible
+  useEffect(() => {
+    if (!loading && auth?.uuid) {
+      getAllCardsExpireds();
+      getAllPoliciesStatus();
+      getAllPolicies();
+      getPaymenstByStatus();
 
+      // Ejecutar getTask de forma independiente para que no afecte las otras funciones
+      getTask(auth.uuid).catch((error) => {
+        console.warn("Error al obtener tareas:", error);
+        // Asegurar que taskStatus se mantenga en false si hay error
+        setTaskStatus(false);
+      });
+    }
+  }, [
+    loading,
+    auth?.uuid,
+    getAllCardsExpireds,
+    getAllPoliciesStatus,
+    getAllPolicies,
+    getPaymenstByStatus,
+    getTask,
+  ]);
   return (
     <>
       <section>
@@ -415,7 +446,7 @@ const Home = () => {
 
                     {/* Botón crear siempre disponible */}
                     <button
-                      className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 mx-auto"
+                      className="btn  d-flex align-items-center gap-1 mx-auto text-white fw-bold bt-task"
                       onClick={() => {
                         setModalType("task");
                         openModal();
@@ -448,9 +479,9 @@ const Home = () => {
                     </p>
 
                     {/* Ambos botones cuando hay tareas */}
-                    <div className="d-flex gap-2 justify-content-center">
+                    <div className="d-flex gap-2 justify-content-center  fw-bold">
                       <button
-                        className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                        className="btn  bt-task text-white d-flex align-items-center gap-1"
                         onClick={() => {
                           setModalType("task");
                           openModal();
@@ -458,7 +489,7 @@ const Home = () => {
                         title="Crear nueva tarea"
                       >
                         <FontAwesomeIcon icon={faPlus} size="sm" />
-                        Crear
+                        Crear Trea
                       </button>
                       <button
                         className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"

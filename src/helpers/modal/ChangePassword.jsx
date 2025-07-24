@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; 
 import PropTypes from "prop-types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -19,6 +20,7 @@ export default function ChangePassword({
   error: propError,
   loading: propLoading = false,
 }) {
+  const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -58,14 +60,18 @@ export default function ChangePassword({
           "Contraseña cambiada correctamente. Ahora puedes iniciar sesión.",
           "success"
         );
+        // Llamar onSuccess antes de navegar
+        if (onSuccess) onSuccess();
         setTimeout(() => {
           navigate("/login"); // o tu ruta de login
         }, 1500);
       } else {
-        alerts("Error", "No se pudo cambiar la contraseña", "error");
+        const errorMessage =
+          request.data.message || "No se pudo cambiar la contraseña";
+        alerts("Error", errorMessage, "error");
       }
 
-      if (onSuccess) onSuccess();
+      
     } catch (err) {
       setError(
         err?.response?.data?.message ||
