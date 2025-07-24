@@ -38,6 +38,10 @@ export class UserEntity extends BaseEntity implements IUser {
   mustChangePassword: boolean;
 
   //relacion uno a varios:   un usuario puede tener muchas tareas
-  @OneToMany(() => TaskEntity, (task) => task.users, { nullable: true, onDelete: 'CASCADE' })
+  @OneToMany(() => TaskEntity, (task) => task.users, { 
+    nullable: true, 
+    onDelete: 'CASCADE',//eliminar automáticamente las tareas  usando SQl o herramientas   de base de datos
+    cascade: true  //Elimina tareas cuando usando métodos de TypeORM en tu aplicación
+  })
   tasks: TaskEntity[];
 }

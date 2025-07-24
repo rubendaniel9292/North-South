@@ -1,6 +1,6 @@
 
 
-import { Column, Entity, ManyToMany, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { ITask } from '@/interface/all.Interfaces';
 import { UserEntity } from './user.entity';
 import { IdEntity } from '@/config/id.entity';
@@ -17,7 +17,7 @@ export class TaskEntity extends IdEntity implements ITask {
     users_uuid: string;
 
     //relacion muchos a uno: una tarea pertenece a un usuario
-    @ManyToMany(() => UserEntity, (user) => user.tasks)
+    @ManyToOne(() => UserEntity, (user) => user.tasks, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'users_uuid' })
     users: UserEntity;
 }

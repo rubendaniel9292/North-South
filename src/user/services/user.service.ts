@@ -52,7 +52,10 @@ export class UserService {
       if (cachedUsers) {
         return JSON.parse(cachedUsers);
       }
-      const users: UserEntity[] = await this.userRepository.find(); //obtener el listado de usuarios el equivalente en sql SELECT * FROM users;
+      const users: UserEntity[] = await this.userRepository.find(
+        { relations: ['tasks'], }
+      );
+      //obtener el listado de usuarios el equivalente en sql SELECT * FROM users;
       /*const [users, count] = await this.userRepository
         .createQueryBuilder()
         .getManyAndCount();*/
@@ -86,6 +89,7 @@ export class UserService {
       }
       const user: UserEntity = await this.userRepository.findOne({
         where: { uuid },
+        relations: ['tasks'], // Cargar las tareas relacionadas
       });
 
       if (!user) {
@@ -167,8 +171,20 @@ export class UserService {
           message: 'Usuario no encontrado',
         });
       }
-      // Asignar los datos de la tarea
-      const newTask: TaskEntity = await this.taskRepository.save(body);
+      
+      // Crear la tarea y asignar la relación con el usuario
+      const taskData = {
+        ...body,
+        users_uuid: userId, // Asignar el UUID del usuario
+        users: user // Asignar la relación del usuario
+      };
+      
+      const newTask: TaskEntity = await this.taskRepository.save(taskData);
+      
+      // Invalidar cache del usuario y tareas
+      await this.redisService.del(`tasks:${userId}`);
+      await this.redisService.del(`user:${userId}`);
+      
       await this.redisService.set(`task:${newTask.id}`, JSON.stringify(newTask), 32400);
       return newTask;
     } catch (error) {
@@ -185,6 +201,7 @@ export class UserService {
       }
       const tasks: TaskEntity[] = await this.taskRepository.find({
         where: { users_uuid: userId },
+        
       });
       await this.redisService.set(`tasks:${userId}`, JSON.stringify(tasks), 32400);
       return tasks;
