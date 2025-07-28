@@ -169,30 +169,7 @@ const Home = () => {
   const closeModal = () => {
     setShowModal(false);
   };
-  //  SOLO ejecutar una vez cuando auth.uuid esté disponible
-  useEffect(() => {
-    if (!loading && auth?.uuid) {
-      getAllCardsExpireds();
-      getAllPoliciesStatus();
-      getAllPolicies();
-      getPaymenstByStatus();
 
-      // Ejecutar getTask de forma independiente para que no afecte las otras funciones
-      getTask(auth.uuid).catch((error) => {
-        console.warn("Error al obtener tareas:", error);
-        // Asegurar que taskStatus se mantenga en false si hay error
-        setTaskStatus(false);
-      });
-    }
-  }, [
-    loading,
-    auth?.uuid,
-    getAllCardsExpireds,
-    getAllPoliciesStatus,
-    getAllPolicies,
-    getPaymenstByStatus,
-    getTask,
-  ]);
   return (
     <>
       <section>
@@ -421,7 +398,7 @@ const Home = () => {
                 )}
               </div>
             </div>
-            {/* Reemplazar la última tarjeta con la tarjeta de tareas corregida */}
+            {/*tarjeta de tareas  */}
             <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
               <div className="p-4 text-center">
                 {!taskStatus ? (
@@ -463,12 +440,19 @@ const Home = () => {
                       className="d-inline-flex p-3 rounded-circle mb-3"
                       style={{ backgroundColor: "rgba(255, 149, 0, 0.1)" }}
                     >
-                      <FontAwesomeIcon
-                        size={24}
-                        style={{ color: "#ff9500" }}
-                        icon={faListCheck}
-                        bounce
-                      />
+                      <button
+                        onClick={() => {
+                          console.log("Modal de ver tareas - por implementar");
+                        }}
+                      >
+                        {" "}
+                        <FontAwesomeIcon
+                          size={24}
+                          style={{ color: "#ff9500" }}
+                          icon={faListCheck}
+                          bounce
+                        />
+                      </button>
                     </div>
                     <h4 className="mb-3">Tareas pendientes</h4>
                     <p
@@ -478,7 +462,6 @@ const Home = () => {
                       {task.length}
                     </p>
 
-                    {/* Ambos botones cuando hay tareas */}
                     <div className="d-flex gap-2 justify-content-center  fw-bold">
                       <button
                         className="btn  bt-task text-white d-flex align-items-center gap-1"
@@ -490,16 +473,6 @@ const Home = () => {
                       >
                         <FontAwesomeIcon icon={faPlus} size="sm" />
                         Crear Trea
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                        onClick={() => {
-                          console.log("Modal de ver tareas - por implementar");
-                        }}
-                        title="Ver tareas pendientes"
-                      >
-                        <FontAwesomeIcon icon={faEye} size="sm" />
-                        Ver
                       </button>
                     </div>
                   </>

@@ -2,13 +2,17 @@ import PropTypes from "prop-types";
 import dayjs from "dayjs";
 import http from "../../helpers/Http";
 import "dayjs/locale/es";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFile } from "@fortawesome/free-solid-svg-icons";
+
 import { useState } from "react";
 import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
-import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFloppyDisk,
+  faCircleCheck,
+  faRectangleXmark,
+  faFile,
+} from "@fortawesome/free-solid-svg-icons";
+import {} from "@fortawesome/free-solid-svg-icons";
 import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 const ListPolicyModal = ({ policy, onClose }) => {
@@ -127,9 +131,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
   );
 
   // obtener último periodo registrado (por año mayor):
- const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
- console.log('periods:', policy.periods);
-console.log('lastPeriod:', lastPeriod);
+  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+  console.log("periods:", policy.periods);
+  console.log("lastPeriod:", lastPeriod);
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
@@ -188,7 +192,7 @@ console.log('lastPeriod:', lastPeriod);
 
             <thead>
               <tr>
-                <th>Frecuencia de comicioes</th>
+                <th>Frecuencia de Comisiones</th>
                 <th>Monto de Cobertura</th>
                 <th>Porcentaje de la Agencia</th>
                 <th>Porcentaje del Asesor</th>

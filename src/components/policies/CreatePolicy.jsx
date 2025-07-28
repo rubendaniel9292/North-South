@@ -15,6 +15,7 @@ const CreatePolicy = () => {
     numberOfPayments: "",
     numberOfPaymentsAdvisor: "",
     payment_frequency_id: 0,
+    policyFee: "",
   });
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -1176,6 +1177,8 @@ const CreatePolicy = () => {
               id="coverageAmount"
               name="coverageAmount"
               onChange={changed}
+              value={form.coverageAmount || ""} // ✅ SOLO AGREGAR ESTO
+              step="0.01"
             />
             <div className="invalid-feedback">
               Por favor ingrese el monto de cobertura.
@@ -1226,7 +1229,8 @@ const CreatePolicy = () => {
               id="agencyPercentage"
               name="agencyPercentage"
               onChange={changed}
-              value={form.agencyPercentage}
+              value={form.agencyPercentage || ""} // ✅ SOLO AGREGAR ESTO
+              step="0.01"
             />
             <div className="invalid-feedback">
               Por favor ingrese un porcentaje de la agencia.
@@ -1248,7 +1252,8 @@ const CreatePolicy = () => {
               id="advisorPercentage"
               name="advisorPercentage"
               onChange={handleAdvisorPercentageChange}
-              value={form.advisorPercentage}
+              value={form.advisorPercentage || ""} // ✅ SOLO AGREGAR ESTO
+              step="0.01"
             />
 
             {errorAdvisorPercentage && (

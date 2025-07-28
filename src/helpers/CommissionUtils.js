@@ -20,8 +20,6 @@ export const calculateAgencyCommissionPerPeriod = (period) => {
   return ((policyValue - policyFee) * agencyPercentage) / 100;
 };
 
-// Suma total de comisiones de asesor en todos los periodos
-
 // Suma total de comisiones de asesor en todos los pagos generados (por periodo)
 
 export const calculateTotalAdvisorCommissionAllPeriods = (policy) => {
@@ -404,27 +402,51 @@ export const calculateTotalAdvisorCommissionsGeneratedByPeriods = (policy) => {
 
 // Helper principal para mostrar campos principales
 export const getPolicyFields = (policy) => {
-   // NUEVO: Calcular comisión individual según frecuencia
+  // NUEVO: Calcular comisión individual según frecuencia
   const calculateIndividualCommission = () => {
-    if (!policy.paymentsToAdvisor || !policy.numberOfPaymentsAdvisor) {
-      return 0;
+    // Si no hay periodos, usar valores originales como fallback
+    if (!policy.periods || policy.periods.length === 0) {
+      if (!policy.paymentsToAdvisor || !policy.numberOfPaymentsAdvisor) {
+        return 0;
+      }
+      const totalCommissionToAdvisor = parseFloat(policy.paymentsToAdvisor);
+      const numberOfPayments = parseInt(policy.numberOfPaymentsAdvisor);
+
+      if (policy.isCommissionAnnualized === true) {
+        return totalCommissionToAdvisor;
+      }
+      return totalCommissionToAdvisor / numberOfPayments;
     }
 
-    const totalCommissionToAdvisor = parseFloat(policy.paymentsToAdvisor);
-    const numberOfPayments = parseInt(policy.numberOfPaymentsAdvisor);
-    
+    // ✅ ORDENAR PERIODOS POR AÑO Y TOMAR EL MÁS RECIENTE
+    const sortedPeriods = [...policy.periods].sort(
+      (a, b) => Number(b.year) - Number(a.year)
+    );
+    const lastPeriod = sortedPeriods[0]; // El de mayor año
+
+    // Calcular comisión total del último periodo
+    const policyValue = Number(lastPeriod.policyValue || 0);
+    const policyFee = Number(lastPeriod.policyFee || 0);
+    const advisorPercentage = Number(lastPeriod.advisorPercentage || 0);
+    const numberOfPayments = Number(lastPeriod.numberOfPaymentsAdvisor || 12);
+
+    // Comisión total anual del último periodo
+    const totalCommissionLastPeriod =
+      ((policyValue - policyFee) * advisorPercentage) / 100;
+
     // Si es anualizada, se paga todo de una vez al año
     if (policy.isCommissionAnnualized === true) {
-      return totalCommissionToAdvisor;
+      return totalCommissionLastPeriod;
     }
-    
-    // Si es normal, se divide entre el número de pagos
-    return totalCommissionToAdvisor / numberOfPayments;
+
+    // Si es normal, se divide entre el número de pagos del último periodo
+    return totalCommissionLastPeriod / numberOfPayments;
   };
-   // NUEVO: Obtener texto de frecuencia para mostrar
+
+  // NUEVO: Obtener texto de frecuencia para mostrar
   const getFrequencyText = () => {
     if (policy.isCommissionAnnualized === true) {
-      return "anual";
+      return "Anual";
     }
 
     const paymentsPerYear = parseInt(policy.numberOfPaymentsAdvisor);

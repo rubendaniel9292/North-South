@@ -4,7 +4,11 @@ import http from "../../helpers/Http";
 import PropTypes from "prop-types";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk, faTimes } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFloppyDisk,
+  faTimes,
+  faRectangleXmark,
+} from "@fortawesome/free-solid-svg-icons";
 const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { form, changed } = UserForm({
@@ -30,11 +34,7 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
         const response = await http.post(`/users/${userId}/tasks`, taskData);
 
         if (response.data.status === "success") {
-          alerts(
-            "Registro exitoso",
-            "Tarea creada exitosamente",
-            "success"
-          );
+          alerts("Registro exitoso", "Tarea creada exitosamente", "success");
           document.querySelector("#user-form").reset();
           onTaskCreated && onTaskCreated(response.data.newTask);
 
@@ -90,12 +90,17 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
                   <textarea
                     id="description"
                     name="description"
+                    className="form-control"
                     value={form.description}
                     onChange={changed}
                     placeholder="Describe la tarea que deseas crear..."
                     rows="4"
                     disabled={isLoading}
                     required
+                    style={{
+                      resize: "vertical",
+                      minHeight: "100px",
+                    }}
                   />
                 </div>
               </div>
@@ -103,15 +108,16 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
               <div className="modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-danger"
                   onClick={handleClose}
                   disabled={isLoading}
                 >
+                  <FontAwesomeIcon icon={faRectangleXmark} className="me-2" />
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn btn-success"
                   disabled={isLoading || !form.description.trim()}
                 >
                   {isLoading ? (
