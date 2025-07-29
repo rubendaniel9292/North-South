@@ -464,7 +464,7 @@ const Home = () => {
 
                     <div className="d-flex gap-2 justify-content-center  fw-bold">
                       <button
-                        className="btn  bt-task text-white d-flex align-items-center gap-1"
+                        className="btn  bt-task text-white d-flex align-items-center gap-1 fw-bold"
                         onClick={() => {
                           setModalType("task");
                           openModal();
@@ -472,7 +472,7 @@ const Home = () => {
                         title="Crear nueva tarea"
                       >
                         <FontAwesomeIcon icon={faPlus} size="sm" />
-                        Crear Trea
+                        Crear Tarea
                       </button>
                     </div>
                   </>

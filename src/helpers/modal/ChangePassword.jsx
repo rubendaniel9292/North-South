@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -55,14 +55,14 @@ export default function ChangePassword({
         newPassword,
       });
       if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Contraseña cambiada correctamente. Ahora puedes iniciar sesión.",
-          "success"
-        );
         // Llamar onSuccess antes de navegar
         if (onSuccess) onSuccess();
         setTimeout(() => {
+          alerts(
+            "Registro exitoso",
+            "Contraseña cambiada correctamente. Ahora puedes iniciar sesión.",
+            "success"
+          );
           navigate("/login"); // o tu ruta de login
         }, 1500);
       } else {
@@ -70,8 +70,6 @@ export default function ChangePassword({
           request.data.message || "No se pudo cambiar la contraseña";
         alerts("Error", errorMessage, "error");
       }
-
-      
     } catch (err) {
       setError(
         err?.response?.data?.message ||
@@ -208,7 +206,7 @@ export default function ChangePassword({
                       className={
                         hasMinLength
                           ? "text-success me-2"
-                          : "text-secondary me-2"
+                          : "text-danger me-2"
                       }
                     />
                     Mínimo 8 caracteres
@@ -217,7 +215,7 @@ export default function ChangePassword({
                     <FontAwesomeIcon
                       icon={hasLetters ? faCheck : faTimes}
                       className={
-                        hasLetters ? "text-success me-2" : "text-secondary me-2"
+                        hasLetters ? "text-success me-2" : "text-danger me-2"
                       }
                     />
                     Incluir letras
@@ -226,7 +224,7 @@ export default function ChangePassword({
                     <FontAwesomeIcon
                       icon={hasNumbers ? faCheck : faTimes}
                       className={
-                        hasNumbers ? "text-success me-2" : "text-secondary me-2"
+                        hasNumbers ? "text-success me-2" : "text-danger me-2"
                       }
                     />
                     Incluir números
@@ -237,7 +235,7 @@ export default function ChangePassword({
                       className={
                         hasSpecialChar
                           ? "text-success me-2"
-                          : "text-secondary me-2"
+                          : "text-danger me-2"
                       }
                     />
                     Incluir carácter especial
@@ -265,19 +263,10 @@ export default function ChangePassword({
               </div>
               {/* Botones */}
               <div className="d-flex gap-2 pt-2">
-                {onClose && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary flex-fill"
-                    onClick={onClose}
-                    disabled={loading}
-                  >
-                    Cancelar
-                  </button>
-                )}
+               
                 <button
                   type="submit"
-                  className="btn btn-primary flex-fill"
+                  className="btn btn-success flex-fill"
                   disabled={!isFormValid || loading}
                 >
                   {loading ? "Cambiando..." : "Cambiar contraseña"}

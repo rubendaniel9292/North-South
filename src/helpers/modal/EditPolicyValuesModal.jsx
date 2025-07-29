@@ -99,17 +99,22 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
       : "";
 
   // Manejador de cambios en los inputs
-  const handleFieldChange = (idx, field, value) => {
-    const newPeriods = [...form.periods];
-    newPeriods[idx] = {
-      ...newPeriods[idx],
-      [field]: value,
-      isChanged: true,
-    };
-    setForm({ periods: newPeriods });
-  };
+  // Líneas ~95-105 - Convertir handleFieldChange:
+  const handleFieldChange = useCallback(
+    (idx, field, value) => {
+      const newPeriods = [...form.periods];
+      newPeriods[idx] = {
+        ...newPeriods[idx],
+        [field]: value,
+        isChanged: true,
+      };
+      setForm({ periods: newPeriods });
+    },
+    [form.periods, setForm]
+  ); // ✅ Dependencias
 
   // Enviar los cambios al backend (pagos + periodos anuales)
+  /*
   const handleUpdate = async () => {
     setIsLoading(true);
     // 1. Valida antes de enviar
@@ -193,7 +198,94 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
       onClose();
     }
   };
+*/
 
+  // Enviar los cambios al backend (pagos + periodos anuales)
+  const handleUpdate = useCallback(async () => {
+    setIsLoading(true);
+    // 1. Valida antes de enviar
+    const periodsToUpdate = form.periods.filter((row) => row.isChanged);
+
+    if (periodsToUpdate.length === 0) {
+      alerts("Nada que actualizar", "No has modificado ningún valor.", "info");
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Validación de campos
+    for (let row of periodsToUpdate) {
+      if (
+        isNaN(row.value) ||
+        row.value === "" ||
+        row.value < 0 ||
+        isNaN(row.agencyPercentage) ||
+        row.agencyPercentage < 0 ||
+        row.agencyPercentage > 100 ||
+        isNaN(row.advisorPercentage) ||
+        row.advisorPercentage < 0 ||
+        row.advisorPercentage > 100 ||
+        row.policyFee === "" ||
+        isNaN(row.policyFee) ||
+        row.policyFee < 0
+      ) {
+        alerts(
+          "Error de validación",
+          `Hay valores inválidos en el año ${row.year}.`,
+          "warning"
+        );
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const responses = await Promise.allSettled(
+        periodsToUpdate.map((row) =>
+          http.put(`policy/update-values-by-year/${policy.id}/${row.year}`, {
+            policy_id: policy.id,
+            year: Number(row.year),
+            policyValue: parseFloat(row.value),
+            agencyPercentage: parseFloat(row.agencyPercentage),
+            advisorPercentage: parseFloat(row.advisorPercentage),
+            policyFee: parseFloat(row.policyFee),
+          })
+        )
+      );
+
+      // Busca al menos un éxito real, según la estructura del response
+      const fulfilled = responses.filter((res) => res.status === "fulfilled");
+
+      const atLeastOneSuccess = fulfilled.some(
+        (res) =>
+          // Si tu helper http retorna el objeto Axios completo
+          res.value?.data?.status === "success" ||
+          // Si retorna directamente el objeto JSON (fetch)
+          res.value?.status === "success"
+      );
+
+      if (atLeastOneSuccess) {
+        await fetchPeriods();
+        onPolicyUpdated();
+        setTimeout(() => {
+          alerts(
+            "¡Actualizado!",
+            "Los valores han sido actualizados correctamente",
+            "success"
+          );
+
+          onClose();
+        }, 500);
+      } else {
+        alerts("Error", "No se pudo actualizar ningún periodo", "error");
+        onClose();
+      }
+    } catch (error) {
+      console.log("ERROR EN CATCH:", error);
+      alerts("Error", "No se pudo actualizar los valores", "error");
+      setIsLoading(false);
+      onClose();
+    }
+  }, [form.periods, policy.id, fetchPeriods, onPolicyUpdated, onClose]); // ✅ Dependencias
   // Manejo robusto de carga y error
   if (fetchError) {
     return (
@@ -218,136 +310,166 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
   }
 
   return (
-    <div className="modal d-flex justify-content-center align-items-center ">
-      <article className="modal-content text-center">
-        <div className="container py-2">
-          <h2 className="">Editar valores y porcentajes por año</h2>
-          <div className="py-1">
-            <strong>Póliza:</strong>{" "}
-            <span className="badge bg-secondary">{policy.numberPolicy}</span>
-          </div>
-          <div className="py-1">
-            <strong>Cliente:</strong> {getCustomerName()}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleUpdate();
-            }}
-          >
-            {form.periods.map((row, idx) => (
-              <div className="row" key={row.year}>
-                <div className="col-3  mt-1">
-                  <label className="form-label fw-semibold mx-1">AÑO</label>
-                  <div className="badge bg-light text-dark border mx-1">
-                    {row.year}
-                  </div>
-                </div>
-                <div className="d-none">
-                  <input
-                    type="number"
-                    required
-                    name="policy_id"
-                    value={policy.id}
-                  />
-                </div>
-                <div className="col-2  mt-1">
-                  <label className="form-label fw-semibold mx-1">
-                    VALOR DE LA PÓLIZA
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    value={row.value}
-                    onChange={(e) =>
-                      handleFieldChange(idx, "value", e.target.value)
-                    }
-                    min="0"
-                  />
-                </div>
-                <div className="col-2 mt-1">
-                  <label className="form-label fw-semibold mx-1">
-                    DERECHO DE PÓLIZA
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    value={row.policyFee}
-                    onChange={(e) =>
-                      handleFieldChange(idx, "policyFee", e.target.value)
-                    }
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="col-2 mt-1">
-                  <label className="form-label fw-semibold mx-1">
-                    % AGENCIA
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    value={row.agencyPercentage}
-                    onChange={(e) =>
-                      handleFieldChange(idx, "agencyPercentage", e.target.value)
-                    }
-                    min="0"
-                    max="100"
-                  />
-                </div>
-                <div className="col-2 mt-1">
-                  <label className="form-label fw-semibold mx-1">
-                    % ASESOR
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    value={row.advisorPercentage}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        idx,
-                        "advisorPercentage",
-                        e.target.value
-                      )
-                    }
-                    min="0"
-                    max="100"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <div className="d-flex justify-content-between mt-2">
-              <button
-                className="btn btn-success  fw-bold d-flex align-items-center justify-content-center"
-                style={{ minWidth: 200, transition: "transform 0.2s" }}
-                type="submit"
-                disabled={isLoading}
-              >
-                {isLoading ? "Actualizando..." : "ACTUALIZAR CAMPOS"}
-
-                <FontAwesomeIcon
-                  className="ms-2"
-                  icon={faFloppyDisk}
-                  beat={!isLoading}
-                />
-              </button>
-              <button
-                className="btn btn-danger  fw-bold d-flex align-items-center justify-content-center"
-                style={{ minWidth: 200, transition: "transform 0.2s" }}
-                type="button"
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                CERRAR
-                <FontAwesomeIcon className="ms-2" icon={faTimes} beat />
-              </button>
+    <>
+      {" "}
+      <div className="modal d-flex justify-content-center align-items-center ">
+        <article className="modal-content text-center">
+          <div className="container py-2">
+            <h2 className="">Editar valores y porcentajes por año</h2>
+            <div className="py-1">
+              <strong>Póliza:</strong>{" "}
+              <span className="badge bg-secondary">{policy.numberPolicy}</span>
             </div>
-          </form>
-        </div>
-      </article>
-    </div>
+            <div className="py-1">
+              <strong>Cliente:</strong> {getCustomerName()}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdate();
+              }}
+            >
+              {/* ✅ ORDENAR por año antes de renderizar */}
+              {[...form.periods]
+                .sort((a, b) => Number(a.year) - Number(b.year)) // Del más antiguo al más reciente
+                .map((row, idx) => {
+                  // ✅ Encontrar el índice real en el array original
+                  const realIdx = form.periods.findIndex(
+                    (p) => p.year === row.year
+                  );
+
+                  return (
+                    <div className="row" key={row.year}>
+                      <div className="col-3  mt-1">
+                        <label className="form-label fw-semibold mx-1">
+                          AÑO
+                        </label>
+                        <div className="badge bg-light text-dark border mx-1">
+                          {row.year}
+                        </div>
+                      </div>
+                      <div className="d-none">
+                        <input
+                          type="number"
+                          required
+                          name="policy_id"
+                          value={policy.id}
+                        />
+                      </div>
+                      <div className="col-2  mt-1">
+                        <label className="form-label fw-semibold mx-1">
+                          VALOR DE LA PÓLIZA
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={row.value}
+                          onChange={
+                            (e) =>
+                              handleFieldChange(
+                                realIdx,
+                                "value",
+                                e.target.value
+                              ) // ✅ Usar índice real
+                          }
+                          min="0"
+                        />
+                      </div>
+                      <div className="col-2 mt-1">
+                        <label className="form-label fw-semibold mx-1">
+                          DERECHO DE PÓLIZA
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={row.policyFee}
+                          onChange={
+                            (e) =>
+                              handleFieldChange(
+                                realIdx,
+                                "policyFee",
+                                e.target.value
+                              ) // ✅ Usar índice real
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="col-2 mt-1">
+                        <label className="form-label fw-semibold mx-1">
+                          % AGENCIA
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={row.agencyPercentage}
+                          onChange={
+                            (e) =>
+                              handleFieldChange(
+                                realIdx,
+                                "agencyPercentage",
+                                e.target.value
+                              ) // ✅ Usar índice real
+                          }
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                      <div className="col-2 mt-1">
+                        <label className="form-label fw-semibold mx-1">
+                          % ASESOR
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={row.advisorPercentage}
+                          onChange={
+                            (e) =>
+                              handleFieldChange(
+                                realIdx,
+                                "advisorPercentage",
+                                e.target.value
+                              ) // ✅ Usar índice real
+                          }
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+
+              <div className="d-flex justify-content-between mt-2">
+                <button
+                  className="btn btn-success  fw-bold d-flex align-items-center justify-content-center"
+                  style={{ minWidth: 200, transition: "transform 0.2s" }}
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Actualizando..." : "ACTUALIZAR CAMPOS"}
+                  <FontAwesomeIcon
+                    className="ms-2"
+                    icon={faFloppyDisk}
+                    beat={!isLoading}
+                  />
+                </button>
+                <button
+                  className="btn btn-danger  fw-bold d-flex align-items-center justify-content-center"
+                  style={{ minWidth: 200, transition: "transform 0.2s" }}
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading}
+                >
+                  CERRAR
+                  <FontAwesomeIcon className="ms-2" icon={faTimes} beat />
+                </button>
+              </div>
+            </form>
+          </div>
+        </article>
+      </div>
+    </>
   );
 };
 

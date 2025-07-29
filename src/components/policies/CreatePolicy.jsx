@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const CreatePolicy = () => {
+  const option = "Escoja una opción";
   const [showCardModal, setShowCardModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,15 +32,17 @@ const CreatePolicy = () => {
   const [filteredAccount, setFilteredAccount] = useState([]);
   const [errorAdvisorPercentage, setErrorAdvisorPercentage] = useState("");
   const [cardTypes, setCardTypes] = useState([]);
-
+  const [selectedCustomer, setSelectedCustomer] = useState(option);
   // Estados para manejo de registro inline de tarjetas y cuentas
+
   const [cardFormData, setCardFormData] = useState({
     cardNumber: "",
-    cvv: "",
+    code: "",
     expirationMonth: "",
     expirationYear: "",
     bank_id: "",
-    card_type_id: "",
+    card_option_id: "",
+    customers_id: selectedCustomer,
   });
   const [accountFormData, setAccountFormData] = useState({
     accountNumber: "",
@@ -128,8 +131,6 @@ const CreatePolicy = () => {
   const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
 
   // Estado inicial del cliente seleccionado
-  const option = "Escoja una opción";
-  const [selectedCustomer, setSelectedCustomer] = useState(option);
 
   // Si hay un cliente pasado por NavLink, actualizamos el estado
   useEffect(() => {
@@ -330,11 +331,11 @@ const CreatePolicy = () => {
     setShowCardModal(false);
     setCardFormData({
       cardNumber: "",
-      code: "",
+      code: "", // ✅ Cambiar de "cvv" a "code"
       expirationMonth: "",
       expirationYear: "",
       bank_id: "",
-      card_option_id: "",
+      card_option_id: "", // ✅ Cambiar a "card_option_id"
     });
   };
 
@@ -356,12 +357,16 @@ const CreatePolicy = () => {
 
       const cardData = {
         cardNumber: cardFormData.cardNumber,
-        code: cardFormData.cvv,
-        expirationDate: expirationDate, // Fecha completa con día 1
+        code: cardFormData.code, // ✅ Cambiar de .cvv a .code
+        expirationDate: expirationDate,
         bank_id: parseInt(cardFormData.bank_id),
-        card_option_id: parseInt(cardFormData.card_type_id),
+        card_option_id: parseInt(cardFormData.card_option_id), // ✅ Correcto
         customers_id: parseInt(selectedCustomer),
       };
+      console.log(
+        "Datos de tarjeta a enviar:",
+        cardData && typeof cardData.customers_id
+      );
 
       const response = await http.post("creditcard/register-card", cardData);
 
@@ -903,7 +908,7 @@ const CreatePolicy = () => {
                           className="form-control"
                           id="code"
                           name="code"
-                          value={cardFormData.cvv}
+                          value={cardFormData.code}
                           onChange={handleCardFormChange}
                           required
                           placeholder="123"
