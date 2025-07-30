@@ -104,6 +104,7 @@ export class CreditcardService extends EncryptDataCard {
       //4 Asignar el estado determinado al body de la tarjeta
       body.card_status_id = determinedStatus.id;
       body.expirationDate = expirationDate;
+ 
       //5 Encriptar solo el número de tarjeta y el código
       const encryptedData = this.encryptData(body.cardNumber, body.code);
 

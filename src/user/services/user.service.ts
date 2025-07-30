@@ -171,20 +171,20 @@ export class UserService {
           message: 'Usuario no encontrado',
         });
       }
-      
+
       // Crear la tarea y asignar la relación con el usuario
       const taskData = {
         ...body,
         users_uuid: userId, // Asignar el UUID del usuario
         users: user // Asignar la relación del usuario
       };
-      
+
       const newTask: TaskEntity = await this.taskRepository.save(taskData);
-      
+
       // Invalidar cache del usuario y tareas
       await this.redisService.del(`tasks:${userId}`);
       await this.redisService.del(`user:${userId}`);
-      
+
       await this.redisService.set(`task:${newTask.id}`, JSON.stringify(newTask), 32400);
       return newTask;
     } catch (error) {
@@ -201,7 +201,7 @@ export class UserService {
       }
       const tasks: TaskEntity[] = await this.taskRepository.find({
         where: { users_uuid: userId },
-        
+
       });
       await this.redisService.set(`tasks:${userId}`, JSON.stringify(tasks), 32400);
       return tasks;
