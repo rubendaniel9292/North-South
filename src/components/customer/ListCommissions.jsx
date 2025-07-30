@@ -327,7 +327,7 @@ const ListCommissions = () => {
         </div>
 
         {/* --- Tarjetas de totales  --- */}
-        <div className="row justify-content-center mb-4 mt-4">
+        <div className="row justify-content-center mb-2 mt-4">
           <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
             <div className="card border-0 shadow-sm text-center w-100">
               <div className="card-body">

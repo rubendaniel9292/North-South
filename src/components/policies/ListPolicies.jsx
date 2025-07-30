@@ -229,7 +229,7 @@ const ListPolicies = () => {
                 <th>Frecuencia de Pago</th>
                 <th>Monto de Cobertura</th>
                 <th>Estado</th>
-                <th>Observaciones</th>
+               
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -283,7 +283,6 @@ const ListPolicies = () => {
                     >
                       {policy.policyStatus?.statusName}
                     </td>
-                    <td>{policy.observations || "N/A"}</td>
                     <td className="d-flex gap-2">
                       <button
                         className="btn btn-info text-white fw-bold my-1 w-100"

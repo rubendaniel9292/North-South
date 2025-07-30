@@ -1,7 +1,7 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const RegisterCreditCard = () => {
@@ -11,71 +11,88 @@ const RegisterCreditCard = () => {
   const [types, setTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [customerResponse, banksResponse, typesResponse] =
-          await Promise.all([
-            http.get("customers/get-all-customer"),
-            http.get("creditcard/all-banks"),
-            http.get("creditcard/all-types"),
-          ]);
-
-        const customersData = customerResponse.data?.allCustomer || [];
-        const banksData = banksResponse.data?.allBanks || [];
-        const typesData = typesResponse.data?.allTypes || [];
-
-        setCustomer(customersData);
-        setBanks(banksData);
-        setTypes(typesData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        alerts("Error", "Error fetching data.", "error");
-      }
-    };
-
-    fetchData();
-  }, []);
-  const option = "Escoja una opción";
-  const savedCard = async (e) => {
-    setIsLoading(true);
+  const fetchData = useCallback(async () => {
     try {
-      e.preventDefault();
+      const [customerResponse, banksResponse, typesResponse] =
+        await Promise.all([
+          http.get("customers/get-all-customer"),
+          http.get("creditcard/all-banks"),
+          http.get("creditcard/all-types"),
+        ]);
 
-      // Construir la fecha de vencimiento con día 1
-      const expirationDate =
-        form.expirationMonth && form.expirationYear
-          ? `${form.expirationYear}-${form.expirationMonth}-01`
-          : null;
+      const customersData = customerResponse.data?.allCustomer || [];
+      const banksData = banksResponse.data?.allBanks || [];
+      const typesData = typesResponse.data?.allTypes || [];
 
-      // Preparar los datos con la fecha construida
-      const cardData = {
-        ...form,
-        expirationDate: expirationDate,
-      };
-      const request = await http.post(`creditcard/register-card`, cardData);
-      if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Tarjeta registrado registrado correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-      } else {
-        //setSaved('error');
-        alerts(
-          "Error",
-          "Tarjeta no registrada correctamente. Verificar que no haya campos vacíos o que la tarjeta no esté caducada.",
-          "error"
-        );
-      }
+      setCustomer(customersData);
+      setBanks(banksData);
+      setTypes(typesData);
     } catch (error) {
-      alerts("Error", "Error fetching cards.", "error");
-      console.error("Error fetching cards:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching data:", error);
+      alerts("Error", "Error al cargar los datos.", "error");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  const option = "Escoja una opción";
+
+  // ✅ Generar opciones de meses optimizado con useMemo
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1).padStart(2, "0"),
+    label: `${String(i + 1).padStart(2, "0")} - ${new Date(0, i).toLocaleString(
+      "es",
+      { month: "long" }
+    )}`,
+  }));
+
+  // ✅ Generar opciones de años optimizado con useMemo
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 15 }, (_, i) => currentYear + i);
+  const savedCard = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setIsLoading(true);
+
+      try {
+        // Construir la fecha de vencimiento con día 1
+        const expirationDate =
+          form.expirationMonth && form.expirationYear
+            ? `${form.expirationYear}-${form.expirationMonth}-01`
+            : null;
+
+        // Preparar los datos con la fecha construida
+        const cardData = {
+          ...form,
+          expirationDate: expirationDate,
+        };
+
+        const request = await http.post(`creditcard/register-card`, cardData);
+
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Tarjeta registrada correctamente", // ✅ Corregir texto duplicado
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Tarjeta no registrada correctamente. Verificar que no haya campos vacíos o que la tarjeta no esté caducada.",
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error al registrar la tarjeta.", "error"); // ✅ Mejorar mensaje
+        console.error("Error fetching cards:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [form]
+  );
   return (
     <>
       <div className="container-fluid">
@@ -121,7 +138,7 @@ const RegisterCreditCard = () => {
                 onChange={changed}
               />
             </div>
-            
+
             <div className="mb-3 col-3">
               <label htmlFor="code" className="form-label">
                 Código CVV
@@ -150,14 +167,14 @@ const RegisterCreditCard = () => {
                 name="expirationMonth"
                 onChange={changed}
                 required
+                value={form.expirationMonth || ""}
               >
-                <option disabled selected value="">
+                <option disabled value="" defaultValue>
                   Seleccione mes
                 </option>
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={String(i + 1).padStart(2, "0")}>
-                    {String(i + 1).padStart(2, "0")} -{" "}
-                    {new Date(0, i).toLocaleString("es", { month: "long" })}
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
                   </option>
                 ))}
               </select>
@@ -173,13 +190,14 @@ const RegisterCreditCard = () => {
                 name="expirationYear"
                 onChange={changed}
                 required
+                value={form.expirationYear || ""}
               >
-                <option disabled selected value="">
+                <option disabled value="" defaultValue>
                   Seleccione año
                 </option>
-                {Array.from({ length: 15 }, (_, i) => (
-                  <option key={2025 + i} value={2025 + i}>
-                    {2025 + i}
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
                 ))}
               </select>
@@ -226,7 +244,6 @@ const RegisterCreditCard = () => {
                 ))}
               </select>
             </div>
-
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success mt-2 fw-bold">
                 {isLoading ? (

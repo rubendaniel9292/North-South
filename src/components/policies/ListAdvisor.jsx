@@ -138,7 +138,8 @@ const ListAdvisor = () => {
               <th>Fecha de nacimiento</th>
               <th>Teléfono</th>
               <th>Email</th>
-              <th>Fecha de Registro</th>
+              {/*<th>Fecha de Registro</th>*/}
+
               <th>Tratatamiento de datos personales</th>
               <th>Acciones</th>
             </tr>
@@ -162,7 +163,8 @@ const ListAdvisor = () => {
                   <td>{dayjs.utc(item.birthdate).format("DD/MM/YYYY")}</td>
                   <td>{item.numberPhone}</td>
                   <td>{item.email}</td>
-                  <td>{dayjs.utc(item.createdAt).format("dddd DD/MM/YYYY")}</td>
+                  {/* <td>{dayjs.utc(item.createdAt).format("DD/MM/YYYY")}</td> */}
+                 
                   <td>{item.personalData === true ? "SÍ" : "NO"}</td>
 
                   <td className="d-flex gap-2">

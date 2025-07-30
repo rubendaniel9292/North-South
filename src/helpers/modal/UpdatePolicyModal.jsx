@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import UserForm from "../../hooks/UserForm";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
@@ -8,7 +8,6 @@ import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { useCallback } from "react";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   //pbeneres valor, % y derecho de poliza
@@ -72,49 +71,59 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   }, [policy]);
 
   //handleSelectChange para manejar la selección manual del cliente
-  const handleSelectChange = (e) => {
-    handleCard_Accunt(e);
-    setSelectedCustomer(e.target.value);
-    // Asegurar que se guarde como número
-    changed({
-      target: {
-        name: "customers_id",
-        value: parseInt(e.target.value),
-      },
-    });
-    handleCard_Accunt(e);
-  };
+  const handleSelectChange = useCallback(
+    (e) => {
+      handleCard_Accunt(e);
+      // Asegurar que se guarde como número
+      changed({
+        target: {
+          name: "customers_id",
+          value: parseInt(e.target.value),
+        },
+      });
+    },
+    [handleCard_Accunt, changed]
+  );
 
   //filtro de tarjeta por clienes
-  const handleCard_Accunt = (e) => {
-    const selectedCustomerId = e.target.value;
-    const selectedCustomer = customers.find(
-      (customer) => customer.id === selectedCustomerId
-    );
-    if (selectedCustomer) {
-      const customerCiRuc = selectedCustomer.ci_ruc;
+  const handleCard_Accunt = useCallback(
+    (e) => {
+      const selectedCustomerId = e.target.value;
+      const selectedCustomer = customers.find(
+        (customer) => customer.id === selectedCustomerId
+      );
 
-      if (cards && cards.length > 0) {
-        const filteredCards = cards.filter(
-          (card) => card.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredCard(filteredCards);
+      if (selectedCustomer) {
+        const customerCiRuc = selectedCustomer.ci_ruc;
+
+        if (cards && cards.length > 0) {
+          const filteredCards = cards.filter(
+            (card) => card.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredCard(filteredCards);
+        } else {
+          setFilteredCard([]);
+        }
+
+        if (accounts && accounts.length > 0) {
+          const filteredAccount = accounts.filter(
+            (account) => account.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredAccount(filteredAccount);
+        } else {
+          setFilteredAccount([]);
+        }
       }
-      if (accounts && accounts.length > 0) {
-        const filteredAccount = accounts.filter(
-          (account) => account.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredAccount(filteredAccount);
-      }
-    }
 
-    changed(e);
-  };
+      changed(e);
+    },
+    [customers, cards, accounts, changed]
+  );
 
-  const addClassSafely = (id, className) => {
+  const addClassSafely = useCallback((id, className) => {
     const element = document.getElementById(id);
     if (element) element.classList.add(className);
-  };
+  }, []);
 
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
   const calculateAdvisorPayment = useCallback(() => {
@@ -151,146 +160,160 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     form.advisorPercentage,
   ]);
 
-  const handlePaymentMethodChange = (e) => {
-    const paymentMetohd = e.target.value;
-    setSelectedPaymentMethod(paymentMetohd); // Actualiza el estado con el nuevo método de pago seleccionado
-    changed(e);
-  };
+  const handlePaymentMethodChange = useCallback(
+    (e) => {
+      const paymentMetohd = e.target.value;
+      setSelectedPaymentMethod(paymentMetohd);
+      changed(e);
+    },
+    [changed]
+  );
 
   // Maneja el cambio de frecuencia de pago
-  const handleFrequencyChange = (e) => {
-    const selectedFrequencyId = Number(e.target.value); // ID de la frecuencia seleccionada
-    console.log(
-      "selectedFrequencyId:",
-      selectedFrequencyId && typeof selectedFrequencyId
-    );
-    const frequencyMap = {
-      1: 12, // Mensual
-      2: 4, // Trimestral
-      3: 2, // Semestral
-      4: 1, // Anual (default)
-      5: "", //otro
-    };
-    const calculatedPayments = frequencyMap[selectedFrequencyId]; // Número de pagos calculado
+  const handleFrequencyChange = useCallback(
+    (e) => {
+      const selectedFrequencyId = Number(e.target.value);
+      console.log(
+        "selectedFrequencyId:",
+        selectedFrequencyId && typeof selectedFrequencyId
+      );
 
-    // Actualiza los campos relacionados en el formulario
-    changed([
-      {
-        name: "payment_frequency_id",
-        value: selectedFrequencyId,
-      },
-      {
-        name: "numberOfPayments",
-        value: calculatedPayments,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value: calculatedPayments,
-      },
-    ]);
+      const frequencyMap = {
+        1: 12, // Mensual
+        2: 4, // Trimestral
+        3: 2, // Semestral
+        4: 1, // Anual (default)
+        5: "", // otro
+      };
 
-    setSelectedFrequencyId(selectedFrequencyId);
-  };
+      const calculatedPayments = frequencyMap[selectedFrequencyId];
 
-  const handlePaymentsChange = (e) => {
-    const { value } = e.target;
-    changed([
-      {
-        name: "numberOfPayments",
-        value,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value,
-      },
-    ]);
-  };
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [
-          typeResponse,
-          companyResponse,
-          frecuencyResponse,
-          customerResponse,
-          advisorResponse,
-          paymentMethodResponse,
-          creditCardResponse,
-          accountResponse,
-          statuspolicyResponse,
-        ] = await Promise.all([
-          http.get("policy/get-types"),
-          http.get("company/get-all-company"),
-          http.get("policy/get-frecuency"),
-          http.get("customers/get-all-customer"),
-          http.get("advisor/get-all-advisor"),
-          http.get("policy/get-payment-method"),
-          http.get("creditcard/all-cards-rp"),
-          http.get("bankaccount/get-all-account"),
-          http.get("policy/get-all-satus-policy"),
-        ]);
-        setType(typeResponse.data.allTypePolicy);
-        setCompanies(companyResponse.data.allCompanies);
-        setFrequency(frecuencyResponse.data.allFrecuency);
-        setCustomer(customerResponse.data.allCustomer);
-        setAdvisor(advisorResponse.data.allAdvisors);
-        setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
-        setCards(creditCardResponse.data.allCards);
-        setAccounts(accountResponse.data.allBankAccounts);
-        setAllStatusPolicy(statuspolicyResponse.data.allStatusPolicy);
-      } catch (error) {
-        alerts("Error", "Error fetching data.", error);
-      }
-    };
+      changed([
+        {
+          name: "payment_frequency_id",
+          value: selectedFrequencyId,
+        },
+        {
+          name: "numberOfPayments",
+          value: calculatedPayments,
+        },
+        {
+          name: "numberOfPaymentsAdvisor",
+          value: calculatedPayments,
+        },
+      ]);
 
-    fetchData();
+      setSelectedFrequencyId(selectedFrequencyId);
+    },
+    [changed]
+  );
+
+  const handlePaymentsChange = useCallback(
+    (e) => {
+      const { value } = e.target;
+      changed([
+        {
+          name: "numberOfPayments",
+          value,
+        },
+        {
+          name: "numberOfPaymentsAdvisor",
+          value,
+        },
+      ]);
+    },
+    [changed]
+  );
+  const fetchData = useCallback(async () => {
+    try {
+      const [
+        typeResponse,
+        companyResponse,
+        frecuencyResponse,
+        customerResponse,
+        advisorResponse,
+        paymentMethodResponse,
+        creditCardResponse,
+        accountResponse,
+        statuspolicyResponse,
+      ] = await Promise.all([
+        http.get("policy/get-types"),
+        http.get("company/get-all-company"),
+        http.get("policy/get-frecuency"),
+        http.get("customers/get-all-customer"),
+        http.get("advisor/get-all-advisor"),
+        http.get("policy/get-payment-method"),
+        http.get("creditcard/all-cards-rp"),
+        http.get("bankaccount/get-all-account"),
+        http.get("policy/get-all-satus-policy"),
+      ]);
+
+      setType(typeResponse.data.allTypePolicy);
+      setCompanies(companyResponse.data.allCompanies);
+      setFrequency(frecuencyResponse.data.allFrecuency);
+      setCustomer(customerResponse.data.allCustomer);
+      setAdvisor(advisorResponse.data.allAdvisors);
+      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
+      setCards(creditCardResponse.data.allCards);
+      setAccounts(accountResponse.data.allBankAccounts);
+      setAllStatusPolicy(statuspolicyResponse.data.allStatusPolicy);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alerts("Error", "Error fetching data.", "error");
+    }
   }, []);
-
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
 
-  const updatePolicy = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      let newPolicy = { ...form };
-      const request = await http.post(
-        `policy/update-policy/${policy.id}`,
-        newPolicy
-      );
+  const updatePolicy = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setIsLoading(true);
 
-      if (request.data.status === "success") {
-        console.log("Poliza actualizada: ", request.data);
-        alerts(
-          "Actualización exitoso",
-          "Póliza actualizada correctamente",
-          "success"
+      try {
+        let newPolicy = { ...form };
+        const request = await http.post(
+          `policy/update-policy/${policy.id}`,
+          newPolicy
         );
-        //document.querySelector("#user-form").reset();
-        // Llamar a la función de callback para propagar el cambio
-        onPolicyUpdated(request.data.policyUpdate);
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      } else {
+
+        if (request.data.status === "success") {
+          console.log("Poliza actualizada: ", request.data);
+          alerts(
+            "Actualización exitoso",
+            "Póliza actualizada correctamente",
+            "success"
+          );
+
+          // Llamar a la función de callback para propagar el cambio
+          onPolicyUpdated(request.data.policyUpdate);
+          setTimeout(() => {
+            onClose();
+          }, 500);
+        } else {
+          alerts(
+            "Error",
+            "Póliza no actualizada correctamente. Verificar que no haya campos vacíos números de pólizas duplicados",
+            "error"
+          );
+        }
+      } catch (error) {
         alerts(
           "Error",
-          "Póliza no actualizada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
+          "No se registró la póliza, revise los campos e intente nuevamente.",
           "error"
         );
+        console.error("Error fetching policy:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      alerts(
-        "Error",
-        "No se registró la póliza, revise los campos e intente nuevamente.",
-        "error"
-      );
-      console.error("Error fetching policy:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [form, policy.id, onPolicyUpdated, onClose]
+  );
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -785,7 +808,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     />
                   </button>
                   <button
-                    type="submit"
+                    type="button"
                     onClick={onClose}
                     id="btnc"
                     className="btn bg-danger mx-5 text-white fw-bold"

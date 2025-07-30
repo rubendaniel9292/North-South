@@ -52,156 +52,155 @@ const CreatePolicy = () => {
   const [banks, setBanks] = useState([]);
 
   const [accountTypes, setAccountTypes] = useState([]);
-  useEffect(() => {
-    const fetchData = async () => {
+  // ✅ Convertir fetchData a useCallback FUERA del useEffect
+  const fetchData = useCallback(async () => {
+    try {
+      // Cargar datos esenciales primero (los que ya funcionaban antes)
+      const [
+        typeResponse,
+        companyResponse,
+        frecuencyResponse,
+        customerResponse,
+        advisorResponse,
+        paymentMethodResponse,
+        creditCardResponse,
+        accountResponse,
+      ] = await Promise.all([
+        http.get("policy/get-types"),
+        http.get("company/get-all-company"),
+        http.get("policy/get-frecuency"),
+        http.get("customers/get-all-customer"),
+        http.get("advisor/get-all-advisor"),
+        http.get("policy/get-payment-method"),
+        http.get(`creditcard/all-cards-rp`),
+        http.get("bankaccount/get-all-account"),
+      ]);
+
+      setType(typeResponse.data?.allTypePolicy);
+      setCompanies(companyResponse.data?.allCompanies);
+      setFrequency(frecuencyResponse.data?.allFrecuency);
+      setCustomer(customerResponse.data?.allCustomer);
+      setAdvisor(advisorResponse.data?.allAdvisors);
+      setPaymentMethod(paymentMethodResponse?.data.allPaymentMethod);
+      setCards(creditCardResponse.data?.allCards);
+      setAccounts(accountResponse.data?.allBankAccounts);
+
+      // Cargar datos adicionales para registro inline (opcional)
       try {
-        // Cargar datos esenciales primero (los que ya funcionaban antes)
-        const [
-          typeResponse,
-          companyResponse,
-          frecuencyResponse,
-          customerResponse,
-          advisorResponse,
-          paymentMethodResponse,
-          creditCardResponse,
-          accountResponse,
-        ] = await Promise.all([
-          http.get("policy/get-types"),
-          http.get("company/get-all-company"),
-          http.get("policy/get-frecuency"),
-          http.get("customers/get-all-customer"),
-          http.get("advisor/get-all-advisor"),
-          http.get("policy/get-payment-method"),
-
-          http.get(`creditcard/all-cards-rp`),
-          http.get("bankaccount/get-all-account"),
-        ]);
-
-        setType(typeResponse.data?.allTypePolicy);
-        setCompanies(companyResponse.data?.allCompanies);
-        setFrequency(frecuencyResponse.data?.allFrecuency);
-        setCustomer(customerResponse.data?.allCustomer);
-        setAdvisor(advisorResponse.data?.allAdvisors);
-        setPaymentMethod(paymentMethodResponse?.data.allPaymentMethod);
-        setCards(creditCardResponse.data?.allCards);
-        setAccounts(accountResponse.data?.allBankAccounts);
-
-        // Cargar datos adicionales para registro inline (opcional)
-        try {
-          const banksResponse = await http.get("creditcard/all-banks");
-          setBanks(banksResponse.data?.allBanks);
-        } catch (banksError) {
-          console.error("Error cargando bancos:", banksError);
-          setBanks([]);
-        }
-
-        try {
-          const cardTypesResponse = await http.get("creditcard/all-types");
-          console.log("Tipos de tarjeta:", cardTypesResponse.data);
-          setCardTypes(cardTypesResponse.data?.allTypes || []);
-        } catch (cardTypesError) {
-          console.error("Error cargando tipos de tarjeta:", cardTypesError);
-          setCardTypes([]);
-        }
-
-        try {
-          const accountTypesResponse = await http.get(
-            "bankaccount/all-type-accounts"
-          );
-          setAccountTypes(accountTypesResponse.data?.allTypeAccounts || []);
-        } catch (accountTypesError) {
-          console.error("Error cargando tipos de cuenta:", accountTypesError);
-          setAccountTypes([]);
-        }
-      } catch (error) {
-        console.error("Error cargando datos principales:", error);
-        alerts(
-          "Error",
-          "Error cargando datos principales. Algunos endpoints pueden no estar disponibles.",
-          "error"
-        );
+        const banksResponse = await http.get("creditcard/all-banks");
+        setBanks(banksResponse.data?.allBanks);
+      } catch (banksError) {
+        console.error("Error cargando bancos:", banksError);
+        setBanks([]);
       }
-    };
 
+      try {
+        const cardTypesResponse = await http.get("creditcard/all-types");
+        console.log("Tipos de tarjeta:", cardTypesResponse.data);
+        setCardTypes(cardTypesResponse.data?.allTypes || []);
+      } catch (cardTypesError) {
+        console.error("Error cargando tipos de tarjeta:", cardTypesError);
+        setCardTypes([]);
+      }
+
+      try {
+        const accountTypesResponse = await http.get(
+          "bankaccount/all-type-accounts"
+        );
+        setAccountTypes(accountTypesResponse.data?.allTypeAccounts || []);
+      } catch (accountTypesError) {
+        console.error("Error cargando tipos de cuenta:", accountTypesError);
+        setAccountTypes([]);
+      }
+    } catch (error) {
+      console.error("Error cargando datos principales:", error);
+      alerts(
+        "Error",
+        "Error cargando datos principales. Algunos endpoints pueden no estar disponibles.",
+        "error"
+      );
+    }
+  }, []); // ✅ Sin dependencias - solo se ejecuta una vez
+
+  // ✅ useEffect solo llama a la función
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]); // ✅ fetchData como dependencia
+
   const location = useLocation();
   // Obtenemos el cliente pasado por NavLink, si lo hay
   const customerFromNav = location.state?.customer;
   const isEditable = location.state?.isEditable ?? true; // Editabilidad según el state
 
-  // Estado inicial del cliente seleccionado
-
-  // Si hay un cliente pasado por NavLink, actualizamos el estado
-  useEffect(() => {
-    if (customerFromNav) {
-      setSelectedCustomer(customerFromNav.id);
-      // Actualizar el form con el ID del cliente
-      changed({
-        target: {
-          name: "customers_id",
-          value: parseInt(customerFromNav.id),
+  const handlePaymentsChange = useCallback(
+    (e) => {
+      const { value } = e.target;
+      changed([
+        {
+          name: "numberOfPayments",
+          value,
         },
-      });
-
-      // evento sintético para handleCard_Accunt
-      const syntheticEvent = {
-        target: {
-          name: "customers_id",
-          value: customerFromNav.id,
+        {
+          name: "numberOfPaymentsAdvisor",
+          value,
         },
-      };
-
-      // Llamamos a handleCard_Accunt después de actualizar el estado
-      handleCard_Accunt(syntheticEvent);
-    }
-  }, [customerFromNav, customers, cards, accounts]);
-
-  //handleSelectChange para manejar la selección manual del cliente
-  const handleSelectChange = (e) => {
-    if (isEditable) {
-      setSelectedCustomer(e.target.value);
-      // Asegurar que se guarde como número
-      changed({
-        target: {
-          name: "customers_id",
-          value: parseInt(e.target.value),
-        },
-      });
-    }
-    handleCard_Accunt(e);
-  };
+      ]);
+    },
+    [changed]
+  );
 
   //filtro de tarjeta por clienes
-  const handleCard_Accunt = (e) => {
-    const selectedCustomerId = e.target.value;
-    const selectedCustomer = customers.find(
-      (customer) => customer.id === selectedCustomerId
-    );
-    if (selectedCustomer) {
-      const customerCiRuc = selectedCustomer.ci_ruc;
+  const handleCard_Accunt = useCallback(
+    (e) => {
+      const selectedCustomerId = e.target.value;
+      const selectedCustomer = customers.find(
+        (customer) => customer.id === selectedCustomerId
+      );
 
-      if (cards && cards.length > 0) {
-        const filteredCards = cards.filter(
-          (card) => card.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredCard(filteredCards);
-      } else {
-        setFilteredCard([]);
+      if (selectedCustomer) {
+        const customerCiRuc = selectedCustomer.ci_ruc;
+
+        if (cards && cards.length > 0) {
+          const filteredCards = cards.filter(
+            (card) => card.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredCard(filteredCards);
+        } else {
+          setFilteredCard([]);
+        }
+
+        if (accounts && accounts.length > 0) {
+          const filteredAccount = accounts.filter(
+            (account) => account.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredAccount(filteredAccount);
+        } else {
+          setFilteredAccount([]);
+        }
       }
 
-      if (accounts && accounts.length > 0) {
-        const filteredAccount = accounts.filter(
-          (account) => account.customer.ci_ruc === customerCiRuc
-        );
-        setFilteredAccount(filteredAccount);
-      } else {
-        setFilteredAccount([]);
-      }
-    }
+      changed(e);
+    },
+    [customers, cards, accounts, changed]
+  );
 
-    changed(e);
-  };
+  //handleSelectChange para manejar la selección manual del cliente
+  const handleSelectChange = useCallback(
+    (e) => {
+      if (isEditable) {
+        setSelectedCustomer(e.target.value);
+        // Asegurar que se guarde como número
+        changed({
+          target: {
+            name: "customers_id",
+            value: parseInt(e.target.value),
+          },
+        });
+      }
+      handleCard_Accunt(e);
+    },
+    [isEditable, changed, handleCard_Accunt]
+  );
   const addClassSafely = (id, className) => {
     const element = document.getElementById(id);
     if (element) element.classList.add(className);
@@ -254,60 +253,61 @@ const CreatePolicy = () => {
     form.advisorPercentage,
   ]);
 
-  const handlePaymentMethodChange = (e) => {
-    const paymentMetohd = e.target.value;
-    setSelectedPaymentMethod(paymentMetohd); // Actualiza el estado con el nuevo método de pago seleccionado
-    changed(e);
-  };
+  const handlePaymentMethodChange = useCallback(
+    (e) => {
+      const paymentMetohd = e.target.value;
+      setSelectedPaymentMethod(paymentMetohd);
+      changed(e);
+    },
+    [changed]
+  );
 
   // Maneja el cambio de frecuencia de pago
-  const handleFrequencyChange = (e) => {
-    const selectedFrequencyId = Number(e.target.value); // ID de la frecuencia seleccionada
-    console.log(
-      "selectedFrequencyId:",
-      selectedFrequencyId && typeof selectedFrequencyId
-    );
-    const frequencyMap = {
-      1: 12, // Mensual
-      2: 4, // Trimestral
-      3: 2, // Semestral
-      4: 1, // Anual (default)
-      5: "", //otro
-    };
-    const calculatedPayments = frequencyMap[selectedFrequencyId]; // Número de pagos calculado
+  const handleFrequencyChange = useCallback(
+    (e) => {
+      const selectedFrequencyId = Number(e.target.value);
+      console.log(
+        "selectedFrequencyId:",
+        selectedFrequencyId && typeof selectedFrequencyId
+      );
 
-    // Actualiza los campos relacionados en el formulario
-    changed([
-      {
-        name: "payment_frequency_id",
-        value: selectedFrequencyId,
-      },
-      {
-        name: "numberOfPayments",
-        value: calculatedPayments,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value: calculatedPayments,
-      },
-    ]);
+      const frequencyMap = {
+        1: 12, // Mensual
+        2: 4, // Trimestral
+        3: 2, // Semestral
+        4: 1, // Anual (default)
+        5: "", // otro
+      };
 
-    setSelectedFrequencyId(selectedFrequencyId);
-  };
+      const calculatedPayments = frequencyMap[selectedFrequencyId];
 
-  const handlePaymentsChange = (e) => {
-    const { value } = e.target;
-    changed([
-      {
-        name: "numberOfPayments",
-        value,
-      },
-      {
-        name: "numberOfPaymentsAdvisor",
-        value,
-      },
-    ]);
-  };
+      changed([
+        {
+          name: "payment_frequency_id",
+          value: selectedFrequencyId,
+        },
+        {
+          name: "numberOfPayments",
+          value: calculatedPayments,
+        },
+        {
+          name: "numberOfPaymentsAdvisor",
+          value: calculatedPayments,
+        },
+      ]);
+
+      setSelectedFrequencyId(selectedFrequencyId);
+    },
+    [changed]
+  );
+
+  // Si hay un cliente pasado por NavLink, actualizamos el estado
+  useEffect(() => {
+    if (customerFromNav) {
+      // ...código...
+      handleCard_Accunt(syntheticEvent);
+    }
+  }, [customerFromNav, customers, cards, accounts, handleCard_Accunt]);
 
   // Manejadores para formularios inline
   const handleCardFormChange = (e) => {
@@ -347,7 +347,7 @@ const CreatePolicy = () => {
     });
   };
 
-  const saveInlineCard = async () => {
+  const saveInlineCard = useCallback(async () => {
     try {
       // Construir la fecha de vencimiento con día 1
       const expirationDate =
@@ -357,16 +357,12 @@ const CreatePolicy = () => {
 
       const cardData = {
         cardNumber: cardFormData.cardNumber,
-        code: cardFormData.code, // ✅ Cambiar de .cvv a .code
+        code: cardFormData.code,
         expirationDate: expirationDate,
         bank_id: parseInt(cardFormData.bank_id),
-        card_option_id: parseInt(cardFormData.card_option_id), // ✅ Correcto
+        card_option_id: parseInt(cardFormData.card_option_id),
         customers_id: parseInt(selectedCustomer),
       };
-      console.log(
-        "Datos de tarjeta a enviar:",
-        cardData && typeof cardData.customers_id
-      );
 
       const response = await http.post("creditcard/register-card", cardData);
 
@@ -381,6 +377,7 @@ const CreatePolicy = () => {
         const customerCiRuc = customers.find(
           (c) => c.id == selectedCustomer
         )?.ci_ruc;
+
         if (customerCiRuc) {
           const newFilteredCards = updatedCards.data.allCards.filter(
             (card) => card.customer.ci_ruc === customerCiRuc
@@ -413,9 +410,9 @@ const CreatePolicy = () => {
       alerts("Error", "No se pudo registrar la tarjeta", "error");
       console.error("Error saving card:", error);
     }
-  };
+  }, [cardFormData, selectedCustomer, customers, changed]); // ✅ Dependencias
 
-  const saveInlineAccount = async () => {
+  const saveInlineAccount = useCallback(async () => {
     try {
       const accountData = {
         ...accountFormData,
@@ -438,6 +435,7 @@ const CreatePolicy = () => {
         const customerCiRuc = customers.find(
           (c) => c.id == selectedCustomer
         )?.ci_ruc;
+
         if (customerCiRuc) {
           const newFilteredAccounts =
             updatedAccounts.data.allBankAccounts.filter(
@@ -468,8 +466,7 @@ const CreatePolicy = () => {
       alerts("Error", "No se pudo registrar la cuenta bancaria", "error");
       console.error("Error saving account:", error);
     }
-  };
-
+  }, [accountFormData, selectedCustomer, customers, changed]); // ✅ Dependencias
   useEffect(() => {
     // Solo ejecutar cálculos si tenemos valores válidos para evitar NaN
     if (form.policyValue && form.agencyPercentage && form.advisorPercentage) {
@@ -483,72 +480,83 @@ const CreatePolicy = () => {
   ]);
 
   //handler especial para el campo advisorPercentage
-  const handleAdvisorPercentageChange = (e) => {
-    changed(e); // Actualiza el form normalmente
-    const advisorVal = Number(e.target.value);
-    const agencyVal = Number(form.agencyPercentage);
 
-    if (agencyVal === 0) {
-      setErrorAdvisorPercentage("Primero ingrese el porcentaje de la agencia");
-    } else if (advisorVal >= agencyVal) {
-      setErrorAdvisorPercentage(
-        "El porcentaje del asesor debe ser menor que el de la agencia"
-      );
-    } else if (advisorVal === "") {
-      setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
-    } else {
-      setErrorAdvisorPercentage("");
-    }
-  };
-  const savedPolicy = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Obtener el elemento del formulario
-    const formElement = e.target;
+  const handleAdvisorPercentageChange = useCallback(
+    (e) => {
+      changed(e); // Actualiza el form normalmente
+      const advisorVal = Number(e.target.value);
+      const agencyVal = Number(form.agencyPercentage);
 
-    // Verificar la validez del formulario
-    if (!formElement.checkValidity()) {
-      e.stopPropagation();
-    }
-
-    // Agregar la clase was-validated para mostrar los mensajes de error
-    formElement.classList.add("was-validated");
-    try {
-      // Si el formulario es válido, procede con el envío
-      if (formElement.checkValidity()) {
-        // Aquí iría tu lógica de envío
-        console.log("Formulario válido, enviando datos...");
-        const request = await http.post("policy/register-policy", form);
-        if (request.data.status === "success") {
-          console.log("Poliza registrada: ", request.data);
-          setTimeout(() => {
-            alerts(
-              "Registro exitoso",
-              "Póliza registrada correctamente",
-              "success"
-            );
-            document.querySelector("#user-form").reset();
-          }, 500);
-        } else {
-          alerts(
-            "Error",
-            "Póliza no registrada correctamente. Verificar que no haya campos vacios  números de pólzias duplicados",
-            "error"
-          );
-        }
+      if (agencyVal === 0) {
+        setErrorAdvisorPercentage(
+          "Primero ingrese el porcentaje de la agencia"
+        );
+      } else if (advisorVal >= agencyVal) {
+        setErrorAdvisorPercentage(
+          "El porcentaje del asesor debe ser menor que el de la agencia"
+        );
+      } else if (advisorVal === "") {
+        setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
+      } else {
+        setErrorAdvisorPercentage("");
       }
-    } catch (error) {
-      alerts(
-        "Error",
-        "No se registró la póliza, revise los campos e intente nuevamente.",
-        "error"
-      );
-      console.error("Error fetching policy:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [changed, form.agencyPercentage]
+  ); // ✅ Dependencias
 
+  const savedPolicy = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setIsLoading(true);
+
+      // Obtener el elemento del formulario
+      const formElement = e.target;
+
+      // Verificar la validez del formulario
+      if (!formElement.checkValidity()) {
+        e.stopPropagation();
+      }
+
+      // Agregar la clase was-validated para mostrar los mensajes de error
+      formElement.classList.add("was-validated");
+
+      try {
+        // Si el formulario es válido, procede con el envío
+        if (formElement.checkValidity()) {
+          console.log("Formulario válido, enviando datos...");
+          const request = await http.post("policy/register-policy", form);
+
+          if (request.data.status === "success") {
+            console.log("Poliza registrada: ", request.data);
+            setTimeout(() => {
+              alerts(
+                "Registro exitoso",
+                "Póliza registrada correctamente",
+                "success"
+              );
+              document.querySelector("#user-form").reset();
+            }, 500);
+          } else {
+            alerts(
+              "Error",
+              "Póliza no registrada correctamente. Verificar que no haya campos vacios números de pólizas duplicados",
+              "error"
+            );
+          }
+        }
+      } catch (error) {
+        alerts(
+          "Error",
+          "No se registró la póliza, revise los campos e intente nuevamente.",
+          "error"
+        );
+        console.error("Error fetching policy:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [form]
+  ); // ✅ Dependencia: solo se recrea cuando cambia el form
   return (
     <>
       <form

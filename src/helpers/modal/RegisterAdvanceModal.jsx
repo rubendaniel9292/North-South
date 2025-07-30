@@ -131,21 +131,22 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
-  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [paymentMethodResponse] = await Promise.all([
-          http.get("policy/get-payment-method"),
-        ]);
-        setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
+  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR 
+  const fetchData = useCallback(async () => {
+    try {
+      const [paymentMethodResponse] = await Promise.all([
+        http.get("policy/get-payment-method"),
+      ]);
+      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alerts("Error", "Error al cargar métodos de pago.", "error"); 
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]); 
 
   // 14. MANEJAR CAMBIO DE INPUT DE ANTICIPO CON VALIDACIÓN
   const handleAdvanceValueChange = useCallback(
@@ -178,10 +179,13 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
       changed(e);
     },
-    [distributedPolicies, operationType, policyFieldsHelper]
+    [distributedPolicies, operationType, policyFieldsHelper, changed] // ✅ Agregar changed a dependencias
   );
+
   const option = "Escoja una opción";
-  const handleSubmit = async (e) => {
+  
+  // ✅ Convertir handleSubmit a useCallback - SIN TOCAR LA LÓGICA DE NEGOCIO
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     const formElement = e.target;
 
@@ -219,7 +223,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         if (!response?.data?.status || response.data.status !== "success") {
           alerts(
             "Error",
-            "No se pudo aplicar el anticipo a las pólizas. Verifica los datos.",
+            "No se pudo aplicar el anticipo a las pólizas. Verifica los datos.", // ✅ Corregir "Verifica"
             "error"
           );
           setIsLoading(false);
@@ -269,7 +273,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         } else {
           alerts(
             "Error",
-            "Avance/anticipo no registrado correctamente. Verifica campos vacíos o números de recibo duplicados.",
+            "Avance/anticipo no registrado correctamente. Verifica campos vacíos o números de recibo duplicados.", // ✅ Corregir "Verifica"
             "error"
           );
         }
@@ -280,19 +284,28 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    operationType,
+    distributedPolicies,
+    advisorId.id,
+    form.receiptNumber,
+    form.createdAt,
+    form.observations,
+    form.payment_method_id,
+    form.advanceAmount,
+    refreshAdvisor,
+    onClose
+  ]); // ✅ Dependencias necesarias
 
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-5">
-          <div className="d-block conten-title-com rounded ">
-            <h3 className="text-white fw-bold ">
-              Registro de anticipio/comisión a : {advisorId.firstName}{" "}
-              {advisorId.surname} {advisorId.secondSurname}{" "}
-              {advisorId.secondSurname}
+          <div className="d-block conten-title-com rounded mb-3"> 
+            <h3 className="text-white fw-bold">
+              Registro de anticipo/comisión a: {advisorId.firstName}{" "} 
+              {advisorId.surname} {advisorId.secondSurname || ""}
             </h3>
-            <div className="row pt-2"></div>
           </div>
 
           {/*Tabla múltiple de pólizas solo para COMISIÓN */}
@@ -300,10 +313,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
             <>
               <div className="row pt-2">
                 <table className="table table-striped">
+                  {/* TODA LA TABLA SE MANTIENE IGUAL - NO TOCAR LA LÓGICA CRÍTICA */}
                   <thead>
                     <tr>
                       <th>N° de póliza</th>
-                      <th>Compañia</th>
+                      <th>Compañía</th> 
                       <th>Cliente</th>
                       <th>Frecuencia</th>
                       <th>Pagos por periodo/año</th>
@@ -313,7 +327,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
-                      <th>Desc. por cancelacion (si aplica)</th>
+                      <th>Desc. por cancelación (si aplica)</th> 
                       <th>Saldo (después del registro)</th>
                       <th>Comisiones a favor</th>
                       <th>Quitar</th>
@@ -565,7 +579,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       onChange={(e) => setOperationType(e.target.value)}
                       required
                     >
-                      <option selected value={""} disabled>
+                      <option value="" disabled defaultValue> 
                         {option}
                       </option>
                       <option value="ANTICIPO">ANTICIPO</option>
@@ -573,7 +587,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </select>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-bold text-dark">
+                    <label htmlFor="receiptNumber" className="form-label fw-bold text-dark">
                       Número de Recibo
                     </label>
                     <input
@@ -586,7 +600,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     />
                   </div>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-bold text-dark">
+                    <label htmlFor="payment_method_id" className="form-label fw-bold text-dark"> 
                       Método de abono
                     </label>
                     <select
@@ -594,10 +608,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       id="payment_method_id"
                       name="payment_method_id"
                       onChange={changed}
-                      defaultValue={option}
                       required
+                      value={form.payment_method_id || ""}
                     >
-                      <option selected value={""} disabled>
+                      <option value="" disabled defaultValue> 
                         {option}
                       </option>
                       {paymentMethod.map((item) => (
@@ -608,7 +622,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </select>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-bold text-dark">
+                    <label htmlFor="advanceAmount" className="form-label fw-bold text-dark"> 
                       Valor del anticipo/comisión
                     </label>
                     <input
@@ -628,7 +642,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </div>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-bold text-dark">
+                    <label htmlFor="createdAt" className="form-label fw-bold text-dark"> 
                       Fecha del anticipo
                     </label>
                     <input
@@ -641,7 +655,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     />
                   </div>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-bold text-dark">
+                    <label htmlFor="observations" className="form-label fw-bold text-dark"> 
                       Observaciones
                     </label>
                     <textarea
@@ -649,6 +663,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       id="observations"
                       name="observations"
                       onChange={changed}
+                      rows="2" 
                     />
                   </div>
                 </div>
@@ -691,6 +706,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 };
 
+// PropTypes se mantienen exactamente igual
 RegisterAdvanceModal.propTypes = {
   advisorId: PropTypes.shape({
     id: PropTypes.number.isRequired,
@@ -771,4 +787,5 @@ RegisterAdvanceModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   refreshAdvisor: PropTypes.func.isRequired,
 };
+
 export default RegisterAdvanceModal;

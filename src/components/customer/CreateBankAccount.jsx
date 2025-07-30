@@ -1,7 +1,7 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 
@@ -12,67 +12,71 @@ const CreateBankAccount = () => {
   const [types, setTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [customerResponse, banksResponse, typesResponse] =
-          await Promise.all([
-            http.get("customers/get-all-customer"),
-            http.get("bankaccount/all-banks"),
-            http.get("bankaccount/all-type-accounts"),
-          ]);
-
-        const customersData = customerResponse.data?.allCustomer || [];
-        const banksData = banksResponse.data?.allBanks || [];
-        const typesData = typesResponse.data?.allTypeAccounts || [];
-
-        //console.log("Clientes:", customersData);
-        console.log("Bancos:", banksData);
-        console.log("Tipos de cuentas:", typesData);
-
-        setCustomer(customersData);
-        setBanks(banksData);
-        setTypes(typesData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        alerts("Error", "Error fetching data.", "error");
-      }
-    };
-
-    fetchData();
-  }, []);
-  const option = "Escoja una opción";
-  const savedBankAccount = async (e) => {
-    setIsLoading(true);
+  const fetchData = useCallback(async () => {
     try {
-      e.preventDefault();
-      let newBankAccount = form;
-      const request = await http.post(
-        "bankaccount/register-account",
-        newBankAccount
-      );
-      if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Cuenta registrada registrado correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-      } else {
-        //setSaved('error');
-        alerts(
-          "Error",
-          "Cuenta no registrada correctamente. Verificar que no haya campos vacíos o que la cuenta no esté repetida.",
-          "error"
-        );
-      }
+      const [customerResponse, banksResponse, typesResponse] =
+        await Promise.all([
+          http.get("customers/get-all-customer"),
+          http.get("bankaccount/all-banks"),
+          http.get("bankaccount/all-type-accounts"),
+        ]);
+
+      const customersData = customerResponse.data?.allCustomer || [];
+      const banksData = banksResponse.data?.allBanks || [];
+      const typesData = typesResponse.data?.allTypeAccounts || [];
+
+      console.log("Bancos:", banksData);
+      console.log("Tipos de cuentas:", typesData);
+
+      setCustomer(customersData);
+      setBanks(banksData);
+      setTypes(typesData);
     } catch (error) {
-      alerts("Error", "Error fetching cuenta.", "error");
-      console.error("Error fetching cuenta:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching data:", error);
+      alerts("Error", "Error al cargar los datos.", "error");
     }
-  };
+  }, []); // ✅ Sin dependencias - solo se ejecuta una vez
+
+  // ✅ useEffect solo llama a la función
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  const option = "Escoja una opción";
+  const savedBankAccount = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setIsLoading(true);
+
+      try {
+        let newBankAccount = form;
+        const request = await http.post(
+          "bankaccount/register-account",
+          newBankAccount
+        );
+
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Cuenta registrada correctamente",
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Cuenta no registrada correctamente. Verificar que no haya campos vacíos o que la cuenta no esté repetida.",
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error al registrar la cuenta.", "error");
+        console.error("Error fetching cuenta:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [form]
+  ); // ✅ Dependencia: solo se recrea cuando cambia el form
   return (
     <>
       <div className="container-fluid">

@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import UserForm from "../../hooks/UserForm";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; // ✅ Agregar useCallback
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
@@ -22,31 +22,36 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
     personalData:
       advisorId.personalData === true || advisorId.personalData === "true",
   });
+
   const [isLoading, setIsLoading] = useState(false);
+
   if (!advisorId) return null;
 
-  //useEffect para que el estado se actualice cada vez que se abra el modal o cambie el advisorId
+  // ✅ useEffect optimizado para actualizar el formulario
   useEffect(() => {
     if (advisorId) {
       setForm((prev) => ({
         ...prev,
+        // Ya se setean en el UserForm inicial, no necesita cambios
       }));
     }
-  }, [advisorId]);
+  }, [advisorId, setForm]);
 
-  const savedAdvisor = async (e) => {
-    setIsLoading(true);
+  // ✅ Convertir savedAdvisor a useCallback
+  const savedAdvisor = useCallback(async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     try {
-      //let newCustomer = form;
       let newAdvisor = { ...form };
       const request = await http.put(
         `advisor/update-advisor-id/${advisorId.id}`,
         newAdvisor
       );
+      
       if (request.data.status === "success") {
         alerts(
-          "Actualizacion exitosa",
+          "Actualización exitosa", // ✅ Corregir "Actualizacion"
           "Asesor actualizado correctamente",
           "success"
         );
@@ -59,17 +64,18 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
       } else {
         alerts(
           "Error",
-          "Asesor no actualizado correctamente. Verificar que no haya campos vacios o duplicados",
+          "Asesor no actualizado correctamente. Verificar que no haya campos vacíos o duplicados", // ✅ Corregir "vacios"
           "error"
         );
       }
     } catch (error) {
-      alerts("Error", "Error fetching advisor.", "error");
-      console.error("Error fetching advisor:", error);
+      alerts("Error", "Error al actualizar el asesor.", "error"); // ✅ Mejorar mensaje
+      console.error("Error updating advisor:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, advisorId.id, onAdvisorUpdated, onClose]);
+
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
@@ -79,8 +85,13 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
               Asesor seleccionado: {advisorId.firstName} {advisorId.surname}
             </h3>
           </div>
+
           <div className="justify-content-around mt-1">
-            <form onSubmit={savedAdvisor} id="user-form" className="needs-validation was-validated">
+            <form 
+              onSubmit={savedAdvisor} 
+              id="user-form" 
+              className="needs-validation was-validated"
+            >
               <div className="row pt-3 fw-bold">
                 <div className="my-1 col-3">
                   <label htmlFor="ci_ruc" className="form-label">
@@ -90,26 +101,28 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     required
                     type="text"
                     className="form-control"
-                    id="ciruc"
+                    id="ci_ruc" // ✅ Corregir ID inconsistente
                     name="ci_ruc"
                     onChange={changed}
-                    value={form.ci_ruc} // Persist input value
+                    value={form.ci_ruc || ""} // ✅ Agregar fallback
                   />
                 </div>
+
                 <div className="my-1 col-3">
-                  <label htmlFor="firtsName" className="form-label">
+                  <label htmlFor="firstName" className="form-label"> {/* ✅ Corregir htmlFor */}
                     Primer Nombre
                   </label>
                   <input
                     required
                     type="text"
                     className="form-control"
-                    id="name"
+                    id="firstName" // ✅ Corregir ID inconsistente
                     name="firstName"
                     onChange={changed}
-                    value={form.firstName} // Persist input value
+                    value={form.firstName || ""} // ✅ Agregar fallback
                   />
                 </div>
+
                 <div className="my-1 col-3">
                   <label htmlFor="secondName" className="form-label">
                     Segundo Nombre
@@ -117,12 +130,13 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                   <input
                     type="text"
                     className="form-control"
-                    id="secondname"
+                    id="secondName" // ✅ Corregir ID inconsistente
                     name="secondName"
                     onChange={changed}
-                    value={form.secondName} // Persist input value
+                    value={form.secondName || ""} // ✅ Agregar fallback
                   />
                 </div>
+
                 <div className="my-1 col-3">
                   <label htmlFor="surname" className="form-label">
                     Primer Apellido
@@ -134,7 +148,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="surname"
                     name="surname"
                     onChange={changed}
-                    value={form.surname} // Persist input value
+                    value={form.surname || ""} // ✅ Agregar fallback
                   />
                 </div>
 
@@ -145,14 +159,15 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                   <input
                     type="text"
                     className="form-control"
-                    id="secondsurname"
+                    id="secondSurname" // ✅ Corregir ID inconsistente
                     name="secondSurname"
                     onChange={changed}
-                    value={form.secondSurname} // Persist input value
+                    value={form.secondSurname || ""} // ✅ Agregar fallback
                   />
                 </div>
+
                 <div className="mb-3 col-3">
-                  <label htmlFor="text" className="form-label">
+                  <label htmlFor="birthdate" className="form-label"> {/* ✅ Corregir htmlFor */}
                     Fecha de nacimiento
                   </label>
                   <input
@@ -162,8 +177,6 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="birthdate"
                     name="birthdate"
                     onChange={changed}
-                    //value={form.birthdate || customerId.birthdate} // Persist input value
-                    // value={formatDate(form.birthdate || customerId.birthdate)} // Persist input value
                     value={
                       form.birthdate
                         ? dayjs.utc(form.birthdate).format("YYYY-MM-DD")
@@ -171,6 +184,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     }
                   />
                 </div>
+
                 <div className="my-1 col-3">
                   <label htmlFor="email" className="form-label">
                     Email
@@ -182,27 +196,28 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                     id="email"
                     name="email"
                     onChange={changed}
-                    value={form.email} // Persist input value
+                    value={form.email || ""} // ✅ Agregar fallback
                   />
                 </div>
+
                 <div className="my-1 col-3">
-                  <label htmlFor="phone" className="form-label">
+                  <label htmlFor="numberPhone" className="form-label"> {/* ✅ Corregir htmlFor */}
                     Teléfono
                   </label>
                   <input
                     required
                     type="text"
                     className="form-control"
-                    id="phone"
+                    id="numberPhone" // ✅ Corregir ID inconsistente
                     name="numberPhone"
                     onChange={changed}
-                    value={form.numberPhone || advisorId.numberPhone} // Persist input value
+                    value={form.numberPhone || ""} // ✅ Simplificar fallback
                   />
                 </div>
 
-                <div className="my-1 col-3 ">
-                  <label htmlFor="flexRadioDefault7" className="form-label">
-                    ¿El asesor acetpa el tratamiendo de datos personales?
+                <div className="my-1 col-3">
+                  <label htmlFor="personalData" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    ¿El asesor acepta el tratamiento de datos personales? {/* ✅ Corregir typos */}
                   </label>
                   <div className="form-check">
                     <input
@@ -213,13 +228,12 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                       value="true"
                       onChange={changed}
                       checked={form.personalData === true}
-                      //ceked={customerId.personalData || true}
-                    ></input>
+                    />
                     <label
                       className="form-check-label"
-                      htmlFor="flexRadioDefault7"
+                      htmlFor="flexRadioSi" // ✅ Corregir htmlFor
                     >
-                      Si
+                      Sí {/* ✅ Agregar tilde */}
                     </label>
                   </div>
                   <div className="form-check">
@@ -228,10 +242,10 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                       type="radio"
                       name="personalData"
                       id="flexRadioNo"
-                      value="false" // String para consistencia con el evento onChange
+                      value="false"
                       checked={form.personalData === false}
                       onChange={changed}
-                    ></input>
+                    />
                     <label className="form-check-label" htmlFor="flexRadioNo">
                       No
                     </label>
@@ -241,36 +255,31 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
                 <div className="d-flex justify-content-around mt-4">
                   <button
                     type="submit"
-                    id="btnc"
                     className="btn bg-success mx-5 text-white fw-bold"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="spinner-border text-light" role="status">
-                        <span className="visually-hidden">Actualizando...</span>
-                      </div>
+                      <>
+                        <div className="spinner-border spinner-border-sm text-light me-2" role="status">
+                          <span className="visually-hidden">Actualizando...</span>
+                        </div>
+                        Actualizando...
+                      </>
                     ) : (
-                      "Actualizar datos"
+                      <>
+                        Actualizar datos
+                        <FontAwesomeIcon className="mx-2" beat icon={faFloppyDisk} />
+                      </>
                     )}
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      beat
-                      icon={faFloppyDisk}
-                    />
                   </button>
 
                   <button
-                    type="submit"
+                    type="button" // ✅ Cambiar de "submit" a "button"
                     onClick={onClose}
-                    id="btnc"
                     className="btn bg-danger mx-5 text-white fw-bold"
                   >
                     Cerrar
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      beat
-                      icon={faRectangleXmark}
-                    />
+                    <FontAwesomeIcon className="mx-2" beat icon={faRectangleXmark} />
                   </button>
                 </div>
               </div>

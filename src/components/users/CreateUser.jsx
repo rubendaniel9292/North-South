@@ -1,52 +1,46 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
+import { useState, useCallback } from "react";
+
 const CreateUser = () => {
   const { form, changed } = UserForm({});
+  const [isLoading, setIsLoading] = useState(false);
   const option = "Escoja una opción";
-  const saveUser = async (e) => {
-    try {
+  const saveUser = useCallback(
+    async (e) => {
       e.preventDefault();
-      let newUser = form;
-      /*  peticion mediante fecth
-            const token = localStorage.getItem('token');
-            const request = await fetch(Global.url + 'users/register', {
-                method: 'POST',
-                body: JSON.stringify(newUser),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'token': token
-                },
-            });
-            
-            const data = await request.json();*/
-      const request = await http.post("users/register", newUser);
-      console.log(request.data);
-      if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Usuario registrado correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-      } else {
-        //setSaved('error');
-        alerts(
-          "Error",
-          "Usuario no registrado correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.",
-          "error"
-        );
+      setIsLoading(true); // ✅ Iniciar estado de carga
+
+      try {
+        let newUser = form;
+        const request = await http.post("users/register", newUser);
+
+        console.log(request.data);
+
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Usuario registrado correctamente",
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Usuario no registrado correctamente. Verificar que no haya campos vacíos ni correos o nombres de usuario repetidos.",
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error al registrar el usuario.", "error"); // ✅ Mejorar mensaje
+        console.error("Error fetching users:", error);
+      } finally {
+        setIsLoading(false); // ✅ Finalizar estado de carga
       }
-    } catch (error) {
-      //setError(error);
-      alerts("Error", "Error fetching users.", "error");
-      console.error("Error fetching users:", error);
-    } finally {
-      /*se utiliza para ejecutar código que debe ejecutarse independientemente 
-            de si una excepción fue lanzada o no en los bloques try o catch */
-      //setLoading(false);
-    }
-  };
+    },
+    [form]
+  );
 
   return (
     <>
@@ -56,7 +50,8 @@ const CreateUser = () => {
           id="user-form"
           className="needs-validation was-validated"
         >
-          <div className="row">
+          <div className="row mt-3 fw-bold">
+           <h3>REGISTRO DE USUARIOS</h3>
             <div className="mb-3 col-6">
               <label htmlFor="name" className="form-label">
                 Nombres
@@ -132,9 +127,10 @@ const CreateUser = () => {
                 name="role"
                 onChange={changed}
                 required
+                value={form.role || ""}
               >
                 {" "}
-                <option disabled value={""} selected>
+                <option disabled value={""} selected >
                   {option}
                 </option>
                 <option value="ADMIN">Administrador</option>

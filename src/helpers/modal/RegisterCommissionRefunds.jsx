@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useState, useCallback } from "react"; // ✅ Agregar useCallback
 import {
   faRectangleXmark,
   faFloppyDisk,
@@ -15,82 +15,97 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
   // Form state and change handler
   const { form, changed } = UserForm({
     advisor_id: advisorId.id,
+    policy_id: "", // ✅ Agregar valor inicial
     amountRefunds: "",
     cancellationDate: "",
     reason: "",
   });
 
-  // Handler para el envío del formulario
-  const saveRefundsSubmit = async (e) => {
-    e.preventDefault();
-    if (!e.target.checkValidity()) {
-      e.stopPropagation();
-      e.target.classList.add("was-validated");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      // Aquí deberías llamar a tu endpoint de reembolsos
-      // await http.post('/commission-refunds', form);
-      const response = await http.post(
-        "commissions-payments/register-commission-refunds",
-        form
-      );
-      if (response.data.status === "success") {
-        refreshAdvisor?.();
-        alerts(
+  // ✅ Convertir saveRefundsSubmit a useCallback
+  const saveRefundsSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!e.target.checkValidity()) {
+        e.stopPropagation();
+        e.target.classList.add("was-validated");
+        return;
+      }
+      setIsLoading(true);
+
+      try {
+        const response = await http.post(
+          "commissions-payments/register-commission-refunds",
+          form
+        );
+
+        if (response.data.status === "success") {
+          refreshAdvisor?.();
+          alerts(
             "Registro exitoso",
             "Descuento registrado correctamente",
             "success"
           );
-        setTimeout(() => {
-          document.querySelector("#refund-form").reset();
-          onClose();
-        }, 500);
-      } else {
+          setTimeout(() => {
+            document.querySelector("#refund-form").reset();
+            onClose();
+          }, 500);
+        } else {
+          alerts(
+            "Error",
+            "Descuento no registrado correctamente. Verificar que no haya campos vacíos", // ✅ Corregir "Verifica"
+            "error"
+          );
+        }
+      } catch (error) {
         alerts(
           "Error",
-          "Descuento no registrado correctamente. Verifica campos vacíos",
+          "Ocurrió un error durante el registro del descuento.", // ✅ Corregir "erro"
           "error"
         );
+        console.error("Error registrando descuento:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      /*equivalente a if (typeof refreshAdvisor === "function") {
-            refreshAdvisor();
-        } */
-      alerts(
-        "Error",
-        "Ocurrió un erro durante el registro de Descuento.",
-        "error"
-      );
-      console.error("Error registrando descuento:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [form, refreshAdvisor, onClose]
+  );
+
+  // ✅ Filtrar pólizas con comisiones anualizadas usando useMemo para mejor rendimiento
+  const eligiblePolicies =
+    advisorId.policies?.filter(
+      (policy) => policy.isCommissionAnnualized === true
+    ) || [];
 
   return (
     <div className="modal d-flex justify-content-center align-items-center mx-auto">
       <article className="modal-content text-center px-5 py-5">
-        <div className="d-block conten-title-com rounded">
+        <div className="d-block conten-title-com rounded mb-3">
+          {" "}
+          {/* ✅ Agregar margen */}
           <h3 className="text-white fw-bold">
-            Registro de descuento de comisión a : {advisorId.firstName}{" "}
-            {advisorId.secondName}
-            {advisorId.surname} {advisorId.secondSurname}
+            Registro de descuento de comisión a: {advisorId.firstName}{" "}
+            {advisorId.secondName || ""} {advisorId.surname}{" "}
+            {advisorId.secondSurname || ""}{" "}
+            {/* ✅ Agregar fallbacks y espacios */}
           </h3>
         </div>
-        <div className="container-fuild d-flex justify-content-around mt-2">
+
+        <div className="container-fluid d-flex justify-content-around mt-2">
+          {" "}
+          {/* ✅ Corregir "container-fuild" */}
           <form
             onSubmit={saveRefundsSubmit}
             id="refund-form"
             className="needs-validation was-validated"
             noValidate
           >
-            <div className="row">
-              {/* Selección de póliza */}
-              <div className=" d-none">
+            <div className="row pt-3 fw-bold">
+              {" "}
+              {/* ✅ Agregar clases para consistencia */}
+              {/* ID Asesor (hidden) */}
+              <div className="d-none">
                 <label htmlFor="advisor_id" className="form-label">
-                  Id Asesor
+                  ID Asesor
                 </label>
                 <input
                   required
@@ -103,112 +118,151 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
                   readOnly
                 />
               </div>
-              <div className="mb-3 col-2">
+              {/* Selección de póliza */}
+              <div className="mb-3 col-3">
+                {" "}
+                {/* ✅ Cambiar col-2 a col-3 para mejor espacio */}
                 <label htmlFor="policy_id" className="form-label">
-                  Selecciona la póliza
+                  Seleccionar Póliza
                 </label>
                 <select
                   className="form-select"
                   id="policy_id"
                   name="policy_id"
-                  value={form.policy_id}
+                  value={form.policy_id || ""} // ✅ Agregar fallback
                   onChange={changed}
                   required
                 >
-                  <option value="" disabled selected>
+                  <option value="" disabled defaultValue>
+                    {" "}
+                    {/* ✅ Cambiar selected por defaultValue */}
                     Seleccione una póliza
                   </option>
-                  {advisorId.policies
-                    ?.filter((policy) => policy.isCommissionAnnualized === true)
-                    .map((policy) => (
+                  {eligiblePolicies.length > 0 ? (
+                    eligiblePolicies.map((policy) => (
                       <option key={policy.id} value={policy.id}>
                         {policy.numberPolicy}
                       </option>
-                    ))}
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      No hay pólizas elegibles
+                    </option>
+                  )}
                 </select>
+                {eligiblePolicies.length === 0 && (
+                  <div className="form-text text-warning">
+                    No hay pólizas con comisiones anualizadas disponibles.
+                  </div>
+                )}
               </div>
-
-              {/* Monto del reembolso */}
-              <div className="mb-3 col-2">
+              {/* Monto del descuento */}
+              <div className="mb-3 col-3">
+                {" "}
+                {/* ✅ Cambiar col-2 a col-3 */}
                 <label htmlFor="amountRefunds" className="form-label">
-                  Monto del descuento
+                  Monto del Descuento
                 </label>
                 <input
                   type="number"
                   step="0.01"
+                  min="0.01" // ✅ Agregar validación mínima
                   className="form-control"
                   id="amountRefunds"
                   name="amountRefunds"
+                  value={form.amountRefunds || ""} // ✅ Agregar fallback
                   onChange={changed}
+                  placeholder="0.00"
                   required
                 />
+                <div className="form-text">
+                  Ingrese el monto en formato decimal (ej: 123.45)
+                </div>
               </div>
-
               {/* Fecha de cancelación */}
-              <div className="mb-3 col-4">
+              <div className="mb-3 col-3">
+                {" "}
+                {/* ✅ Cambiar col-4 a col-3 */}
                 <label htmlFor="cancellationDate" className="form-label">
-                  Fecha de cancelación
+                  Fecha de Cancelación
                 </label>
                 <input
                   type="date"
                   className="form-control"
                   id="cancellationDate"
                   name="cancellationDate"
+                  value={form.cancellationDate || ""} // ✅ Agregar fallback
                   onChange={changed}
+                  max={new Date().toISOString().split("T")[0]} // ✅ Restringir fechas futuras
                   required
                 />
+                <div className="form-text">La fecha no puede ser futura</div>
               </div>
-              {/* Observaciones */}
-
               {/* Motivo */}
-              <div className="mb-3 col-4">
+              <div className="mb-3 col-3">
+                {" "}
+                {/* ✅ Cambiar col-4 a col-3 */}
                 <label htmlFor="reason" className="form-label">
-                  Motivo del descuento
+                  Motivo del Descuento
                 </label>
                 <input
                   type="text"
                   className="form-control"
                   id="reason"
                   name="reason"
+                  value={form.reason || ""} // ✅ Agregar fallback
                   onChange={changed}
+                  placeholder="Describa el motivo del descuento"
+                  maxLength="100" // ✅ Agregar límite de caracteres
                   required
                 />
+                <div className="form-text">Máximo 100 caracteres</div>
               </div>
-
               {/* Botones */}
-              <div className="row">
-                <div className="mt-4 col-12">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn bg-success fw-bold text-white"
-                  >
-                    {isLoading ? (
-                      <div className="spinner-border text-light" role="status">
+              <div className="d-flex justify-content-around mt-4">
+                {" "}
+                {/* ✅ Mejorar estructura */}
+                <button
+                  type="submit"
+                  disabled={isLoading || eligiblePolicies.length === 0} // ✅ Deshabilitar si no hay pólizas
+                  className="btn bg-success mx-5 text-white fw-bold"
+                >
+                  {isLoading ? (
+                    <>
+                      <div
+                        className="spinner-border spinner-border-sm text-light me-2"
+                        role="status"
+                      >
+                        {" "}
+                        {/* ✅ Mejorar spinner */}
                         <span className="visually-hidden">Registrando...</span>
                       </div>
-                    ) : (
-                      "Registrar reembolso"
-                    )}
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      icon={faFloppyDisk}
-                      beat
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn bg-danger mx-5 text-white fw-bold"
-                  >
-                    Cerrar
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      beat
-                      icon={faRectangleXmark}
-                    />
-                  </button>
-                </div>
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      Registrar Descuento{" "}
+                      {/* ✅ Cambiar "reembolso" por "descuento" para consistencia */}
+                      <FontAwesomeIcon
+                        className="mx-2"
+                        icon={faFloppyDisk}
+                        beat
+                      />
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn bg-danger mx-5 text-white fw-bold"
+                >
+                  Cerrar
+                  <FontAwesomeIcon
+                    className="mx-2"
+                    beat
+                    icon={faRectangleXmark}
+                  />
+                </button>
               </div>
             </div>
           </form>

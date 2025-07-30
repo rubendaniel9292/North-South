@@ -1,35 +1,39 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-//import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreateAdvisor = () => {
   const { form, changed } = UserForm({});
-  const savedAdvisor = async (e) => {
-    try {
-      e.preventDefault();
-      let newAdvisor = form;
-      const request = await http.post("advisor/register-advisor", newAdvisor);
-      if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Asesor registrado registrado correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-      } else {
-        alerts(
-          "Error",
-          "Asesor no registrado correctamente. Verificar que no haya campos vacios o cedulas o correos duplicados",
-          "error"
-        );
+  const savedAdvisor = useCallback(
+    async (e) => {
+      try {
+        e.preventDefault();
+        let newAdvisor = form;
+        const request = await http.post("advisor/register-advisor", newAdvisor);
+
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Asesor registrado correctamente", // ✅ Corregir texto duplicado
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+        } else {
+          alerts(
+            "Error",
+            "Asesor no registrado correctamente. Verificar que no haya campos vacíos o cédulas o correos duplicados", // ✅ Corregir "vacios"
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error al registrar el asesor.", "error"); // ✅ Mejorar mensaje de error
+        console.error("Error fetching asesor:", error);
       }
-    } catch (error) {
-      alerts("Error", "Error fetching users.", "error");
-      console.error("Error fetching asesor:", error);
-    }
-  };
+    },
+    [form]
+  ); // ✅ Dependencia: solo se recrea cuando cambia el form
   return (
     <div className="container-fluid">
       <h2>Registro de Asesores</h2>
@@ -53,7 +57,7 @@ const CreateAdvisor = () => {
             />
           </div>
           <div className="mb-3 col-3">
-            <label htmlFor="firtsName" className="form-label">
+            <label htmlFor="firstName" className="form-label">
               Primer Nombre
             </label>
             <input
@@ -98,7 +102,7 @@ const CreateAdvisor = () => {
             <input
               type="text"
               className="form-control"
-              id="secondsurname"
+              id="secondSurname"
               name="secondSurname"
               onChange={changed}
             />
@@ -118,21 +122,21 @@ const CreateAdvisor = () => {
             />
           </div>
           <div className="mb-3 col-3">
-            <label htmlFor="phone" className="form-label">
+            <label htmlFor="numberPhon" className="form-label">
               Teléfono
             </label>
             <input
               required
               type="text"
               className="form-control"
-              id="phone"
+              id="numberPhone"
               name="numberPhone"
               onChange={changed}
             />
           </div>
 
           <div className="mb-3 col-3">
-            <label htmlFor="text" className="form-label">
+            <label htmlFor="birthdate" className="form-label">
               Fecha de nacimiento
             </label>
             <input
@@ -147,7 +151,7 @@ const CreateAdvisor = () => {
 
           <div className="mb-3 col-3 ">
             <label htmlFor="flexRadioDefault7" className="form-check-label">
-              ¿El asesor acetpa el tratamiendo de datos personales?
+              ¿El asesor acepta el tratamiento de datos personales?
             </label>
             <div className="form-check">
               <input
@@ -160,7 +164,7 @@ const CreateAdvisor = () => {
                 onChange={changed}
               ></input>
               <label className="form-check-label" htmlFor="flexRadioDefault7">
-                Si
+                Sí
               </label>
             </div>
             <div className="form-check">

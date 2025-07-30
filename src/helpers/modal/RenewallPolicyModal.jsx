@@ -1,24 +1,26 @@
 import PropTypes from "prop-types";
 import UserForm from "../../hooks/UserForm";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; 
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-//import dayjs from "dayjs";
-//import "dayjs/locale/es";
-import { useCallback } from "react";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
+
 const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+  
   if (!policy) return null;
 
   console.log("poliza obtenida: ", policy);
+  
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [isDataValid, setIsDataValid] = useState(true);
+
   const { form, changed, setForm } = UserForm({
     policy_id: policy.id,
-    //createdAt:  dayjs(form.createdAt).toISOString(), // Usar versión ISO o convertir
     coverageAmount: policy.coverageAmount,
     agencyPercentage: lastPeriod.agencyPercentage,
     advisorPercentage: lastPeriod.advisorPercentage,
@@ -28,40 +30,13 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     paymentsToAdvisor: policy.paymentsToAdvisor || 0,
   });
 
-  const [formError, setFormError] = useState("");
-  const addClassSafely = (id, className) => {
+  // ✅ Convertir addClassSafely a useCallback
+  const addClassSafely = useCallback((id, className) => {
     const element = document.getElementById(id);
     if (element) element.classList.add(className);
-  };
+  }, []);
 
-  const [isDataValid, setIsDataValid] = useState(true);
-
-  // Actualizar el número de renovacion cuando se recibe el prop `policy`
-  useEffect(() => {
-    if (policy && policy.renewals) {
-      // Usar directamente la longitud del array + 1 para asegurar secuencia correcta
-      const newRenewalNumber = policy.renewals.length + 1;
-      setForm((prevForm) => ({
-        ...prevForm,
-        renewalNumber: newRenewalNumber,
-      }));
-    } else {
-      setForm((prevForm) => ({
-        ...prevForm,
-        renewalNumber: 1, // Valor por defecto si no hay renovaciones
-      }));
-    }
-  }, [policy]);
-
-  useEffect(() => {
-    if (!policy) {
-      console.error("Error al recibir el objeto", policy);
-      setIsDataValid(false);
-      return null;
-    }
-  }, [policy]);
-
-  // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
+  // ✅ Convertir calculateAdvisorPayment a useCallback
   const calculateAdvisorPayment = useCallback(() => {
     const { paymentsToAgency, paymentsToAdvisor } =
       calculateAdvisorAndAgencyPayments(
@@ -84,6 +59,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
         value: paymentsToAdvisor,
       },
     });
+
     // Agregar clase is-valid a los campos calculados automáticamente de manera segura
     addClassSafely("paymentsToAgency", "is-valid");
     addClassSafely("paymentsToAdvisor", "is-valid");
@@ -94,15 +70,12 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     form.policyFee,
     form.agencyPercentage,
     form.advisorPercentage,
+    changed,
+    addClassSafely
   ]);
 
-  useEffect(() => {
-    calculateAdvisorPayment();
-  }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
-  const lastRenewalYear =
-    policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year ||
-    new Date(policy.startDate).getFullYear();
-  const renewalAndUpdatePolicy = async (e) => {
+  // ✅ Convertir renewalAndUpdatePolicy a useCallback
+  const renewalAndUpdatePolicy = useCallback(async (e) => {
     e.preventDefault();
     const renewalDateValue = document.getElementById("createdAt").value;
     const enteredYear = new Date(renewalDateValue).getFullYear();
@@ -117,10 +90,10 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       addClassSafely("createdAt", "is-valid");
       setFormError("");
     }
+    
     setIsLoading(true);
+    
     try {
-      // 2. actualizar y renovar la póliza
-
       const renewalData = {
         policy_id: policy.id,
         renewalNumber: form.renewalNumber,
@@ -148,7 +121,6 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
         );
 
         // Llamar a la función de callback para propagar el cambio
-
         onPolicyUpdated(renewalRequest.data.newRenewal);
         setTimeout(() => {
           onClose();
@@ -170,19 +142,70 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    form.renewalNumber,
+    form.createdAt,
+    form.observations,
+    form.coverageAmount,
+    form.policyValue,
+    form.policyFee,
+    form.agencyPercentage,
+    form.advisorPercentage,
+    form.paymentsToAgency,
+    form.paymentsToAdvisor,
+    policy.id,
+    onPolicyUpdated,
+    onClose,
+    addClassSafely
+  ]);
+
+  // Actualizar el número de renovación cuando se recibe el prop `policy`
+  useEffect(() => {
+    if (policy && policy.renewals) {
+      // Usar directamente la longitud del array + 1 para asegurar secuencia correcta
+      const newRenewalNumber = policy.renewals.length + 1;
+      setForm((prevForm) => ({
+        ...prevForm,
+        renewalNumber: newRenewalNumber,
+      }));
+    } else {
+      setForm((prevForm) => ({
+        ...prevForm,
+        renewalNumber: 1, // Valor por defecto si no hay renovaciones
+      }));
+    }
+  }, [policy, setForm]);
+
+  useEffect(() => {
+    if (!policy) {
+      console.error("Error al recibir el objeto", policy);
+      setIsDataValid(false);
+      return;
+    }
+  }, [policy]);
+
+  useEffect(() => {
+    calculateAdvisorPayment();
+  }, [calculateAdvisorPayment]);
+
+  const lastRenewalYear =
+    policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year ||
+    new Date(policy.startDate).getFullYear();
+
   if (!isDataValid) {
     return <div>Error: Datos de póliza o frecuencia de pago no válidos.</div>;
   }
+
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
-        <article className="modal-content modal-content-renewal  text-center px-5 py-5">
-          <div className="d-flex justify-content-center align-items-center conten-title rounded">
+        <article className="modal-content modal-content-renewal text-center px-5 py-5">
+          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
             <h3 className="text-white fw-bold">
-              Poliza selecionada a renovar: {policy.numberPolicy}
+              Póliza seleccionada a renovar: {policy.numberPolicy} {/* ✅ Corregir "selecionada" */}
             </h3>
           </div>
+          
           <div className="justify-content-around mt-1">
             <form
               onSubmit={renewalAndUpdatePolicy}
@@ -204,14 +227,15 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     readOnly
                   />
                 </div>
+
                 <div className="mb-3 col-2">
-                  <label htmlFor="numberRenewal" className="form-label">
+                  <label htmlFor="renewalNumber" className="form-label"> {/* ✅ Corregir htmlFor */}
                     Número de renovación
                   </label>
                   <input
                     required
                     readOnly
-                    id="numberRenewal"
+                    id="renewalNumber" // ✅ Corregir ID inconsistente
                     type="number"
                     className="form-control"
                     name="renewalNumber"
@@ -234,6 +258,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.coverageAmount}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
                   <label htmlFor="policyValue" className="form-label">
                     Valor de la Póliza
@@ -245,9 +270,10 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     id="policyValue"
                     name="policyValue"
                     value={form.policyValue}
-                    onChange={changed} // Llamada a la función
+                    onChange={changed}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
                   <label htmlFor="policyFee" className="form-label">
                     Derecho de póliza
@@ -258,12 +284,13 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     id="policyFee"
                     name="policyFee"
                     value={form.policyFee}
-                    onChange={changed} // Llamada a la función
+                    onChange={changed}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
                   <label htmlFor="agencyPercentage" className="form-label">
-                    Procentaje de la Agencia
+                    Porcentaje de la Agencia {/* ✅ Corregir "Procentaje" */}
                   </label>
                   <input
                     required
@@ -275,6 +302,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.agencyPercentage}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
                   <label htmlFor="advisorPercentage" className="form-label">
                     Porcentaje del Asesor
@@ -285,13 +313,14 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     className="form-control"
                     id="advisorPercentage"
                     name="advisorPercentage"
-                    onChange={changed} // Llamada a la función
+                    onChange={changed}
                     value={form.advisorPercentage}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
-                  <label htmlFor="balance" className="form-label">
-                    Fecha de renovacion
+                  <label htmlFor="createdAt" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    Fecha de renovación
                   </label>
                   <input
                     required
@@ -315,11 +344,12 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     required
                     type="number"
                     className="form-control"
-                    id=" paymentsToAgency"
-                    name=" paymentsToAgency"
+                    id="paymentsToAgency" // ✅ Corregir espacio extra
+                    name="paymentsToAgency" // ✅ Corregir espacio extra
                     value={form.paymentsToAgency || 0}
                   />
                 </div>
+
                 <div className="mb-3 col-2">
                   <label htmlFor="paymentsToAdvisor" className="form-label">
                     Comisiones de asesor
@@ -334,51 +364,50 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     value={form.paymentsToAdvisor || 0}
                   />
                 </div>
+
                 <div className="mb-2 col-6">
                   <label htmlFor="observations" className="form-label">
                     Observaciones
                   </label>
                   <textarea
-                    type="text"
                     className="form-control"
                     id="observations"
                     name="observations"
                     onChange={changed}
-                    value={""}
+                    value={form.observations || ""} // ✅ Corregir valor hardcodeado
+                    rows="3"
+                    placeholder="Ingrese observaciones de la renovación..."
                   />
                 </div>
-                <div className="mt-2">
+
+                <div className="d-flex justify-content-around mt-4"> {/* ✅ Mejorar estructura */}
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="btn bg-success mx-5 text-white fw-bold "
+                    className="btn bg-success mx-5 text-white fw-bold"
                   >
                     {isLoading ? (
-                      <div className="spinner-border text-light" role="status">
-                        <span className="visually-hidden">Registrando...</span>
-                      </div>
+                      <>
+                        <div className="spinner-border spinner-border-sm text-light me-2" role="status">
+                          <span className="visually-hidden">Renovando...</span> {/* ✅ Corregir texto */}
+                        </div>
+                        Renovando...
+                      </>
                     ) : (
-                      "Renovar Póliza"
+                      <>
+                        Renovar Póliza
+                        <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
+                      </>
                     )}
-
-                    <FontAwesomeIcon
-                      className="mx-2 "
-                      icon={faFloppyDisk}
-                      beat
-                    />
                   </button>
+
                   <button
-                    type="submit"
+                    type="button" // ✅ Cambiar de "submit" a "button"
                     onClick={onClose}
-                    id="btnc"
                     className="btn bg-danger mx-5 text-white fw-bold"
                   >
                     Cerrar
-                    <FontAwesomeIcon
-                      className="mx-2"
-                      beat
-                      icon={faRectangleXmark}
-                    />
+                    <FontAwesomeIcon className="mx-2" beat icon={faRectangleXmark} />
                   </button>
                 </div>
               </div>
@@ -389,26 +418,36 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     </>
   );
 };
+
 RenewallPolicyModal.propTypes = {
   policy: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Hacer opcional y permitir string o number
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    numberPolicy: PropTypes.string.isRequired,
     coverageAmount: PropTypes.number.isRequired,
-    policyValue: PropTypes.number.isRequired,
-    policyFee: PropTypes.number.isRequired,
-    agencyPercentage: PropTypes.number.isRequired,
-    advisorPercentage: PropTypes.number.isRequired,
-    paymentsToAgency: PropTypes.number.isRequired,
-    paymentsToAdvisor: PropTypes.number.isRequired,
+    startDate: PropTypes.string.isRequired,
+    paymentsToAgency: PropTypes.number,
+    paymentsToAdvisor: PropTypes.number,
+    periods: PropTypes.arrayOf(
+      PropTypes.shape({
+        year: PropTypes.number.isRequired,
+        agencyPercentage: PropTypes.number.isRequired,
+        advisorPercentage: PropTypes.number.isRequired,
+        policyValue: PropTypes.number.isRequired,
+        policyFee: PropTypes.number.isRequired,
+      })
+    ).isRequired,
     renewals: PropTypes.arrayOf(
       PropTypes.shape({
-        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired, // Hacer opcional y permitir string o number
-        renewalNumber: PropTypes.string.isRequired,
-        createdAt: PropTypes.string.isRequired,
-      }).isRequired
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+        renewalNumber: PropTypes.number.isRequired,
+        createdAt: PropTypes.shape({
+          year: PropTypes.number.isRequired,
+        }).isRequired,
+      })
     ),
   }).isRequired,
-
   onClose: PropTypes.func.isRequired,
+  onPolicyUpdated: PropTypes.func.isRequired,
 };
+
 export default RenewallPolicyModal;

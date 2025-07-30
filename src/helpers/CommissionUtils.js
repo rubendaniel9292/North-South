@@ -171,6 +171,15 @@ export const getAgencyCommissionForPayment = (payment, policy) => {
 
 export const calculateTotalAdvisorCommissionsGenerated = (policy) => {
   if (!policy || !Array.isArray(policy.payments)) return 0;
+  
+  // ✅ AGREGAR: Para comisiones anualizadas, usar el valor liberado completo
+  if (policy.isCommissionAnnualized === true) {
+    const periods =
+      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
+    return Number(policy.paymentsToAdvisor || 0) * periods;
+  }
+  
+  // Para pólizas normales, seguir usando pagos generados
   return policy.payments.reduce(
     (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
     0
@@ -188,6 +197,15 @@ export const calculateTotalAgencyCommissionsGenerated = (policy) => {
 // Comisión liberada: solo pagos creados y liberados (AL DÍA)
 export const calculateReleasedCommissionsGenerated = (policy) => {
   if (!policy || !Array.isArray(policy.payments)) return 0;
+  // Si la comisión está anualizada, libera TODA la comisión generada
+    // PÓLIZA ANUALIZADA (sin cambios)
+  if (policy.isCommissionAnnualized === true) {
+    const periods =
+      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
+    return Number(policy.paymentsToAdvisor || 0) * periods;
+  }
+
+  // Si es normal, solo libera comisiones de pagos "AL DÍA" (status 2)
   return policy.payments
     .filter((payment) => payment.paymentStatus && payment.paymentStatus.id == 2)
     .reduce(
@@ -226,7 +244,7 @@ export const getAdvisorTotalAdvances = (advisor) =>
 export const applyHistoricalAdvance = (policies, totalAdvance) => {
   const sortedPolicies = [...policies]
     .map((policy) => {
-      const released = calculateReleasedCommissionsGenerated(policy);
+      const released = calculateReleasedCommissions(policy); // ✅ Usar método correcto
       const paid = Array.isArray(policy.commissions)
         ? policy.commissions.reduce(
             (sum, p) => sum + (Number(p.advanceAmount) || 0),
@@ -471,7 +489,7 @@ export const getPolicyFields = (policy) => {
   // Usa la función mejorada que calcula correctamente por periodos con pagos generados
   const commissionTotal = calculateTotalAdvisorCommissionsGenerated(policy);
 
-  const released = calculateReleasedCommissionsGenerated(policy);
+  const released = calculateReleasedCommissions(policy); // ✅ Usar método correcto
   const releasedNet = released - refundsAmount;
   const paid = Array.isArray(policy.commissions)
     ? policy.commissions.reduce(
@@ -552,4 +570,44 @@ export const calculateAdvisorAndAgencyPayments = (
     paymentsToAgency: Number(paymentsToAgency.toFixed(2)),
     paymentsToAdvisor: Number(paymentAdvisor.toFixed(2)),
   };
+};
+
+export const calculateReleasedCommissions = (policy) => {
+  if (!policy) return 0;
+
+  // PÓLIZA ANUALIZADA (sin cambios)
+  if (policy.isCommissionAnnualized === true) {
+    const periods =
+      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
+    return Number(policy.paymentsToAdvisor || 0) * periods;
+  }
+
+  // PÓLIZA NORMAL (no anualizada)
+  const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
+  const paymentPerInstallment = Number(policy.paymentsToAdvisor) / numberOfPayments;
+
+  // Cuotas liberadas de la póliza principal
+  const releasedInstallments = Array.isArray(policy.payments)
+    ? policy.payments.filter(
+        (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+      ).length
+    : 0;
+
+  // Cuotas liberadas de las renovaciones, si existen
+  let releasedInstallmentsRenewals = 0;
+  if (Array.isArray(policy.renewals)) {
+    for (const renewal of policy.renewals) {
+      if (Array.isArray(renewal.payments)) {
+        releasedInstallmentsRenewals += renewal.payments.filter(
+          (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+        ).length;
+      }
+    }
+  }
+
+  // Comisión liberada total
+  const totalReleased =
+    (releasedInstallments + releasedInstallmentsRenewals) * paymentPerInstallment;
+
+  return totalReleased;
 };

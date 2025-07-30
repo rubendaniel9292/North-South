@@ -1,7 +1,7 @@
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreateCustomer = () => {
@@ -12,87 +12,98 @@ const CreateCustomer = () => {
   const [filteredCities, setFilteredCities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    /* Ejecuta todas las peticiones de manera concurrente, 
-    lo que reduce el tiempo de espera general
-     ya que no esperamos que termine una petición para empezar otra*/
-    const fetchData = async () => {
-      try {
-        const [statusesResponse, provincesResponse, citiesResponse] =
-          await Promise.all([
-            http.get("globaldata/civil-status"),
-            http.get("globaldata/get-provinces"),
-            http.get("globaldata/get-city"),
-          ]);
-
-        const statusesData = statusesResponse.data;
-        const provincesData = provincesResponse.data;
-        const citiesData = citiesResponse.data;
-        /*En lugar de lanzar una excepción, 
-          devuelve undefined si la propiedad no existe, lo que permite que el código continúe sin romperse.*/
-        if (statusesData?.allStatus) {
-          setStatuses(statusesData.allStatus);
-        }
-
-        if (provincesData?.allProvince) {
-          setProvinces(provincesData.allProvince);
-        }
-
-        if (citiesData?.allCities) {
-          setCities(citiesData.allCities);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        alerts("Error", "Error fetching data.", "error");
-      }
-    };
-    fetchData();
-  }, []);
-
-  const handleProvinceChange = (event) => {
-    const selectedProvinceId = event.target.value;
-    const filtered = cities.filter(
-      (city) => city.province && city.province.id === selectedProvinceId
-    );
-
-    setFilteredCities(filtered);
-    changed(event);
-  };
-  const option = "Escoja una opción";
-  const savedCustomer = async (e) => {
-    setIsLoading(true);
-    e.preventDefault();
+  const fetchData = useCallback(async () => {
     try {
-      let newCustomer = form;
-      const request = await http.post(
-        "customers/register-customer",
-        newCustomer
-      );
-      if (request.data.status === "success") {
-        alerts(
-          "Registro exitoso",
-          "Cliente registrado correctamente",
-          "success"
-        );
-        document.querySelector("#user-form").reset();
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      } else {
-        //setSaved('error');
-        alerts(
-          "Error",
-          "Cliente no registrado correctamente. Verificar que no haya campos vacios o duplicados",
-          "error"
-        );
+      /* Ejecuta todas las peticiones de manera concurrente, 
+      lo que reduce el tiempo de espera general
+       ya que no esperamos que termine una petición para empezar otra*/
+      const [statusesResponse, provincesResponse, citiesResponse] =
+        await Promise.all([
+          http.get("globaldata/civil-status"),
+          http.get("globaldata/get-provinces"),
+          http.get("globaldata/get-city"),
+        ]);
+
+      const statusesData = statusesResponse.data;
+      const provincesData = provincesResponse.data;
+      const citiesData = citiesResponse.data;
+
+      /*En lugar de lanzar una excepción, 
+        devuelve undefined si la propiedad no existe, lo que permite que el código continúe sin romperse.*/
+      if (statusesData?.allStatus) {
+        setStatuses(statusesData.allStatus);
+      }
+
+      if (provincesData?.allProvince) {
+        setProvinces(provincesData.allProvince);
+      }
+
+      if (citiesData?.allCities) {
+        setCities(citiesData.allCities);
       }
     } catch (error) {
-      alerts("Error", "Error fetching users.", "error");
-      console.error("Error fetching users:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching data:", error);
+      alerts("Error", "Error al cargar los datos.", "error");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleProvinceChange = useCallback(
+    (event) => {
+      const selectedProvinceId = event.target.value;
+      const filtered = cities.filter(
+        (city) => city.province && city.province.id === selectedProvinceId
+      );
+
+      setFilteredCities(filtered);
+      changed(event);
+    },
+    [cities, changed]
+  );
+  const option = "Escoja una opción";
+  
+  const savedCustomer = useCallback(
+    async (e) => {
+      setIsLoading(true);
+      e.preventDefault();
+
+      try {
+        let newCustomer = form;
+        const request = await http.post(
+          "customers/register-customer",
+          newCustomer
+        );
+
+        if (request.data.status === "success") {
+          alerts(
+            "Registro exitoso",
+            "Cliente registrado correctamente",
+            "success"
+          );
+          document.querySelector("#user-form").reset();
+          // ✅ Eliminar onClose() si no está definido, o agregarlo como prop
+          // setTimeout(() => {
+          //   onClose();
+          // }, 500);
+        } else {
+          alerts(
+            "Error",
+            "Cliente no registrado correctamente. Verificar que no haya campos vacíos o duplicados", // ✅ Corregir "vacios"
+            "error"
+          );
+        }
+      } catch (error) {
+        alerts("Error", "Error al registrar el cliente.", "error"); // ✅ Mejorar mensaje
+        console.error("Error fetching users:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [form]
+  );
 
   return (
     <>

@@ -59,7 +59,7 @@ export default function ChangePassword({
         if (onSuccess) onSuccess();
         setTimeout(() => {
           alerts(
-            "Registro exitoso",
+            "Cambio exitoso",
             "Contraseña cambiada correctamente. Ahora puedes iniciar sesión.",
             "success"
           );
