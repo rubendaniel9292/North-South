@@ -87,11 +87,22 @@ export const calculateTotalAgencyCommissionAllPeriods = (policy) => {
 
 // Calcula la comisión de asesor para un pago, usando el periodo específico
 export const getAdvisorCommissionForPayment = (payment, policy) => {
-  // Busca el periodo del pago por fecha de creación
   let period = null;
-  if (payment.createdAt) {
-    const paymentYear = new Date(payment.createdAt).getFullYear();
-    period = policy.periods?.find((p) => Number(p.year) === paymentYear);
+
+  if (payment.createdAt && payment.number_payment) {
+    const policyStartDate = new Date(policy.startDate);
+
+    // ✅ LÓGICA MEJORADA: Calcular el año del ciclo basado en el número de pago
+    const cycleYear = Math.floor((payment.number_payment - 1) / 12);
+    const targetYear = policyStartDate.getFullYear() + cycleYear;
+
+    period = policy.periods?.find((p) => Number(p.year) === targetYear);
+
+    // Fallback: usar año del pago si no se encuentra
+    if (!period) {
+      const paymentYear = new Date(payment.createdAt).getFullYear();
+      period = policy.periods?.find((p) => Number(p.year) === paymentYear);
+    }
   }
 
   // Fallback: buscar por year si existe en el pago
@@ -171,15 +182,30 @@ export const getAgencyCommissionForPayment = (payment, policy) => {
 
 export const calculateTotalAdvisorCommissionsGenerated = (policy) => {
   if (!policy || !Array.isArray(policy.payments)) return 0;
-  
-  // ✅ AGREGAR: Para comisiones anualizadas, usar el valor liberado completo
+
+  // ✅ Para comisiones ANUALIZADAS: usar períodos completos
   if (policy.isCommissionAnnualized === true) {
+    if (policy.periods && Array.isArray(policy.periods)) {
+      let total = 0;
+      for (const period of policy.periods) {
+        const policyValue = Number(period.policyValue || 0);
+        const policyFee = Number(period.policyFee || 0);
+        const advisorPercentage = Number(period.advisorPercentage || 0);
+
+        const periodCommission =
+          ((policyValue - policyFee) * advisorPercentage) / 100;
+        total += periodCommission;
+      }
+      return total;
+    }
+
+    // Fallback
     const periods =
       1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
     return Number(policy.paymentsToAdvisor || 0) * periods;
   }
-  
-  // Para pólizas normales, seguir usando pagos generados
+
+  // ✅ Para pólizas NORMALES: usar pagos generados (como antes)
   return policy.payments.reduce(
     (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
     0
@@ -198,7 +224,7 @@ export const calculateTotalAgencyCommissionsGenerated = (policy) => {
 export const calculateReleasedCommissionsGenerated = (policy) => {
   if (!policy || !Array.isArray(policy.payments)) return 0;
   // Si la comisión está anualizada, libera TODA la comisión generada
-    // PÓLIZA ANUALIZADA (sin cambios)
+  // PÓLIZA ANUALIZADA (sin cambios)
   if (policy.isCommissionAnnualized === true) {
     const periods =
       1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
@@ -239,8 +265,8 @@ export const getAdvisorTotalAdvances = (advisor) =>
         )
         .reduce((sum, advance) => sum + Number(advance.advanceAmount || 0), 0)
     : 0;
-
 // Reparte anticipo histórico entre las pólizas
+
 export const applyHistoricalAdvance = (policies, totalAdvance) => {
   const sortedPolicies = [...policies]
     .map((policy) => {
@@ -418,6 +444,23 @@ export const calculateTotalAdvisorCommissionsGeneratedByPeriods = (policy) => {
   return total;
 };
 
+// Función para obtener descuentos con motivos (actualizar CommissionUtils.js)
+export const getRefundsDetails = (policy) => {
+  if (!policy.commissionRefunds || policy.commissionRefunds.length === 0) {
+    return { total: 0, details: [] };
+  }
+
+  const details = policy.commissionRefunds.map((refund) => ({
+    amount: Number(refund.amountRefunds || 0),
+    reason: refund.reason || "Sin motivo especificado",
+    id: refund.id,
+  }));
+
+  const total = details.reduce((sum, refund) => sum + refund.amount, 0);
+
+  return { total, details };
+};
+
 // Helper principal para mostrar campos principales
 export const getPolicyFields = (policy) => {
   // NUEVO: Calcular comisión individual según frecuencia
@@ -481,10 +524,10 @@ export const getPolicyFields = (policy) => {
         return `Cada ${12 / paymentsPerYear} meses`;
     }
   };
-  const refundsAmount = (policy.commissionRefunds || []).reduce(
-    (acc, curr) => acc + Number(curr.amountRefunds || 0),
-    0
-  );
+
+  // ✅ CORREGIR: Usar getRefundsDetails en lugar de cálculo manual
+  const refundsData = getRefundsDetails(policy);
+  const refundsAmount = refundsData.total;
 
   // Usa la función mejorada que calcula correctamente por periodos con pagos generados
   const commissionTotal = calculateTotalAdvisorCommissionsGenerated(policy);
@@ -507,6 +550,7 @@ export const getPolicyFields = (policy) => {
     paid: Number(paid.toFixed(2)),
     appliedHistoricalAdvance: Number(appliedHistoricalAdvance.toFixed(2)),
     refundsAmount: Number(refundsAmount.toFixed(2)),
+    refundsDetails: refundsData.details, // ✅ CORREGIR: Usar refundsData.details
     afterBalance: Number(afterBalance.toFixed(2)),
     commissionInFavor: Number(commissionInFavor.toFixed(2)),
     individualCommission: calculateIndividualCommission(),
@@ -575,25 +619,41 @@ export const calculateAdvisorAndAgencyPayments = (
 export const calculateReleasedCommissions = (policy) => {
   if (!policy) return 0;
 
-  // PÓLIZA ANUALIZADA (sin cambios)
+  // ✅ PÓLIZA ANUALIZADA: Usar cálculo por períodos
   if (policy.isCommissionAnnualized === true) {
+    // ✅ CAMBIAR: En lugar de usar policy.paymentsToAdvisor
+    // Calcular la suma de todos los períodos
+    if (policy.periods && Array.isArray(policy.periods)) {
+      let total = 0;
+      for (const period of policy.periods) {
+        const policyValue = Number(period.policyValue || 0);
+        const policyFee = Number(period.policyFee || 0);
+        const advisorPercentage = Number(period.advisorPercentage || 0);
+
+        const periodCommission =
+          ((policyValue - policyFee) * advisorPercentage) / 100;
+        total += periodCommission;
+      }
+      return total;
+    }
+
+    // Fallback al método anterior si no hay períodos
     const periods =
       1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
     return Number(policy.paymentsToAdvisor || 0) * periods;
   }
 
-  // PÓLIZA NORMAL (no anualizada)
+  // ✅ PÓLIZA NORMAL (sin cambios)
   const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
-  const paymentPerInstallment = Number(policy.paymentsToAdvisor) / numberOfPayments;
+  const paymentPerInstallment =
+    Number(policy.paymentsToAdvisor) / numberOfPayments;
 
-  // Cuotas liberadas de la póliza principal
   const releasedInstallments = Array.isArray(policy.payments)
     ? policy.payments.filter(
         (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
       ).length
     : 0;
 
-  // Cuotas liberadas de las renovaciones, si existen
   let releasedInstallmentsRenewals = 0;
   if (Array.isArray(policy.renewals)) {
     for (const renewal of policy.renewals) {
@@ -605,9 +665,8 @@ export const calculateReleasedCommissions = (policy) => {
     }
   }
 
-  // Comisión liberada total
   const totalReleased =
-    (releasedInstallments + releasedInstallmentsRenewals) * paymentPerInstallment;
-
+    (releasedInstallments + releasedInstallmentsRenewals) *
+    paymentPerInstallment;
   return totalReleased;
 };

@@ -478,14 +478,34 @@ const ListCommissions = () => {
                       ) : (
                         filteredPoliciesWithFields.map((policyFiltered) => {
                           // Calcular pagos liberados (AL DÍA) y total de pagos
-                          const releasedPayments =
-                            policyFiltered.payments?.filter(
+                          let releasedPayments, totalPayments;
+
+                          if (policyFiltered.isCommissionAnnualized === true) {
+                            // ✅ PARA ANUALIZADAS: Contar períodos, no pagos mensuales
+                            const totalPeriods =
+                              1 +
+                              (Array.isArray(policyFiltered.renewals)
+                                ? policyFiltered.renewals.length
+                                : 0);
+                            const releasedPeriods = totalPeriods; // Para anualizadas, se liberan todos los períodos
+
+                            releasedPayments = releasedPeriods;
+                            totalPayments = totalPeriods;
+                          } else {
+                            // ✅ PARA NORMALES: Usar pagos mensuales como antes
+                            releasedPayments = policyFiltered.payments?.filter(
                               (payment) =>
                                 payment.paymentStatus &&
                                 payment.paymentStatus.id == 2
-                            ).length || 0;
-                          const totalPayments =
-                            policyFiltered.payments?.length || 0;
+                            ).length
+                              ? policyFiltered.payments?.filter(
+                                  (payment) =>
+                                    payment.paymentStatus &&
+                                    payment.paymentStatus.id == 2
+                                ).length
+                              : 0;
+                            totalPayments = policyFiltered.payments?.length || 0;
+                          }
 
                           return (
                             <React.Fragment key={policyFiltered.id}>
@@ -548,9 +568,7 @@ const ListCommissions = () => {
                                 {/* Nueva columna de progreso de pagos */}
                                 <td>
                                   <Badge
-                                    text={
-                                      releasedPayments + "/" + totalPayments
-                                    }
+                                    text={releasedPayments + "/" + totalPayments}
                                     color={
                                       releasedPayments === totalPayments
                                         ? "success"
@@ -589,10 +607,30 @@ const ListCommissions = () => {
                                   ${Number(policyFiltered.released).toFixed(2)}
                                 </td>
                                 <td className="fw-bold text-danger">
-                                  $
-                                  {Number(policyFiltered.refundsAmount).toFixed(
-                                    2
-                                  )}
+                                  <div>
+                                    $
+                                    {Number(policyFiltered.refundsAmount).toFixed(
+                                      2
+                                    )}
+                                  </div>
+
+                             
+                                  {policyFiltered.refundsDetails &&
+                                    policyFiltered.refundsDetails.length > 0 && (
+                                      <div className="mt-1">
+                                        {policyFiltered.refundsDetails.map(
+                                          (refund, index) => (
+                                            <span
+                                              key={refund.id || index}
+                                              className="badge bg-secondary me-1 small"
+                                              title={`$${refund.amount} - ${refund.reason}`}
+                                            >
+                                              {refund.reason}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
+                                    )}
                                 </td>
                                 <td className="fw-bold text-success">
                                   ${Number(policyFiltered.paid).toFixed(2)}

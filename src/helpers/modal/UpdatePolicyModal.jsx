@@ -70,21 +70,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     }
   }, [policy]);
 
-  //handleSelectChange para manejar la selección manual del cliente
-  const handleSelectChange = useCallback(
-    (e) => {
-      handleCard_Accunt(e);
-      // Asegurar que se guarde como número
-      changed({
-        target: {
-          name: "customers_id",
-          value: parseInt(e.target.value),
-        },
-      });
-    },
-    [handleCard_Accunt, changed]
-  );
-
   //filtro de tarjeta por clienes
   const handleCard_Accunt = useCallback(
     (e) => {
@@ -119,6 +104,22 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     },
     [customers, cards, accounts, changed]
   );
+  //handleSelectChange para manejar la selección manual del cliente
+  const handleSelectChange = useCallback(
+    (e) => {
+      handleCard_Accunt(e);
+      // Asegurar que se guarde como número
+      changed({
+        target: {
+          name: "customers_id",
+          value: parseInt(e.target.value),
+        },
+      });
+    },
+    [handleCard_Accunt, changed]
+  );
+
+  
 
   const addClassSafely = useCallback((id, className) => {
     const element = document.getElementById(id);
