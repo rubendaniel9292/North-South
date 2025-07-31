@@ -131,7 +131,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
-  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR 
+  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR
   const fetchData = useCallback(async () => {
     try {
       const [paymentMethodResponse] = await Promise.all([
@@ -140,13 +140,13 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
     } catch (error) {
       console.error("Error fetching data:", error);
-      alerts("Error", "Error al cargar métodos de pago.", "error"); 
+      alerts("Error", "Error al cargar métodos de pago.", "error");
     }
   }, []);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]); 
+  }, [fetchData]);
 
   // 14. MANEJAR CAMBIO DE INPUT DE ANTICIPO CON VALIDACIÓN
   const handleAdvanceValueChange = useCallback(
@@ -183,86 +183,58 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   const option = "Escoja una opción";
-  
+
   // ✅ Convertir handleSubmit a useCallback - SIN TOCAR LA LÓGICA DE NEGOCIO
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    const formElement = e.target;
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      const formElement = e.target;
 
-    if (!formElement.checkValidity()) {
-      e.stopPropagation();
-      formElement.classList.add("was-validated");
-      return;
-    }
+      if (!formElement.checkValidity()) {
+        e.stopPropagation();
+        formElement.classList.add("was-validated");
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    try {
-      if (operationType === "COMISION") {
-        // Ahora construimos el payload con policies (released_commission y advance_to_apply)
-        const policiesPayload = distributedPolicies.map((policy) => ({
-          policy_id: policy.id,
-          released_commission: policy.released,
-          advance_to_apply: policy.advanceApplied || 0,
-        }));
+      try {
+        if (operationType === "COMISION") {
+          // Ahora construimos el payload con policies (released_commission y advance_to_apply)
+          const policiesPayload = distributedPolicies.map((policy) => ({
+            policy_id: policy.id,
+            released_commission: policy.released,
+            advance_to_apply: policy.advanceApplied || 0,
+          }));
 
-        const payload = {
-          advisor_id: advisorId.id,
-          receiptNumber: String(form.receiptNumber || ""),
-          createdAt: form.createdAt,
-          observations: form.observations || "",
-          payment_method_id: Number(form.payment_method_id),
-          policies: policiesPayload,
-        };
+          const payload = {
+            advisor_id: advisorId.id,
+            receiptNumber: String(form.receiptNumber || ""),
+            createdAt: form.createdAt,
+            observations: form.observations || "",
+            payment_method_id: Number(form.payment_method_id),
+            policies: policiesPayload,
+          };
 
-        const response = await http.post(
-          "commissions-payments/apply-advance-distribution",
-          payload
-        );
-
-        if (!response?.data?.status || response.data.status !== "success") {
-          alerts(
-            "Error",
-            "No se pudo aplicar el anticipo a las pólizas. Verifica los datos.", // ✅ Corregir "Verifica"
-            "error"
+          const response = await http.post(
+            "commissions-payments/apply-advance-distribution",
+            payload
           );
-          setIsLoading(false);
-          return;
-        }
 
-        refreshAdvisor?.();
-        alerts(
-          "Registro exitoso",
-          "Anticipo aplicado correctamente",
-          "success"
-        );
-        localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
-        setTimeout(() => {
-          document.querySelector("#user-form").reset();
-          onClose();
-        }, 500);
-      } else {
-        // ANTICIPO general (sin cambio)
-        const payload = {
-          receiptNumber: String(form.receiptNumber || ""),
-          advanceAmount: Number(form.advanceAmount),
-          createdAt: form.createdAt, // formato "YYYY-MM-DD" o ISO string
-          observations: form.observations || "",
-          advisor_id: advisorId.id,
-          payment_method_id: Number(form.payment_method_id),
-          status_advance_id: 1,
-        };
+          if (!response?.data?.status || response.data.status !== "success") {
+            alerts(
+              "Error",
+              "No se pudo aplicar el anticipo a las pólizas. Verifica los datos.", // ✅ Corregir "Verifica"
+              "error"
+            );
+            setIsLoading(false);
+            return;
+          }
 
-        const response = await http.post(
-          "commissions-payments/register-commissions",
-          payload
-        );
-
-        if (response.data.status === "success") {
-          if (typeof refreshAdvisor === "function") await refreshAdvisor();
+          refreshAdvisor?.();
           alerts(
             "Registro exitoso",
-            "Anticipo registrado correctamente",
+            "Anticipo aplicado correctamente",
             "success"
           );
           localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
@@ -271,39 +243,70 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
             onClose();
           }, 500);
         } else {
-          alerts(
-            "Error",
-            "Avance/anticipo no registrado correctamente. Verifica campos vacíos o números de recibo duplicados.", // ✅ Corregir "Verifica"
-            "error"
+          // ANTICIPO general (sin cambio)
+          const payload = {
+            receiptNumber: String(form.receiptNumber || ""),
+            advanceAmount: Number(form.advanceAmount),
+            createdAt: form.createdAt, // formato "YYYY-MM-DD" o ISO string
+            observations: form.observations || "",
+            advisor_id: advisorId.id,
+            payment_method_id: Number(form.payment_method_id),
+            status_advance_id: 1,
+          };
+
+          const response = await http.post(
+            "commissions-payments/register-commissions",
+            payload
           );
+
+          if (response.data.status === "success") {
+            if (typeof refreshAdvisor === "function") await refreshAdvisor();
+            alerts(
+              "Registro exitoso",
+              "Anticipo registrado correctamente",
+              "success"
+            );
+            localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
+            setTimeout(() => {
+              document.querySelector("#user-form").reset();
+              onClose();
+            }, 500);
+          } else {
+            alerts(
+              "Error",
+              "Avance/anticipo no registrado correctamente. Verifica campos vacíos o números de recibo duplicados.", // ✅ Corregir "Verifica"
+              "error"
+            );
+          }
         }
+      } catch (error) {
+        alerts("Error", "Error durante el registro", "error");
+        console.error("Error registrando comisión:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      alerts("Error", "Error durante el registro", "error");
-      console.error("Error registrando comisión:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    operationType,
-    distributedPolicies,
-    advisorId.id,
-    form.receiptNumber,
-    form.createdAt,
-    form.observations,
-    form.payment_method_id,
-    form.advanceAmount,
-    refreshAdvisor,
-    onClose
-  ]); // ✅ Dependencias necesarias
+    },
+    [
+      operationType,
+      distributedPolicies,
+      advisorId.id,
+      form.receiptNumber,
+      form.createdAt,
+      form.observations,
+      form.payment_method_id,
+      form.advanceAmount,
+      refreshAdvisor,
+      onClose,
+    ]
+  ); // ✅ Dependencias necesarias
 
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-5">
-          <div className="d-block conten-title-com rounded mb-3"> 
+          <div className="d-block conten-title-com rounded mb-3">
             <h3 className="text-white fw-bold">
-              Registro de anticipo/comisión a: {advisorId.firstName}{" "} 
+              Registro de anticipo/comisión a: {advisorId.firstName}{" "}
               {advisorId.surname} {advisorId.secondSurname || ""}
             </h3>
           </div>
@@ -317,17 +320,17 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   <thead>
                     <tr>
                       <th>N° de póliza</th>
-                      <th>Compañía</th> 
+                      <th>Compañía</th>
                       <th>Cliente</th>
                       <th>Frecuencia</th>
                       <th>Pagos por periodo/año</th>
                       <th>Comisión por renovación</th>
                       <th>Comisiones totales</th>
-                      <th>Com. Individual</th>
+                      <th>N° Com. A pagar</th>
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
-                      <th>Desc. por cancelación (si aplica)</th> 
+                      <th>Desc. (Si aplica)</th>
                       <th>Saldo (después del registro)</th>
                       <th>Comisiones a favor</th>
                       <th>Quitar</th>
@@ -424,7 +427,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 }
                               />
                             </td>
-                      
+
                             <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
                             </td>
@@ -579,7 +582,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       onChange={(e) => setOperationType(e.target.value)}
                       required
                     >
-                      <option value="" disabled defaultValue> 
+                      <option value="" disabled defaultValue>
                         {option}
                       </option>
                       <option value="ANTICIPO">ANTICIPO</option>
@@ -587,7 +590,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </select>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label htmlFor="receiptNumber" className="form-label fw-bold text-dark">
+                    <label
+                      htmlFor="receiptNumber"
+                      className="form-label fw-bold text-dark"
+                    >
                       Número de Recibo
                     </label>
                     <input
@@ -600,7 +606,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     />
                   </div>
                   <div className="col-12 col-md-4">
-                    <label htmlFor="payment_method_id" className="form-label fw-bold text-dark"> 
+                    <label
+                      htmlFor="payment_method_id"
+                      className="form-label fw-bold text-dark"
+                    >
                       Método de abono
                     </label>
                     <select
@@ -611,7 +620,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       required
                       value={form.payment_method_id || ""}
                     >
-                      <option value="" disabled defaultValue> 
+                      <option value="" disabled defaultValue>
                         {option}
                       </option>
                       {paymentMethod.map((item) => (
@@ -622,7 +631,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </select>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label htmlFor="advanceAmount" className="form-label fw-bold text-dark"> 
+                    <label
+                      htmlFor="advanceAmount"
+                      className="form-label fw-bold text-dark"
+                    >
                       Valor del anticipo/comisión
                     </label>
                     <input
@@ -642,7 +654,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     </div>
                   </div>
                   <div className="col-12 col-md-4">
-                    <label htmlFor="createdAt" className="form-label fw-bold text-dark"> 
+                    <label
+                      htmlFor="createdAt"
+                      className="form-label fw-bold text-dark"
+                    >
                       Fecha del anticipo
                     </label>
                     <input
@@ -655,7 +670,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     />
                   </div>
                   <div className="col-12 col-md-4">
-                    <label htmlFor="observations" className="form-label fw-bold text-dark"> 
+                    <label
+                      htmlFor="observations"
+                      className="form-label fw-bold text-dark"
+                    >
                       Observaciones
                     </label>
                     <textarea
@@ -663,7 +681,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       id="observations"
                       name="observations"
                       onChange={changed}
-                      rows="2" 
+                      rows="2"
                     />
                   </div>
                 </div>

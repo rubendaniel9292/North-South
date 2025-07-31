@@ -17,6 +17,8 @@ import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState({});
   const [localPolicy, setLocalPolicy] = useState(policy);
   if (!localPolicy) return null;
   const itemsPerPage = 3; // Número de items por página
@@ -28,7 +30,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
       { type: "policy", data: localPolicy }, // Para reporte de póliza
       "generate-report-pdf/download",
       "policy-report.pdf",
-      setIsLoading
+      setReportLoading
     );
   };
 
@@ -48,9 +50,31 @@ const ListPolicyModal = ({ policy, onClose }) => {
     paginate: paginateRenewals,
   } = usePagination(localPolicy.renewals || [], itemsPerPage);
 
+  // Función para determinar si un botón de pago debe estar habilitado
+  const isPaymentButtonEnabled = (currentPayment, allPayments) => {
+    // ✅ Cambiar === por == para comparación flexible
+    if (currentPayment.paymentStatus.id == 2) return false;
+
+    // Si está cargando, deshabilitado
+    if (paymentLoading[currentPayment.id]) return false;
+
+    // Ordenar pagos por número para verificar secuencia
+    const sortedPayments = [...allPayments].sort(
+      (a, b) => a.number_payment - b.number_payment
+    );
+
+    // Encontrar el primer pago que NO esté al día
+    const firstPendingPayment = sortedPayments.find(
+      (payment) => payment.paymentStatus.id != 2  // ✅ Cambiar !== por !=
+    );
+
+    // Solo habilitar si es el primer pago pendiente
+    return firstPendingPayment && firstPendingPayment.id === currentPayment.id;
+  };
+
   //metodo de para actualzar pagos
   const updatePaymentStatus = async (payment) => {
-    setIsLoading(true);
+    setPaymentLoading((prev) => ({ ...prev, [payment.id]: true }));
     try {
       //e.preventDefault();
       // Solo actualizamos el estado del pago a "al día" y la fecha de actualización
@@ -122,7 +146,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
       alerts("Error", "Error actualizando el pago.", "error");
       console.error("Error actualizando el pago:", error);
     } finally {
-      setIsLoading(false);
+      setPaymentLoading((prev) => ({ ...prev, [payment.id]: false }));
     }
   };
   // Badge Bootstrap helper
@@ -343,38 +367,64 @@ const ListPolicyModal = ({ policy, onClose }) => {
                       <td>
                         <button
                           type="button"
-                          disabled={isLoading || payment.paymentStatus.id == 2}
+                          disabled={
+                            !isPaymentButtonEnabled(
+                              payment,
+                              localPolicy.payments
+                            )
+                          }
                           className={`btn ${
                             payment.paymentStatus.id == 2
                               ? "bg-secondary"
-                              : "bg-success"
+                              : isPaymentButtonEnabled(
+                                  payment,
+                                  localPolicy.payments
+                                )
+                              ? "bg-success"
+                              : "bg-secondary" // Deshabilitado si no es el siguiente en la secuencia
                           } fw-bold text-white w-100`}
                           onClick={() => updatePaymentStatus(payment)}
                         >
-                          {isLoading ? (
-                            <div
-                              className="spinner-border text-light"
-                              role="status"
-                            >
-                              <span className="visually-hidden">
-                                Actualizando...
-                              </span>
-                            </div>
+                          {paymentLoading[payment.id] ? (
+                            <>
+                              <div
+                                className="spinner-border spinner-border-sm text-light me-2"
+                                role="status"
+                              >
+                                <span className="visually-hidden">
+                                  Loading...
+                                </span>
+                              </div>
+                              <span>Actualizando...</span>
+                            </>
                           ) : payment.paymentStatus.id == 2 ? (
                             "Pago al día"
-                          ) : (
+                          ) : isPaymentButtonEnabled(
+                              payment,
+                              localPolicy.payments
+                            ) ? (
                             "Actualizar Pago"
+                          ) : (
+                            "Pendiente de orden" // Texto para botones deshabilitados
                           )}
                           {payment.paymentStatus.id == 2 ? (
                             <FontAwesomeIcon
                               className="mx-2"
                               icon={faCircleCheck}
                             />
-                          ) : (
+                          ) : isPaymentButtonEnabled(
+                              payment,
+                              localPolicy.payments
+                            ) ? (
                             <FontAwesomeIcon
                               className="mx-2"
                               icon={faFloppyDisk}
                               beat
+                            />
+                          ) : (
+                            <FontAwesomeIcon
+                              className="mx-2"
+                              icon={faFloppyDisk}
                             />
                           )}
                         </button>
@@ -534,12 +584,18 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 onClick={handleGenerateReport}
                 id="btnc"
                 className="btn bg-success mx-5 text-white fw-bold "
-                disabled={isLoading}
+                disabled={reportLoading}
               >
-                {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">Registrando...</span>
-                  </div>
+                {reportLoading ? (
+                  <>
+                    <div
+                      className="spinner-border spinner-border-sm text-light me-2"
+                      role="status"
+                    >
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Generando...</span>
+                  </>
                 ) : (
                   "Generar reporte PDF"
                 )}

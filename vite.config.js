@@ -5,7 +5,7 @@ import fs from "fs";
 export default defineConfig({
   plugins: [react()],
   //carga de certificados para HTTPS solo en local
-  /*
+  
   server: {
     https: {
       key: fs.readFileSync("/home/certificados/localhost-privateKey.key"),
@@ -18,6 +18,6 @@ export default defineConfig({
         secure: false,
       },
     },
-  },
-  */
+  }
+  
 });

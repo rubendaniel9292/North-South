@@ -52,7 +52,7 @@ const ListPolicies = () => {
       }
     } catch (error) {
       //setError(error);
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      //alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error fetching póilzas:", error);
     }
   }, []);
@@ -84,7 +84,6 @@ const ListPolicies = () => {
       console.error("Error registering payment:", error);
     }
   }, []);
-
 
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
@@ -123,7 +122,6 @@ const ListPolicies = () => {
             paymentMethod: policyUpdated.paymentMethod || p.paymentMethod,
             paymentFrequency:
               policyUpdated.paymentFrequency || p.paymentFrequency,
-            
           };
 
           return updatedPolicy;
@@ -225,11 +223,12 @@ const ListPolicies = () => {
                 <th>Tipo de Póliza</th>
                 <th>Fecha de Inicio</th>
                 <th>Fecha de Fin</th>
-                <th>Método de Pago</th>
+                {/*<th>Método de Pago</th>*/}
+
                 <th>Frecuencia de Pago</th>
                 <th>Monto de Cobertura</th>
                 <th>Estado</th>
-               
+
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -237,7 +236,7 @@ const ListPolicies = () => {
               {currentPolicies.length === 0 ? (
                 <tr>
                   <td colSpan="15" className="text-center">
-                    Poliza no encontrada
+                    Aun no hay pólizas registradas
                   </td>
                 </tr>
               ) : (
@@ -267,7 +266,7 @@ const ListPolicies = () => {
                         .format("DD-MM-YYYY")
                         .toString()}
                     </td>
-                    <td>{policy.paymentMethod?.methodName}</td>
+                    {/* <td>{policy.paymentMethod?.methodName}</td>*/}
 
                     <td>{policy.paymentFrequency?.frequencyName}</td>
                     <td>{policy.coverageAmount}</td>
@@ -290,13 +289,13 @@ const ListPolicies = () => {
                           getPolicyById(policy.id, "editPoliciesValues")
                         }
                       >
-                        Actualizar valores y porcentajes
+                        Ajustar valores
                       </button>
                       <button
                         className="btn btn-primary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "info")}
                       >
-                        Ver información completa
+                        Ver info. Completa
                       </button>
 
                       <button
