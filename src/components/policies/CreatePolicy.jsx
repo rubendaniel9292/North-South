@@ -52,7 +52,7 @@ const CreatePolicy = () => {
   const [banks, setBanks] = useState([]);
 
   const [accountTypes, setAccountTypes] = useState([]);
-  // ✅ Convertir fetchData a useCallback FUERA del useEffect
+  
   const fetchData = useCallback(async () => {
     try {
       // Cargar datos esenciales primero (los que ya funcionaban antes)
