@@ -38,7 +38,7 @@ export class ReportFactory {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        background-color: #5e72e4;
+        background-color: #172b4d;
         border-radius: 8px;
         font-size: 15px;
         margin: 10px 0;
@@ -216,6 +216,12 @@ export class ReportFactory {
     </div>
   `
       }
+      
+      <!-- Nota de confidencialidad -->
+      <div style="margin-top: 20px; padding: 20px; border: 2px solid #5e72e4; border-radius: 8px; background-color: #f8f9ff; font-size: 12px; text-align: justify; line-height: 1.5;">
+        <p style="margin: 0; font-weight: bold; color: #5e72e4; text-align: center; margin-bottom: 5px;">NOTA DE CONFIDENCIALIDAD</p>
+        <p style="margin: 0;">Este documento ha sido generado exclusivamente para fines informativos a solicitud del titular. La información contenida en él es confidencial y está protegida conforme a lo establecido en la Ley Orgánica de Protección de Datos Personales. En caso de dudas, contáctese con la agencia o su asesor.</p>
+      </div>
     </body>
   </html>
     `;
@@ -335,6 +341,13 @@ export class ReportFactory {
             )
             .join('')}
         </tbody>
+      </table>
+      
+      <!-- Nota de confidencialidad -->
+      <div style="margin-top: 20px; padding: 20px; border: 2px solid #5e72e4; border-radius: 8px; background-color: #f8f9ff; font-size: 12px; text-align: justify; line-height: 1.5;">
+        <p style="margin: 0; font-weight: bold; color: #5e72e4; text-align: center; margin-bottom: 10px;">NOTA DE CONFIDENCIALIDAD</p>
+        <p style="margin: 0;">Este documento ha sido generado exclusivamente para fines informativos a solicitud del titular. La información contenida en él es confidencial y está protegida conforme a lo establecido en la Ley Orgánica de Protección de Datos Personales. En caso de dudas, contáctese con la agencia o su asesor.</p>
+      </div>
         </body>
       </html>
     `;
