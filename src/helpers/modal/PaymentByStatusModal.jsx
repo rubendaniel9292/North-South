@@ -117,7 +117,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-4">
           <div className="d-flex justify-content-center align-items-center conten-title mb-3 rounded">
-            <h3 className="text-white">Lista de pólizas por estado</h3>
+            <h3 className="text-white">Lista de pólizas con pagos atrasados</h3>
           </div>
           <div className="d-flex justify-content-around my-1">
             <div className="mb-3 col-4">
@@ -196,8 +196,10 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                         {payment.policies.advisor.firstName}{" "}
                         {payment.policies.advisor.surname}
                       </td>
-                      <td className="bg-warning text-white fw-bold">
-                        {payment.value}
+                      <td>
+                        <span className="bg-warning badge fs-6 text-dark fw-bold">
+                          {payment.value}
+                        </span>
                       </td>
                       <td>{payment.policies.policyValue}</td>
                       <td>
@@ -205,8 +207,10 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                           .format("DD/MM/YYYY")
                           .toString()}
                       </td>
-                      <td className={"bg-warning text-white fw-bold"}>
-                        {payment.paymentStatus.statusNamePayment}
+                      <td>
+                        <span className="fs-6 badge bg-warning text-dark fw-bold">
+                          {payment.paymentStatus.statusNamePayment}
+                        </span>
                       </td>
                     </tr>
                   ))}

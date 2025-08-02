@@ -333,18 +333,15 @@ const ListPolicies = () => {
             {/* Botón de pruebas (temporal) */}
             <div className="col-md-3">
               <div className="d-grid">
-                <label className="form-label fw-bold text-muted">
-                  <FontAwesomeIcon icon={faVial} className="me-2" />
-                  Herramientas de prueba
-                </label>
+             
                 <button
-                  className="btn btn-danger fw-bold"
+                  className="btn btn-danger d-none fw-bold"
                   onClick={() => registerPaymentTest()}
                 >
                   <FontAwesomeIcon icon={faCogs} className="me-2" />
                   Registro manual de pagos (prueba)
                 </button>
-                <small className="text-muted">
+                <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
                 </small>
 
@@ -486,7 +483,7 @@ const ListPolicies = () => {
               {currentPolicies.length === 0 ? (
                 <tr>
                   <td colSpan="15" className="text-center">
-                    Aun no hay pólizas registradas
+                    Aun no hay pólizas registradas o no se encontraron resultados
                   </td>
                 </tr>
               ) : (
@@ -523,7 +520,7 @@ const ListPolicies = () => {
                     <td>{policy.coverageAmount}</td>
                     <td>
                       <span
-                        className={`badge fw-bold ${
+                        className={`badge fw-bold fs-6 ${
                           policy.policyStatus?.id == 1
                             ? "bg-success" // ✅ Activa - Verde
                             : policy.policyStatus?.id == 2

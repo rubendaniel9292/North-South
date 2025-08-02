@@ -9,7 +9,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 
 const CustomerModalContent = ({ onClose, customerId }) => {
-
   const [isLoading, setIsLoading] = useState(false);
   //const isLoading = false; // Validación para evitar errores si customer o policy no existen
   // Validación para evitar errores si customer o policy no existen
@@ -18,7 +17,11 @@ const CustomerModalContent = ({ onClose, customerId }) => {
   if (!customerId || !customerId.policies) {
     return null;
   }
-
+  const Badge = ({ text, color = "secondary" }) => (
+    <span className={`badge rounded-pill fw-bold fs-6 bg-${color} fw-semibold`}>
+      {text}
+    </span>
+  );
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
@@ -28,7 +31,6 @@ const CustomerModalContent = ({ onClose, customerId }) => {
               Pólizas a nombre de {customerId.firstName} {customerId.secondName}{" "}
               {customerId.surname} {customerId.secondSurname}
             </h3>
-           
           </div>
 
           <table className="table table-striped">
@@ -67,7 +69,15 @@ const CustomerModalContent = ({ onClose, customerId }) => {
                       "NO APLICA"}
                   </td>
                   <td>{policy.paymentFrequency?.frequencyName || "N/A"}</td>
-                  <td>{policy.renewalCommission ? "SÍ" : "NO"}</td>
+                  <td>
+                    <Badge
+                      className=""
+                      text={policy.renewalCommission === true ? "SI" : "NO"}
+                      color={
+                        policy.renewalCommission === true ? "dark" : "danger"
+                      }
+                    />
+                  </td>
                   <td>{policy.renewals?.length || 0}</td>
                 </tr>
               ))}
@@ -103,17 +113,23 @@ const CustomerModalContent = ({ onClose, customerId }) => {
                   <td>{policy.payments?.length || 0}</td>
                   <td>{policy.policyFee || "NO APLICA"}</td>
                   <td>{policy.paymentsToAdvisor}</td>
-                  <td
-                    className={
-                      policy.policyStatus.id == 4
-                        ? "bg-warning text-white fw-bold"
-                        : policy.policyStatus.id == 3
-                        ? "bg-danger text-white fw-bold"
-                        : "bg-success-subtle"
-                    }
+                        <td>
+                  <span
+                    className={`badge fw-bold fs-6 ${
+                      policy.policyStatus?.id == 1
+                        ? "bg-success" // Activa - Verde
+                        : policy.policyStatus?.id == 2
+                        ? "bg-danger" // Cancelada - Rojo
+                        : policy.policyStatus?.id == 3
+                        ? "bg-secondary" // Culminada - Gris
+                        : policy.policyStatus?.id == 4
+                        ? "bg-warning text-dark" // Por Culminar - Amarillo
+                        : "bg-light text-dark" // Default - Claro
+                    }`}
                   >
                     {policy.policyStatus.statusName}
-                  </td>
+                  </span>
+                </td>
                   <td colSpan="2" scope="row">
                     {policy.observations || "N/A"}
                   </td>

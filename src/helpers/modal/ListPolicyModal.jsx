@@ -65,7 +65,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
     // Encontrar el primer pago que NO esté al día
     const firstPendingPayment = sortedPayments.find(
-      (payment) => payment.paymentStatus.id != 2  // ✅ Cambiar !== por !=
+      (payment) => payment.paymentStatus.id != 2 // ✅ Cambiar !== por !=
     );
 
     // Solo habilitar si es el primer pago pendiente
@@ -151,7 +151,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
   };
   // Badge Bootstrap helper
   const Badge = ({ text, color = "secondary" }) => (
-    <span className={`badge rounded-pill bg-${color} fw-semibold`}>{text}</span>
+    <span className={`badge rounded-pill fw-bold fs-6 bg-${color} fw-semibold`}>{text}</span>
   );
 
   // obtener último periodo registrado (por año mayor):
@@ -204,7 +204,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>
-                  <Badge
+                  <Badge className=""
                     text={policy.renewalCommission === true ? "SI" : "NO"}
                     color={
                       policy.renewalCommission === true ? "dark" : "danger"
@@ -235,6 +235,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
               <tr>
                 <td>
                   <Badge
+                    className="fw-bold fs-6"
                     text={
                       policy.isCommissionAnnualized === false
                         ? "Normal"
@@ -279,17 +280,22 @@ const ListPolicyModal = ({ policy, onClose }) => {
                     100
                   ).toFixed(2)}
                 </td>
-                <td
-                  className={
-                    policy.policyStatus?.id == 4
-                      ? "bg-warning text-white fw-bold"
-                      : policy.policyStatus?.id == 2 ||
-                        policy.policyStatus?.id == 3
-                      ? "bg-danger text-white fw-bold"
-                      : "bg-success-subtle"
-                  }
-                >
-                  {policy.policyStatus.statusName}
+                <td>
+                  <span
+                    className={`badge fw-bold fs-6 ${
+                      policy.policyStatus?.id == 1
+                        ? "bg-success" // Activa - Verde
+                        : policy.policyStatus?.id == 2
+                        ? "bg-danger" // Cancelada - Rojo
+                        : policy.policyStatus?.id == 3
+                        ? "bg-secondary" // Culminada - Gris
+                        : policy.policyStatus?.id == 4
+                        ? "bg-warning text-dark" // Por Culminar - Amarillo
+                        : "bg-light text-dark" // Default - Claro
+                    }`}
+                  >
+                    {policy.policyStatus.statusName}
+                  </span>
                 </td>
 
                 <td colSpan="2" scope="row">
@@ -351,16 +357,18 @@ const ListPolicyModal = ({ policy, onClose }) => {
                         </td>
                       )}
 
-                      <td
-                        className={
-                          payment.paymentStatus.id == 1
-                            ? "bg-warning"
-                            : payment.paymentStatus.id == 2
-                            ? "bg-success-subtle "
-                            : ""
-                        }
-                      >
-                        {payment.paymentStatus.statusNamePayment}
+                      <td>
+                        <span
+                          className={`badge fw-bold fs-6 ${
+                            payment.paymentStatus.id == 1
+                              ? "bg-warning text-dark" // Pendiente - Amarillo
+                              : payment.paymentStatus.id == 2
+                              ? "bg-success" // Al día - Verde
+                              : "bg-light text-dark" // Default - Claro
+                          }`}
+                        >
+                          {payment.paymentStatus.statusNamePayment}
+                        </span>
                       </td>
 
                       <td>{payment.observations || "N/A"}</td>

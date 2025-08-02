@@ -164,7 +164,7 @@ const ListCustomer = () => {
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <small className="text-muted">
+              <small className="text-dark fs-5 mt-2">
                 {filteredCustomers.length} cliente(s) encontrado(s)
               </small>
             </div>
@@ -221,7 +221,7 @@ const ListCustomer = () => {
                     </td>
                     <td>
                       <span
-                        className={`badge fw-bold ${
+                        className={`badge fw-bold fs-6 ${
                           customer.personalData ? "bg-success" : "bg-danger"
                         }`}
                       >

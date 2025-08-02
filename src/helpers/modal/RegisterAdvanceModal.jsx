@@ -32,7 +32,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   // Badge Bootstrap helper
   const Badge = ({ text, color = "secondary" }) => (
-    <span className={`badge rounded-pill bg-${color} fw-semibold`}>{text}</span>
+    <span className={`badge rounded-pill fw-bold fs-6 bg-${color}`}>{text}</span>
   );
 
   // 3. ESTADOS PRINCIPALES
@@ -325,8 +325,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th>Frecuencia</th>
                       <th>Pagos por periodo/año</th>
                       <th>Comisión por renovación</th>
-                      <th>Comisiones totales</th>
                       <th>N° Com. A pagar</th>
+                      <th>Comisiones totales</th>
                       <th>Comisiones liberadas</th>
                       <th>Comisiones pagadas</th>
                       <th>Anticipo aplicado</th>
@@ -391,6 +391,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 }
                               />
                             </td>
+                            
                             <td>
                               {policy.isCommissionAnnualized === false
                                 ? policy.numberOfPaymentsAdvisor
@@ -411,22 +412,23 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 }
                               />
                             </td>
-                            {/* Las siguientes celdas solo texto, sin bg-* */}
-                            <td className="fw-bold text-primary">
-                              ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
-                            </td>
-                            <td>
+                                   <td>
                               <Badge
                                 text={releasedPayments + "/" + totalPayments}
                                 color={
                                   releasedPayments === totalPayments
                                     ? "success"
                                     : releasedPayments > 0
-                                    ? "warning"
+                                    ? "warning text-dark"
                                     : "secondary"
                                 }
                               />
                             </td>
+                           
+                            <td className="fw-bold text-primary">
+                              ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
+                            </td>
+                     
 
                             <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
@@ -488,7 +490,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       <th className="bg-primary text-white">
                         ${globalTotals.commissionTotal?.toFixed(2) ?? "0.00"}
                       </th>
-                      <th className="bg-warning">
+                      <th className="bg-warning text-dark">
                         ${globalTotals.released?.toFixed(2) ?? "0.00"}
                       </th>
                       <th className="bg-success text-white">

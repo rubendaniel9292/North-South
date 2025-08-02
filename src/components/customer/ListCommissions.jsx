@@ -15,7 +15,7 @@ import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
 
 // Badge Bootstrap helper
 const Badge = ({ text, color = "secondary" }) => (
-  <span className={`badge rounded-pill bg-${color} fw-semibold`}>{text}</span>
+  <span className={`badge rounded-pill bg-${color} fw-bold fs-6`}>{text}</span>
 );
 
 const ListCommissions = () => {
@@ -565,7 +565,7 @@ const ListCommissions = () => {
                                     }
                                   />
                                 </td>
-                                {/* Nueva columna de progreso de pagos */}
+                                
                                 <td>
                                   <Badge
                                     text={releasedPayments + "/" + totalPayments}
@@ -573,7 +573,7 @@ const ListCommissions = () => {
                                       releasedPayments === totalPayments
                                         ? "success"
                                         : releasedPayments > 0
-                                        ? "warning"
+                                        ? "warning text-dark"
                                         : "secondary"
                                     }
                                   />
@@ -655,7 +655,7 @@ const ListCommissions = () => {
                                         <tr>
                                           <th>Fecha de pago</th>
                                           <th>Número de recibo</th>
-                                          <th>N° Com. Pagadas</th>
+                                          <th>N° Pagos Realizados</th>
                                           <th>Comisión pagadas</th>
                                           <th>Observaciones</th>
                                         </tr>

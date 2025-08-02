@@ -1,23 +1,43 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import fs from "fs";
+
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  //carga de certificados para HTTPS solo en local
-  /*
-  server: {
-    https: {
-      key: fs.readFileSync("/home/certificados/localhost-privateKey.key"),
-      cert: fs.readFileSync("/home/certificados/localhost.crt"),
-    },
-    proxy: {
-      "/api": {
-        target: "https://localhost:4443", // Puerto HTTPS del backend
-        changeOrigin: true,
-        secure: false,
+export default defineConfig(({ mode }) => {
+  // ✅ Rutas de certificados
+  const certPath = "/home/certificados/localhost.crt";
+  const keyPath = "/home/certificados/localhost-privateKey.key";
+
+  // ✅ Verificar si estamos en entorno de desarrollo local
+  const isLocalDev =
+    mode === "development" && // ✅ Solo en npm run dev
+    fs.existsSync(certPath) && // ✅ Solo si hay certificados locales
+    fs.existsSync(keyPath);
+
+  // ✅ En producción esto será siempre false porque:
+  // mode = "production" (no "development")
+
+  console.log(`🚀 Vite Mode: ${mode}`);
+  console.log(`🔒 HTTPS Local: ${isLocalDev ? "✅ Enabled" : "❌ Disabled"}`);
+
+  return {
+    plugins: [react()],
+
+    // ✅ Configuración condicional automática
+    ...(isLocalDev && {
+      server: {
+        https: {
+          key: fs.readFileSync(keyPath),
+          cert: fs.readFileSync(certPath),
+        },
+        proxy: {
+          "/api": {
+            target: "https://localhost:4443",
+            changeOrigin: true,
+            secure: false,
+          },
+        },
       },
-    },
-  }
-  */
+    }),
+  };
 });

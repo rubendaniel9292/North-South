@@ -146,7 +146,7 @@ const ListAdvisor = () => {
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <small className="text-muted">
+              <small className="text-dark fs-5 pt-2">
                 {filteredAdvisor.length} asesor(es) encontrado(s)
               </small>
             </div>
@@ -191,7 +191,7 @@ const ListAdvisor = () => {
                     <td>{item.email}</td>
                     <td>
                       <span
-                        className={`badge ${
+                        className={`badge fw-bold fs-6 ${
                           item.personalData ? "bg-success" : "bg-danger"
                         }`}
                       >
