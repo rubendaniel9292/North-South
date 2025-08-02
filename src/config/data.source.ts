@@ -27,15 +27,22 @@ export const DataSourceConfig: DataSourceOptions = {
   migrationsRun: true,
   /* solo para modo produccion: establecer una conexión segura (SSL) a la base de datos
   false si aun no esta configurado el ssl en el servidor, true si ya esta configurado
+  Los servidores de producción (AWS RDS, Google Cloud SQL, Azure, etc.) REQUIEREN SSL
+  Acepta certificados SSL aunque no sean de una autoridad certificadora válida
+  Es una medida de seguridad obligatoria
   */
 
   extra: {
     timezone: 'America/Guayaquil',
 
-    ssl: {
-      rejectUnauthorized: false,
-    },
 
+    // Esto es útil para entornos de desarrollo o pruebas, pero no recomendado en producción
+    // Solo usar SSL en producción
+    ...(process.env.NODE_ENV === 'production' && {
+      ssl: {
+        rejectUnauthorized: false, // Cambiar a true con certificados válidos
+      },
+    }),
 
     options: "-c timezone=America/Guayaquil",
   },
