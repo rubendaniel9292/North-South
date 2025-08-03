@@ -35,10 +35,10 @@ const Index = () => {
     {
       id: "clientesMenu",
       icon: faUsers,
-      label: "Gestión de clientes",
+      label: "Gestión de Clientes",
       items: [
         { label: "Registrar Cliente", link: "/management/create-customer" },
-        { label: "Listado de clientes", link: "/management/get-all-customer" },
+        { label: "Listado de Clientes", link: "/management/get-all-customer" },
       ],
     },
     {
@@ -46,22 +46,22 @@ const Index = () => {
       icon: faCreditCard,
       label: "Gestión de Tarjetas",
       items: [
-        { label: "Registro de tarjetas", link: "/management/create-cards" },
-        { label: "Registro de bancos", link: "/management/create-bank" },
-        { label: "Listado de tarjetas", link: "/management/get-all-cards" },
+        { label: "Registro de Tarjetas", link: "/management/create-cards" },
+        { label: "Registro de Bancos", link: "/management/create-bank" },
+        { label: "Listado de Tarjetas", link: "/management/get-all-cards" },
       ],
     },
     {
       id: "cuentasMenu",
       icon: faUniversity,
-      label: "Gestión de cuentas bancarias",
+      label: "Gestión de Cuentas Bancarias",
       items: [
         {
           label: "Registro de cuentas bancarias",
           link: "/management/create-bankaccounts",
         },
         {
-          label: "Listar cuentas bancarias",
+          label: "Listar Cuentas Bancarias",
           link: "/management/list-bankaccounts",
         },
       ],
@@ -106,10 +106,10 @@ const Index = () => {
     menuConfig.push({
       id: "usuariosMenu",
       icon: faUserCog,
-      label: "Gestión de usuarios",
+      label: "Gestión de Usuarios",
       items: [
-        { label: "Añadir usuario", link: "/management/create-user" },
-        { label: "Lista de usuarios", link: "/management/user-list" },
+        { label: "Añadir Usuario", link: "/management/create-user" },
+        { label: "Lista de Usuarios", link: "/management/user-list" },
       ],
     });
   }

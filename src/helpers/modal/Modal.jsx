@@ -15,6 +15,7 @@ import CommissionHistoryModal from "./CommissionHistoryModal";
 import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
 import EditPolicyValuesModal from "./EditPolicyValuesModal";
 import CreateTaskModal from "./CreateTaskModal";
+import TaskModal from "./TaskModal";
 export default function Modal({
   isOpen,
   onClose,
@@ -33,6 +34,8 @@ export default function Modal({
   editPoliciesValues,
   userId,
   onTaskCreated,
+  tasks,
+  onTaskDeleted,
 }) {
   if (!isOpen) return null;
 
@@ -130,6 +133,14 @@ export default function Modal({
             onTaskCreated={onTaskCreated}
           />
         );
+      case "taskList":
+        return (
+          <TaskModal
+            onClose={onClose}
+            tasks={tasks}
+            onTaskDeleted={onTaskDeleted}
+          />
+        );
       default:
         return null;
     }
@@ -167,7 +178,12 @@ Modal.propTypes = {
   onPaymentUpdated: PropTypes.func.isRequired,
   commissionHistory: PropTypes.func.isRequired,
   commissionRefunds: PropTypes.func.isRequired,
-  task: PropTypes.object.isRequired,
-  userId: PropTypes.string, // Nueva prop
-  onTaskCreated: PropTypes.func, // Nueva prop
+  tasks: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    description: PropTypes.string.isRequired,
+    estatusTask: PropTypes.string.isRequired,
+  }).isRequired,
+  userId: PropTypes.string,
+  onTaskCreated: PropTypes.func,
+  onTaskDeleted: PropTypes.func.isRequired,
 };

@@ -5,6 +5,7 @@ import "@fontsource/roboto/500.css";
 import { NavLink } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import TaskReminder from "../../helpers/TaskReminder";
 import {
   faCircleExclamation,
   faClock,
@@ -112,33 +113,67 @@ const Home = () => {
     }
   }, []);
 
-  const getTask = useCallback(async (userId) => {
+  const getTask = useCallback(async (userId, type) => {
     try {
       // Usar el endpoint específico que creaste
       const response = await http.get(`users/get-task/${userId}/tasks`);
-      console.log("response", response.data.tasks);
+      //console.log("response", response.data.tasks);
       if (response.data.status === "success") {
-        setTask(response.data.tasks);
-        setTaskStatus(response.data.tasks.length > 0);
+        const tasks = response.data.tasks || [];
+        setTask(tasks);
+        setTaskStatus(tasks.length > 0);
+        if (type === "taskList") {
+          setModalType(type);
+          openModal();
+        }
+        return tasks; // Retorna las tareas obtenidas
       } else {
         setTaskStatus(false);
+        setTask([]); // ✅ Limpiar tareas en caso de error
         console.error("Error fetching tasks:", response.message);
+        return [];
       }
     } catch (error) {
       setTaskStatus(false);
+      setTask([]);
       console.error("Error fetching tasks:", error);
+      return []; // ✅ Devolver array vacío
     }
   }, []);
 
   // Función para manejar cuando se crea una nueva tarea
-  const handleTaskCreated = (newTask) => {
-    setTask((prevTasks) => [...prevTasks, newTask]);
-    setTaskStatus(true);
-    // Refrescar las tareas desde el servidor para asegurar sincronización
-    if (auth?.uuid) {
-      getTask(auth.uuid);
-    }
-  };
+
+  const handleTaskCreated = useCallback(
+    (newTask) => {
+      console.log("Nueva tarea creada:", newTask);
+      setTask((prevTasks) => [...prevTasks, newTask]);
+      setTaskStatus(true);
+
+      // ✅ Opcional: Refrescar tareas desde el servidor para sincronizar
+      if (auth?.uuid) {
+        setTimeout(() => {
+          getTask(auth.uuid);
+        }, 500); // ✅ Pequeño delay para que el servidor procese
+      }
+    },
+    [auth?.uuid, getTask]
+  );
+
+  const handleTaskDeleted = useCallback((deletedTaskId) => {
+    console.log("Eliminando tarea con ID:", deletedTaskId);
+
+    // ✅ Filtrar la tarea eliminada del estado
+    setTask((prevTasks) => {
+      const filteredTasks = prevTasks.filter(
+        (task) => task.id !== deletedTaskId
+      );
+
+      // ✅ Actualizar taskStatus según las tareas restantes
+      setTaskStatus(filteredTasks.length > 0);
+
+      return filteredTasks;
+    });
+  }, []);
 
   //  SOLO ejecutar una vez cuando auth.uuid esté disponible
   useEffect(() => {
@@ -168,12 +203,13 @@ const Home = () => {
   };
   const closeModal = () => {
     setShowModal(false);
+    // ...otros imports
   };
-
   return (
     <>
+      <TaskReminder />
       <section>
-        <h2 className="py-2">Detalle de pagos, pólizas y tarjetas </h2>
+        <h2 className="py-2">Detalle de pagos, pólizas y tarjetas y tareas</h2>
         <p className="py-1 fs-5">
           Coloque el cursor sobre el ícono correspondiente para saber más
           detalles
@@ -442,7 +478,9 @@ const Home = () => {
                     >
                       <button
                         onClick={() => {
-                          console.log("Modal de ver tareas - por implementar");
+                          console.log("Abriendo modal de tareas...");
+                          // ✅ Refrescar tareas antes de abrir el modal
+                          getTask(auth?.uuid, "taskList");
                         }}
                       >
                         {" "}
@@ -487,12 +525,13 @@ const Home = () => {
             isOpen={showModal}
             onClose={closeModal}
             modalType={modalType}
-            policies={policies}
-            cards={cards}
-            payments={payments}
-            task={task}
+            policies={policies || []}
+            cards={cards || []}
+            payments={payments || []}
+            tasks={task || []}
             userId={auth?.uuid}
             onTaskCreated={handleTaskCreated}
+            onTaskDeleted={handleTaskDeleted}
           ></Modal>
         )}
       </section>

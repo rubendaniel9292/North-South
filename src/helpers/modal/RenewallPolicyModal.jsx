@@ -30,13 +30,13 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     paymentsToAdvisor: policy.paymentsToAdvisor || 0,
   });
 
-  // ✅ Convertir addClassSafely a useCallback
+
   const addClassSafely = useCallback((id, className) => {
     const element = document.getElementById(id);
     if (element) element.classList.add(className);
   }, []);
 
-  // ✅ Convertir calculateAdvisorPayment a useCallback
+
   const calculateAdvisorPayment = useCallback(() => {
     const { paymentsToAgency, paymentsToAdvisor } =
       calculateAdvisorAndAgencyPayments(
@@ -74,7 +74,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     addClassSafely
   ]);
 
-  // ✅ Convertir renewalAndUpdatePolicy a useCallback
+
   const renewalAndUpdatePolicy = useCallback(async (e) => {
     e.preventDefault();
     const renewalDateValue = document.getElementById("createdAt").value;
