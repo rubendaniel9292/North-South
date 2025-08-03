@@ -181,10 +181,14 @@ export class UserService {
 
       const newTask: TaskEntity = await this.taskRepository.save(taskData);
 
-      // Invalidar cache del usuario y tareas
-      await this.redisService.del(`tasks:${userId}`);
-      await this.redisService.del(`user:${userId}`);
+      // Invalidar todos los caches relacionados
+      await this.redisService.del(`tasks:${userId}`); // Cache de tareas del usuario
+      await this.redisService.del(`user:${userId}`);  // Cache del usuario específico
+      await this.redisService.del('user');            // Cache genérico del usuario (findUserById)
+      await this.redisService.del('users');           // Cache de lista de usuarios
+      await this.redisService.del(`newUser:${userId}`); // Cache de usuario recién creado
 
+      // Guardar cache de la nueva tarea
       await this.redisService.set(`task:${newTask.id}`, JSON.stringify(newTask), 32400);
       return newTask;
     } catch (error) {
@@ -213,6 +217,19 @@ export class UserService {
   //8: metodo para elimiar una tarea por id (dar por termianda la tarea)
   public deleteTask = async (taskId: number): Promise<DeleteResult | undefined> => {
     try {
+      // Primero obtener la tarea para saber a qué usuario pertenece
+      const taskToDelete = await this.taskRepository.findOne({ 
+        where: { id: taskId },
+        relations: ['users']
+      });
+
+      if (!taskToDelete) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Tarea no encontrada',
+        });
+      }
+
       const deletedTask: DeleteResult = await this.taskRepository.delete(taskId);
       if (deletedTask.affected === 0) {
         throw new ErrorManager({
@@ -220,8 +237,16 @@ export class UserService {
           message: 'No se pudo eliminar la tarea',
         });
       }
-      // Eliminar la tarea de Redis
-      await this.redisService.del(`task:${taskId}`);
+
+      // Invalidar todos los caches relacionados
+      const userId = taskToDelete.users_uuid;
+      await this.redisService.del(`task:${taskId}`);        // Cache de la tarea específica
+      await this.redisService.del(`tasks:${userId}`);       // Cache de tareas del usuario
+      await this.redisService.del(`user:${userId}`);        // Cache del usuario específico
+      await this.redisService.del('user');                  // Cache genérico del usuario
+      await this.redisService.del('users');                 // Cache de lista de usuarios
+      await this.redisService.del(`newUser:${userId}`);     // Cache de usuario recién creado
+
       return deletedTask;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
