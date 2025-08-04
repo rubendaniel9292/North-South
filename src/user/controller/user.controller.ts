@@ -50,7 +50,10 @@ export class UserController {
   @Get(':id')
   public async findUserById(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.findUserById(id);
-    return user;
+    return {
+      status: 'success',
+      user,
+    };
   }
   @Roles('ADMIN') //solo usuarios de tipo admin pordran eliminar otros usuarios
   @Delete('delete/:id')
@@ -103,7 +106,7 @@ export class UserController {
   @Roles('BASIC', 'ADMIN')
   @Delete('delete-tasks/:taskId')
   public async deleteTask(
-    @Param('taskId',  ParseIntPipe) taskId: number,
+    @Param('taskId', new ParseIntPipe()) taskId: number, // Corregido: agregado 'new'
   ) {
     const deleteTask = await this.userService.deleteTask(taskId);
     return {

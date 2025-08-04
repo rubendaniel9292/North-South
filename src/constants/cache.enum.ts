@@ -17,4 +17,16 @@ export enum CacheKeys {
     GLOBAL_ALL_POLICIES_BY_STATUS = 'global:policiesStatus:all',
     GLOBAL_COMMISSIONS = 'global:commissions:all',
     GLOBAL_COMMISSION_REFUNDS = 'global:commissionRefunds:all',
+    
+    // User Module Cache Keys
+    USERS_LIST = 'users:list',
+    USER_BY_ID = 'user:', // Se concatena con UUID: user:${uuid}
+    USER_TASKS = 'tasks:', // Se concatena con UUID: tasks:${uuid}
+    TASK_BY_ID = 'task:', // Se concatena con ID: task:${id}
+    
+    // Cache patterns for deletion
+    USER_PATTERN = 'user:*',
+    TASKS_PATTERN = 'tasks:*',
+    DASHBOARD_PATTERN = 'dashboard:*',
+    PENDING_PATTERN = 'pending:*',
 }
