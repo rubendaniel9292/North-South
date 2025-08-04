@@ -262,17 +262,18 @@ export class PolicyService extends ValidateEntity {
 
       // 1.1 Crear el periodo anual para la renovación
       const renewalYear = new Date(renewalData.createdAt).getFullYear();
+      const renewalPeriodData: PolicyPeriodDataDTO = {
+        policy_id: policy.id,
+        year: renewalYear,
+        policyValue: policy.policyValue,
+        agencyPercentage: policy.agencyPercentage,
+        advisorPercentage: policy.advisorPercentage,
+        policyFee: policy.policyFee,
+      };
       await this.createOrUpdatePeriodForPolicy(
         policy.id,
         renewalYear,
-        {
-          policy_id: policy.id,
-          year: renewalYear,
-          policyValue: policy.policyValue,
-          agencyPercentage: policy.agencyPercentage,
-          advisorPercentage: policy.advisorPercentage,
-          policyFee: policy.policyFee, // Asegúrate de que este campo esté definido en tu DTO y entidad
-        }
+        renewalPeriodData
       );
       console.log('Creando periodo de renovación (auto)', { policyId: policy.id, renewalYear });
 
@@ -349,10 +350,9 @@ export class PolicyService extends ValidateEntity {
     try {
       // Cachés globales
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
-      await this.redisService.del('policies');
-      await this.redisService.del('policiesStatus');
-      await this.redisService.del('customers');
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
+      await this.redisService.del(CacheKeys.GLOBAL_POLICY_STATUS);
+      await this.redisService.del('customers');
       await this.redisService.del('allAdvisors');
 
       // Cachés específicos del asesor
@@ -403,22 +403,20 @@ export class PolicyService extends ValidateEntity {
 
       // Crear o actualizar el periodo anual inicial en la tabla de periodos
       const year = new Date(newPolicy.startDate).getFullYear();
+      const initialPeriodData: PolicyPeriodDataDTO = {
+        policy_id: newPolicy.id,
+        year,
+        policyValue: newPolicy.policyValue,
+        agencyPercentage: newPolicy.agencyPercentage,
+        advisorPercentage: newPolicy.advisorPercentage,
+        policyFee: newPolicy.policyFee,
+      };
       await this.createOrUpdatePeriodForPolicy(
         newPolicy.id,
         year,
-        {
-          policy_id: newPolicy.id,
-          year,
-          policyValue: newPolicy.policyValue,
-          agencyPercentage: newPolicy.agencyPercentage,
-          advisorPercentage: newPolicy.advisorPercentage,
-          policyFee: newPolicy.policyFee,
-        }
+        initialPeriodData
       );
 
-      this.validatePolicyValue(Number(newPolicy.policyValue));
-
-      await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
       await this.invalidateCaches(newPolicy.advisor_id);
       return newPolicy;
     } catch (error) {
@@ -656,7 +654,7 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('types', JSON.stringify(types), 32400); // TTL de 1 hora
+      await this.redisService.set(CacheKeys.GLOBAL_POLICY_TYPE, JSON.stringify(types), 32400); // TTL de 1 hora
       return types;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -874,17 +872,18 @@ export class PolicyService extends ValidateEntity {
       // --- NUEVO: Actualizar periodo anual ---
       // Determina el año que quieres actualizar (ejemplo: el año actual)
       const currentYear = new Date().getFullYear();
+      const updatePeriodData: PolicyPeriodDataDTO = {
+        policy_id: id,
+        year: currentYear,
+        policyValue: policyUpdate.policyValue,
+        agencyPercentage: policyUpdate.agencyPercentage,
+        advisorPercentage: policyUpdate.advisorPercentage,
+        policyFee: policyUpdate.policyFee,
+      };
       await this.createOrUpdatePeriodForPolicy(
         id,
         currentYear, // o el año del periodo que corresponda
-        {
-          policy_id: id,
-          year: currentYear,
-          policyValue: policyUpdate.policyValue,
-          agencyPercentage: policyUpdate.agencyPercentage,
-          advisorPercentage: policyUpdate.advisorPercentage,
-          policyFee: policyUpdate.policyFee,
-        }
+        updatePeriodData
       );
 
       // Limpiar todas las claves de caché relevantes
@@ -966,17 +965,18 @@ export class PolicyService extends ValidateEntity {
         renewalYear,
         bodyCreatedAt: body.createdAt
       });
+      const renewalUpdatePeriodData: PolicyPeriodDataDTO = {
+        policy_id: policy.id,
+        year: renewalYear,
+        policyValue: policy.policyValue,
+        agencyPercentage: policy.agencyPercentage,
+        advisorPercentage: policy.advisorPercentage,
+        policyFee: policy.policyFee,
+      };
       await this.createOrUpdatePeriodForPolicy(
         policy.id,
         renewalYear,
-        {
-          policy_id: policy.id,
-          year: renewalYear,
-          policyValue: policy.policyValue,
-          agencyPercentage: policy.agencyPercentage,
-          advisorPercentage: policy.advisorPercentage,
-          policyFee: policy.policyFee,
-        }
+        renewalUpdatePeriodData
       );
 
       // Verificar si es la primera renovación y generar pagos faltantes del ciclo 1
@@ -1100,14 +1100,7 @@ export class PolicyService extends ValidateEntity {
   public async createOrUpdatePeriodForPolicy(
     policy_id: number,
     year: number,
-    data: {
-      policy_id: number;
-      year: number;
-      policyValue: number;
-      agencyPercentage: number;
-      advisorPercentage: number;
-      policyFee: number;
-    }
+    data: PolicyPeriodDataDTO
   ): Promise<PolicyPeriodDataEntity> {
     try {
 

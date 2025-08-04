@@ -140,7 +140,7 @@ export class PolicyController {
     @Param('year', ParseIntPipe) year: number,
     @Body() updateData: PolicyPeriodDataDTO
   ) {
-    const updateValuesByYear = await this.policyService.createOrUpdatePeriodForPolicy(policy_id, year, updateData);
+    const updateValuesByYear: PolicyPeriodDataEntity = await this.policyService.createOrUpdatePeriodForPolicy(policy_id, year, updateData);
     if (updateValuesByYear) {
       console.log("Periodo actualizado:", updateValuesByYear);
       return {
