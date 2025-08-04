@@ -1,4 +1,3 @@
-//import { CommissionsPaymentsService } from './../../commissions-payments/services/commissions-payments.service';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,8 +9,6 @@ import { PaymentStatusEntity } from '../entity/payment.status.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 import { DateHelper } from '@/helpers/date.helper';
 
-
-
 @Injectable()
 export class PaymentService {
   constructor(
@@ -21,24 +18,11 @@ export class PaymentService {
     @InjectRepository(PaymentStatusEntity)
     private readonly paymentStatusRepository: Repository<PaymentStatusEntity>,
 
-    /*
-    @InjectRepository(CommissionsPaymentsService)
-    private readonly commissionsPaymentsService: CommissionsPaymentsService,
-*/
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly redisService: RedisModuleService,
   ) { }
 
-  //metodo para calcular el valor de la comision de la poliza por cada registro o renovacion segun el periodo
-  /*
-  private calculateCommissionValue(paymentsToAdvisor: number, paymentFrequency: number): number {
-    let commissionValue = parseFloat((paymentsToAdvisor / paymentFrequency).toFixed(2));
-    return commissionValue
-  }*/
-
-  //invalidad caches
-  //invalidad caches
   private async invalidatePolicyRelatedCache(policy: PolicyEntity) {
     try {
       // Cachés básicos de la póliza
@@ -142,10 +126,11 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
-      
+
       const cachedPayments = await this.redisService.get('payments');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
@@ -162,10 +147,11 @@ export class PaymentService {
           'policies.payments',
         ],
         select: {
+
           policies: {
             id: true,
             numberPolicy: true,
-            //payment_frequency_id: true,
+
           },
         },
       });
@@ -176,7 +162,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('payments', JSON.stringify(payments), 32400); 
+      await this.redisService.set('payments', JSON.stringify(payments), 32400);
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -185,12 +171,7 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
-      //const cachedPaymentsId = await this.redisService.get('paymentId');
-      /*
-      const cachedPaymentsId = await this.redisService.get(`paymentId:${id}`);
-      if (cachedPaymentsId) {
-        return JSON.parse(cachedPaymentsId);
-      }*/
+
       const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
         relations: ['policies', 'policies.periods', 'paymentStatus'],
@@ -210,13 +191,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      /*
-            await this.redisService.set(
-              'paymentId',
-              JSON.stringify(paymentId),
-              32400,
-            ); // TTL de 1 hora
-      */
+
       return paymentId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -399,50 +374,4 @@ export class PaymentService {
     }
   }
 
-  // 8: método para actualizar los pagos de una póliza por año
-  /*
-  async updateValuesByYear(
-    policyId: number,
-    year: number,
-    updateData: { value: number, agencyPercentage: number, advisorPercentage: number }
-  ): Promise<{ updatedPolicy: PolicyEntity; updatedPayments: PaymentEntity[] }> {
-    // 1. Buscar la póliza
-    const policy = await this.policyRepository.findOne({
-      where: { id: policyId },
-      relations: ['payments'],
-    });
-    if (!policy) {
-      throw new ErrorManager({
-        type: 'BAD_REQUEST',
-        message: 'No se encontró la póliza',
-      });
-    }
-
-    // 2. Actualizar los valores globales de la póliza (opcional según reglas de negocio)
-    // Aquí solo actualizas los valores si quieres que el valor global de la póliza también cambie.
-    // Puedes omitir esto si solo quieres actualizar los pagos del año.
-    policy.policyValue = updateData.value;
-    policy.agencyPercentage = updateData.agencyPercentage;
-    policy.advisorPercentage = updateData.advisorPercentage;
-    await this.policyRepository.save(policy);
-
-    // 3. Buscar y actualizar todos los pagos del año indicado
-    const updatedPayments: PaymentEntity[] = [];
-    for (const payment of policy.payments) {
-      const paymentYear = new Date(payment.createdAt).getFullYear();
-      if (paymentYear === year) {
-        payment.value = updateData.value;
-        payment.agencyPercentage = updateData.agencyPercentage;
-        payment.advisorPercentage = updateData.advisorPercentage;
-        await this.paymentRepository.save(payment);
-        updatedPayments.push(payment);
-      }
-    }
-
-    // 4. (Opcional) Limpiar caché relacionado, si lo usas
-    await this.redisService.del(`policy:${policyId}`);
-
-    return { updatedPolicy: policy, updatedPayments };
-  }
-*/
 }

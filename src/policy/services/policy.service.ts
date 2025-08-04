@@ -355,19 +355,24 @@ export class PolicyService extends ValidateEntity {
       await this.redisService.del('customers');
       await this.redisService.del('allAdvisors');
 
-      // Cachés específicos del asesor
-      if (advisorId) {
+      // ✅ CRÍTICO: Invalidar cache de payments después de renovaciones
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+
+      // Cachés específicos del asesor (solo si advisorId existe y no es null)
+      if (advisorId && typeof advisorId === 'number' && advisorId > 0) {
         await this.redisService.del(`advisor:${advisorId}`);
         await this.redisService.del(`advisor:${advisorId}:policies`);
         await this.redisService.del(`advisor:${advisorId}:commissions`);
       }
 
-      // Cachés específicos de la póliza
-      if (policyId) {
+      // Cachés específicos de la póliza (solo si policyId existe y no es null)
+      if (policyId && typeof policyId === 'number' && policyId > 0) {
         await this.redisService.del(`policy:${policyId}`);
         await this.redisService.del(`policy:${policyId}:periods`);
         await this.redisService.del(`policy:${policyId}:renewals`);
       }
+
 
     } catch (error) {
       console.warn('Warning: Could not invalidate some cache keys:', error.message);
@@ -887,9 +892,7 @@ export class PolicyService extends ValidateEntity {
       );
 
       // Limpiar todas las claves de caché relevantes
-      //await this.redisService.del(`policy:${id}`);
-      //await this.redisService.del('policies');
-      // Invalidar cachés específicos y globales
+
       await this.invalidateCaches(policy.advisor_id);
 
       // Actualizar caché con los datos más recientes
@@ -994,7 +997,16 @@ export class PolicyService extends ValidateEntity {
       await this.createFirstPaymentAfterRenewal(policy, newRenewal);
 
       // Invalidar cachés específicos y globales
-      await this.invalidateCaches(policy.advisor_id);
+      await this.invalidateCaches(policy.advisor_id, policy.id);
+
+      // ✅ INVALIDAR ESPECÍFICAMENTE EL CACHE DE PAYMENTS
+      await this.redisService.del('payments');
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES)
+
+      // Pequeña pausa para asegurar que la invalidación se complete
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      console.log(`✅ Renovación completada - Póliza: ${policy.id}, Renovación: ${newRenewal.renewalNumber}`);
       return newRenewal;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -1132,24 +1144,6 @@ export class PolicyService extends ValidateEntity {
         savedPeriod = await this.policyPeriodDataRepository.save(period);
       }
 
-
-      // --- INVALIDACIÓN DE CACHÉS ---
-      // Por póliza
-      /*
-      const policyPeriodsCacheKey = `policy:${policy_id}:periods`;
-      await this.redisService.del(policyPeriodsCacheKey);
-
-      // Por asesor
-      const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
-      if (advisorId) {
-        const advisorCacheKey = `advisor:${advisorId}:policies`;
-        await this.redisService.del(advisorCacheKey);
-      }
-
-      // Por renovaciones
-      const renewalsCacheKey = `policy:${policy_id}:renewals`;
-      await this.redisService.del(renewalsCacheKey);
-*/
       const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
       await this.invalidateCaches(advisorId);
 
