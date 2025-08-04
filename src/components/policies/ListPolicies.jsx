@@ -97,14 +97,15 @@ const ListPolicies = () => {
         alerts("Pago registrado", response.data.message, "success");
 
         console.log("Pagos creados:", response.data.data.createdPayments); // Mostrar detalles
-        // Actualizar inmediatamente después de procesar pagos
-        getAllPolicies();
+
+        // ✅ Actualizar inmediatamente y forzar recarga desde servidor
+        await getAllPolicies();
 
         // Programar otra actualización después de un breve retraso
         // para asegurarse de que los datos del servidor estén actualizados
-        setTimeout(() => {
-          getAllPolicies();
-        }, 5000); // 5 segundos
+        setTimeout(async () => {
+          await getAllPolicies();
+        }, 2000);
       } else {
         alerts("Error", response.data.message, "error");
       }
@@ -112,7 +113,7 @@ const ListPolicies = () => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error registering payment:", error);
     }
-  }, []);
+  }, [getAllPolicies]);
 
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
@@ -188,6 +189,8 @@ const ListPolicies = () => {
             paymentMethod: policyUpdated.paymentMethod || p.paymentMethod,
             paymentFrequency:
               policyUpdated.paymentFrequency || p.paymentFrequency,
+            payments: policyUpdated.payments || p.payments,
+            renewals: policyUpdated.renewals || p.renewals,
           };
 
           return updatedPolicy;
@@ -209,11 +212,15 @@ const ListPolicies = () => {
         paymentMethod: policyUpdated.paymentMethod || policy.paymentMethod,
         paymentFrequency:
           policyUpdated.paymentFrequency || policy.paymentFrequency,
+        payments: policyUpdated.payments || policy.payments,
+        renewals: policyUpdated.renewals || policy.renewals,
       });
     }
 
     // Forzar una recarga completa de las pólizas desde el servidor
-    getAllPolicies();
+    setTimeout(async () => {
+      await getAllPolicies();
+    }, 500);
   };
 
   // ✅ Agregar función para limpiar filtros
@@ -333,9 +340,8 @@ const ListPolicies = () => {
             {/* Botón de pruebas (temporal) */}
             <div className="col-md-3">
               <div className="d-grid">
-             
                 <button
-                  className="btn btn-danger d-none fw-bold"
+                  className="btn btn-danger fw-bold"
                   onClick={() => registerPaymentTest()}
                 >
                   <FontAwesomeIcon icon={faCogs} className="me-2" />
@@ -483,7 +489,8 @@ const ListPolicies = () => {
               {currentPolicies.length === 0 ? (
                 <tr>
                   <td colSpan="15" className="text-center">
-                    Aun no hay pólizas registradas o no se encontraron resultados
+                    Aun no hay pólizas registradas o no se encontraron
+                    resultados
                   </td>
                 </tr>
               ) : (

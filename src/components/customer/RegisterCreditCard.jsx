@@ -247,13 +247,22 @@ const RegisterCreditCard = () => {
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success mt-2 fw-bold">
                 {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">Registrando...</span>
-                  </div>
+                  <>
+                    <div className="spinner-border text-light" role="status">
+                      <span className="visually-hidden">Registrando...</span>
+                    </div>
+                    Registrando...
+                  </>
                 ) : (
-                  "Registrar Tarjeta"
+                  <>
+                    Registrar Tarjeta
+                    <FontAwesomeIcon
+                      className="mx-2"
+                      icon={faFloppyDisk}
+                      beat
+                    />
+                  </>
                 )}
-                <FontAwesomeIcon className="mx-2" icon={faFloppyDisk} beat />
               </button>
             </div>
           </div>

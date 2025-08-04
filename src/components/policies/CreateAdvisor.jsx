@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 const CreateAdvisor = () => {
   const { form, changed } = UserForm({});
+  const [isLoading, setIsLoading] = useState(false);
   const savedAdvisor = useCallback(
     async (e) => {
       try {
@@ -182,9 +183,21 @@ const CreateAdvisor = () => {
             </div>
           </div>
           <div className="mt-4 col-3">
+            |
             <button type="submit" className="btn btn-success fw-bold">
-              Registrar Asesor
-              <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
+              {isLoading ? (
+                <>
+                  <div className="spinner-border text-light" role="status">
+                    <span className="visually-hidden">Registrando...</span>
+                  </div>
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  Registrar Asesor
+                  <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
+                </>
+              )}
             </button>
           </div>
         </div>

@@ -64,7 +64,7 @@ const CreateCustomer = () => {
     [cities, changed]
   );
   const option = "Escoja una opción";
-  
+
   const savedCustomer = useCallback(
     async (e) => {
       setIsLoading(true);
@@ -338,13 +338,22 @@ const CreateCustomer = () => {
             <div className="mt-4 col-3">
               <button type="submit" className="btn btn-success fw-bold">
                 {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">Registrando...</span>
-                  </div>
+                  <>
+                    <div className="spinner-border text-light" role="status">
+                      <span className="visually-hidden">Registrando...</span>
+                    </div>
+                    Registrando...
+                  </>
                 ) : (
-                  "Registrar Cliente"
+                  <>
+                    Registrar Cliente
+                    <FontAwesomeIcon
+                      className="mx-2 "
+                      icon={faFloppyDisk}
+                      beat
+                    />
+                  </>
                 )}
-                <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
               </button>
             </div>
           </div>

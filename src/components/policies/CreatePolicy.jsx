@@ -52,7 +52,7 @@ const CreatePolicy = () => {
   const [banks, setBanks] = useState([]);
 
   const [accountTypes, setAccountTypes] = useState([]);
-  
+
   const fetchData = useCallback(async () => {
     try {
       // Cargar datos esenciales primero (los que ya funcionaban antes)
@@ -1482,14 +1482,18 @@ const CreatePolicy = () => {
               className="btn btn-success fw-bold"
             >
               {isLoading ? (
-                <div className="spinner-border text-light" role="status">
-                  <span className="visually-hidden">Registrando...</span>
-                </div>
+                <>
+                  <div className="spinner-border text-light" role="status">
+                    <span className="visually-hidden">Registrando...</span>
+                  </div>
+                  Registrando Póliza...
+                </>
               ) : (
-                "Registrar Póliza"
+                <>
+                  Registrar Póliza
+                  <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
+                </>
               )}
-
-              <FontAwesomeIcon className="mx-2 " icon={faFloppyDisk} beat />
             </button>
           </div>
         </div>
