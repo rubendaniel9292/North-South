@@ -100,19 +100,7 @@ export class PaymentController {
       updatedPayment,
     };
   }
-  //controlador para el registro manual de pagos
-  /*
-  @Roles('ADMIN', 'BASIC')
-  @Post('manual-process-payments')
-  async manualProcessPayments() {
-    await this.paymentSchedulerService.manualProcessPayments();
-    return {
-      status: 'success',
-      message: 'Pago manual procesado manualmente',
-    };
 
-    //return { status: 'success', message: 'Pago manual procesado manualmente' };
-  }*/
 
   @Roles('ADMIN', 'BASIC')
   @Post('manual-process-payments')
