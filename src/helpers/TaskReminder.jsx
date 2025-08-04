@@ -94,6 +94,7 @@ const TaskReminder = () => {
     if (!loading && auth?.uuid) {
       console.log("✅ Condiciones cumplidas, obteniendo tareas...");
       fetchTasks();
+      
     } else {
       console.log("⏳ Esperando autenticación...");
     }
@@ -124,6 +125,17 @@ const TaskReminder = () => {
     }
   }, [tasks.length, showReminder, showTaskAlert]);
 
+  // ✅ Exponer función para refrescar desde otros componentes
+useEffect(() => {
+  if (auth?.uuid) {
+    // ✅ Hacer la función disponible globalmente
+    window.refreshTaskReminder = fetchTasks;
+  }
+  
+  return () => {
+    delete window.refreshTaskReminder;
+  };
+}, [fetchTasks, auth?.uuid]);
   return null;
 };
 

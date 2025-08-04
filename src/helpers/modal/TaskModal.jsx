@@ -20,6 +20,10 @@ const TaskModal = ({ onClose, tasks, onTaskDeleted }) => {
       const response = await http.delete(`users/delete-tasks/${taskId}`);
 
       if (response.data.status === "success") {
+        // ✅ Refrescar recordatorio de tareas
+        if (window.refreshTaskReminder) {
+          window.refreshTaskReminder();
+        }
         //  actualizar estado local INMEDIATAMENTE Llamando callback para actualizar el estado en Home
         if (onTaskDeleted) {
           onTaskDeleted(taskId);
