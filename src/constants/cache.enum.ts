@@ -6,11 +6,11 @@ export enum CacheKeys {
     GLOBAL_CITIES = 'global:cities:all',
     GLOBAL_CIVIL_STATUS = 'global:civil-status:all',
     GLOBAL_BANKS = 'global:allBanks:all',
-    GLOBAL_TYES_ACCOUNTS = 'global:allTypeAccounts:all',
-    GLOBAL_CARD_OPTIONS = 'golbal:allOptions:all',
+    GLOBAL_TYPES_ACCOUNTS = 'global:allTypeAccounts:all', // Corregido TYES -> TYPES
+    GLOBAL_CARD_OPTIONS = 'global:allOptions:all', // Corregido golbal -> global
     GLOBAL_POLICY_TYPE = 'global:types:all',
     GLOBAL_PAYMENT_METHOD = 'global:allPaymentMethod:all',
-    GLOBAL_PAYMENT_FREQUENCY = 'global:frecuency:all',
+    GLOBAL_PAYMENT_FREQUENCY = 'global:frequency:all', // Corregido frecuency -> frequency
     GLOBAL_COMPANY = 'global:allCompany:all',
     GLOBAL_POLICY_STATUS = 'global:allStatusPolicies:all',
     GLOBAL_ALL_POLICIES = 'global:policies:all',

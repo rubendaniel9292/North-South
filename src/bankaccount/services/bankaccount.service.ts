@@ -117,7 +117,7 @@ export class BankAccountService {
   public findTypeAccounts = async (): Promise<AccountTypeEntity[]> => {
     try {
       //const cachedTypeAccounts = await this.redisService.get('allTypeAccounts');
-      const cachedTypeAccounts = await this.redisService.get(CacheKeys.GLOBAL_TYES_ACCOUNTS);
+      const cachedTypeAccounts = await this.redisService.get(CacheKeys.GLOBAL_TYPES_ACCOUNTS);
       if (cachedTypeAccounts) {
         return JSON.parse(cachedTypeAccounts);
       }
@@ -131,7 +131,7 @@ export class BankAccountService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(CacheKeys.GLOBAL_TYES_ACCOUNTS, JSON.stringify(allTypeAccounts)); //
+      await this.redisService.set(CacheKeys.GLOBAL_TYPES_ACCOUNTS, JSON.stringify(allTypeAccounts)); //
 
       return allTypeAccounts;
     } catch (error) {
