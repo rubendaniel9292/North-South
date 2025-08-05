@@ -16,7 +16,7 @@ export class HttpCustomService {
     private readonly configService: ConfigService,
   ) {
     this.baseUrl = this.configService.get<string>('URL') || '';
-    this.logger.log(`HttpCustomService inicializado con baseUrl: ${this.baseUrl}`);
+    //this.logger.log(`HttpCustomService inicializado con baseUrl: ${this.baseUrl}`);
   }
 
   /**
@@ -27,7 +27,7 @@ export class HttpCustomService {
    */
   async get<T = any>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
     try {
-      this.logger.log(`Iniciando petición GET a: ${endpoint}`);
+      //this.logger.log(`Iniciando petición GET a: ${endpoint}`);
       
       const url = this.buildUrl(endpoint);
       const requestConfig: AxiosRequestConfig = {
@@ -39,11 +39,11 @@ export class HttpCustomService {
         this.httpService.get<T>(url, requestConfig)
       );
 
-      this.logger.log(`Petición GET exitosa a: ${endpoint} - Status: ${response.status}`);
+     // this.logger.log(`Petición GET exitosa a: ${endpoint} - Status: ${response.status}`);
       return response.data;
 
     } catch (error) {
-      this.logger.error(`Error en petición GET a ${endpoint}: ${error.message}`, error.stack);
+     //this.logger.error(`Error en petición GET a ${endpoint}: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(`Error en petición HTTP GET: ${error.message}`);
     }
   }
@@ -57,7 +57,7 @@ export class HttpCustomService {
    */
   async post<T = any>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      this.logger.log(`Iniciando petición POST a: ${endpoint}`);
+      //this.logger.log(`Iniciando petición POST a: ${endpoint}`);
       
       const url = this.buildUrl(endpoint);
       const requestConfig: AxiosRequestConfig = {
@@ -69,11 +69,11 @@ export class HttpCustomService {
         this.httpService.post<T>(url, data, requestConfig)
       );
 
-      this.logger.log(`Petición POST exitosa a: ${endpoint} - Status: ${response.status}`);
+      //this.logger.log(`Petición POST exitosa a: ${endpoint} - Status: ${response.status}`);
       return response.data;
 
     } catch (error) {
-      this.logger.error(`Error en petición POST a ${endpoint}: ${error.message}`, error.stack);
+     // this.logger.error(`Error en petición POST a ${endpoint}: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(`Error en petición HTTP POST: ${error.message}`);
     }
   }
@@ -87,7 +87,7 @@ export class HttpCustomService {
    */
   async put<T = any>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      this.logger.log(`Iniciando petición PUT a: ${endpoint}`);
+      //this.logger.log(`Iniciando petición PUT a: ${endpoint}`);
       
       const url = this.buildUrl(endpoint);
       const requestConfig: AxiosRequestConfig = {
@@ -99,11 +99,11 @@ export class HttpCustomService {
         this.httpService.put<T>(url, data, requestConfig)
       );
 
-      this.logger.log(`Petición PUT exitosa a: ${endpoint} - Status: ${response.status}`);
+      //this.logger.log(`Petición PUT exitosa a: ${endpoint} - Status: ${response.status}`);
       return response.data;
 
     } catch (error) {
-      this.logger.error(`Error en petición PUT a ${endpoint}: ${error.message}`, error.stack);
+      //this.logger.error(`Error en petición PUT a ${endpoint}: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(`Error en petición HTTP PUT: ${error.message}`);
     }
   }
@@ -116,7 +116,7 @@ export class HttpCustomService {
    */
   async delete<T = any>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
     try {
-      this.logger.log(`Iniciando petición DELETE a: ${endpoint}`);
+      //this.logger.log(`Iniciando petición DELETE a: ${endpoint}`);
       
       const url = this.buildUrl(endpoint);
       const requestConfig: AxiosRequestConfig = {
@@ -128,11 +128,11 @@ export class HttpCustomService {
         this.httpService.delete<T>(url, requestConfig)
       );
 
-      this.logger.log(`Petición DELETE exitosa a: ${endpoint} - Status: ${response.status}`);
+      //this.logger.log(`Petición DELETE exitosa a: ${endpoint} - Status: ${response.status}`);
       return response.data;
 
     } catch (error) {
-      this.logger.error(`Error en petición DELETE a ${endpoint}: ${error.message}`, error.stack);
+      //this.logger.error(`Error en petición DELETE a ${endpoint}: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(`Error en petición HTTP DELETE: ${error.message}`);
     }
   }

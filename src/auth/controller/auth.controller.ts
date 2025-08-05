@@ -26,55 +26,69 @@ export class AuthController {
   @PublicAcces()
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() loginDto: LoginDto) {
-    console.log(
-      '1: iniciando verificacion de token recapcha en el controlador',
-    );
-
+    console.log('=== INICIO DE LOGIN ===');
+    /*
+    console.log('Datos recibidos:', { 
+      username: loginDto.username, 
+      passwordLength: loginDto.password?.length,
+      hasTurnstileToken: !!loginDto.turnstileToken 
+    });
+*/
     const { username, password, turnstileToken } = loginDto;
-    //console.log(turnstileToken);
-    //const { username, password } = loginDto;
-    // Verificar reCAPTCHA antes de autenticar al usuario
-    //console.log('token de  Turnstile: ', turnstileToken);
-    /*
-  
-    const isHuman = await verifyRecaptcha(captchaToken);
-    console.log('2: acceso al helper de verificacion de capcha exitoso');
-    if (!isHuman) {
-      throw new BadRequestException('Fallo en la verificación de reCAPTCHA.');
-    }*/
-    // Verificar el turnstileToken
-    try {
-      await this.turnstileService.verifyToken(turnstileToken as string);
-    } catch (error) {
-      console.error('**Fallo en la verificación de turnstileToken**')
-      throw new BadRequestException('Fallo en la verificación de turnstileToken');
 
+    // 1. VERIFICAR TURNSTILE TOKEN
+    if (!turnstileToken) {
+      console.error('❌ TurnstileToken no proporcionado');
+      throw new BadRequestException('Token de Turnstile requerido');
     }
-    /*
-    const userValidate = await this.authServices.validateUser(
-      username,
-      password,
-    );*/
-    const validateResult = await this.authServices.validateUser(username, password)
-    //si la contraseña es incorrecta genera un error,caso contrario se genera la firma del token
-    if (!validateResult) {
-      console.error('**Usuario o contraseña incorrectos**')
-      throw new UnauthorizedException('Data not valid');
+
+    try {
+      console.log('🔒 Verificando Turnstile token...');
+      await this.turnstileService.verifyToken(turnstileToken as string);
+      console.log('✅ Turnstile token válido');
+    } catch (error) {
+      console.error('❌ Fallo en verificación de Turnstile:', error.message);
+      throw new BadRequestException('Fallo en la verificación de turnstileToken');
     }
-    const { user, mustChangePassword } = validateResult;
-    if (mustChangePassword) {
-      // No generes el JWT, responde aviso al frontend
-      return {
-        status: 'must_change_password',
-        message: 'Debes cambiar tu contraseña antes de continuar.',
-        mustChangePassword: true,
-        userId: user.uuid, // Para que el frontend sepa a quién cambiarle la contraseña
-      };
+
+    // 2. VALIDAR USUARIO Y CONTRASEÑA
+    try {
+      console.log('🔑 Validando credenciales para usuario', /*username*/);
+      const validateResult = await this.authServices.validateUser(username, password);
+      
+      if (!validateResult) {
+        console.error('❌ Credenciales inválidas para usuario:'/*, username*/);
+        throw new UnauthorizedException('Usuario o contraseña incorrectos');
+      }
+
+      console.log('✅ Credenciales válidas');
+      const { user, mustChangePassword } = validateResult;
+      
+      // 3. VERIFICAR SI DEBE CAMBIAR CONTRASEÑA
+      if (mustChangePassword) {
+        console.log('⚠️ Usuario debe cambiar contraseña');
+        return {
+          status: 'must_change_password',
+          message: 'Debes cambiar tu contraseña antes de continuar.',
+          mustChangePassword: true,
+          userId: user.uuid,
+        };
+      }
+
+      // 4. GENERAR JWT
+      console.log('🎫 Generando JWT para usuario exitoso');
+      const jwt = await this.authServices.generateJWT(user);
+      console.log('✅ Login completado exitosamente');
+      
+      return jwt;
+      
+    } catch (error) {
+      console.error('❌ Error durante validación:', error.message);
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Error interno durante el login');
     }
-    //const jwt = await this.authServices.generateJWT(userValidate);
-    const jwt = await this.authServices.generateJWT(user);
-    console.error('Login exitoso...')
-    return jwt;
   }
 
   @PublicAcces()

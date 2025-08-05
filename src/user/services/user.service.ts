@@ -173,20 +173,38 @@ export class UserService {
     value: any;
   }) => {
     try {
-      const user: UserEntity = await this.userRepository
-        .createQueryBuilder('user')
-        .addSelect('user.password') //incluir la contraseña en la consulta para su comparacon
-        .where({ [key]: value })
-        .getOne();
+      //console.log(`💾 UserService.findAndCompare - Buscando por ${key}: ${value}`);
+
+      const user: UserEntity = await this.userRepository.findOne({
+        where: { [key]: value },
+      });
+
+      if (user) {
+        //console.log(`✅ Usuario encontrado - hasPassword: ${!!user.password}, mustChangePassword: ${user.mustChangePassword}`);
+        // Logging completo para debugging - comentar cuando funcione correctamente
+        console.log(`✅ Usuario encontrado`, /*{
+        uuid: user.uuid,
+        userName: user.userName,
+         email: user.email,
+        role: user.role,
+        hasPassword: !!user.password,
+        mustChangePassword: user.mustChangePassword,
+        passwordLength: user.password?.length
+        }*/);
+      } else {
+        console.log(`❌ Usuario NO encontrado por ${key}: ${value}`);
+      }
+
       return user;
     } catch (error) {
+      console.error(`💥 Error en findAndCompare:`, error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   };
   //5: Método para eliminar usuarios por UUID
   public deleteUser = async (uuid: string): Promise<DeleteResult | undefined> => {
     try {
-      this.logger.log(`Iniciando eliminación de usuario: ${uuid}`);
+      //this.logger.log(`Iniciando eliminación de usuario: ${uuid}`);
 
       // Verificar que el usuario existe antes de eliminarlo
       const existingUser = await this.userRepository.findOne({
@@ -195,7 +213,7 @@ export class UserService {
       });
 
       if (!existingUser) {
-        this.logger.warn(`Intento de eliminar usuario inexistente: ${uuid}`);
+        //this.logger.warn(`Intento de eliminar usuario inexistente: ${uuid}`);
         throw new ErrorManager({
           type: 'NOT_FOUND',
           message: 'Usuario no encontrado',
@@ -205,7 +223,7 @@ export class UserService {
       const result: DeleteResult = await this.userRepository.delete(uuid);
 
       if (result.affected === 0) {
-        this.logger.error(`No se pudo eliminar el usuario: ${uuid}`);
+        //this.logger.error(`No se pudo eliminar el usuario: ${uuid}`);
         throw new ErrorManager({
           type: 'INTERNAL_SERVER_ERROR',
           message: 'No se pudo eliminar el usuario',
@@ -232,12 +250,12 @@ export class UserService {
   //6: Método para actualizar usuario
   public updateUser = async (uuid: string, updateData: Partial<UpdateUserDTO>): Promise<UserEntity> => {
     try {
-      this.logger.log(`Actualizando usuario: ${uuid}`);
+      //this.logger.log(`Actualizando usuario: ${uuid}`);
 
       // Verificar que el usuario existe
       const existingUser = await this.userRepository.findOne({ where: { uuid } });
       if (!existingUser) {
-        this.logger.warn(`Intento de actualizar usuario inexistente: ${uuid}`);
+        //this.logger.warn(`Intento de actualizar usuario inexistente: ${uuid}`);
         throw new ErrorManager({
           type: 'NOT_FOUND',
           message: 'Usuario no encontrado',
@@ -318,11 +336,11 @@ export class UserService {
   //7: Método para crear tareas de un usuario
   public createTask = async (userId: string, body: TaskDTO): Promise<TaskEntity> => {
     try {
-      this.logger.log(`Creando tarea para usuario: ${userId}`);
+      //this.logger.log(`Creando tarea para usuario: ${userId}`);
 
       const user: UserEntity = await this.userRepository.findOne({ where: { uuid: userId } });
       if (!user) {
-        this.logger.warn(`Usuario no encontrado para crear tarea: ${userId}`);
+        //this.logger.warn(`Usuario no encontrado para crear tarea: ${userId}`);
         throw new ErrorManager({
           type: 'NOT_FOUND',
           message: 'Usuario no encontrado',
@@ -346,7 +364,7 @@ export class UserService {
       // Guardar cache de la nueva tarea
       await this.redisService.set(`${CacheKeys.TASK_BY_ID}${newTask.id}`, newTask, this.CACHE_TTL);
 
-      this.logger.log(`Tarea creada exitosamente: ${newTask.id} para usuario: ${userId}`);
+      //this.logger.log(`Tarea creada exitosamente: ${newTask.id} para usuario: ${userId}`);
       return newTask;
 
     } catch (error) {
@@ -358,7 +376,7 @@ export class UserService {
   //8: Método para obtener las tareas de un usuario
   public getTasksByUserId = async (userId: string): Promise<TaskEntity[]> => {
     try {
-      this.logger.log(`Obteniendo tareas para usuario: ${userId}`);
+      //this.logger.log(`Obteniendo tareas para usuario: ${userId}`);
 
       const cachedTasks = await this.redisService.get(`${CacheKeys.USER_TASKS}${userId}`);
       if (cachedTasks) {
@@ -373,7 +391,7 @@ export class UserService {
 
       await this.redisService.set(`${CacheKeys.USER_TASKS}${userId}`, tasks, this.CACHE_TTL);
 
-      this.logger.log(`Se encontraron ${tasks.length} tareas para usuario: ${userId}`);
+      //this.logger.log(`Se encontraron ${tasks.length} tareas para usuario: ${userId}`);
       return tasks;
 
     } catch (error) {
@@ -417,7 +435,7 @@ export class UserService {
       await this.redisService.del(`${CacheKeys.USER_TASKS}${userId}`);       // Cache de tareas del usuario
       await this.redisService.del(`${CacheKeys.USER_BY_ID}${userId}`);        // Cache del usuario específico
       await this.redisService.del(CacheKeys.USERS_LIST);            // Cache de lista de usuarios
-      
+
       // Invalidar caches adicionales que puedan afectar dashboards o conteos
       await this.redisService.deletePattern(CacheKeys.DASHBOARD_PATTERN); // Cualquier cache de dashboard
       await this.redisService.deletePattern(CacheKeys.TASKS_PATTERN);     // Todos los caches de tareas
