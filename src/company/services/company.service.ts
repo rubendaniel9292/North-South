@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CompanyDTO } from '../dto/company.dto';
@@ -10,6 +10,8 @@ import { CacheKeys } from '@/constants/cache.enum';
 
 @Injectable()
 export class CompanyService extends ValidateEntity {
+  private readonly logger = new Logger(CompanyService.name);
+  private readonly CACHE_TTL = 3600; // 1 hora en segundos
 
   constructor(
     @InjectRepository(CompanyEntity)
@@ -22,33 +24,59 @@ export class CompanyService extends ValidateEntity {
   //1:metodo para registrar una compañia       
   public createCompany = async (body: CompanyDTO): Promise<CompanyEntity> => {
     try {
+      this.logger.log(`Iniciando registro de compañía: ${body.companyName}`);
+
       // Primero validamos cédula o ruc
       await this.validateInput(body, 'company');
+      
       const newCompany = await this.companyRepository.save(body);
-      console.log(newCompany);
+      this.logger.log(`Compañía registrada exitosamente con ID: ${newCompany.id}`);
 
-        // Guardar en Redis (sin TTL, ya que es un dato estático o poco cambiante)
-        await this.redisService.set(`company:${newCompany.id}`, JSON.stringify(newCompany));
+      // Guardar en Redis (con TTL para consistencia)
+      await this.redisService.set(`company:${newCompany.id}`, newCompany, this.CACHE_TTL);
 
-        // Invalidar el caché de todas las compañías para evitar inconsistencias
-        await this.redisService.del(CacheKeys.GLOBAL_COMPANY);
+      // Invalidar el caché de todas las compañías para evitar inconsistencias
+      await this.redisService.del(CacheKeys.GLOBAL_COMPANY);
+      this.logger.log('Cache de compañías invalidado');
 
       return newCompany;
     } catch (error) {
+      this.logger.error(`Error al registrar compañía: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(error.message);
     }
   };
   //2: metodo para buscar las compañias asesoras
-  public getAllCompanies = async () => {
+  public getAllCompanies = async (): Promise<CompanyEntity[]> => {
     try {
+      this.logger.log('Consultando todas las compañías');
+
+      // Verificar cache primero
       const cachedCompany = await this.redisService.get(CacheKeys.GLOBAL_COMPANY);
-      //const cachedCompany = await this.redisService.get('allCompany');
       if (cachedCompany) {
-        return JSON.parse(cachedCompany);
+        this.logger.log('Compañías obtenidas desde cache');
+        return cachedCompany;
       }
-      const allCompany = await this.companyRepository.find();
+
+      // Consultar base de datos
+      const allCompany: CompanyEntity[] = await this.companyRepository.find({
+        order: { id: 'DESC' }, // Ordenar por ID descendente (más recientes primero)
+      });
+
+      if (allCompany.length === 0) {
+        this.logger.warn('No se encontraron compañías registradas');
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: 'No se encontraron compañías registradas',
+        });
+      }
+
+      // Guardar en cache
+      await this.redisService.set(CacheKeys.GLOBAL_COMPANY, allCompany, this.CACHE_TTL);
+      this.logger.log(`Se encontraron ${allCompany.length} compañías`);
+
       return allCompany;
     } catch (error) {
+      this.logger.error(`Error al consultar compañías: ${error.message}`, error.stack);
       throw ErrorManager.createSignatureError(error.message);
     }
   };

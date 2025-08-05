@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Logger } from '@nestjs/common';
 import { CompanyService } from '../services/company.service';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -8,30 +8,52 @@ import { CompanyDTO } from '../dto/company.dto';
 @Controller('company')
 @UseGuards(AuthGuard, RolesGuard)
 export class CompanyController {
+  private readonly logger = new Logger(CompanyController.name);
+
   constructor(private readonly companyService: CompanyService) {}
+
   @Roles('ADMIN', 'BASIC')
   @Post('register-company')
   public async registerCompany(@Body() body: CompanyDTO) {
-    const newCompany = await this.companyService.createCompany(body);
+    try {
+      this.logger.log(`Solicitud de registro de compañía: ${body.companyName}`);
+      
+      const newCompany = await this.companyService.createCompany(body);
 
-    if (newCompany) {
+      this.logger.log(`Compañía registrada exitosamente: ${newCompany.id}`);
       return {
         status: 'success',
-        newCompany,
+        message: 'Compañía registrada exitosamente',
+        data: {
+          id: newCompany.id,
+          companyName: newCompany.companyName,
+          ci_ruc: newCompany.ci_ruc,
+        },
       };
+    } catch (error) {
+      this.logger.error(`Error en registro de compañía: ${error.message}`, error.stack);
+      throw error; // Dejar que el filtro global maneje el error
     }
   }
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-all-company')
   public async getCompanies() {
-    const allCompanies = await this.companyService.getAllCompanies();
+    try {
+      this.logger.log('Solicitud de consulta de todas las compañías');
+      
+      const allCompanies = await this.companyService.getAllCompanies();
 
-    if (allCompanies) {
+      this.logger.log(`Consulta exitosa: ${allCompanies.length} compañías encontradas`);
       return {
         status: 'success',
-        allCompanies,
+        message: `Se encontraron ${allCompanies.length} compañías`,
+        data: allCompanies,
+        count: allCompanies.length,
       };
+    } catch (error) {
+      this.logger.error(`Error en consulta de compañías: ${error.message}`, error.stack);
+      throw error; // Dejar que el filtro global maneje el error
     }
   }
 }
