@@ -193,7 +193,7 @@ const ListCreditCard = () => {
                         <td>{card.cardoption?.cardName || "-"}</td>
                         <td>
                           <span
-                            className={`badge fw-bold ${
+                            className={`badge fw-bold fs-6 ${
                               card.cardstatus?.id == 1
                                 ? "bg-success"           // Activa
                                 : card.cardstatus?.id == 2
