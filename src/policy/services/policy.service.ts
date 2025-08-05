@@ -138,6 +138,8 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
+
+
   // Generar pagos utilizando el servicio de pagos
   private async generatePaymentsUsingService(policy: PolicyEntity, startDate: Date, today: Date, paymentFrequency: number): Promise<void> {
     try {
@@ -359,19 +361,27 @@ export class PolicyService extends ValidateEntity {
       await this.redisService.del('payments');
       await this.redisService.del('paymentsByStatus:general');
 
+      // ✅ CRÍTICO: Cachés de comisiones que dependen de valores de períodos
+      await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS); // ⭐ ESTA ERA LA CLAVE CRÍTICA FALTANTE
+      await this.redisService.del('commissions');
+      await this.redisService.del('commissionsPayments');
+      await this.redisService.del('commissionsByStatus:general');
+      await this.redisService.del('allCommissions');
+
       // Cachés específicos del asesor (solo si advisorId existe y no es null)
-      if (advisorId && typeof advisorId === 'number' && advisorId > 0) {
-        await this.redisService.del(`advisor:${advisorId}`);
-        await this.redisService.del(`advisor:${advisorId}:policies`);
-        await this.redisService.del(`advisor:${advisorId}:commissions`);
-      }
+
+      await this.redisService.del(`advisor:${advisorId}`);
+      await this.redisService.del(`advisor:${advisorId}:policies`);
+      await this.redisService.del(`advisor:${advisorId}:commissions`);
+      await this.redisService.del(`advisor:${advisorId}:payments`);
+
 
       // Cachés específicos de la póliza (solo si policyId existe y no es null)
-      if (policyId && typeof policyId === 'number' && policyId > 0) {
-        await this.redisService.del(`policy:${policyId}`);
-        await this.redisService.del(`policy:${policyId}:periods`);
-        await this.redisService.del(`policy:${policyId}:renewals`);
-      }
+
+      await this.redisService.del(`policy:${policyId}`);
+      await this.redisService.del(`policy:${policyId}:periods`);
+      await this.redisService.del(`policy:${policyId}:renewals`);
+      await this.redisService.del(`policy:${policyId}:commissions`);
 
 
     } catch (error) {
@@ -422,7 +432,7 @@ export class PolicyService extends ValidateEntity {
         initialPeriodData
       );
 
-      await this.invalidateCaches(newPolicy.advisor_id);
+      await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -892,8 +902,11 @@ export class PolicyService extends ValidateEntity {
       );
 
       // Limpiar todas las claves de caché relevantes
+      // ✅ MEJORAR: Pasar también el policyId para invalidación completa
+      await this.invalidateCaches(policy.advisor_id, id);
 
-      await this.invalidateCaches(policy.advisor_id);
+      // ✅ PEQUEÑA PAUSA PARA ASEGURAR PROPAGACIÓN DE INVALIDACIÓN
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Actualizar caché con los datos más recientes
       await this.redisService.set(
@@ -1145,11 +1158,17 @@ export class PolicyService extends ValidateEntity {
       }
 
       const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
-      await this.invalidateCaches(advisorId);
 
+      // ✅ INVALIDAR TODOS LOS CACHÉS RELACIONADOS (método mejorado incluye todo)
+      await this.invalidateCaches(advisorId, policy_id);
+
+      // ✅ PEQUEÑA PAUSA PARA ASEGURAR PROPAGACIÓN
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log(`✅ Período actualizado y cachés invalidados - Póliza: ${policy_id}, Año: ${year}, Advisor: ${advisorId}`);
       return savedPeriod;
     } catch (error) {
-      console.error('Error al invalidar caché:', error.message);
+      console.error('Error al actualizar período o invalidar caché:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }
