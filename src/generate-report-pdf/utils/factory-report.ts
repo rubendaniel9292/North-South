@@ -1,22 +1,69 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyReportDTO } from '../dto/policyreport.dto';
 import { PaymentReportDTO } from '../dto/paymentreport.dto';
 
 @Injectable()
 export class ReportFactory {
+  private readonly logger = new Logger(ReportFactory.name);
+
   generateHtml(type: string, data: any): string {
-    switch (type) {
-      case 'policy':
-        return this.generatePolicyReport(data as PolicyReportDTO);
-      case 'payment':
-        return this.generatePaymentReport(data as PaymentReportDTO[]);
-      default:
-        throw new Error('Tipo de reporte no soportado');
+    this.logger.debug(`Generando HTML para reporte tipo: ${type}`);
+    
+    if (!type || typeof type !== 'string') {
+      this.logger.error('Tipo de reporte inválido o no especificado');
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'El tipo de reporte debe ser una cadena válida',
+      });
+    }
+
+    if (!data) {
+      this.logger.error(`Datos no proporcionados para reporte tipo: ${type}`);
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'Los datos del reporte son requeridos',
+      });
+    }
+
+    try {
+      switch (type.toLowerCase()) {
+        case 'policy':
+          return this.generatePolicyReport(data as PolicyReportDTO);
+        case 'payment':
+          return this.generatePaymentReport(data as PaymentReportDTO[]);
+        default:
+          this.logger.error(`Tipo de reporte no soportado: ${type}`);
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: `Tipo de reporte '${type}' no soportado. Tipos válidos: policy, payment`,
+          });
+      }
+    } catch (error) {
+      if (error instanceof ErrorManager) {
+        throw error;
+      }
+      
+      this.logger.error(`Error generando HTML para reporte tipo ${type}: ${error.message}`, error.stack);
+      throw new ErrorManager({
+        type: 'INTERNAL_SERVER_ERROR',
+        message: `Error interno generando el reporte: ${error.message}`,
+      });
     }
   }
 
   private generatePolicyReport(policy: PolicyReportDTO): string {
-    return `
+    this.logger.debug('Generando reporte de póliza');
+    
+    if (!policy) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'Los datos de la póliza son requeridos',
+      });
+    }
+
+    try {
+      return `
   <!DOCTYPE html>
   <html>
     <head>
@@ -225,10 +272,31 @@ export class ReportFactory {
     </body>
   </html>
     `;
+    } catch (error) {
+      this.logger.error('Error generando reporte de póliza:', error.message);
+      throw new ErrorManager({
+        type: 'INTERNAL_SERVER_ERROR',
+        message: `Error procesando datos de la póliza: ${error.message}`,
+      });
+    }
   }
 
   private generatePaymentReport(payments: PaymentReportDTO[]): string {
-    return `
+    this.logger.debug(`Generando reporte de pagos - ${payments?.length || 0} registros`);
+    
+    if (!payments || !Array.isArray(payments)) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'Los datos de pagos deben ser un array válido',
+      });
+    }
+
+    if (payments.length === 0) {
+      this.logger.warn('Generando reporte de pagos con array vacío');
+    }
+
+    try {
+      return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -351,5 +419,12 @@ export class ReportFactory {
         </body>
       </html>
     `;
+    } catch (error) {
+      this.logger.error('Error generando reporte de pagos:', error.message);
+      throw new ErrorManager({
+        type: 'INTERNAL_SERVER_ERROR',
+        message: `Error procesando datos de pagos: ${error.message}`,
+      });
+    }
   }
 }
