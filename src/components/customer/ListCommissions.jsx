@@ -588,30 +588,40 @@ const ListCommissions = () => {
 
                                 <td className="fw-bold text-primary">
                                   $
-                                  {Number(
-                                    policyFiltered.commissionTotal
-                                  ).toFixed(2)}
+                                  {
+                                    isNaN(policyFiltered.commissionTotal) || !isFinite(policyFiltered.commissionTotal)
+                                      ? "0.00"
+                                      : Number(policyFiltered.commissionTotal).toFixed(2)
+                                  }
                                 </td>
                                 <td className="fw-bold text-info">
                                   <div>
                                     $
-                                    {Number(
-                                      policyFiltered.individualCommission
-                                    ).toFixed(2)}
+                                    {
+                                      isNaN(policyFiltered.individualCommission) || !isFinite(policyFiltered.individualCommission)
+                                        ? "0.00"
+                                        : Number(policyFiltered.individualCommission).toFixed(2)
+                                    }
                                   </div>
                                   <small className="text-muted">
                                     {policyFiltered.frequencyText}
                                   </small>
                                 </td>
                                 <td className="fw-bold text-warning">
-                                  ${Number(policyFiltered.released).toFixed(2)}
+                                  ${
+                                    isNaN(policyFiltered.released) || !isFinite(policyFiltered.released) 
+                                      ? "0.00" 
+                                      : Number(policyFiltered.released).toFixed(2)
+                                  }
                                 </td>
                                 <td className="fw-bold text-danger">
                                   <div>
                                     $
-                                    {Number(policyFiltered.refundsAmount).toFixed(
-                                      2
-                                    )}
+                                    {
+                                      isNaN(policyFiltered.refundsAmount) || !isFinite(policyFiltered.refundsAmount)
+                                        ? "0.00"
+                                        : Number(policyFiltered.refundsAmount).toFixed(2)
+                                    }
                                   </div>
 
                              

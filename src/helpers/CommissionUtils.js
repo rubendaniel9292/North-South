@@ -473,10 +473,17 @@ export const getPolicyFields = (policy) => {
       const totalCommissionToAdvisor = parseFloat(policy.paymentsToAdvisor);
       const numberOfPayments = parseInt(policy.numberOfPaymentsAdvisor);
 
+      // Validar valores
+      if (isNaN(totalCommissionToAdvisor) || isNaN(numberOfPayments) || numberOfPayments === 0) {
+        return 0;
+      }
+
       if (policy.isCommissionAnnualized === true) {
         return totalCommissionToAdvisor;
       }
-      return totalCommissionToAdvisor / numberOfPayments;
+      
+      const result = totalCommissionToAdvisor / numberOfPayments;
+      return isNaN(result) || !isFinite(result) ? 0 : result;
     }
 
     // ✅ ORDENAR PERIODOS POR AÑO Y TOMAR EL MÁS RECIENTE
@@ -485,15 +492,27 @@ export const getPolicyFields = (policy) => {
     );
     const lastPeriod = sortedPeriods[0]; // El de mayor año
 
+    if (!lastPeriod) return 0;
+
     // Calcular comisión total del último periodo
     const policyValue = Number(lastPeriod.policyValue || 0);
     const policyFee = Number(lastPeriod.policyFee || 0);
     const advisorPercentage = Number(lastPeriod.advisorPercentage || 0);
     const numberOfPayments = Number(lastPeriod.numberOfPaymentsAdvisor || 12);
 
+    // Validar valores
+    if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage) || isNaN(numberOfPayments) || numberOfPayments === 0) {
+      return 0;
+    }
+
     // Comisión total anual del último periodo
     const totalCommissionLastPeriod =
       ((policyValue - policyFee) * advisorPercentage) / 100;
+
+    // Validar resultado intermedio
+    if (isNaN(totalCommissionLastPeriod) || !isFinite(totalCommissionLastPeriod)) {
+      return 0;
+    }
 
     // Si es anualizada, se paga todo de una vez al año
     if (policy.isCommissionAnnualized === true) {
@@ -501,7 +520,8 @@ export const getPolicyFields = (policy) => {
     }
 
     // Si es normal, se divide entre el número de pagos del último periodo
-    return totalCommissionLastPeriod / numberOfPayments;
+    const result = totalCommissionLastPeriod / numberOfPayments;
+    return isNaN(result) || !isFinite(result) ? 0 : result;
   };
 
   // NUEVO: Obtener texto de frecuencia para mostrar
@@ -533,23 +553,34 @@ export const getPolicyFields = (policy) => {
   const commissionTotal = calculateTotalAdvisorCommissionsGenerated(policy);
 
   const released = calculateReleasedCommissions(policy); // ✅ Usar método correcto
-  const releasedNet = released - refundsAmount;
+  
+  // Validar que released es un número válido
+  const validReleased = isNaN(released) || !isFinite(released) ? 0 : released;
+  const validRefundsAmount = isNaN(refundsAmount) || !isFinite(refundsAmount) ? 0 : refundsAmount;
+  
+  const releasedNet = validReleased - validRefundsAmount;
   const paid = Array.isArray(policy.commissions)
     ? policy.commissions.reduce(
-        (sum, p) => sum + (Number(p.advanceAmount) || 0),
+        (sum, p) => {
+          const amount = Number(p.advanceAmount) || 0;
+          return sum + (isNaN(amount) ? 0 : amount);
+        },
         0
       )
     : 0;
-  const appliedHistoricalAdvance = policy.appliedHistoricalAdvance || 0;
-  const afterBalance = releasedNet - paid - appliedHistoricalAdvance;
+    
+  const appliedHistoricalAdvance = Number(policy.appliedHistoricalAdvance) || 0;
+  const validAppliedHistoricalAdvance = isNaN(appliedHistoricalAdvance) ? 0 : appliedHistoricalAdvance;
+  
+  const afterBalance = releasedNet - paid - validAppliedHistoricalAdvance;
   const commissionInFavor = Math.max(afterBalance, 0);
 
   return {
-    commissionTotal: Number(commissionTotal.toFixed(2)), // Suma solo pagos generados, usando valores específicos de cada periodo
-    released: Number(released.toFixed(2)),
+    commissionTotal: Number((commissionTotal || 0).toFixed(2)), // Suma solo pagos generados, usando valores específicos de cada periodo
+    released: Number(validReleased.toFixed(2)),
     paid: Number(paid.toFixed(2)),
-    appliedHistoricalAdvance: Number(appliedHistoricalAdvance.toFixed(2)),
-    refundsAmount: Number(refundsAmount.toFixed(2)),
+    appliedHistoricalAdvance: Number(validAppliedHistoricalAdvance.toFixed(2)),
+    refundsAmount: Number(validRefundsAmount.toFixed(2)),
     refundsDetails: refundsData.details, // ✅ CORREGIR: Usar refundsData.details
     afterBalance: Number(afterBalance.toFixed(2)),
     commissionInFavor: Number(commissionInFavor.toFixed(2)),
@@ -562,13 +593,23 @@ export const getTotals = (policies, advanceValue = 0, operationType = "") => {
   const totals = policies.reduce(
     (acc, policy) => {
       const f = getPolicyFields(policy);
-      acc.commissionTotal += f.commissionTotal;
-      acc.released += f.released;
-      acc.paid += f.paid;
-      acc.appliedHistoricalAdvance += f.appliedHistoricalAdvance;
-      acc.refundsAmount += f.refundsAmount;
-      acc.afterBalance += f.afterBalance;
-      acc.commissionInFavor += f.commissionInFavor;
+      
+      // Validar cada valor antes de sumarlo
+      const validCommissionTotal = isNaN(f.commissionTotal) || !isFinite(f.commissionTotal) ? 0 : f.commissionTotal;
+      const validReleased = isNaN(f.released) || !isFinite(f.released) ? 0 : f.released;
+      const validPaid = isNaN(f.paid) || !isFinite(f.paid) ? 0 : f.paid;
+      const validAppliedHistoricalAdvance = isNaN(f.appliedHistoricalAdvance) || !isFinite(f.appliedHistoricalAdvance) ? 0 : f.appliedHistoricalAdvance;
+      const validRefundsAmount = isNaN(f.refundsAmount) || !isFinite(f.refundsAmount) ? 0 : f.refundsAmount;
+      const validAfterBalance = isNaN(f.afterBalance) || !isFinite(f.afterBalance) ? 0 : f.afterBalance;
+      const validCommissionInFavor = isNaN(f.commissionInFavor) || !isFinite(f.commissionInFavor) ? 0 : f.commissionInFavor;
+      
+      acc.commissionTotal += validCommissionTotal;
+      acc.released += validReleased;
+      acc.paid += validPaid;
+      acc.appliedHistoricalAdvance += validAppliedHistoricalAdvance;
+      acc.refundsAmount += validRefundsAmount;
+      acc.afterBalance += validAfterBalance;
+      acc.commissionInFavor += validCommissionInFavor;
       return acc;
     },
     {
@@ -581,21 +622,23 @@ export const getTotals = (policies, advanceValue = 0, operationType = "") => {
       commissionInFavor: 0,
     }
   );
+  
   if (operationType === "COMISION" && policies.length > 0 && advanceValue) {
-    totals.afterBalance -= Number(advanceValue);
+    const validAdvanceValue = Number(advanceValue) || 0;
+    if (!isNaN(validAdvanceValue) && isFinite(validAdvanceValue)) {
+      totals.afterBalance -= validAdvanceValue;
+    }
   }
 
-  // Redondear todos los totales a 2 decimales
+  // Redondear todos los totales a 2 decimales y validar
   return {
-    commissionTotal: Number(totals.commissionTotal.toFixed(2)),
-    released: Number(totals.released.toFixed(2)),
-    paid: Number(totals.paid.toFixed(2)),
-    appliedHistoricalAdvance: Number(
-      totals.appliedHistoricalAdvance.toFixed(2)
-    ),
-    refundsAmount: Number(totals.refundsAmount.toFixed(2)),
-    afterBalance: Number(totals.afterBalance.toFixed(2)),
-    commissionInFavor: Number(totals.commissionInFavor.toFixed(2)),
+    commissionTotal: Number((totals.commissionTotal || 0).toFixed(2)),
+    released: Number((totals.released || 0).toFixed(2)),
+    paid: Number((totals.paid || 0).toFixed(2)),
+    appliedHistoricalAdvance: Number((totals.appliedHistoricalAdvance || 0).toFixed(2)),
+    refundsAmount: Number((totals.refundsAmount || 0).toFixed(2)),
+    afterBalance: Number((totals.afterBalance || 0).toFixed(2)),
+    commissionInFavor: Number((totals.commissionInFavor || 0).toFixed(2)),
   };
 };
 
@@ -630,9 +673,18 @@ export const calculateReleasedCommissions = (policy) => {
         const policyFee = Number(period.policyFee || 0);
         const advisorPercentage = Number(period.advisorPercentage || 0);
 
+        // Validar que los valores son números válidos
+        if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
+          continue; // Saltar período con valores inválidos
+        }
+
         const periodCommission =
           ((policyValue - policyFee) * advisorPercentage) / 100;
-        total += periodCommission;
+        
+        // Validar que el resultado es un número válido
+        if (!isNaN(periodCommission) && isFinite(periodCommission)) {
+          total += periodCommission;
+        }
       }
       return total;
     }
@@ -640,13 +692,31 @@ export const calculateReleasedCommissions = (policy) => {
     // Fallback al método anterior si no hay períodos
     const periods =
       1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
-    return Number(policy.paymentsToAdvisor || 0) * periods;
+    const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
+    
+    // Validar valores antes de calcular
+    if (isNaN(paymentsToAdvisor) || isNaN(periods)) {
+      return 0;
+    }
+    
+    return paymentsToAdvisor * periods;
   }
 
-  // ✅ PÓLIZA NORMAL (sin cambios)
+  // ✅ PÓLIZA NORMAL: Mejorar validación de valores
   const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
-  const paymentPerInstallment =
-    Number(policy.paymentsToAdvisor) / numberOfPayments;
+  const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
+  
+  // Validar que los valores son números válidos
+  if (isNaN(numberOfPayments) || isNaN(paymentsToAdvisor) || numberOfPayments === 0) {
+    return 0;
+  }
+
+  const paymentPerInstallment = paymentsToAdvisor / numberOfPayments;
+  
+  // Validar el resultado de la división
+  if (isNaN(paymentPerInstallment) || !isFinite(paymentPerInstallment)) {
+    return 0;
+  }
 
   const releasedInstallments = Array.isArray(policy.payments)
     ? policy.payments.filter(
@@ -668,5 +738,11 @@ export const calculateReleasedCommissions = (policy) => {
   const totalReleased =
     (releasedInstallments + releasedInstallmentsRenewals) *
     paymentPerInstallment;
+    
+  // Validar el resultado final
+  if (isNaN(totalReleased) || !isFinite(totalReleased)) {
+    return 0;
+  }
+    
   return totalReleased;
 };
