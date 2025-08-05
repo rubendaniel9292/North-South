@@ -32,24 +32,33 @@ export class TurnstileService {
     if (ip) formData.append('remoteip', ip);
     //console.log('Turnstile token recibido:', token);
     try {
-
       const response = await axios.post(url, formData, {
         headers: formData.getHeaders(),
       });
 
       const outcome = response.data;
       //console.log('Respuesta de Turnstile:', outcome); 
+      
+      // Si Cloudflare responde correctamente pero el token es inválido
       if (!outcome.success) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: `Turnstile error: ${outcome['error-codes']?.join(', ') || 'Unknown error'}`,
         });
       }
+      
       return outcome.success;
     } catch (error) {
+      // Solo manejar errores de red/axios, no errores de negocio (ErrorManager)
+      if (error instanceof ErrorManager) {
+        throw error; // Re-lanzar errores de validación de Turnstile
+      }
+      
+      // Manejar errores de red/conexión
       if (axios.isAxiosError(error) && error.response) {
         console.error('Respuesta de Cloudflare Turnstile:', error.response.data);
       }
+      
       throw new ErrorManager({
         type: 'BAD_REQUEST',
         message: 'No se pudo verificar el token TurstLine',
