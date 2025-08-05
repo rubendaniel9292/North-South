@@ -10,50 +10,39 @@ import { CompanyDTO } from '../dto/company.dto';
 export class CompanyController {
   private readonly logger = new Logger(CompanyController.name);
 
-  constructor(private readonly companyService: CompanyService) {}
+  constructor(private readonly companyService: CompanyService) { }
 
   @Roles('ADMIN', 'BASIC')
   @Post('register-company')
   public async registerCompany(@Body() body: CompanyDTO) {
-    try {
-      this.logger.log(`Solicitud de registro de compañía: ${body.companyName}`);
-      
-      const newCompany = await this.companyService.createCompany(body);
 
-      this.logger.log(`Compañía registrada exitosamente: ${newCompany.id}`);
-      return {
-        status: 'success',
-        message: 'Compañía registrada exitosamente',
-        data: {
-          id: newCompany.id,
-          companyName: newCompany.companyName,
-          ci_ruc: newCompany.ci_ruc,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Error en registro de compañía: ${error.message}`, error.stack);
-      throw error; // Dejar que el filtro global maneje el error
-    }
+    this.logger.log(`Solicitud de registro de compañía: ${body.companyName}`);
+
+    const newCompany = await this.companyService.createCompany(body);
+
+    this.logger.log(`Compañía registrada exitosamente: ${newCompany.id}`);
+    return {
+      status: 'success',
+      message: 'Compañía registrada exitosamente',
+      newCompany
+    };
+
   }
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-all-company')
   public async getCompanies() {
-    try {
-      this.logger.log('Solicitud de consulta de todas las compañías');
-      
-      const allCompanies = await this.companyService.getAllCompanies();
 
-      this.logger.log(`Consulta exitosa: ${allCompanies.length} compañías encontradas`);
-      return {
-        status: 'success',
-        message: `Se encontraron ${allCompanies.length} compañías`,
-        data: allCompanies,
-        count: allCompanies.length,
-      };
-    } catch (error) {
-      this.logger.error(`Error en consulta de compañías: ${error.message}`, error.stack);
-      throw error; // Dejar que el filtro global maneje el error
-    }
+    this.logger.log('Solicitud de consulta de todas las compañías');
+
+    const allCompanies = await this.companyService.getAllCompanies();
+    this.logger.log(`Consulta exitosa: ${allCompanies.length} compañías encontradas`);
+    return {
+      status: 'success',
+      message: `Se encontraron ${allCompanies.length} compañías`,
+      allCompanies,
+    
+    };
+
   }
 }

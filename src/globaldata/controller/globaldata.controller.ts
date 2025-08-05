@@ -1,8 +1,10 @@
 import { GlobaldataService } from './../services/globaldata.service';
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Logger, HttpException, HttpStatus } from '@nestjs/common';
 
 @Controller('globaldata')
 export class GlobaldataController {
+  private readonly logger = new Logger(GlobaldataController.name);
+
   constructor(private readonly globaldataService: GlobaldataService) {}
   //1: metodo para obetener el listado de provincias
   @Get('get-provinces')
