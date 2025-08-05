@@ -20,6 +20,7 @@ const Login = () => {
   //estados para el cambio de conrtaseña
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [changePasswordUserId, setChangePasswordUserId] = useState(null);
+  const [isReloading, setIsReloading] = useState(false);
   const siteKey = import.meta.env.VITE_REACT_APP_TURNSTILE_SITE_KEY;
   //console.log('calve secreta: ', siteKey);
 
@@ -30,73 +31,154 @@ const Login = () => {
       alerts("Error", "Por favor completa el captcha", "error");
       return;
     }
-    console.log("Rendering Turnstile component...");
+
+    console.log("=== INICIO LOGIN FRONTEND ===");
+    console.log("Datos a enviar:", {
+      username: form.username || form.email,
+      hasPassword: !!form.password,
+      hasTurnstileToken: !!turnstileToken,
+    });
 
     try {
       const request = await http.post("auth/login", {
         ...form,
         turnstileToken, // Enviar el token del captcha al backend
       });
-      if (request.data.mustChangePassword) {
-        // Mostrar modal de cambio de contraseña
+
+      console.log("✅ Respuesta del backend:", request.data);
+
+      // 1. MANEJAR CAMBIO DE CONTRASEÑA OBLIGATORIO
+      if (
+        request.data.status === "must_change_password" ||
+        request.data.mustChangePassword
+      ) {
+        console.log("⚠️ Usuario debe cambiar contraseña");
         // ✅ LIMPIAR tokens antes de mostrar cambio de contraseña
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setChangePasswordUserId(request.data.userId);
         setShowChangePassword(true);
+        alerts(
+          "Cambio de contraseña requerido",
+          request.data.message ||
+            "Debes cambiar tu contraseña antes de continuar",
+          "warning"
+        );
         return;
       }
 
-      if (request.data.accessToken) {
+      // 2. MANEJAR LOGIN EXITOSO
+      if (request.data.status === "success" && request.data.accessToken) {
+        console.log("✅ Login exitoso, guardando datos");
         localStorage.setItem("token", request.data.accessToken);
         localStorage.setItem("user", JSON.stringify(request.data.user));
+
         alerts(
           "Login exitoso",
           `Bienvenido/a ${request.data.user.firstName} ${request.data.user.surname}`,
           "success"
         );
+
         setTimeout(() => {
           setAuth(request.data.user);
           Swal.close();
           navigate("/management");
         }, 500);
       } else {
-        alerts("Error", "Usuario o contraseña incorrecta", "error");
+        // 3. RESPUESTA INESPERADA DEL BACKEND
+        console.error("❌ Respuesta inesperada:", request.data);
+        alerts("Error", "Respuesta inesperada del servidor", "error");
       }
     } catch (error) {
       console.error(
-        "Error completo:",
+        "❌ Error durante login:",
         error.response || error.request || error
       );
-      // Manejar diferentes tipos de errores
-      if (error.response?.status === 401) {
+
+      // 4. MANEJO DETALLADO DE ERRORES
+      if (error.response?.status === 400) {
+        // BadRequestException - Problemas con Turnstile o datos
+        const message =
+          error.response.data.message || "Error en la validación de datos";
+        alerts("Error de validación", message, "error");
+      } else if (error.response?.status === 401) {
+        // UnauthorizedException - Credenciales incorrectas
+        const message =
+          error.response.data.message || "Usuario o contraseña incorrectos";
+        alerts("Credenciales incorrectas", message, "error");
+      } else if (error.response?.data?.message) {
+        // Otros errores del backend
+        alerts("Error", error.response.data.message, "error");
+      } else if (error.code === "NETWORK_ERROR" || !error.response) {
+        // Errores de red/conexión
         alerts(
-          "Error",
-          "Token expirado o inválido. Intenta nuevamente.",
+          "Error de conexión",
+          "No se pudo conectar con el servidor. Verifica tu conexión.",
           "error"
         );
-      } else if (error.response?.data?.message) {
-        alerts("Error", error.response.data.message, "error");
       } else {
-        alerts("Error", `Error de conexión: ${error.message}`, "error");
+        // Error genérico
+        alerts("Error", `Error inesperado: ${error.message}`, "error");
       }
     }
   };
   const handlePasswordChanged = () => {
     setShowChangePassword(false);
     setChangePasswordUserId(null);
-    // ✅ Asegurar que no queden tokens residuales
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
 
-    // ✅ Limpiar el formulario y captcha para que ingrese credenciales frescas
-    setTurnstileToken("");
-    // Opcional: muestra mensaje y/o vuelve a mostrar login para que el usuario ingrese con su nueva contraseña
-    window.location.reload(); //
+    // ✅ Alert de éxito
+    alerts(
+      "¡Contraseña actualizada!",
+      "Tu contraseña ha sido cambiada exitosamente.",
+      "success"
+    );
+
+    // ✅ Activar estado de recarga
+    setTimeout(() => {
+      setIsReloading(true);
+
+      // ✅ Mostrar mensaje de transición
+      alerts(
+        "Preparando login...",
+        "Redirigiendo para que inicies sesión con tu nueva contraseña",
+        "info",
+        {
+          timer: 2000,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+          showConfirmButton: false,
+        }
+      );
+    }, 2000);
+
+    // ✅ Limpiar y recargar
+    setTimeout(() => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setTurnstileToken("");
+      window.location.reload();
+    }, 3000);
   };
 
   return (
     <>
+      {isReloading && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+          style={{
+            background: "rgba(0,0,0,0.8)",
+            zIndex: 9999,
+          }}
+        >
+          <div className="text-center text-white">
+            <div className="spinner-border text-success mb-3" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <h5>Preparando login con nueva contraseña...</h5>
+          </div>
+        </div>
+      )}
+
       <div className="limiter">
         <div className="container-login100">
           <div className="wrap-login100">
