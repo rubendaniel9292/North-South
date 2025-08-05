@@ -79,7 +79,7 @@ export class BankAccountService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('allBanks', JSON.stringify(allBankAccounts), 32400); // TTL de 9 horas
+      await this.redisService.set('allBankAccounts', JSON.stringify(allBankAccounts), 32400); // TTL de 9 horas
       return allBankAccounts;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
