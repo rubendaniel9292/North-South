@@ -30,7 +30,9 @@ export class CommissionRefundsEntity extends IdEntity implements ICommissionRefu
 
     @Column()
     policy_id: number;
-    @ManyToOne(() => PolicyEntity, (policy) => policy.commissionRefunds)
+    @ManyToOne(() => PolicyEntity, (policy) => policy.commissionRefunds, {
+        onDelete: 'CASCADE'
+    })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
 

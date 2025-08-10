@@ -193,6 +193,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   // Una poliza tiene varios pagos
   @OneToMany(() => PaymentEntity, (payment) => payment.policies, {
     onDelete: 'CASCADE', //Si elimina una póliza, todos los pagos asociados también se eliminan automáticamente.
+    cascade: true,
   })
   payments: PaymentEntity[];
 
@@ -200,6 +201,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @OneToMany(() => RenewalEntity, (renewal) => renewal.policy, {
     nullable: true,
     onDelete: 'CASCADE', //Si elimina una póliza, todas las renovaciones asociadas también se eliminan automáticamente.
+     cascade: true,
   })
   renewals: RenewalEntity[];
 
@@ -207,6 +209,7 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @OneToMany(() => CommissionsPaymentsEntity, (commissions) => commissions.policy, {
     nullable: true,
     onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
+     cascade: true,
   })
   commissions: CommissionsPaymentsEntity[];
 
@@ -214,10 +217,13 @@ export class PolicyEntity extends IdEntity implements IPolicy {
   @OneToMany(() => CommissionRefundsEntity, (commissionRefunds) => commissionRefunds.policy, {
     nullable: true,
     onDelete: 'CASCADE', //Si elimina una póliza, todas las comisiones asociadas también se eliminan automáticamente.
+     cascade: true
   })
   commissionRefunds: CommissionRefundsEntity[];
 
   @OneToMany(() => PolicyPeriodDataEntity, (period) => period.policy, {
+    nullable: true,
+    onDelete: 'CASCADE',
     cascade: true, // Opcional: para guardar periodos junto con la póliza
   })
   periods: PolicyPeriodDataEntity[];

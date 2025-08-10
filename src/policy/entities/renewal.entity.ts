@@ -23,7 +23,7 @@ export class RenewalEntity extends IdEntity implements IRenewall {
 
   //varias renovaciones pertenecen a una poliza
   @ManyToOne(() => PolicyEntity, (policy) => policy.renewals, {
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'policy_id' }) // Define la columna de clave foránea
   policy: PolicyEntity;
