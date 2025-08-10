@@ -16,7 +16,6 @@ import {} from "@fortawesome/free-solid-svg-icons";
 import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 const ListPolicyModal = ({ policy, onClose }) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState({});
   const [localPolicy, setLocalPolicy] = useState(policy);
@@ -103,9 +102,11 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 id: 2,
                 statusNamePayment: "Al día",
               },
-              credit: payment.value,
-              balance: "0.00",
-              pending_value: "0.00",
+              credit: payment.value, // El abono será igual al valor del pago
+              balance: "0.00", // El saldo queda en 0 porque ya está pagado
+              // ✅ CORREGIR: NO cambiar pending_value, mantener el valor original
+              // pending_value: "0.00", // ❌ ELIMINAR esta línea
+              total: String(payment.value), // ✅ ASEGURAR: Mantener como string para consistencia
               updatedAt: new Date().toISOString(),
             };
           }
@@ -114,16 +115,16 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
         setTimeout(() => {
           // Actualizar el estado local de la póliza con los pagos actualizados
-          setLocalPolicy({
-            ...localPolicy,
+          setLocalPolicy((prevPolicy) => ({
+            ...prevPolicy,
             payments: updatedPayments,
-          });
+          }));
           alerts(
             "Actualización exitosa",
             "Pago actualizado correctamente",
             "success"
           );
-        }, 300);
+        }, 100); // ✅ REDUCIR: Tiempo mínimo para evitar problemas de renderizado
 
         if (
           payment.pending_value <= 0 &&
