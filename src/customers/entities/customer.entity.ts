@@ -32,6 +32,30 @@ export class CustomersEntity extends IdCustomEntity implements ICustomer {
   @Column()
   address: string;
 
+  @Column({ default: false })
+  isAnonymized: boolean;
+
+  @Column({ nullable: true })
+  anonymizationDate: Date;
+
+  @Column({ nullable: true })
+  anonymizationReason: string;
+
+  @Column({ nullable: true })
+  legalBasisForRetention: string;
+
+  @Column({ nullable: true })
+  requestNumber: string; // Número de solicitud física/escrita
+
+  @Column({ nullable: true })
+  eliminationRequestDate: Date; // Fecha de solicitud de eliminación
+
+  @Column({ nullable: true })
+  eliminationEvaluationResult: string; // JSON con resultado de evaluación LOPD
+
+  @Column({ nullable: true })
+  earliestEliminationDate: Date; // Fecha más temprana permitida para eliminación manual
+
   @CreateDateColumn({
     type: 'timestamp',
     name: 'created_at',
