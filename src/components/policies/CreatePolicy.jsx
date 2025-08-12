@@ -493,7 +493,7 @@ const CreatePolicy = () => {
         );
       } else if (advisorVal >= agencyVal) {
         setErrorAdvisorPercentage(
-          "El porcentaje del asesor debe ser menor que el de la agencia"
+          "El porcentaje del asesor debe ser menor o igual que el de la agencia"
         );
       } else if (advisorVal === "") {
         setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
@@ -1190,7 +1190,7 @@ const CreatePolicy = () => {
               id="coverageAmount"
               name="coverageAmount"
               onChange={changed}
-              value={form.coverageAmount || ""} // ✅ SOLO AGREGAR ESTO
+              value={form.coverageAmount || ""} 
               step="0.01"
             />
             <div className="invalid-feedback">
@@ -1242,7 +1242,7 @@ const CreatePolicy = () => {
               id="agencyPercentage"
               name="agencyPercentage"
               onChange={changed}
-              value={form.agencyPercentage || ""} // ✅ SOLO AGREGAR ESTO
+              value={form.agencyPercentage || ""} 
               step="0.01"
             />
             <div className="invalid-feedback">
@@ -1258,14 +1258,14 @@ const CreatePolicy = () => {
               type="number"
               className={`form-control ${
                 !form.advisorPercentage ||
-                Number(form.advisorPercentage) >= Number(form.agencyPercentage)
+                Number(form.advisorPercentage) > Number(form.agencyPercentage)
                   ? "is-invalid"
                   : "is-valid"
               }`}
               id="advisorPercentage"
               name="advisorPercentage"
               onChange={handleAdvisorPercentageChange}
-              value={form.advisorPercentage || ""} // ✅ SOLO AGREGAR ESTO
+              value={form.advisorPercentage || ""} 
               step="0.01"
             />
 
