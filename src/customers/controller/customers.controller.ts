@@ -19,7 +19,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/decorators';
 
 @Controller('customers')
-@UseGuards(AuthGuard, RolesGuard)
+//@UseGuards(AuthGuard, RolesGuard)
 export class CustomersController {
   constructor(private readonly customerService: CustomersService) { }
 
@@ -71,40 +71,42 @@ export class CustomersController {
     }
   }
 
-  // 🔒 LOPD - Verificar si un cliente puede ser anonimizado
-  @Roles('ADMIN') // Solo administradores
+  // 🔒 LOPD - Verificar si un cliente puede ser anonimizado, PROBADO OK
+  //@Roles('ADMIN', 'BASIC')
   @Get('can-anonymize/:id')
   public async canCustomerBeAnonymized(@Param('id') id: number) {
     const analysisResult = await this.customerService.canCustomerBeAnonymized(id);
-    return {
-      status: 'success',
-      data: analysisResult,
-    };
+    if (analysisResult) {
+      return {
+        status: 'success',
+        analysisResult,
+      };
+    }
   }
 
   // 🔒 LOPD - Anonimizar un cliente (cumplimiento protección de datos)
-  @Roles('ADMIN') // Solo administradores pueden anonimizar
+  //@Roles('ADMIN', 'BASIC')
   @Patch('anonymize/:id')
   public async anonymizeCustomer(
     @Param('id') id: number,
     @Body() anonymizeData: AnonymizeCustomerDTO
   ) {
-    const result = await this.customerService.anonymizeCustomer(
+    const resultAnonimyze = await this.customerService.anonymizeCustomer(
       id,
       anonymizeData.reason,
       anonymizeData.legalBasis,
       anonymizeData.requestNumber
     );
-    
-    return {
-      status: 'success',
-      message: 'Cliente anonimizado según normativa LOPD',
-      data: result,
-    };
+    if (resultAnonimyze) {
+      return {
+        status: 'success',
+        message: 'Cliente anonimizado según normativa LOPD',
+        resultAnonimyze,
+      };
+    }
   }
-
   // � LOPD - Evaluar solicitud de eliminación según Art. 15 y 18
-  @Roles('ADMIN')
+  //@Roles('ADMIN', 'BASIC')
   @Post('evaluate-elimination-request/:id')
   public async evaluateEliminationRequest(
     @Param('id') id: number,
@@ -114,37 +116,41 @@ export class CustomersController {
       id,
       body.requestNumber
     );
-    
-    return {
-      status: 'success',
-      message: 'Evaluación LOPD completada',
-      data: evaluation,
-    };
+    if (evaluation) {
+      return {
+        status: 'success',
+        message: 'Evaluación LOPD completada',
+        evaluation,
+      };
+    }
+
   }
 
   // 📅 LOPD - Consultar clientes elegibles para eliminación manual
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BASIC')
   @Get('elimination-eligible')
   public async getEliminationEligibleCustomers() {
     const eligibleCustomers = await this.customerService.getEliminationEligibleCustomers();
-    
-    return {
-      status: 'success',
-      message: 'Lista de clientes elegibles para eliminación manual',
-      data: eligibleCustomers,
-    };
+    if (eligibleCustomers) {
+      return {
+        status: 'success',
+        message: 'Lista de clientes elegibles para eliminación manual',
+        eligibleCustomers,
+      };
+    }
   }
 
   // 📊 LOPD - Reporte de anonimizaciones
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BASIC')
   @Get('anonymization-report')
   public async getAnonymizationReport() {
-    const report = await this.customerService.getAnonymizationReport();
-    
-    return {
-      status: 'success',
-      message: 'Reporte de anonimizaciones generado',
-      data: report,
-    };
+    const reportAnonimyze = await this.customerService.getAnonymizationReport();
+    if (reportAnonimyze) {
+      return {
+        status: 'success',
+        message: 'Reporte de anonimizaciones generado',
+        reportAnonimyze,
+      };
+    }
   }
 }

@@ -59,7 +59,7 @@ export class CompanyService extends ValidateEntity {
 
       // Consultar base de datos
       const allCompany: CompanyEntity[] = await this.companyRepository.find({
-        order: { id: 'DESC' }, // Ordenar por ID descendente (más recientes primero)
+        //order: { id: 'DESC' }, // Ordenar por ID descendente (más recientes primero)
       });
 
       if (allCompany.length === 0) {

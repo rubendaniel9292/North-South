@@ -853,7 +853,7 @@ export class PolicyService extends ValidateEntity {
     updateData: Partial<PolicyEntity>,
   ): Promise<PolicyEntity> => {
     try {
-
+      console.log('Datos de actualización recibidos:', updateData);
       const policy: PolicyEntity = await this.policyRepository.findOne({
         where: { id },
       });
@@ -867,10 +867,13 @@ export class PolicyService extends ValidateEntity {
       updateData.startDate = startDate;
       updateData.endDate = endDate;
 
-      // Determinar el estado inicial de la póliza
-      const determinedStatus =
-        await this.policyStatusService.determineNewPolicyStatus(endDate);
-      updateData.policy_status_id = determinedStatus.id;
+      // Respetar el estado "Cancelado" enviado desde el frontend
+      if (updateData.policy_status_id !== 2) {
+        // Determinar el estado basado en las fechas solo si no es "Cancelado"
+        const determinedStatus =
+          await this.policyStatusService.determineNewPolicyStatus(endDate);
+        updateData.policy_status_id = determinedStatus.id;
+      }
       if (!policy) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',

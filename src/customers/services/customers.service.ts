@@ -399,7 +399,7 @@ export class CustomersService extends ValidateEntity {
 
       // Analizar pólizas activas
       const activePolicies = customer.policies?.filter(
-        policy => policy.policy_status_id !== 5 // Estado cancelada
+        policy => policy.policy_status_id != 2 && policy.policy_status_id != 3 // Estado cancelada y culimnadas
       ) || [];
 
       if (activePolicies.length > 0) {
@@ -525,7 +525,7 @@ export class CustomersService extends ValidateEntity {
 
       // 📋 VERIFICAR ART. 18.2 - OBLIGACIÓN CONTRACTUAL (pólizas activas)
       const activePolicies = customer.policies?.filter(
-        policy => policy.policy_status_id !== 5 // Asumiendo que 5 = "Cancelada"
+        policy => policy.policy_status_id != 2 && policy.policy_status_id != 3 // Estado cancelada y culimnadas
       ) || [];
 
       if (activePolicies.length > 0) {
