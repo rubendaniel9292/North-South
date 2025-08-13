@@ -15,7 +15,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
-  const { form, changed, setForm } = UserForm({
+  const { form, changed } = UserForm({
     numberPolicy: policy.numberPolicy,
     coverageAmount: policy.coverageAmount,
     //agencyPercentage: policy.agencyPercentage,
@@ -61,14 +61,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
   //const [selectedCustomer, setSelectedCustomer] = useState(option);
-
-  useEffect(() => {
-    if (policy) {
-      setForm((prev) => ({
-        ...prev,
-      }));
-    }
-  }, [policy]);
 
   //filtro de tarjeta por clienes
   const handleCard_Accunt = useCallback(
@@ -118,8 +110,6 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     },
     [handleCard_Accunt, changed]
   );
-
-  
 
   const addClassSafely = useCallback((id, className) => {
     const element = document.getElementById(id);

@@ -45,7 +45,7 @@ const Login = () => {
         turnstileToken, // Enviar el token del captcha al backend
       });
 
-      console.log("✅ Respuesta del backend:", request.data);
+      console.log("✅ Respuesta del backend:", request.data.status);
 
       // 1. MANEJAR CAMBIO DE CONTRASEÑA OBLIGATORIO
       if (

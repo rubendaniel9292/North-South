@@ -12,6 +12,7 @@ import {
   faUserTie,
   faBuilding,
   faUserCog,
+  faScaleBalanced,
 } from "@fortawesome/free-solid-svg-icons";
 import useAuth from "../../hooks/useAuth";
 
@@ -100,6 +101,15 @@ const Index = () => {
         },
       ],
     },
+    {
+      id: "gestionLopdpenu",
+      icon: faScaleBalanced,
+      label: "Gestion de LOPDD",
+      items: [
+        { label: "Registro de LOPD", link: "/management/create-lopd" },
+        { label: "Listado de LOPD", link: "/management/get-all-lopd" },
+      ],
+    },
   ];
 
   if (auth?.role === "ADMIN") {
@@ -139,7 +149,6 @@ const Index = () => {
           </div>
           <div className="row dasboard">
             <div className="col-2 lateral">
-          
               {menuConfig.map((item) =>
                 !item.items ? (
                   <NavLink
