@@ -152,8 +152,44 @@ const ListPolicyModal = ({ policy, onClose }) => {
   };
   // Badge Bootstrap helper
   const Badge = ({ text, color = "secondary" }) => (
-    <span className={`badge rounded-pill fw-bold fs-6 bg-${color} fw-semibold`}>{text}</span>
+    <span className={`badge rounded-pill fw-bold fs-6 bg-${color} fw-semibold`}>
+      {text}
+    </span>
   );
+  // Función para obtener la fecha del próximo pago pendiente
+  const getNextPaymentDate = (policy) => {
+    // Encuentra el último pago realizado
+    const lastPayment = policy.payments?.length
+      ? policy.payments.reduce((latest, p) => {
+          const date = new Date(p.createdAt);
+          return date > new Date(latest.createdAt) ? p : latest;
+        }, policy.payments[0])
+      : null;
+
+    if (!lastPayment) return "Sin pagos registrados";
+
+    const lastDate = new Date(lastPayment.createdAt);
+
+    // Suma el intervalo según la frecuencia
+    switch (policy.paymentFrequency?.frequencyName) {
+      case "Mensual":
+        lastDate.setMonth(lastDate.getMonth() + 1);
+        break;
+      case "Trimestral":
+        lastDate.setMonth(lastDate.getMonth() + 3);
+        break;
+      case "Semestral":
+        lastDate.setMonth(lastDate.getMonth() + 6);
+        break;
+      case "Anual":
+        lastDate.setFullYear(lastDate.getFullYear() + 1);
+        break;
+      default:
+        lastDate.setMonth(lastDate.getMonth() + 1); // Por defecto mensual
+    }
+
+    return lastDate.toLocaleDateString();
+  };
 
   // obtener último periodo registrado (por año mayor):
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
@@ -205,7 +241,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>
-                  <Badge className=""
+                  <Badge
+                    className=""
                     text={policy.renewalCommission === true ? "SI" : "NO"}
                     color={
                       policy.renewalCommission === true ? "dark" : "danger"
@@ -306,8 +343,12 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </tbody>
           </table>
 
-          <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
+          <div className="d-block  justify-content-center align-items-center conten-title rounded mb-2 mt-2">
             <h3 className="text-white">Historial de pagos</h3>
+
+            <span className="badge mt-1 fs-5">
+              Próxima fecha tentativa de cobro: {getNextPaymentDate(policy)}
+            </span>
           </div>
           <table className="table table-striped">
             <thead>

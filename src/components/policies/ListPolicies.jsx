@@ -223,7 +223,7 @@ const ListPolicies = () => {
     }, 500);
   };
 
-  // ✅ Agregar función para limpiar filtros
+  // ✅ función para limpiar filtros
   const clearFilters = () => {
     setStatusFilter("");
     setCompanyFilter("");
@@ -295,6 +295,9 @@ const ListPolicies = () => {
 
   dayjs.locale("es");
 
+  // Función para obtener la fecha del próximo pago pendiente
+
+
   return (
     <>
       <section>
@@ -362,7 +365,7 @@ const ListPolicies = () => {
             </div>
           </div>
 
-          {/* Aquí irá la sección de filtros */}
+          {/* la sección de filtros */}
           <div className="row mb-3">
             <div className="col-12">
               <div className="card">
@@ -496,6 +499,7 @@ const ListPolicies = () => {
               ) : (
                 currentPolicies.map((policy, index) => (
                   <tr key={policy.id}>
+                 
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>{policy.numberPolicy}</td>
                     <td>

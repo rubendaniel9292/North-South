@@ -106,8 +106,8 @@ const Index = () => {
       icon: faScaleBalanced,
       label: "Gestion de LOPDD",
       items: [
-        { label: "Registro de LOPD", link: "/management/create-lopd" },
-        { label: "Listado de LOPD", link: "/management/get-all-lopd" },
+        /*{ label: "Registro de LOPD", link: "/management/create-lopd" },*/
+        { label: "Listado de LOPD", link: "/management/management-lopdp" },
       ],
     },
   ];

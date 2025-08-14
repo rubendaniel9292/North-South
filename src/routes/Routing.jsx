@@ -22,6 +22,7 @@ import CreateBankAccount from "../components/customer/CreateBankAccount";
 import ListBankAccounts from "../components/customer/ListBankAccounts";
 import  ListPayment from "../components/policies/ListPayment";
 import ListCommissions  from "../components/customer/ListCommissions";
+import ManagementLOPDP from "../components/customer/ManagementLOPDP";
 const Routing = () => {
   return (
     <HashRouter>
@@ -53,6 +54,8 @@ const Routing = () => {
             <Route path="get-all-policy" element={<ListPolicies/>}></Route>
             <Route path="get-all-payments" element={<ListPayment/>}></Route>
             <Route path="get-all-commissions" element={<ListCommissions/>}></Route>
+            <Route path="management-lopdp" element={<ManagementLOPDP/>}></Route>
+            {/* Ruta de cierre de sesión */}
             <Route path="logout" element={<Logout />}></Route>
           </Route>
 
