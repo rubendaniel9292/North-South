@@ -404,7 +404,7 @@ export class CustomersService extends ValidateEntity {
 
       if (activePolicies.length > 0) {
         const policyDetails = activePolicies.map(policy => {
-          const yearsRemaining = new Date(policy.endDate).getFullYear() - new Date().getFullYear();
+          const yearsRemaining = DateHelper.normalizeDateForComparison( new Date(policy.endDate)).getFullYear() - DateHelper.normalizeDateForComparison( new Date()).getFullYear();
           return `Póliza ${policy.numberPolicy} (${yearsRemaining} años restantes)`;
         });
 
@@ -530,9 +530,9 @@ export class CustomersService extends ValidateEntity {
 
       if (activePolicies.length > 0) {
         // Encontrar la fecha de vencimiento más lejana
-        let latestEndDate = new Date();
+        let latestEndDate = DateHelper.normalizeDateForComparison(new Date());
         for (const policy of activePolicies) {
-          const endDate = new Date(policy.endDate);
+          const endDate = DateHelper.normalizeDateForComparison(new Date(policy.endDate));
           if (endDate > latestEndDate) {
             latestEndDate = endDate;
           }
@@ -546,7 +546,7 @@ export class CustomersService extends ValidateEntity {
         });
 
         // Programar fecha más temprana para eliminación después del vencimiento contractual
-        earliestEliminationDate = new Date(latestEndDate);
+        earliestEliminationDate = DateHelper.normalizeDateForComparison(new Date(latestEndDate));
       }
 
       // 📋 VERIFICAR ART. 18.5 - DERECHOS DE TERCEROS (beneficiarios)
@@ -659,12 +659,12 @@ export class CustomersService extends ValidateEntity {
           earliestEliminationDate: customer.earliestEliminationDate,
           canEliminate: evaluationResult?.canEliminate || false,
           activePolicies: customer.policies?.filter(p => p.policy_status_id !== 5).length || 0,
-          daysSinceRequest: Math.floor((currentDate.getTime() - new Date(customer.eliminationRequestDate).getTime()) / (1000 * 60 * 60 * 24)),
+          daysSinceRequest: Math.floor((currentDate.getTime() - DateHelper.normalizeDateForComparison(new Date(customer.eliminationRequestDate)).getTime()) / (1000 * 60 * 60 * 24)),
         };
 
         // Si puede eliminarse O si ya pasó la fecha mínima
         if (evaluationResult?.canEliminate ||
-          (customer.earliestEliminationDate && new Date(customer.earliestEliminationDate) <= currentDate)) {
+          (customer.earliestEliminationDate && DateHelper.normalizeDateForComparison(new Date(customer.earliestEliminationDate)) <= currentDate)) {
           readyForElimination.push(customerInfo);
         } else {
           pendingElimination.push(customerInfo);
@@ -673,8 +673,8 @@ export class CustomersService extends ValidateEntity {
 
       return {
         readyForElimination: readyForElimination.sort((a, b) => b.daysSinceRequest - a.daysSinceRequest),
-        pendingElimination: pendingElimination.sort((a, b) => new Date(a.earliestEliminationDate).getTime() - new Date(b.earliestEliminationDate).getTime()),
-        totalRequests: customersWithRequests.length,
+        pendingElimination: pendingElimination.sort((a, b) => DateHelper.normalizeDateForComparison(new Date(a.earliestEliminationDate)).getTime() - DateHelper.normalizeDateForComparison(new Date(b.earliestEliminationDate)).getTime()),
+        totalRequests: customersWithRequests.length
       };
 
     } catch (error) {
