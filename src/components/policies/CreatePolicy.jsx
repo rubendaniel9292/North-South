@@ -301,14 +301,49 @@ const CreatePolicy = () => {
     [changed]
   );
 
+  const handleCard_AccuntById = useCallback(
+    (customerId) => {
+      const selectedCustomer = customers.find(
+        (customer) => customer.id === customerId
+      );
+      if (selectedCustomer) {
+        const customerCiRuc = selectedCustomer.ci_ruc;
+
+        if (cards && cards.length > 0) {
+          const filteredCards = cards.filter(
+            (card) => card.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredCard(filteredCards);
+        } else {
+          setFilteredCard([]);
+        }
+
+        if (accounts && accounts.length > 0) {
+          const filteredAccount = accounts.filter(
+            (account) => account.customer.ci_ruc === customerCiRuc
+          );
+          setFilteredAccount(filteredAccount);
+        } else {
+          setFilteredAccount([]);
+        }
+      }
+    },
+    [customers, cards, accounts]
+  );
+
   // Si hay un cliente pasado por NavLink, actualizamos el estado
   useEffect(() => {
     if (customerFromNav) {
-      // ...código...
-      handleCard_Accunt(syntheticEvent);
+      setSelectedCustomer(customerFromNav.id); // Selecciona el cliente en el input
+      changed({
+        target: {
+          name: "customers_id",
+          value: customerFromNav.id,
+        },
+      });
+      handleCard_AccuntById(customerFromNav.id); // Filtra tarjetas/cuentas
     }
-  }, [customerFromNav, customers, cards, accounts, handleCard_Accunt]);
-
+  }, [customerFromNav, handleCard_AccuntById])
   // Manejadores para formularios inline
   const handleCardFormChange = (e) => {
     const { name, value } = e.target;
@@ -1190,7 +1225,7 @@ const CreatePolicy = () => {
               id="coverageAmount"
               name="coverageAmount"
               onChange={changed}
-              value={form.coverageAmount || ""} 
+              value={form.coverageAmount || ""}
               step="0.01"
             />
             <div className="invalid-feedback">
@@ -1242,7 +1277,7 @@ const CreatePolicy = () => {
               id="agencyPercentage"
               name="agencyPercentage"
               onChange={changed}
-              value={form.agencyPercentage || ""} 
+              value={form.agencyPercentage || ""}
               step="0.01"
             />
             <div className="invalid-feedback">
@@ -1265,7 +1300,7 @@ const CreatePolicy = () => {
               id="advisorPercentage"
               name="advisorPercentage"
               onChange={handleAdvisorPercentageChange}
-              value={form.advisorPercentage || ""} 
+              value={form.advisorPercentage || ""}
               step="0.01"
             />
 
