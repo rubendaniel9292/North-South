@@ -1,5 +1,5 @@
 SELECT 'CREATE DATABASE bd_north_south'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bd_north_south')\ gexec 
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bd_north_south')\gexec 
 -- Conectar a la base de datos creada
 \c bd_north_south
 -- Crear la extensión para UUID
@@ -31,26 +31,18 @@ ON CONFLICT (user_name) DO NOTHING;-- Evita insertar si ya existe un usuario con
 
 --LISTAR USUARIOS
 SELECT * FROM users;
---LISTAR USUARIO POR ID
-SELECT * FROM users WHERE id = 'd4400ade-abd7-4a88-9041-5c7ad7d6a509';
+--LISTAR USUARIO POR UUID
+SELECT * FROM users WHERE uuid = 'd4400ade-abd7-4a88-9041-5c7ad7d6a509';
 
 --CONTAR USUARIOS
 SELECT *, COUNT(*) OVER () AS total
 FROM users;
 
---ELIMINAR UN USUARIO ESPECIFICO (OPCIONAL)
-DELETE FROM users
-WHERE user_name = 'joserivas';
-DELETE FROM users
-WHERE user_name = 'angiezge9';
-DELETE FROM users
-WHERE id = '780a7470-f485-436e-816f-ce33c5cca75e';
-
 --TABLAS PARA LA GESTION DE CLIENTES--
 
 --1 estado civil
 CREATE TABLE IF NOT EXISTS civil_status (
-    id bigint primary key generated restart as identity NOT NULL,  
+    id bigint primary key generated always as identity NOT NULL,  
     status VARCHAR(20) NOT NULL unique
 );
 
@@ -62,7 +54,7 @@ SELECT * FROM civil_status;
 
 --2 provincia, relacion Uno a muchos 
 CREATE TABLE IF NOT EXISTS province (
-    id bigint primary key generated restart as identity NOT NULL,
+    id bigint primary key generated always as identity NOT NULL,
     province_name VARCHAR(255) NOT NULL unique
 );
 --insetar datos a la tabla provincia
@@ -97,7 +89,7 @@ SELECT id, province_name FROM province;
 	
 --Creacion de la tabla ciudad/canton
 CREATE TABLE IF NOT EXISTS city (
-    id bigint primary key generated restart as identity NOT NULL, 
+    id bigint primary key generated always as identity NOT NULL, 
     city_name VARCHAR(255) NOT NULL,
     province_id INTEGER NOT NULL,
     FOREIGN KEY (province_id) REFERENCES province(id) ON DELETE RESTRICT
@@ -402,7 +394,7 @@ ORDER BY city.city_name, province.province_name;
 
 --TABLA CLIENTES
 CREATE TABLE IF NOT EXISTS customers (
-    id bigint primary key generated restart as identity NOT NULL,
+    id bigint primary key generated always as identity NOT NULL,
 	ci_ruc VARCHAR(13) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
 	second_name VARCHAR(50),

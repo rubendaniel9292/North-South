@@ -81,26 +81,25 @@ Después de ejecutar la migración, verificar los logs del scritp de la base de 
 
 ### DELETE FROM users WHERE id = '780a7470-f485-436e-816f-ce33c5cca75e'
 
-## DOCKER (INSTALACIÓN EN EL SO O EN LA INSTANCIA ANTES DEL DESARROLLO O DESPLIEGUE DE LA APP)
+## DOCKER (INSTALACIÓN EN EL SO O EN LA INSTANCIA ANTES DEL DESARROLLO O DESPLIEGUE DE LA APP SEGUN DOCUMENTACION OFICIAL)
 
 Docker es una plataforma de contenedorización que permite a los desarrolladores empaquetar aplicaciones y sus dependencias en contenedores. lo que facilita el despliegue escalabilidad y la gestión en cualquier entorno, incluyendo servidores en la nube. (se realiza una sola vez. Si los siguientes comandos no funcionan se deberá buscar los correctos y corregir)
 
-#### sudo apt update
+## 1.	Configuracion del repositorio de Docker
+### sudo apt-get update
+### sudo apt-get install ca-certificates curl
+### sudo install -m 0755 -d /etc/apt/keyrings
+### sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+### sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-#### sudo apt upgrade
+### echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+## 2.	Instala Docker Engine y sus componentes:
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-#### sudo apt install apt-transport-https ca-certificates curl software-properties-common
-
-#### echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] <https://download.docker.com/linux/ubuntu> $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-#### sudo apt update
-
-#### sudo apt install docker-ce docker-ce-cli containerd.io
-### Otra manera
-#### curl -fsSL https://get.docker.com -o get-docker.sh
-### sudo sh get-docker.sh
-### Verificar la instalacion 
-#### docker --version
 
 ### Ejecutar el contenedor de prueba
 #### sudo docker run hello-world
@@ -189,6 +188,9 @@ TypeORM es un ORM (Object-Relational Mapper) para Node.js y TypeScript que permi
 
 #### npm i pg –save
 
+## INTLACACION NECESARIA DE PYTHON ANTES DE PROCEDER A INSTALAR LAS DEDEPENDENCIAS DEL PROYECTO 
+
+### sudo apt-get install python3 build-essential
 ## MORGAN (OPCIONAL, BUSCANDO REMPLAZO O SU ELIMINACIÓN)
 
 morgan es un middleware de registro de solicitudes HTTP para aplicaciones Node.js. Se utiliza comúnmente con frameworks como Express.js para registrar detalles de las solicitudes entrantes al servidor, como el método HTTP, la URL solicitada, el estado de la respuesta y el tiempo de respuesta. Estos registros son útiles para el monitoreo, depuración y análisis del tráfico de la aplicación.
