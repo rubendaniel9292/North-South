@@ -4,6 +4,7 @@ module.exports = {
     {
       name: 'CRM NORTH SOUTH',
       script: 'dist/main.js',
+      node_args: '--max-old-space-size=1024', // Limita cada instancia a 1GB de RAM
       env: {
         NODE_ENV: 'production',
       },
