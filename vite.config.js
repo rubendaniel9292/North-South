@@ -5,8 +5,8 @@ import fs from "fs";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // ✅ Rutas de certificados
-  const certPath = "/home/certificados/localhost.crt";
-  const keyPath = "/home/certificados/localhost-privateKey.key";
+  const certPath = "/home/rubendaniel/certificados/localhost.crt";
+  const keyPath = "/home/rubendaniel/certificados/localhost-privateKey.key";
 
   // ✅ Verificar si estamos en entorno de desarrollo local
   const isLocalDev =
@@ -32,7 +32,8 @@ export default defineConfig(({ mode }) => {
         },
         proxy: {
           "/api": {
-            target: "https://localhost:4443",
+            //target: "https://localhost",
+            target: "https://192.168.61.110",
             changeOrigin: true,
             secure: false,
           },
