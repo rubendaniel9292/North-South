@@ -4,6 +4,7 @@ import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+
 const CreateCustomer = () => {
   const { form, changed } = UserForm({});
   const [statuses, setStatuses] = useState([]);
@@ -72,6 +73,7 @@ const CreateCustomer = () => {
 
       try {
         let newCustomer = form;
+        
         const request = await http.post(
           "customers/register-customer",
           newCustomer
@@ -84,10 +86,7 @@ const CreateCustomer = () => {
             "success"
           );
           document.querySelector("#user-form").reset();
-          // ✅ Eliminar onClose() si no está definido, o agregarlo como prop
-          // setTimeout(() => {
-          //   onClose();
-          // }, 500);
+  
         } else {
           alerts(
             "Error",
@@ -304,7 +303,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3 ">
               <label htmlFor="flexRadioDefault" className="form-check-label">
-                ¿El cliente acetpa el tratamiendo de datos personales?
+                ¿El cliente acepta el tratamiento de datos personales?
               </label>
               <div className="form-check">
                 <input
@@ -314,8 +313,8 @@ const CreateCustomer = () => {
                   id="flexRadioDefault7"
                   required
                   value="true"
-                  onChange={changed} // Maneja el cambio aquí
-                ></input>
+                  onChange={changed}
+                />
                 <label className="form-check-label" htmlFor="flexRadioDefault7">
                   Si
                 </label>
@@ -329,7 +328,7 @@ const CreateCustomer = () => {
                   required
                   value="false"
                   onChange={changed}
-                ></input>
+                />
                 <label className="form-check-label" htmlFor="flexRadioDefault8">
                   No
                 </label>

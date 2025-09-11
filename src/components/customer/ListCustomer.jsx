@@ -28,7 +28,6 @@ const ListCustomer = () => {
       const response = await http.get("customers/get-all-customer");
       if (response.data.status === "success") {
         setCustomers(response.data.allCustomer);
-        console.log(response.data.allCustomer);
       }
     } catch (error) {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
