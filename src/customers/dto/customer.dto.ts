@@ -58,7 +58,7 @@ export class CustomerDTO {
 
   @IsNotEmpty()
   @IsBoolean()
-  @Transform(({ value }) => (value === 'true' ? true : value === false)) //transformando al fomarto correcto
+  @Transform(({ value }) => value === 'true' || value === true)
   personalData: boolean;
 }
 export class UpDateCustomerDTO {
