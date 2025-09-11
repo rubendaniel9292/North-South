@@ -18,15 +18,15 @@ export class CustomerDTO {
 
   @IsOptional()
   @IsString()
-  secondName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  surname: string;
+  secondName?: string;
 
   @IsOptional()
   @IsString()
-  secondSurname: string;
+  surname?: string;
+
+  @IsOptional()
+  @IsString()
+  secondSurname?: string;
 
   @IsNotEmpty()
   @IsInt()

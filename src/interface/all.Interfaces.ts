@@ -14,7 +14,7 @@ export interface ICustomer {
   ci_ruc: string;
   firstName: string;
   secondName?: string;
-  surname: string;
+  surname?: string;
   secondSurname?: string;
   birthdate: Date;
   email: string;
@@ -53,7 +53,7 @@ export interface IAdvisor {
   ci_ruc: string;
   firstName: string;
   secondName?: string;
-  surname: string;
+  surname?: string;
   secondSurname?: string;
   birthdate: Date;
   email: string;

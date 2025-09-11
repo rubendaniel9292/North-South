@@ -12,13 +12,13 @@ export abstract class IdCustomEntity implements IAdvisor {
   firstName: string;
 
   @Column({ nullable: true })
-  secondName: string;
-
-  @Column()
-  surname: string;
+  secondName?: string;
 
   @Column({ nullable: true })
-  secondSurname: string;
+  surname?: string;
+
+  @Column({ nullable: true })
+  secondSurname?: string;
 
   @Column()
   birthdate: Date;

@@ -28,7 +28,8 @@ VALUES ('Soltero'),
     ('Viudo'),
 ('Divorciado'),
 ('Unión Libre'),
-('Unión de Hecho');
+('Unión de Hecho'),
+('No Aplica');
 --tipo de poliza policy
 SELECT *
 FROM civil_status;

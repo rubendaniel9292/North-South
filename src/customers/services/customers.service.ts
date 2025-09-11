@@ -32,9 +32,9 @@ export class CustomersService extends ValidateEntity {
       // Primero validaR cédula y correo
       await this.validateInput(body, 'customer');
       body.firstName = body.firstName.toUpperCase();
-      body.secondName = body.secondName.toUpperCase();
-      body.surname = body.surname.toUpperCase()
-      body.secondSurname = body.secondSurname.toUpperCase();
+      body.secondName = body?.secondName?.toUpperCase();
+      body.surname = body?.surname?.toUpperCase();
+      body.secondSurname = body?.secondSurname?.toUpperCase();
 
       // Normalizar fecha de nacimiento para almacenar correctamente en BD
 
@@ -225,9 +225,9 @@ export class CustomersService extends ValidateEntity {
 
       // Convertir a mayúsculas y asignar de nuevo (solo si existen)
       if (updateData.firstName) updateData.firstName = updateData.firstName.toUpperCase();
-      if (updateData.secondName) updateData.secondName = updateData.secondName.toUpperCase();
-      if (updateData.surname) updateData.surname = updateData.surname.toUpperCase();
-      if (updateData.secondSurname) updateData.secondSurname = updateData.secondSurname.toUpperCase();
+      if (updateData.secondName) updateData.secondName = updateData?.secondName?.toUpperCase();
+      if (updateData.surname) updateData.surname = updateData?.surname?.toUpperCase();
+      if (updateData.secondSurname) updateData.secondSurname = updateData?.secondSurname?.toUpperCase();
 
       // Normalizar fecha de nacimiento si se está actualizando
 
@@ -404,7 +404,7 @@ export class CustomersService extends ValidateEntity {
 
       if (activePolicies.length > 0) {
         const policyDetails = activePolicies.map(policy => {
-          const yearsRemaining = DateHelper.normalizeDateForComparison( new Date(policy.endDate)).getFullYear() - DateHelper.normalizeDateForComparison( new Date()).getFullYear();
+          const yearsRemaining = DateHelper.normalizeDateForComparison(new Date(policy.endDate)).getFullYear() - DateHelper.normalizeDateForComparison(new Date()).getFullYear();
           return `Póliza ${policy.numberPolicy} (${yearsRemaining} años restantes)`;
         });
 
