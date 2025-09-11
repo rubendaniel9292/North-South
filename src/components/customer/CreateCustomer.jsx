@@ -157,7 +157,7 @@ const CreateCustomer = () => {
                 Primer Apellido
               </label>
               <input
-                required
+                
                 type="text"
                 className="form-control"
                 id="surname"

@@ -108,7 +108,7 @@ const TaskReminder = () => {
         showTaskAlert();
 
         // ✅ Recordatorios cada 5 segundos después de la primera
-        reminderIntervalRef.current = setInterval(showTaskAlert, 5000);
+        reminderIntervalRef.current = setInterval(showTaskAlert,  600000);
       }, 3000);
 
       return () => {
