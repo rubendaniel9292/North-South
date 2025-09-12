@@ -29,12 +29,13 @@ export class PolicyStatusService implements OnModuleInit {
       currentDate.getMonth() + 1,
       currentDate.getDate()
     );
-
-    const nextMonthStart = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1,
-      1,
-    );
+    /*
+        const nextMonthStart = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() + 1,
+          1,
+        );
+        */
     // Normalizar la fecha de finalización
     const endDate = new Date(policy.endDate);
     const normalizedEndDate = new Date(
@@ -42,9 +43,9 @@ export class PolicyStatusService implements OnModuleInit {
       endDate.getMonth(),
       endDate.getDate()
     );
-    console.log('Fecha actual normalizada:', normalizedCurrentDate);
-    console.log('Fecha un mes adelante:', oneMonthAhead);
-    console.log('Fecha de finalización normalizada:', normalizedEndDate);
+    //console.log('Fecha actual normalizada:', normalizedCurrentDate);
+    //console.log('Fecha un mes adelante:', oneMonthAhead);
+    //console.log('Fecha de finalización normalizada:', normalizedEndDate);
 
     // Obtener los estados correspondientes en base a id: vigente por caducar caducada
     const [
@@ -62,15 +63,16 @@ export class PolicyStatusService implements OnModuleInit {
         where: { id: 4 }, //por culminar
       }),
     ]);
+    /*
+        console.log('Estados obtenidos:', {
+          closeToCompletion,
+          completedStatus,
+          activeStatus,
+        });
+        */
+    // Lógica para determinar el estado
+    // Lógica para determinar el estado
 
-    console.log('Estados obtenidos:', {
-      closeToCompletion,
-      completedStatus,
-      activeStatus,
-    });
-    // Lógica para determinar el estado
-    // Lógica para determinar el estado
-    // Lógica para determinar el estado
     if (policy.policy_status_id === 2) {
       return policy.policyStatus; // Mantener el estado cancelado
     } else if (normalizedEndDate.getTime() <= normalizedCurrentDate.getTime()) {
@@ -139,18 +141,18 @@ export class PolicyStatusService implements OnModuleInit {
     for (const policy of policies) {
       // Ignorar pólizas canceladas (id: 2)
       if (policy.policy_status_id == 2) {
-        console.log(`Póliza ${policy.id} está CANCELADA. No se modificará su estado.`);
+        //console.log(`Póliza ${policy.id} está CANCELADA. No se modificará su estado.`);
         continue;
       }
       const endDate = new Date(policy.endDate);
       const newStatus = await this.determinePolicyStatus(policy);
-      console.log(`Póliza ${policy.id} - Fecha de culminación: ${endDate} - Nuevo estado: ${newStatus.id}`);
+      //console.log(`Póliza ${policy.id} - Fecha de culminación: ${endDate} - Nuevo estado: ${newStatus.id}`);
       // Solo actualizar si el estado ha cambiado
       if (policy.policy_status_id !== newStatus.id) {
         await this.policyRepository.update(policy.id, {
           policy_status_id: newStatus.id,
         });
-        console.log(`Póliza ${policy.id} actualizada al estado: ${newStatus.id}`);
+        //console.log(`Póliza ${policy.id} actualizada al estado: ${newStatus.id}`);
       }
     }
   }
