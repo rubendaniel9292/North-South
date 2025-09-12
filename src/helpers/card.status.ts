@@ -51,13 +51,13 @@ export class CreditCardStatusService implements OnModuleInit {
       currentDate.getMonth() + 2,
       1
     );
-
-    console.log('Fecha de expiración normalizada:', normalizedExpirationDate);
-    console.log('Fecha actual normalizada:', normalizedCurrentDate);
-    console.log('Inicio del mes actual:', currentMonthStart);
-    console.log('Inicio del próximo mes:', nextMonthStart);
-    console.log('Inicio del mes después del próximo:', afterNextMonthStart);
-
+    /*
+        console.log('Fecha de expiración normalizada:', normalizedExpirationDate);
+        console.log('Fecha actual normalizada:', normalizedCurrentDate);
+        console.log('Inicio del mes actual:', currentMonthStart);
+        console.log('Inicio del próximo mes:', nextMonthStart);
+        console.log('Inicio del mes después del próximo:', afterNextMonthStart);
+    */
     // Obtener los estados correspondientes en base a id: vigente por caducar caducada
     const [activeStatus, aboutToExpireStatus, expiredStatus] =
       await Promise.all([
@@ -76,13 +76,13 @@ export class CreditCardStatusService implements OnModuleInit {
         'El estado caducado no se encontró en la base de datos. Verificalos',
       );
     }
-
-    console.log('Estados obtenidos:', {
-      expiredStatus,
-      aboutToExpireStatus,
-      activeStatus,
-    });
-
+    /*
+        console.log('Estados obtenidos:', {
+          expiredStatus,
+          aboutToExpireStatus,
+          activeStatus,
+        });
+    */
     // Comparar las fechas normalizadas
     if (normalizedExpirationDate.getTime() < normalizedCurrentDate.getTime()) {
       console.log(`Tarjeta CADUCADA: ${normalizedExpirationDate} < ${normalizedCurrentDate}`);
@@ -94,7 +94,7 @@ export class CreditCardStatusService implements OnModuleInit {
       console.log(`Tarjeta POR CADUCAR: ${normalizedExpirationDate} está dentro de los próximos dos meses`);
       return aboutToExpireStatus; // La tarjeta está por caducar (dentro de los próximos dos meses)
     } else {
-      console.log(`Tarjeta VIGENTE: ${normalizedExpirationDate} >= ${afterNextMonthStart}`);
+      //console.log(`Tarjeta VIGENTE: ${normalizedExpirationDate} >= ${afterNextMonthStart}`);
       return activeStatus; // La tarjeta está vigente
     }
   }
