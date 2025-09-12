@@ -1,15 +1,19 @@
-//scritp de inicio para PM2
+// Configuración simplificada temporal para diagnosticar 502
+// Luego de comprobar estabilidad se puede volver a cluster.
 module.exports = {
   apps: [
     {
-      name: 'CRM NORTH SOUTH',
+      name: 'api-north-south',
       script: 'dist/main.js',
-      node_args: '--max-old-space-size=1024', // Limita cada instancia a 1GB de RAM
-      env: {
-        NODE_ENV: 'production',
-      },
-      instances: 2,
-      exec_mode: 'cluster',
+      instances: 1,
+      exec_mode: 'fork',
+      watch: false,
+      autorestart: true,
+      node_args: '--max-old-space-size=1024',
+      out_file: './logs/out.log',
+      error_file: './logs/err.log',
+      time: true,
+      env: { NODE_ENV: 'production' },
     },
   ],
 };

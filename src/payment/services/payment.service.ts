@@ -120,7 +120,7 @@ export class PaymentService {
 
       const newPayment = await this.paymentRepository.save(body);
       // INVALIDAR caché relacionado
-      await this.invalidatePolicyRelatedCache(policy);
+      //await this.invalidatePolicyRelatedCache(policy);
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -130,11 +130,11 @@ export class PaymentService {
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
-
-      const cachedPayments = await this.redisService.get('payments');
-      if (cachedPayments) {
-        return JSON.parse(cachedPayments);
-      }
+      /*
+            const cachedPayments = await this.redisService.get('payments');
+            if (cachedPayments) {
+              return JSON.parse(cachedPayments);
+            }*/
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         order: {
           id: 'DESC',
@@ -162,7 +162,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set('payments', JSON.stringify(payments), 32400);
+      //await this.redisService.set('payments', JSON.stringify(payments), 32400);
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -201,11 +201,12 @@ export class PaymentService {
   //4: metodo para obtener los estados de los pagos
   public getPaymentStatus = async (): Promise<PaymentStatusEntity[]> => {
     try {
+      /*
       const cachedPayments = await this.redisService.get('paymentStatus');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
       }
-
+*/
       const paymentStatus = await this.paymentStatusRepository.find();
 
       if (!paymentStatus) {
@@ -215,11 +216,13 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      /*
       await this.redisService.set(
         'paymentStatus',
         JSON.stringify(paymentStatus),
         32400,
       ); // TTL de 1 hora
+      */
       return paymentStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -230,9 +233,11 @@ export class PaymentService {
     companyId?: number,
   ): Promise<PaymentEntity[]> => {
     try {
+      /*
       const cacheKey = companyId
         ? `paymentsByStatus:${companyId}`
         : 'paymentsByStatus:general';
+        */
       //const cachedPayments = await this.redisService.get(cacheKey);
 
       // condiciones de búsqueda
@@ -291,11 +296,13 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
+      /*
       await this.redisService.set(
         cacheKey,
         JSON.stringify(paymentsByStatus),
         32400,
       ); // TTL de 9 horaL de 1 hora
+      */
       return paymentsByStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -331,8 +338,8 @@ export class PaymentService {
       const paymentUpdated = await this.paymentRepository.save(payment);
 
       // INVALIDAR TODAS LAS KEYS RELACIONADAS
-      const policy = payment.policies;
-      await this.invalidatePolicyRelatedCache(policy);
+      //const policy = payment.policies;
+      //await this.invalidatePolicyRelatedCache(policy);
 
       return paymentUpdated;
     } catch (error) {

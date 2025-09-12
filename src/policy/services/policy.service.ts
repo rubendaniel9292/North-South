@@ -432,7 +432,7 @@ export class PolicyService extends ValidateEntity {
         initialPeriodData
       );
 
-      await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
+      //await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -443,6 +443,7 @@ export class PolicyService extends ValidateEntity {
     try {
 
       // Solo usar caché si no hay búsqueda específica
+      /*
       if (!search) {
         const cachedPolicies = await this.redisService.get(
           CacheKeys.GLOBAL_ALL_POLICIES,
@@ -451,6 +452,7 @@ export class PolicyService extends ValidateEntity {
           return JSON.parse(cachedPolicies);
         }
       }
+        */
       // Crea un array de condiciones de búsqueda en este caso por nu  mero de poliza
       const whereConditions: any[] = [];
 
@@ -549,12 +551,13 @@ export class PolicyService extends ValidateEntity {
   //3:metodo para consultas todas las polizas en base al estado
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
+      /*
       const cachedPolicies = await this.redisService.get(
         CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS,
       );
       if (cachedPolicies) {
         return JSON.parse(cachedPolicies);
-      }
+      }*/
       const policiesStatus: PolicyEntity[] = await this.policyRepository.find({
         where: [
           { policy_status_id: 3 }, // Estado: por vencer
@@ -640,12 +643,13 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-
-      await this.redisService.set(
-        CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS,
-        JSON.stringify(policiesStatus),
-        32400,
-      );
+      /*
+            await this.redisService.set(
+              CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS,
+              JSON.stringify(policiesStatus),
+              32400,
+            );
+            */
       return policiesStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -655,6 +659,7 @@ export class PolicyService extends ValidateEntity {
   public getTypesPolicies = async (): Promise<PolicyTypeEntity[]> => {
     try {
       //const cachedTypes = await this.redisService.get('types');
+
       const cachedTypes = await this.redisService.get(
         CacheKeys.GLOBAL_POLICY_TYPE,
       );
@@ -906,18 +911,19 @@ export class PolicyService extends ValidateEntity {
 
       // Limpiar todas las claves de caché relevantes
       // ✅ MEJORAR: Pasar también el policyId para invalidación completa
-      await this.invalidateCaches(policy.advisor_id, id);
+      //await this.invalidateCaches(policy.advisor_id, id);
 
       // ✅ PEQUEÑA PAUSA PARA ASEGURAR PROPAGACIÓN DE INVALIDACIÓN
-      await new Promise(resolve => setTimeout(resolve, 100));
+      //await new Promise(resolve => setTimeout(resolve, 100));
 
       // Actualizar caché con los datos más recientes
+      /*
       await this.redisService.set(
         `policy:${id}`,
         JSON.stringify(policyUpdate),
         32400, // Tiempo de expiración en segundos (9 horas)
       );
-
+*/
       return policyUpdate;
     } catch (error) {
       // Manejar errores y lanzar una excepción personalizada
@@ -1013,11 +1019,11 @@ export class PolicyService extends ValidateEntity {
       await this.createFirstPaymentAfterRenewal(policy, newRenewal);
 
       // Invalidar cachés específicos y globales
-      await this.invalidateCaches(policy.advisor_id, policy.id);
+      //await this.invalidateCaches(policy.advisor_id, policy.id);
 
       // ✅ INVALIDAR ESPECÍFICAMENTE EL CACHE DE PAYMENTS
-      await this.redisService.del('payments');
-      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES)
+      //await this.redisService.del('payments');
+      //await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES)
 
       // Pequeña pausa para asegurar que la invalidación se complete
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -1163,10 +1169,10 @@ export class PolicyService extends ValidateEntity {
       const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
 
       // ✅ INVALIDAR TODOS LOS CACHÉS RELACIONADOS (método mejorado incluye todo)
-      await this.invalidateCaches(advisorId, policy_id);
+      //await this.invalidateCaches(advisorId, policy_id);
 
       // ✅ PEQUEÑA PAUSA PARA ASEGURAR PROPAGACIÓN
-      await new Promise(resolve => setTimeout(resolve, 100));
+      //await new Promise(resolve => setTimeout(resolve, 100));
 
       console.log(`✅ Período actualizado y cachés invalidados - Póliza: ${policy_id}, Año: ${year}, Advisor: ${advisorId}`);
       return savedPeriod;
@@ -1185,20 +1191,20 @@ export class PolicyService extends ValidateEntity {
           message: 'El ID de póliza es obligatorio.',
         });
       }
-
-      const cacheKey = `policy:${policy_id}:periods`;
-      const cachedPeriods = await this.redisService.get(cacheKey);
-      if (cachedPeriods) {
-        return JSON.parse(cachedPeriods);
-      }
-
+      /*
+            const cacheKey = `policy:${policy_id}:periods`;
+            const cachedPeriods = await this.redisService.get(cacheKey);
+            if (cachedPeriods) {
+              return JSON.parse(cachedPeriods);
+            }
+      */
       const policyPeriods: PolicyPeriodDataEntity[] = await this.policyPeriodDataRepository.find({
         where: { policy_id: policy_id },
         order: { year: 'ASC' }
       });
 
       // Guardar en caché por 9 horas (32400 segundos)
-      await this.redisService.set(cacheKey, JSON.stringify(policyPeriods), 32400);
+      //await this.redisService.set(cacheKey, JSON.stringify(policyPeriods), 32400);
 
       return policyPeriods;
     } catch (error) {

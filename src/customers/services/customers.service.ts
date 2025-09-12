@@ -45,7 +45,7 @@ export class CustomersService extends ValidateEntity {
 
       console.log('Cliente guardado', newCustomer);
       // Invalida la caché de la lista de clientes
-      await this.redisService.del('customers');
+      //await this.redisService.del('customers');
 
       return newCustomer;
     } catch (error) {
@@ -59,11 +59,12 @@ export class CustomersService extends ValidateEntity {
   ): Promise<CustomersEntity[]> => {
     try {
       // Verificar si los datos están en Redis
-
-      const cachedCustomer = await this.redisService.get('customers');
-      if (cachedCustomer) {
-        return JSON.parse(cachedCustomer);
-      }
+      /*
+            const cachedCustomer = await this.redisService.get('customers');
+            if (cachedCustomer) {
+              return JSON.parse(cachedCustomer);
+            }
+            */
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
 
@@ -111,13 +112,14 @@ export class CustomersService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
+      /*
 
       await this.redisService.set(
         'customers',
         JSON.stringify(customers),
         32400,
       ); // TTL de 9 horas
-
+*/
       return customers;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -127,11 +129,12 @@ export class CustomersService extends ValidateEntity {
   //:3 Método para obtener todos los clientes con las relaciones por id
   public getCustomerById = async (id: number): Promise<CustomersEntity> => {
     try {
-
-      const cachedCustomer = await this.redisService.get(`customer:${id}`);
-      if (cachedCustomer) {
-        return JSON.parse(cachedCustomer);
-      }
+      /*
+            const cachedCustomer = await this.redisService.get(`customer:${id}`);
+            if (cachedCustomer) {
+              return JSON.parse(cachedCustomer);
+            }
+            */
       const customer: CustomersEntity = await this.customerRepository.findOne({
         where: { id },
         relations: [
@@ -202,7 +205,7 @@ export class CustomersService extends ValidateEntity {
         });
       }
 
-      await this.redisService.set(`customer:${id}`, JSON.stringify(customer), 32400);
+      //await this.redisService.set(`customer:${id}`, JSON.stringify(customer), 32400);
       return customer;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -240,6 +243,7 @@ export class CustomersService extends ValidateEntity {
       const customerUpdated = await this.customerRepository.save(customer);
 
       // Limpiar todas las claves de caché relevantes
+      /*
       await this.redisService.del(`customer:${id}`);
       await this.redisService.del('customers');
 
@@ -249,7 +253,7 @@ export class CustomersService extends ValidateEntity {
         JSON.stringify(customerUpdated),
         32400,
       );
-
+*/
       //console.log('Cliente actualizado:', customerUpdated);
       return customerUpdated;
 
@@ -339,7 +343,7 @@ export class CustomersService extends ValidateEntity {
       await this.customerRepository.update(customerId, anonymizedData);
 
       // Limpiar cachés relacionados
-      await this.invalidateCustomerCaches(customerId);
+      //await this.invalidateCustomerCaches(customerId);
 
       // Registrar en logs para auditoría
       const logMessage = requestNumber

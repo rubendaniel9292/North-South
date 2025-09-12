@@ -93,7 +93,9 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
   };
 
   req.body = sanitizeValue(req.body);
-
+  // IMPORTANTE: continuar la cadena de middlewares. Faltaba llamar a next(),
+  // lo que provocaba que la petición quedara colgada y el reverse proxy devolviera 502.
+  next();
 };
 
 

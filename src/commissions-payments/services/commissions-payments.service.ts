@@ -265,11 +265,14 @@ export class CommissionsPaymentsService {
                 normalizedBody.status_advance_id = null;
             }
             // Invalidar caché de comisiones globales
-            await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
+
+            //await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
 
             // Invalidar también cualquier caché específica del asesor
+            /*
             await this.redisService.del(`advisor:${normalizedBody.advisor_id}`);
             await this.redisService.del('allAdvisors');
+            */
             const commissionsPayments = await this.commissionsPayments.save(normalizedBody);
 
             return commissionsPayments;
@@ -281,22 +284,24 @@ export class CommissionsPaymentsService {
     public async getAllCommissions() {
         try {
             // Intentar obtener del caché primero
+            /*
             const cachedCommissions = await this.redisService.get(CacheKeys.GLOBAL_COMMISSIONS);
 
             if (cachedCommissions) {
                 return JSON.parse(cachedCommissions);
             }
-
+*/
             // Si no está en caché, obtener de la base de datos
             const allCommissions: CommissionsPaymentsEntity[] = await this.commissionsPayments.find();
 
             // Guardar en caché para futuras consultas
-            await this.redisService.set(
-                CacheKeys.GLOBAL_COMMISSIONS,
-                JSON.stringify(allCommissions),
-                3600 // TTL de 1 hora (opcional)
-            );
-
+            /*
+                        await this.redisService.set(
+                            CacheKeys.GLOBAL_COMMISSIONS,
+                            JSON.stringify(allCommissions),
+                            3600 // TTL de 1 hora (opcional)
+                        );
+            */
             return allCommissions;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);
@@ -338,6 +343,7 @@ export class CommissionsPaymentsService {
             //body.createdAt = createdAt;
             body.cancellationDate = cancellationDate;
             const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.save(body);
+            /*
             await this.redisService.del('allAdvisors');
             await this.redisService.del(
                 CacheKeys.GLOBAL_COMMISSIONS,
@@ -346,7 +352,7 @@ export class CommissionsPaymentsService {
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSION_REFUNDS);
             await this.redisService.del('policies');
             await this.redisService.del(`advisor:${body.advisor_id}`);
-
+*/
             return commissionRefunds;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);
