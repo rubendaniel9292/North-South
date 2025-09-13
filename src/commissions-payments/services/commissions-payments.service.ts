@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, IsNull } from 'typeorm';
 import { CommissionsPaymentsEntity } from '../entities/CommissionsPayments.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
@@ -38,6 +38,47 @@ export class CommissionsPaymentsService {
         private readonly redisService: RedisModuleService,
     ) { }
 
+    /**
+     * MÉTODO HELPER: Carga payments de manera inteligente para una policy específica
+     * Evita cargar todos los payments a la vez, solo los necesarios
+     */
+    private async loadPaymentsForPolicy(policyId: number): Promise<any[]> {
+        try {
+            // Crear clave de caché específica para los payments de esta policy
+            const cacheKey = `policy_payments:${policyId}`;
+            
+            // Intentar obtener del caché primero
+            const cachedPayments = await this.redisService.get(cacheKey);
+            if (cachedPayments) {
+                return JSON.parse(cachedPayments);
+            }
+
+            // Si no está en caché, cargar desde DB con filtro específico (MÉTODO SIMPLE)
+            const policy = await this.policyRepository.findOne({
+                where: { id: policyId },
+                relations: ['payments'],
+                select: {
+                    id: true,
+                    payments: {
+                        id: true,
+                        value: true,
+                        status_payment_id: true
+                    }
+                }
+            });
+
+            const paymentData = policy?.payments || [];
+            
+            // Guardar en caché por 30 minutos
+            await this.redisService.set(cacheKey, JSON.stringify(paymentData), 1800);
+            
+            return paymentData;
+        } catch (error) {
+            console.error(`Error cargando payments para policy ${policyId}:`, error);
+            return [];
+        }
+    }
+
     /** 
    * Private utility: Reparto FIFO de anticipos generales entre pólizas con saldo pendiente
    */
@@ -45,32 +86,39 @@ export class CommissionsPaymentsService {
         try {
             const applied: Array<{ policy_id: number; applied: number }> = [];
 
-            // 1. Fetch all relevant policies with their commissions/payments
+            // 1. Fetch all relevant policies WITHOUT payments relation (EMERGENCY FIX)
+            // TEMPORAL: payments comentados para evitar crash de memoria
             const policies = await this.policyRepository.find({
                 where: { id: In(body.policies.map(p => p.policy_id)) },
-                relations: ['commissions', 'renewals', 'payments'] // Asegúrate que 'commissions' trae los pagos relacionados
+                relations: ['commissions', 'renewals'] // payments TEMPORALMENTE DESHABILITADO
             });
 
-            // 2. Get all commission payments for this advisor (to compute general advances)
+            // 2. Get ONLY general advance payments for this advisor (OPTIMIZED - no policy_id)
             const allPayments = await this.commissionsPayments.find({
-                where: { advisor_id: body.advisor_id }
+                where: { 
+                    advisor_id: body.advisor_id,
+                    policy_id: IsNull(), // Solo anticipos generales (sin policy_id)
+                    status_advance_id: 1 // Solo los que están disponibles
+                }
             });
-            allPayments
-                .filter(p => (p.policy_id === null || p.policy_id === undefined) && p.status_advance_id === 1)
-                .forEach(p => {
-                    console.log("Anticipo encontrado:", p, "advanceAmount type:", typeof p.advanceAmount, "valor:", p.advanceAmount);
-                });
-            // 3. Prepare policy data for general advance distribution
+            
+            // Log de anticipos encontrados (ya filtrados en la consulta)
+            allPayments.forEach(p => {
+                console.log("Anticipo encontrado:", p, "advanceAmount type:", typeof p.advanceAmount, "valor:", p.advanceAmount);
+            });
+            // 3. Prepare policy data for general advance distribution (RESTAURADO CON LAZY LOADING)
 
-            const policyData = policies.map(policy => {
+            const policyData = await Promise.all(policies.map(async policy => {
                 let releasedCommission = 0;
                 if (policy.isCommissionAnnualized) {
                     // Multiplica por el número de renovaciones + 1 (periodo inicial)
                     const numRenewals = Number(policy.renewals?.length || 0);
                     releasedCommission = Number(policy.paymentsToAdvisor) * (numRenewals + 1);
                 } else {
-                    releasedCommission = policy.payments
-                        ? policy.payments.reduce((sum, p) =>
+                    // RESTAURADO: Carga inteligente de payments solo para esta policy
+                    const policyPayments = await this.loadPaymentsForPolicy(policy.id);
+                    releasedCommission = policyPayments
+                        ? policyPayments.reduce((sum, p) =>
                             (Number(p.status_payment_id) == 2)
                                 ? sum + Number(p.value || 0)
                                 : sum
@@ -90,16 +138,10 @@ export class CommissionsPaymentsService {
                     releasedCommission,
                     paidCommission
                 };
-            });
+            }));
 
-            // 4. Total general advance available (status_advance_id === 1 and no policy_id)
-            /*
+            // 4. Total general advance available (ya filtrado en la consulta optimizada)
             const totalGeneralAdvance = allPayments
-                .filter(p => !p.policy_id && p.status_advance_id === 1)
-                .reduce((sum, p) => sum + Number(p.advanceAmount || 0), 0);
-*/
-            const totalGeneralAdvance = allPayments
-                .filter(p => (p.policy_id === null || p.policy_id === undefined) && Number(p.status_advance_id) === 1)
                 .reduce((sum, p) => sum + Number(p.advanceAmount || 0), 0);
 
             console.log('totalGeneralAdvance antes:', totalGeneralAdvance);
@@ -264,15 +306,18 @@ export class CommissionsPaymentsService {
                 // Comisión pagada (siempre que tenga policy_id válido)
                 normalizedBody.status_advance_id = null;
             }
-            // Invalidar caché de comisiones globales
+            // Invalidar caché de comisiones globales (REACTIVADO)
+            await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
+            await this.redisService.del(`${CacheKeys.GLOBAL_COMMISSIONS}:${normalizedBody.advisor_id}`);
 
-            //await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
-
-            // Invalidar también cualquier caché específica del asesor
-            /*
+            // Invalidar también cualquier caché específica del asesor (REACTIVADO)
             await this.redisService.del(`advisor:${normalizedBody.advisor_id}`);
             await this.redisService.del('allAdvisors');
-            */
+            
+            // Limpiar caché de payments de la policy si aplica
+            if (normalizedBody.policy_id) {
+                await this.redisService.del(`policy_payments:${normalizedBody.policy_id}`);
+            }
             const commissionsPayments = await this.commissionsPayments.save(normalizedBody);
 
             return commissionsPayments;
@@ -280,28 +325,33 @@ export class CommissionsPaymentsService {
             throw ErrorManager.createSignatureError(error.message);
         }
     }
-    //2: Método para obtener todas las comisiones (con caché)
-    public async getAllCommissions() {
+    //2: Método para obtener todas las comisiones (con caché) - OPTIMIZADO Y RESTAURADO
+    public async getAllCommissions(advisorId?: number) {
         try {
-            // Intentar obtener del caché primero
-            /*
-            const cachedCommissions = await this.redisService.get(CacheKeys.GLOBAL_COMMISSIONS);
+            // Crear clave de caché específica por advisor si se proporciona
+            const cacheKey = advisorId ? `${CacheKeys.GLOBAL_COMMISSIONS}:${advisorId}` : CacheKeys.GLOBAL_COMMISSIONS;
+            
+            // Intentar obtener del caché primero (REACTIVADO)
+            const cachedCommissions = await this.redisService.get(cacheKey);
 
             if (cachedCommissions) {
+                console.log(`📄 Comisiones obtenidas desde caché: ${cacheKey}`);
                 return JSON.parse(cachedCommissions);
             }
-*/
-            // Si no está en caché, obtener de la base de datos
-            const allCommissions: CommissionsPaymentsEntity[] = await this.commissionsPayments.find();
+            // Si no está en caché, obtener de la base de datos CON FILTRO OPCIONAL
+            const whereCondition = advisorId ? { advisor_id: advisorId } : {};
+            const allCommissions: CommissionsPaymentsEntity[] = await this.commissionsPayments.find({
+                where: whereCondition
+            });
 
-            // Guardar en caché para futuras consultas
-            /*
-                        await this.redisService.set(
-                            CacheKeys.GLOBAL_COMMISSIONS,
-                            JSON.stringify(allCommissions),
-                            3600 // TTL de 1 hora (opcional)
-                        );
-            */
+            // Guardar en caché para futuras consultas (REACTIVADO)
+            await this.redisService.set(
+                cacheKey,
+                JSON.stringify(allCommissions),
+                3600 // TTL de 1 hora
+            );
+            console.log(`💾 Comisiones guardadas en caché: ${cacheKey}`);
+            
             return allCommissions;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);

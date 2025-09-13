@@ -351,7 +351,7 @@ export class PaymentService {
           'policies.periods',
           'paymentStatus',
           'policies.paymentFrequency',
-          'policies.payments',
+          // 'policies.payments', // TEMPORAL: REMOVIDO para evitar crash de memoria
         ],
         select: {
           policies: {
