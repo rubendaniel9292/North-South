@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentDTO } from '../dto/payment.dto';
@@ -122,6 +122,22 @@ export class PaymentService {
       // INVALIDAR caché relacionado
       //await this.invalidatePolicyRelatedCache(policy);
       return newPayment;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //1.5: metodo optimizado para verificar si existen pagos pendientes sin cargar todos los datos
+  public checkPendingPaymentsExist = async (): Promise<boolean> => {
+    try {
+      // Consulta optimizada usando find() con count - sin cargar objetos completos
+      const count = await this.paymentRepository.count({
+        where: {
+          pending_value: MoreThan(0)
+        }
+      });
+      
+      return count > 0;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

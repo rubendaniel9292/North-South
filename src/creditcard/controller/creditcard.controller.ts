@@ -34,9 +34,7 @@ export class CreditcardController {
   @Roles('ADMIN', 'BASIC')
   @Post('register-bank')
   public async registerBank(@Body() body: BankDTO) {
-    console.log('datos recibidos en el cotnrolador: ', body); // Verifica qué estás recibiendo
     const newBank = await this.creditCardService.createBank(body);
-    console.log('Datos enviado al servicio: ', newBank); // Verifica qué estás recibiendo
 
     if (newBank) {
       return {

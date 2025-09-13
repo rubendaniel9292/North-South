@@ -138,22 +138,33 @@ export class PolicyStatusService implements OnModuleInit {
   //@Cron('0 * * * *') // Ejecuta a minuto 0 de cada hora
   async updatePolicyStatuses(): Promise<void> {
     const policies = await this.policyRepository.find();
+    let totalProcessed = 0;
+    let statusUpdated = 0;
+    let cancelledSkipped = 0;
+    
     for (const policy of policies) {
+      totalProcessed++;
+      
       // Ignorar pólizas canceladas (id: 2)
       if (policy.policy_status_id == 2) {
-        //console.log(`Póliza ${policy.id} está CANCELADA. No se modificará su estado.`);
+        cancelledSkipped++;
         continue;
       }
-      const endDate = new Date(policy.endDate);
+      
       const newStatus = await this.determinePolicyStatus(policy);
-      //console.log(`Póliza ${policy.id} - Fecha de culminación: ${endDate} - Nuevo estado: ${newStatus.id}`);
+      
       // Solo actualizar si el estado ha cambiado
       if (policy.policy_status_id !== newStatus.id) {
         await this.policyRepository.update(policy.id, {
           policy_status_id: newStatus.id,
         });
-        //console.log(`Póliza ${policy.id} actualizada al estado: ${newStatus.id}`);
+        statusUpdated++;
       }
+    }
+    
+    // Log consolidado solo si hay cambios importantes
+    if (statusUpdated > 0 || totalProcessed > 0) {
+      console.log(`✅ Estados de pólizas actualizados: ${totalProcessed} procesadas, ${statusUpdated} actualizadas, ${cancelledSkipped} canceladas omitidas`);
     }
   }
 
@@ -166,5 +177,6 @@ export class PolicyStatusService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     console.log('Inicializando y actualizando estados de las pólizas...');
     await this.updatePolicyStatuses(); // Llamar a la lógica para actualizar los estados
+    console.log('✅ Estados de pólizas inicializados correctamente');
   }
 }

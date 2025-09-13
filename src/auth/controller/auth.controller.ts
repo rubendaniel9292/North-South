@@ -27,16 +27,10 @@ export class AuthController {
   @Post('login') //metodo de login con acceso publico, no requiere autorizacion
   async login(@Body() loginDto: LoginDto) {
     console.log('=== INICIO DE LOGIN ===');
-    /*
-    console.log('Datos recibidos:', { 
-      username: loginDto.username, 
-      passwordLength: loginDto.password?.length,
-      hasTurnstileToken: !!loginDto.turnstileToken 
-    });
-*/
+
     const { username, password, turnstileToken } = loginDto;
 
-    // 1. VERIFICAR TURNSTILE TOKEN
+    // 1. VERIFICAR TURNSTILE TOKEN (Obligatorio en todos los entornos)
     if (!turnstileToken) {
       console.error('❌ TurnstileToken no proporcionado');
       throw new BadRequestException('Token de Turnstile requerido');
@@ -53,17 +47,17 @@ export class AuthController {
 
     // 2. VALIDAR USUARIO Y CONTRASEÑA
     try {
-      console.log('🔑 Validando credenciales para usuario', /*username*/);
+      console.log('🔑 Validando credenciales para usuario');
       const validateResult = await this.authServices.validateUser(username, password);
-      
+
       if (!validateResult) {
-        console.error('❌ Credenciales inválidas para usuario:'/*, username*/);
+        console.error('❌ Credenciales inválidas');
         throw new UnauthorizedException('Usuario o contraseña incorrectos');
       }
 
       console.log('✅ Credenciales válidas');
       const { user, mustChangePassword } = validateResult;
-      
+
       // 3. VERIFICAR SI DEBE CAMBIAR CONTRASEÑA
       if (mustChangePassword) {
         console.log('⚠️ Usuario debe cambiar contraseña');
@@ -79,9 +73,9 @@ export class AuthController {
       console.log('🎫 Generando JWT para usuario exitoso');
       const jwt = await this.authServices.generateJWT(user);
       console.log('✅ Login completado exitosamente');
-      
+
       return jwt;
-      
+
     } catch (error) {
       console.error('❌ Error durante validación:', error.message);
       if (error instanceof UnauthorizedException || error instanceof BadRequestException) {

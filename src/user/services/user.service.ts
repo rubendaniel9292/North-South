@@ -180,19 +180,9 @@ export class UserService {
       });
 
       if (user) {
-        //console.log(`✅ Usuario encontrado - hasPassword: ${!!user.password}, mustChangePassword: ${user.mustChangePassword}`);
-        // Logging completo para debugging - comentar cuando funcione correctamente
-        console.log(`✅ Usuario encontrado`, /*{
-        uuid: user.uuid,
-        userName: user.userName,
-         email: user.email,
-        role: user.role,
-        hasPassword: !!user.password,
-        mustChangePassword: user.mustChangePassword,
-        passwordLength: user.password?.length
-        }*/);
+        console.log(`✅ Usuario encontrado en base de datos`);
       } else {
-        console.log(`❌ Usuario NO encontrado por ${key}: ${value}`);
+        console.log(`❌ Usuario NO encontrado por ${key}`);
       }
 
       return user;

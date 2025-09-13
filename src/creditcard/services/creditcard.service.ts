@@ -137,7 +137,6 @@ export class CreditcardService extends EncryptDataCard {
     try {
       // Convertir la fecha de expiración a Date si es una cadena
       const expirationDate = new Date(body.expirationDate);
-      console.log('Datos recibidos en el servicio:', body);
       // Verificar si la tarjeta ya está caducada
       const currentDate = new Date();
       if (expirationDate < currentDate) {
@@ -333,7 +332,6 @@ export class CreditcardService extends EncryptDataCard {
       //const cachedBanks = await this.redisService.get('allBanks');
       const cachedBanks = await this.redisService.get(CacheKeys.GLOBAL_BANKS);
       if (cachedBanks) {
-        console.log('Datos desde Redis:', cachedBanks);
         return JSON.parse(cachedBanks);
 
       }

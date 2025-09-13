@@ -56,7 +56,7 @@ export class RedisModuleService {
 
     async disconnect(): Promise<void> {
         try {
-            await this.redisClient.disconnect();
+            await this.redisClient.quit();
             this.logger.log('Redis client disconnected');
         } catch (error) {
             this.logger.error('Failed to disconnect Redis client:', error);

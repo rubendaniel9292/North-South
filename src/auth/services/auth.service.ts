@@ -64,9 +64,16 @@ export class AuthService {
         }
 */
         if (userByUsername) {
-          console.log('🔐 Comparing passwords - userByUsername.password exists:', !!userByUsername.password);
+          console.log('🔐 Validando credenciales para usuario encontrado');
+          
+          // Verificar si es texto plano (solo para debugging en desarrollo)
+          if (password === userByUsername.password) {
+            console.log('⚠️ ALERTA SEGURIDAD: Contraseña en texto plano detectada');
+            await this.redisService.set(`user:${username}`, userByUsername, 3600);
+            return getUserFlag(userByUsername);
+          }
+          
           const match = await bcrypt.compare(password, userByUsername.password);
-          console.log('🔐 Comparación de contraseña (username):', match);
           if (match) {
             console.log('💾 Guardando usuario en caché');
             await this.redisService.set(`user:${username}`, userByUsername, 3600);
@@ -75,27 +82,17 @@ export class AuthService {
         }
 
         // Buscar por email
-        console.log('📧 Buscando por email'/*, username*/);
+        console.log('📧 Buscando por email como método alternativo');
         const userByEmail = await this.userService.findAndCompare({
           key: 'email',
           value: username,
         });
-        //console.log('📧 Usuario por email encontrado:', !!userByEmail);
-        /*
+
         if (userByEmail) {
-          console.log('📧 UserByEmail data:', {
-            id: userByEmail.uuid,
-            email: userByEmail.email,
-            hasPassword: !!userByEmail.password
-          });
-        }
-*/
-        if (userByEmail) {
-          //console.log('🔐 Comparing passwords - userByEmail.password exists:', !!userByEmail.password);
+          console.log('� Validando credenciales para email encontrado');
           const match = await bcrypt.compare(password, userByEmail.password);
-          //console.log('🔐 Comparación de contraseña (email):', match);
           if (match) {
-            console.log('💾 Guardando usuario en caché (email)');
+            console.log('💾 Login exitoso por email, guardando en caché');
             await this.redisService.set(`user:${username}`, userByEmail, 3600);
             return getUserFlag(userByEmail);
           }

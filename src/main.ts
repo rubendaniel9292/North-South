@@ -6,7 +6,7 @@ import * as morgan from 'morgan';
 import * as winston from 'winston';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import xss from 'express-xss-sanitizer';
+const { xss } = require('express-xss-sanitizer');
 import * as hpp from 'hpp';
 import * as https from 'https';
 import { promises as fs } from 'fs';
@@ -71,10 +71,10 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
 
 */
 const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const sanitizeValue = (value: any, isToken = false): any => {
+  const sanitizeValue = (value: any, isToken = false, isPassword = false): any => {
     if (typeof value === 'string') {
-      // No sanitizar si es un token de Turnstile
-      if (isToken) return value;
+      // No sanitizar si es un token de Turnstile o una contraseña
+      if (isToken || isPassword) return value;
 
       return value
         .replace(/<script.*?>.*?<\/script>/gim, '')
@@ -83,11 +83,15 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
         .trim();
     }
     if (typeof value === 'object' && value !== null) {
-      return Object.keys(value).reduce((acc, key) => ({
-        ...acc,
-        // No sanitizar el campo turnstileToken
-        [key]: key === 'turnstileToken' ? sanitizeValue(value[key], true) : sanitizeValue(value[key])
-      }), {});
+      return Object.keys(value).reduce((acc, key) => {
+        const isPasswordField = key === 'password' || key === 'newPassword' || key === 'currentPassword' || key === 'confirmPassword';
+        const isTurnstileField = key === 'turnstileToken';
+        
+        return {
+          ...acc,
+          [key]: sanitizeValue(value[key], isTurnstileField, isPasswordField)
+        };
+      }, {});
     }
     return value;
   };
@@ -149,8 +153,7 @@ async function setupSecurityMiddleware(app: INestApplication): Promise<void> {
 
   // Middlewares de seguridad adicionales
 
-  app.use(xss());
-  app.use(xss());
+  // XSS protection ahora manejado por nuestro middleware personalizado
   app.use(hpp({ whitelist: [] }));
   app.use('/api', rateLimitConfig);
   app.use(securityLoggingMiddleware);

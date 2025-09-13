@@ -85,16 +85,13 @@ export class CreditCardStatusService implements OnModuleInit {
     */
     // Comparar las fechas normalizadas
     if (normalizedExpirationDate.getTime() < normalizedCurrentDate.getTime()) {
-      console.log(`Tarjeta CADUCADA: ${normalizedExpirationDate} < ${normalizedCurrentDate}`);
       return expiredStatus; // La tarjeta ha caducado
     } else if (
       normalizedExpirationDate.getTime() >= normalizedCurrentDate.getTime() &&
       normalizedExpirationDate.getTime() < afterNextMonthStart.getTime()
     ) {
-      console.log(`Tarjeta POR CADUCAR: ${normalizedExpirationDate} está dentro de los próximos dos meses`);
       return aboutToExpireStatus; // La tarjeta está por caducar (dentro de los próximos dos meses)
     } else {
-      //console.log(`Tarjeta VIGENTE: ${normalizedExpirationDate} >= ${afterNextMonthStart}`);
       return activeStatus; // La tarjeta está vigente
     }
   }
@@ -103,29 +100,44 @@ export class CreditCardStatusService implements OnModuleInit {
   //@Cron('0 * * * *') // Ejecuta a minuto 0 de cada hora
   @Cron('0 0 1 * *') // Ejecuta a medianoche el primer día de cada mes
   async updateCardStatuses(): Promise<void> {
-    console.log('Actualizando estados de las tarjetas...');
     const creditCards = await this.creditCardRepository.find();
+    let totalProcessed = 0;
+    let statusUpdated = 0;
+    let expiredCards = 0;
+    let aboutToExpireCards = 0;
+    let activeCards = 0;
+    let errors = 0;
 
     for (const card of creditCards) {
-      const expirationDate = new Date(card.expirationDate);
-      const newStatus = await this.determineCardStatus(expirationDate);
-      if (newStatus && card.card_status_id !== newStatus.id) {
-        console.log(
-          `Actualizando tarjeta con ID ${card.id} del estado ${card.card_status_id} al estado ${newStatus.id}`,
-        );
-        try {
+      totalProcessed++;
+      
+      try {
+        const expirationDate = new Date(card.expirationDate);
+        const newStatus = await this.determineCardStatus(expirationDate);
+        
+        if (newStatus && card.card_status_id !== newStatus.id) {
           await this.creditCardRepository.update(card.id, {
             card_status_id: newStatus.id,
           });
-          console.log(`Tarjeta ID ${card.id} actualizada exitosamente.`);
-        } catch (error) {
-          console.error(`Error actualizando tarjeta con ID ${card.id}:`, error);
+          statusUpdated++;
+          
+          // Contar por tipo de estado
+          if (newStatus.id === 3) expiredCards++;
+          else if (newStatus.id === 2) aboutToExpireCards++;
+          else if (newStatus.id === 1) activeCards++;
         }
-      } else {
-        console.log(`Tarjeta ID ${card.id} ya está en el estado correcto.`);
+      } catch (error) {
+        console.error(`Error actualizando tarjeta con ID ${card.id}:`, error);
+        errors++;
       }
     }
-    console.log('Actualización de estados de las tarjetas completada.');
+    
+    // Log consolidado solo si hay cambios importantes
+    if (statusUpdated > 0 || errors > 0) {
+      console.log(`✅ Estados de tarjetas actualizados: ${totalProcessed} procesadas, ${statusUpdated} actualizadas (${expiredCards} caducadas, ${aboutToExpireCards} por caducar, ${activeCards} vigentes)${errors > 0 ? `, ${errors} errores` : ''}`);
+    } else if (totalProcessed > 0) {
+      console.log(`✅ Verificación de tarjetas completada: ${totalProcessed} tarjetas verificadas, sin cambios necesarios`);
+    }
   }
 
   // este metodo puede ser llamado manualmente desde un controlador o consola
@@ -138,5 +150,6 @@ export class CreditCardStatusService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     console.log('Módulo inicializado, actualizando estados de tarjetas...');
     await this.updateCardStatuses();
+    console.log('✅ Estados de tarjetas inicializados correctamente');
   }
 }

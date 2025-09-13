@@ -10,27 +10,36 @@ import { DateHelper } from './date.helper';
 export class PaymentSchedulerService implements OnModuleInit {
   constructor(private readonly paymentService: PaymentService) { }
 
+  /**
+   * Función optimizada para verificar si hay pagos pendientes sin cargar todos los pagos en memoria
+   * Esta función reemplaza el uso de getAllPayments() en onModuleInit para evitar memory leak
+   * 
+   * Implementación optimizada que:
+   * 1. Usa COUNT en lugar de SELECT *
+   * 2. Solo verifica pagos con pending_value > 0
+   * 3. No carga relaciones innecesarias
+   * 4. Retorna boolean directamente
+   * 
+   * @returns Promise<boolean> - true si hay pagos pendientes, false si no
+   */
+  private async checkIfPendingPaymentsExist(): Promise<boolean> {
+    try {
+      // Usar el método optimizado del PaymentService
+      return await this.paymentService.checkPendingPaymentsExist();
+    } catch (error) {
+      console.error('Error al verificar pagos pendientes:', error);
+      // En caso de error, devolver false para no bloquear la inicialización
+      return false;
+    }
+  }
+
   async onModuleInit() {
     console.log('Inicializando módulo y verificando pagos pendientes...');
     try {
-      const payments = await this.paymentService.getAllPayments();
-      if (payments.length === 0) {
-        console.log('No hay pagos para procesar en la inicialización.');
-        return;
-      }
-      const today = new Date();
-      let pendingPayments = false;
-      const processedPolicies = new Set<number>();
-      for (const payment of payments) {
-        if (processedPolicies.has(payment.policy_id)) continue;
-        if (payment.pending_value <= 0) continue;
-        const nextPaymentDate = this.calculateNextPaymentDate(payment);
-        if (nextPaymentDate && nextPaymentDate <= today) {
-          pendingPayments = true;
-          break;
-        }
-      }
-      if (pendingPayments) {
+      // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
+      const hasPendingPayments = await this.checkIfPendingPaymentsExist();
+      
+      if (hasPendingPayments) {
         console.log('Se encontraron pagos pendientes que deben procesarse. Procesando...');
         await this.processOverduePaymentsOnly();
       } else {
@@ -53,20 +62,34 @@ export class PaymentSchedulerService implements OnModuleInit {
   // PROCESA SOLO PAGOS VENCIDOS (evita duplicados por fecha)
   async processOverduePaymentsOnly() {
     const today = new Date();
-    console.log(`Procesando pagos vencidos desde ${today}`);
+    console.log(`Procesando pagos vencidos desde ${today.toLocaleDateString('es-EC')}`);
     const payments = await this.paymentService.getAllPayments();
-    if (payments.length === 0) return;
+    if (payments.length === 0) {
+      console.log('No hay pagos para procesar.');
+      return;
+    }
+
     const processedPolicies = new Set<number>();
+    let totalProcessed = 0;
+    let paymentsCreated = 0;
+    let skippedPolicies = 0;
 
     for (const payment of payments) {
       try {
         if (processedPolicies.has(payment.policy_id)) continue;
         if (payment.pending_value <= 0) continue;
+        
         const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+        
+        // Marcar como procesada inmediatamente para evitar logs duplicados
+        processedPolicies.add(payment.policy_id);
+        totalProcessed++;
+        
         if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
-          processedPolicies.add(payment.policy_id);
+          skippedPolicies++;
           continue;
         }
+        
         const isRenewed = this.isPolicyRenewed(policy);
         let relevantPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
         if (isRenewed) {
@@ -76,25 +99,27 @@ export class PaymentSchedulerService implements OnModuleInit {
           );
         }
         if (relevantPayments.length >= policy.numberOfPayments) {
-          processedPolicies.add(payment.policy_id);
           continue;
         }
+        
         const nextPaymentDate = this.calculateNextPaymentDate(payment);
         const todayNorm = DateHelper.normalizeDateForComparison(today);
         const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
         // SOLO crear pago si la fecha del próximo pago es HOY exactamente
         if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
-          console.log(`Procesando pago para póliza ${policy.id}, fecha: ${nextPaymentDate}`);
-          await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
-          processedPolicies.add(payment.policy_id);
-        } else {
-          console.log(`No se crea pago para póliza ${policy.id}, Fecha próxima: ${nextPaymentDateNorm.toISOString()}, Hoy: ${todayNorm.toISOString()}`);
+          const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
+          if (createdPayment) {
+            paymentsCreated++;
+          }
         }
       } catch (error) {
         console.error(`Error procesando pago ${payment.id}:`, error);
       }
     }
+    
+    // Resumen consolidado
+    console.log(`✅ Procesamiento completado: ${totalProcessed} pólizas procesadas, ${paymentsCreated} pagos creados, ${skippedPolicies} pólizas omitidas (canceladas/culminadas)`);
   }
 
   async verifyAndProcessPayments() {
@@ -104,14 +129,23 @@ export class PaymentSchedulerService implements OnModuleInit {
       console.log('No hay pagos para procesar.');
       return;
     }
+    
     const processedPolicies = new Set<number>();
+    let totalProcessed = 0;
+    let paymentsCreated = 0;
+    
     for (const payment of payments) {
       try {
         if (processedPolicies.has(payment.policy_id)) continue;
         if (payment.pending_value <= 0) continue;
+        
         const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+        processedPolicies.add(payment.policy_id);
+        totalProcessed++;
+        
         if (!policy.renewals) policy.renewals = [];
         if (policy.policy_status_id == 2 || policy.policy_status_id == 3) continue;
+        
         const isRenewed = this.isPolicyRenewed(policy);
         let maxAllowedPayments = policy.numberOfPayments;
         if (isRenewed && policy.renewals && policy.renewals.length > 0) {
@@ -119,36 +153,43 @@ export class PaymentSchedulerService implements OnModuleInit {
         }
         const currentPaymentsCount = policy.payments.length;
         if (currentPaymentsCount >= maxAllowedPayments && payment.pending_value <= 0) continue;
+        
         const nextPaymentDate = this.calculateNextPaymentDate(payment);
         const todayNorm = DateHelper.normalizeDateForComparison(today);
         const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
         // SOLO crear pago si la fecha del próximo pago es HOY exactamente
         if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
-          await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
+          const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
+          if (createdPayment) {
+            paymentsCreated++;
+          }
         }
       } catch (error) {
         console.error(`Error procesando pago ${payment.id}:`, error);
         continue;
       }
     }
+    
+    // Resumen consolidado solo si se procesó algo
+    if (totalProcessed > 0) {
+      console.log(`✅ Verificación diaria completada: ${totalProcessed} pólizas verificadas, ${paymentsCreated} pagos creados`);
+    }
   }
 
   // Método para crear un pago solo si NO existe pago para esa fecha
-  async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity, paymentDueDate: Date, observationText?: string) {
+  async createOverduePayment(payment: PaymentEntity, policy: PolicyEntity, paymentDueDate: Date, observationText?: string): Promise<PaymentEntity | null> {
     try {
       if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
-        console.log(`Póliza ${policy.id} está CANCELADA o CULMINADA. No se generarán más pagos.`);
-        return;
+        return null;
       }
       if (!policy.payments) {
         console.error('Error: No se encontraron pagos asociados a la póliza.');
-        return;
+        return null;
       }
       if (!policy.renewals) policy.renewals = [];
       if (payment.pending_value <= 0) {
-        console.log(`No se creará un pago con valor ${payment.value} y saldo pendiente ${payment.pending_value}`);
-        return;
+        return null;
       }
 
       // Validar que NO exista un pago en esa fecha
@@ -156,8 +197,7 @@ export class PaymentSchedulerService implements OnModuleInit {
         DateHelper.normalizeDateForComparison(p.createdAt).getTime() === paymentDueDate.getTime()
       );
       if (alreadyExistsForDate) {
-        console.log(`Ya existe un pago para la fecha ${paymentDueDate.toISOString()} en la póliza ${policy.id}. No se creará otro.`);
-        return;
+        return null;
       }
 
       // Calcular el siguiente número de pago
@@ -172,8 +212,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       // Chequeo extra por número de pago (defensivo)
       const existingPayment = currentPolicyPayments.find(p => p.number_payment === nextPaymentNumber);
       if (existingPayment) {
-        console.log(`Ya existe un pago con número ${nextPaymentNumber} para la póliza ${policy.id}. No se generará un pago duplicado.`);
-        return;
+        return null;
       }
 
       // Calcular valor del pago y saldo pendiente
@@ -203,7 +242,6 @@ export class PaymentSchedulerService implements OnModuleInit {
       };
 
       const savedPayment = await this.paymentService.createPayment(newPayment);
-      console.log(`Pago automático creado: ${savedPayment.id} para póliza ${policy.id}`);
       return savedPayment;
     } catch (error) {
       console.error('Error al crear pago:', error);
