@@ -59,13 +59,15 @@ export class PaymentSchedulerService implements OnModuleInit {
     }
   }
 
-  // PROCESA SOLO PAGOS VENCIDOS (evita duplicados por fecha)
+  // PROCESA SOLO PAGOS VENCIDOS (evita duplicados por fecha) - OPTIMIZADO
   async processOverduePaymentsOnly() {
     const today = new Date();
     console.log(`Procesando pagos vencidos desde ${today.toLocaleDateString('es-EC')}`);
-    const payments = await this.paymentService.getAllPayments();
+    
+    // OPTIMIZACIÓN: Solo obtener pagos con pending_value > 0 en lugar de TODOS
+    const payments = await this.paymentService.getPaymentsWithPendingValue();
     if (payments.length === 0) {
-      console.log('No hay pagos para procesar.');
+      console.log('No hay pagos pendientes para procesar.');
       return;
     }
 
@@ -124,9 +126,10 @@ export class PaymentSchedulerService implements OnModuleInit {
 
   async verifyAndProcessPayments() {
     const today = new Date();
-    const payments = await this.paymentService.getAllPayments();
+    // OPTIMIZACIÓN: Solo obtener pagos con pending_value > 0
+    const payments = await this.paymentService.getPaymentsWithPendingValue();
     if (payments.length === 0) {
-      console.log('No hay pagos para procesar.');
+      console.log('No hay pagos pendientes para procesar.');
       return;
     }
     
@@ -306,10 +309,11 @@ export class PaymentSchedulerService implements OnModuleInit {
   async manualProcessPayments() {
     console.log('Iniciando procesamiento manual de pagos...');
     try {
-      const payments = await this.paymentService.getAllPayments();
+      // OPTIMIZACIÓN: Solo obtener pagos con pending_value > 0
+      const payments = await this.paymentService.getPaymentsWithPendingValue();
       if (payments.length === 0) {
-        console.log('No hay pagos para procesar.');
-        return { message: 'No hay pagos para procesar.' };
+        console.log('No hay pagos pendientes para procesar.');
+        return { message: 'No hay pagos pendientes para procesar.' };
       }
       const createdPayments = [];
       const processedPolicies = new Set<number>();

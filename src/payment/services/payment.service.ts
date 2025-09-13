@@ -184,6 +184,44 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  /**
+   * Método optimizado para obtener SOLO pagos con pending_value > 0
+   * Evita cargar todos los 3400+ pagos en memoria
+   * Solo carga los que realmente necesitan procesamiento
+   */
+  public getPaymentsWithPendingValue = async (): Promise<PaymentEntity[]> => {
+    try {
+      const payments: PaymentEntity[] = await this.paymentRepository.find({
+        where: { 
+          pending_value: MoreThan(0) // Solo pagos con saldo pendiente
+        },
+        relations: [
+          'policies',
+          'policies.renewals',
+          'policies.periods',
+          'paymentStatus',
+          'policies.paymentFrequency',
+          'policies.payments',
+        ],
+        select: {
+          policies: {
+            id: true,
+            numberPolicy: true,
+            policyValue: true,
+            numberOfPayments: true,
+            policy_status_id: true,
+          },
+        },
+      });
+      
+      return payments || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos con saldo pendiente:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
