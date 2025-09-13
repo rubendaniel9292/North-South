@@ -46,7 +46,7 @@ export class CommissionsPaymentsService {
         try {
             // Crear clave de caché específica para los payments de esta policy
             const cacheKey = `policy_payments:${policyId}`;
-            
+
             // Intentar obtener del caché primero
             const cachedPayments = await this.redisService.get(cacheKey);
             if (cachedPayments) {
@@ -68,10 +68,10 @@ export class CommissionsPaymentsService {
             });
 
             const paymentData = policy?.payments || [];
-            
+
             // Guardar en caché por 30 minutos
             await this.redisService.set(cacheKey, JSON.stringify(paymentData), 1800);
-            
+
             return paymentData;
         } catch (error) {
             console.error(`Error cargando payments para policy ${policyId}:`, error);
@@ -95,13 +95,13 @@ export class CommissionsPaymentsService {
 
             // 2. Get ONLY general advance payments for this advisor (OPTIMIZED - no policy_id)
             const allPayments = await this.commissionsPayments.find({
-                where: { 
+                where: {
                     advisor_id: body.advisor_id,
                     policy_id: IsNull(), // Solo anticipos generales (sin policy_id)
                     status_advance_id: 1 // Solo los que están disponibles
                 }
             });
-            
+
             // Log de anticipos encontrados (ya filtrados en la consulta)
             allPayments.forEach(p => {
                 console.log("Anticipo encontrado:", p, "advanceAmount type:", typeof p.advanceAmount, "valor:", p.advanceAmount);
@@ -313,7 +313,7 @@ export class CommissionsPaymentsService {
             // Invalidar también cualquier caché específica del asesor (REACTIVADO)
             await this.redisService.del(`advisor:${normalizedBody.advisor_id}`);
             await this.redisService.del('allAdvisors');
-            
+
             // Limpiar caché de payments de la policy si aplica
             if (normalizedBody.policy_id) {
                 await this.redisService.del(`policy_payments:${normalizedBody.policy_id}`);
@@ -330,7 +330,7 @@ export class CommissionsPaymentsService {
         try {
             // Crear clave de caché específica por advisor si se proporciona
             const cacheKey = advisorId ? `${CacheKeys.GLOBAL_COMMISSIONS}:${advisorId}` : CacheKeys.GLOBAL_COMMISSIONS;
-            
+
             // Intentar obtener del caché primero (REACTIVADO)
             const cachedCommissions = await this.redisService.get(cacheKey);
 
@@ -351,7 +351,7 @@ export class CommissionsPaymentsService {
                 3600 // TTL de 1 hora
             );
             console.log(`💾 Comisiones guardadas en caché: ${cacheKey}`);
-            
+
             return allCommissions;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);
@@ -393,7 +393,7 @@ export class CommissionsPaymentsService {
             //body.createdAt = createdAt;
             body.cancellationDate = cancellationDate;
             const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsRepository.save(body);
-            /*
+
             await this.redisService.del('allAdvisors');
             await this.redisService.del(
                 CacheKeys.GLOBAL_COMMISSIONS,
@@ -402,7 +402,7 @@ export class CommissionsPaymentsService {
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSION_REFUNDS);
             await this.redisService.del('policies');
             await this.redisService.del(`advisor:${body.advisor_id}`);
-*/
+
             return commissionRefunds;
         } catch (error) {
             throw ErrorManager.createSignatureError(error.message);

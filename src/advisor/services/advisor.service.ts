@@ -31,7 +31,7 @@ export class AdvisorService extends ValidateEntity {
         await this.advisdorRepository.save(body);
 
       // Invalidar la caché existente de todos los asesores
-      //await this.redisService.del('allAdvisors');
+      await this.redisService.del('allAdvisors');
 
       return newAdvisor;
     } catch (error) {
@@ -44,14 +44,14 @@ export class AdvisorService extends ValidateEntity {
     try {
       // Verificar si los datos están en Redis
       // Solo usar caché si no hay búsqueda específica
-      /*
+
       if (!search) {
         const cachedAllAdvisors = await this.redisService.get('allAdvisors');
         if (cachedAllAdvisors) {
           return JSON.parse(cachedAllAdvisors);
         }
       }
-      */
+
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
 
@@ -79,14 +79,14 @@ export class AdvisorService extends ValidateEntity {
         ],
       });
       // Solo guardar en caché si no hubo búsqueda
-      /*
+
       if (!search) {
         await this.redisService.set(
           'allAdvisors',
           JSON.stringify(allAdvisors),
           32400,
         ); // TTL de 9 horas
-      }*/
+      }
       return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -96,12 +96,12 @@ export class AdvisorService extends ValidateEntity {
   //3: metodo para listar los asesores por id
   public getAdvisorById = async (id: number): Promise<AdvisorEntity> => {
     try {
-      /*
+
       const cachedAdvisorById = await this.redisService.get(`advisor:${id}`);
       if (cachedAdvisorById) {
         return JSON.parse(cachedAdvisorById);
       }
-        */
+
       const advisorById: AdvisorEntity = await this.advisdorRepository.findOne({
         where: { id },
         relations: [
@@ -125,13 +125,13 @@ export class AdvisorService extends ValidateEntity {
           message: 'No se encontró el asesor',
         });
       }
-      /*
-            await this.redisService.set(
-              `advisor:${id}`,
-              JSON.stringify(advisorById),
-              32400,
-            ); // TTL de 9 horas
-            */
+
+      await this.redisService.set(
+        `advisor:${id}`,
+        JSON.stringify(advisorById),
+        32400,
+      ); // TTL de 9 horas
+
       return advisorById;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -190,13 +190,13 @@ export class AdvisorService extends ValidateEntity {
       });
 
       // Actualizar caché con los datos más recientes incluyendo relaciones
-      /*
+      
       await this.redisService.set(
         `advisor:${id}`,
         JSON.stringify(advisorWithRelations),
         32400,
       );
-      */
+      
       return advisorWithRelations;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

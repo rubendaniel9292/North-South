@@ -118,12 +118,12 @@ export class CreditcardService extends EncryptDataCard {
       //7 Guardar los datos encriptados en la base de datos
       const newCard = await this.cardRepository.save(encryptedBody);
       // Guardar la tarjeta en Redis
-      /*
+      
       await this.redisService.set(`card:${newCard.id}`, JSON.stringify(newCard), 32400); // TTL de 9 horas
       // Invalidar las listas cacheadas para forzar una actualización
       await this.redisService.del('allCards');
       await this.redisService.del('allCardsExpired');
-      */
+      
       return newCard;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -170,12 +170,12 @@ export class CreditcardService extends EncryptDataCard {
   public findAllCrards = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
-      /*
+      
       const cachedCards = await this.redisService.get('allCards');
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
-      */
+      
       const allCards: CreditCardEntity[] = await this.cardRepository.find({
         relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
         select: {
@@ -217,7 +217,7 @@ export class CreditcardService extends EncryptDataCard {
       });
 
       // Guardar los datos desencriptados en Redis
-      //await this.redisService.set('allCards', JSON.stringify(decryptedCards), 32400); // TTL de 1 hora
+      await this.redisService.set('allCards', JSON.stringify(decryptedCards), 32400); // TTL de 1 hora
       return decryptedCards;
 
     } catch (error) {
@@ -265,12 +265,12 @@ export class CreditcardService extends EncryptDataCard {
   public findCardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
-      /*
+      
       const cachedCards = await this.redisService.get('allCardsExpired');
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
-      */
+      
       const allCardsExpired: CreditCardEntity[] =
         await this.cardRepository.find({
           where: [
@@ -316,7 +316,7 @@ export class CreditcardService extends EncryptDataCard {
         };
       });
       // Guardar los datos desencriptados en Redis
-      //await this.redisService.set('allCardsExpired', JSON.stringify(decryptedCards), 32400); // TTL de 9 horas
+      await this.redisService.set('allCardsExpired', JSON.stringify(decryptedCards), 32400); // TTL de 9 horas
 
       return decryptedCards;
     } catch (error) {

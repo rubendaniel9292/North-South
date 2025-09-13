@@ -120,7 +120,7 @@ export class PaymentService {
 
       const newPayment = await this.paymentRepository.save(body);
       // INVALIDAR caché relacionado
-      //await this.invalidatePolicyRelatedCache(policy);
+      await this.invalidatePolicyRelatedCache(policy);
       return newPayment;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -136,7 +136,7 @@ export class PaymentService {
           pending_value: MoreThan(0)
         }
       });
-      
+
       return count > 0;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -146,11 +146,11 @@ export class PaymentService {
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
-      /*
-            const cachedPayments = await this.redisService.get('payments');
-            if (cachedPayments) {
-              return JSON.parse(cachedPayments);
-            }*/
+
+      const cachedPayments = await this.redisService.get('payments');
+      if (cachedPayments) {
+        return JSON.parse(cachedPayments);
+      }
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         order: {
           id: 'DESC',
@@ -178,7 +178,7 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      //await this.redisService.set('payments', JSON.stringify(payments), 32400);
+      await this.redisService.set('payments', JSON.stringify(payments), 32400);
       return payments;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -210,7 +210,7 @@ export class PaymentService {
           },
         },
       });
-      
+
       return payments || [];
     } catch (error) {
       console.error('Error obteniendo pagos paginados:', error);
@@ -239,7 +239,7 @@ export class PaymentService {
           },
         },
       });
-      
+
       return payments || [];
     } catch (error) {
       console.error('Error obteniendo pagos por póliza:', error);
@@ -251,7 +251,7 @@ export class PaymentService {
   public searchPayments = async (searchTerm: string): Promise<PaymentEntity[]> => {
     try {
       const isNumeric = /^\d+$/.test(searchTerm);
-      
+
       if (isNumeric) {
         // Buscar por ID de pago o número de póliza
         const payments: PaymentEntity[] = await this.paymentRepository.find({
@@ -274,14 +274,14 @@ export class PaymentService {
             },
           },
         });
-        
+
         return payments || [];
       } else {
         // Buscar por número de póliza (texto)
         const payments: PaymentEntity[] = await this.paymentRepository.find({
           where: {
-            policies: { 
-              numberPolicy: searchTerm 
+            policies: {
+              numberPolicy: searchTerm
             }
           },
           order: { id: 'DESC' },
@@ -298,7 +298,7 @@ export class PaymentService {
             },
           },
         });
-        
+
         return payments || [];
       }
     } catch (error) {
@@ -326,7 +326,7 @@ export class PaymentService {
           },
         },
       });
-      
+
       return payments || [];
     } catch (error) {
       console.error('Error obteniendo pagos por estado:', error);
@@ -342,7 +342,7 @@ export class PaymentService {
   public getPaymentsWithPendingValue = async (): Promise<PaymentEntity[]> => {
     try {
       const payments: PaymentEntity[] = await this.paymentRepository.find({
-        where: { 
+        where: {
           pending_value: MoreThan(0) // Solo pagos con saldo pendiente
         },
         relations: [
@@ -363,7 +363,7 @@ export class PaymentService {
           },
         },
       });
-      
+
       return payments || [];
     } catch (error) {
       console.error('Error obteniendo pagos con saldo pendiente:', error);
@@ -404,12 +404,12 @@ export class PaymentService {
   //4: metodo para obtener los estados de los pagos
   public getPaymentStatus = async (): Promise<PaymentStatusEntity[]> => {
     try {
-      /*
+
       const cachedPayments = await this.redisService.get('paymentStatus');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
       }
-*/
+
       const paymentStatus = await this.paymentStatusRepository.find();
 
       if (!paymentStatus) {
@@ -419,13 +419,13 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      /*
+
       await this.redisService.set(
         'paymentStatus',
         JSON.stringify(paymentStatus),
         32400,
-      ); // TTL de 1 hora
-      */
+      ); // TTL de 9 horas
+
       return paymentStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -436,12 +436,15 @@ export class PaymentService {
     companyId?: number,
   ): Promise<PaymentEntity[]> => {
     try {
-      /*
+
       const cacheKey = companyId
         ? `paymentsByStatus:${companyId}`
         : 'paymentsByStatus:general';
-        */
-      //const cachedPayments = await this.redisService.get(cacheKey);
+
+      const cachedPayments = await this.redisService.get(cacheKey);
+      if (cachedPayments) {
+        return JSON.parse(cachedPayments);
+      }
 
       // condiciones de búsqueda
       const whereConditions: any = {
@@ -499,13 +502,13 @@ export class PaymentService {
           message: 'No se encontró resultados',
         });
       }
-      /*
+
       await this.redisService.set(
         cacheKey,
         JSON.stringify(paymentsByStatus),
         32400,
-      ); // TTL de 9 horaL de 1 hora
-      */
+      ); // TTL de 9 horas
+
       return paymentsByStatus;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -541,8 +544,8 @@ export class PaymentService {
       const paymentUpdated = await this.paymentRepository.save(payment);
 
       // INVALIDAR TODAS LAS KEYS RELACIONADAS
-      //const policy = payment.policies;
-      //await this.invalidatePolicyRelatedCache(policy);
+      const policy = payment.policies;
+      await this.invalidatePolicyRelatedCache(policy);
 
       return paymentUpdated;
     } catch (error) {
