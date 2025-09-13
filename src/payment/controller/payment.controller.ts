@@ -18,6 +18,7 @@ import { Roles } from 'src/auth/decorators/decorators';
 import { PaymentService } from '../services/payment.service';
 import { PaymentDTO } from '../dto/payment.dto';
 import { PaymentSchedulerService } from '@/helpers/registerPayment';
+import { PaymentEntity } from '../entity/payment.entity';
 
 @Controller('payment')
 @UseGuards(AuthGuard, RolesGuard)
@@ -40,12 +41,52 @@ export class PaymentController {
 
   @Roles('ADMIN', 'BASIC')
   @Get('get-all-payment')
-  public async allPayment() {
+  public async allPayment(@Query('search') search?: string, @Query('status') status?: number, @Query('policy_id') policyId?: number) {
+    // IMPLEMENTAR BÚSQUEDA ESPECÍFICA PARA EVITAR MEMORY LEAK
+    let allPayments: PaymentEntity[] = [];
+
+    if (policyId) {
+      // Caso específico: pagos de una póliza particular
+      allPayments = await this.paymentService.getPaymentsByPolicy(policyId);
+    } else if (search) {
+      // Caso específico: búsqueda por número de póliza o ID
+      allPayments = await this.paymentService.searchPayments(search);
+    } else if (status) {
+      // Caso específico: pagos por estado específico
+      allPayments = await this.paymentService.getPaymentsByStatusId(status);
+    } else {
+      // Por defecto: solo pagos pendientes (los más importantes)
+      allPayments = await this.paymentService.getPaymentsWithPendingValue();
+    }
+
+    if (allPayments) {
+      return {
+        status: 'success',
+        allPayments,
+        totalCount: allPayments.length,
+        message: status ? `Pagos con estado ${status}` : search ? `Búsqueda: ${search}` : policyId ? `Pagos de póliza ${policyId}` : 'Solo pagos pendientes (optimizado)'
+      };
+    }
+  }
+
+  // Nuevo endpoint para casos específicos donde SÍ necesitan todos los pagos
+  @Roles('ADMIN', 'BASIC')
+  @Get('get-all-payment-full')
+  public async allPaymentFull(@Query('confirm') confirm?: string) {
+    if (confirm !== 'true') {
+      return {
+        status: 'warning',
+        message: 'Este endpoint carga TODOS los pagos y puede causar problemas de memoria. Usa ?confirm=true si estás seguro.',
+        alternative: 'Usa /get-all-payment con parámetros específicos: ?policy_id=X, ?search=X, ?status=X'
+      };
+    }
+
     const allPayments = await this.paymentService.getAllPayments();
     if (allPayments) {
       return {
         status: 'success',
         allPayments,
+        warning: 'Endpoint completo usado - monitorear memoria'
       };
     }
   }

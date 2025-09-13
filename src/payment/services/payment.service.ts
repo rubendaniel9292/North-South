@@ -185,6 +185,155 @@ export class PaymentService {
     }
   };
 
+  //2.1: método PAGINADO para evitar memory leak - reemplaza getAllPayments en el controlador
+  public getPaymentsPaginated = async (limit: number = 50, offset: number = 0): Promise<PaymentEntity[]> => {
+    try {
+      const payments: PaymentEntity[] = await this.paymentRepository.find({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'DESC',
+        },
+        relations: [
+          'policies',
+          'paymentStatus',
+        ],
+        select: {
+          id: true,
+          value: true,
+          pending_value: true,
+          number_payment: true,
+          createdAt: true,
+          policies: {
+            id: true,
+            numberPolicy: true,
+          },
+        },
+      });
+      
+      return payments || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos paginados:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2.2: método para obtener pagos de una póliza específica
+  public getPaymentsByPolicy = async (policyId: number): Promise<PaymentEntity[]> => {
+    try {
+      const payments: PaymentEntity[] = await this.paymentRepository.find({
+        where: { policy_id: policyId },
+        order: { number_payment: 'ASC' },
+        relations: ['policies', 'paymentStatus'],
+        select: {
+          id: true,
+          value: true,
+          pending_value: true,
+          number_payment: true,
+          createdAt: true,
+          balance: true,
+          total: true,
+          policies: {
+            id: true,
+            numberPolicy: true,
+          },
+        },
+      });
+      
+      return payments || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos por póliza:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2.3: método para buscar pagos por número de póliza o ID
+  public searchPayments = async (searchTerm: string): Promise<PaymentEntity[]> => {
+    try {
+      const isNumeric = /^\d+$/.test(searchTerm);
+      
+      if (isNumeric) {
+        // Buscar por ID de pago o número de póliza
+        const payments: PaymentEntity[] = await this.paymentRepository.find({
+          where: [
+            { id: parseInt(searchTerm) },
+            { policies: { numberPolicy: searchTerm } },
+            { policies: { id: parseInt(searchTerm) } }
+          ],
+          order: { id: 'DESC' },
+          relations: ['policies', 'paymentStatus'],
+          select: {
+            id: true,
+            value: true,
+            pending_value: true,
+            number_payment: true,
+            createdAt: true,
+            policies: {
+              id: true,
+              numberPolicy: true,
+            },
+          },
+        });
+        
+        return payments || [];
+      } else {
+        // Buscar por número de póliza (texto)
+        const payments: PaymentEntity[] = await this.paymentRepository.find({
+          where: {
+            policies: { 
+              numberPolicy: searchTerm 
+            }
+          },
+          order: { id: 'DESC' },
+          relations: ['policies', 'paymentStatus'],
+          select: {
+            id: true,
+            value: true,
+            pending_value: true,
+            number_payment: true,
+            createdAt: true,
+            policies: {
+              id: true,
+              numberPolicy: true,
+            },
+          },
+        });
+        
+        return payments || [];
+      }
+    } catch (error) {
+      console.error('Error buscando pagos:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2.4: método para obtener pagos por estado específico (ID)
+  public getPaymentsByStatusId = async (statusId: number): Promise<PaymentEntity[]> => {
+    try {
+      const payments: PaymentEntity[] = await this.paymentRepository.find({
+        where: { status_payment_id: statusId },
+        order: { id: 'DESC' },
+        relations: ['policies', 'paymentStatus'],
+        select: {
+          id: true,
+          value: true,
+          pending_value: true,
+          number_payment: true,
+          createdAt: true,
+          policies: {
+            id: true,
+            numberPolicy: true,
+          },
+        },
+      });
+      
+      return payments || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos por estado:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
   /**
    * Método optimizado para obtener SOLO pagos con pending_value > 0
    * Evita cargar todos los 3400+ pagos en memoria
