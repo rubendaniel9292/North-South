@@ -437,7 +437,7 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //2:metodo para consultas todas las polizas
+  //2:metodo para consultas todas las polizas (INCLUYE PAYMENTS - PUEDE CAUSAR MEMORY LEAK)
   public getAllPolicies = async (search?: string): Promise<PolicyEntity[]> => {
     try {
 
@@ -547,6 +547,192 @@ export class PolicyService extends ValidateEntity {
       ); // TTL de 9 horas
       //console.log(policies)
       return policies;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2B: Método OPTIMIZADO para consultar todas las políticas SIN payments (EVITA MEMORY LEAK)
+  public getAllPoliciesOptimized = async (search?: string): Promise<PolicyEntity[]> => {
+    try {
+      // Cache específico para versión optimizada
+      const cacheKey = search ? `policies_optimized:${search}` : CacheKeys.GLOBAL_ALL_POLICIES + '_optimized';
+      
+      if (!search) {
+        const cachedPolicies = await this.redisService.get(cacheKey);
+        if (cachedPolicies) {
+          return JSON.parse(cachedPolicies);
+        }
+      }
+
+      // Crea un array de condiciones de búsqueda
+      const whereConditions: any[] = [];
+
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push({ numberPolicy: searchCondition });
+      }
+
+      // VERSIÓN OPTIMIZADA: NO cargar 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds'
+      const policies: PolicyEntity[] = await this.policyRepository.find({
+        order: {
+          id: 'DESC',
+        },
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'customer',
+      
+          // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
+        ],
+        select: {
+          company: {
+            id: true,
+            companyName: true,
+          },
+          advisor: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+  
+        },
+      });
+
+      if (!policies || policies.length === 0) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      // Cache con TTL más corto para optimizar
+      await this.redisService.set(
+        cacheKey, 
+        JSON.stringify(policies), 
+        14400 // TTL de 4 horas
+      );
+
+      return policies;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2C: Método PAGINADO para obtener políticas (MÁXIMO CONTROL DE MEMORIA)
+  public getAllPoliciesPaginated = async (
+    page: number = 1,
+    limit: number = 50,
+    search?: string,
+  ): Promise<{policies: PolicyEntity[], total: number, page: number, totalPages: number}> => {
+    try {
+      const offset = (page - 1) * limit;
+      
+      // Limitar el máximo de registros por página para evitar memory leaks
+      if (limit > 100) {
+        limit = 100;
+      }
+
+      // Cache específico para paginación
+      const cacheKey = search ? 
+        `policies_paginated:${page}:${limit}:${search}` : 
+        `policies_paginated:${page}:${limit}`;
+      
+      const cachedResult = await this.redisService.get(cacheKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+
+      // Condiciones de búsqueda
+      const whereConditions: any[] = [];
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push({ numberPolicy: searchCondition });
+      }
+
+      // Contar total de registros
+      const total = await this.policyRepository.count({
+        where: whereConditions.length > 0 ? whereConditions : undefined,
+      });
+
+      // VERSIÓN PAGINADA SIN relaciones pesadas
+      const policies: PolicyEntity[] = await this.policyRepository.find({
+        order: {
+          id: 'DESC',
+        },
+        where: whereConditions.length > 0 ? whereConditions : undefined,
+        relations: [
+          'policyType',
+          'policyStatus',
+          'paymentFrequency',
+          'company',
+          'advisor',
+          'customer',
+          'paymentMethod',
+          'bankAccount',
+          'bankAccount.bank',
+          'creditCard',
+          'creditCard.bank',
+          // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
+        ],
+        select: {
+          company: {
+            id: true,
+            companyName: true,
+          },
+          advisor: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          customer: {
+            id: true,
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          bankAccount: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+          creditCard: {
+            bank_id: true,
+            bank: {
+              bankName: true,
+            },
+          },
+        },
+        skip: offset,
+        take: limit,
+      });
+
+      const totalPages = Math.ceil(total / limit);
+      
+      const result = {
+        policies,
+        total,
+        page,
+        totalPages
+      };
+
+      // Cache con TTL corto
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(result),
+        3600, // TTL de 1 hora
+      );
+
+      return result;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

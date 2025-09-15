@@ -41,7 +41,6 @@
     "class-validator": "^0.14.1",
     "cors": "^2.8.5",
     "express-rate-limit": "^7.5.0",
-    "express-xss-sanitizer": "^2.0.0",
     "helmet": "^8.0.0",
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",

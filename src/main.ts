@@ -6,7 +6,6 @@ import * as morgan from 'morgan';
 import * as winston from 'winston';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-const { xss } = require('express-xss-sanitizer');
 import * as hpp from 'hpp';
 import * as https from 'https';
 import { promises as fs } from 'fs';
@@ -104,13 +103,29 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
 
 
 
-// Configuración de Rate Limiting
+// Configuración de Rate Limiting optimizada para proxy
 const rateLimitConfig = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Demasiadas solicitudes desde esta IP, por favor intente nuevamente después de 15 minutos',
   standardHeaders: true,
   legacyHeaders: false,
+  // Generador de key personalizado para mejor identificación con proxy
+  keyGenerator: (req) => {
+    // Usar X-Forwarded-For si está disponible, sino usar req.ip
+    const forwardedIps = req.headers['x-forwarded-for'];
+    if (forwardedIps && typeof forwardedIps === 'string') {
+      // Tomar la primera IP de la cadena (IP real del cliente)
+      return forwardedIps.split(',')[0].trim();
+    }
+    return req.ip;
+  },
+  // Skip para IPs internas/locales si es necesario
+  skip: (req) => {
+    const ip = req.ip;
+    // No aplicar rate limit a IPs locales/internas
+    return ip === '127.0.0.1' || ip === '::1' || ip?.startsWith('192.168.') || ip?.startsWith('10.');
+  }
 });
 
 async function setupSecurityMiddleware(app: INestApplication): Promise<void> {
@@ -153,7 +168,7 @@ async function setupSecurityMiddleware(app: INestApplication): Promise<void> {
 
   // Middlewares de seguridad adicionales
 
-  // XSS protection ahora manejado por nuestro middleware personalizado
+  // Protección XSS manejada por nuestro middleware personalizado de sanitización
   app.use(hpp({ whitelist: [] }));
   app.use('/api', rateLimitConfig);
   app.use(securityLoggingMiddleware);
@@ -197,10 +212,21 @@ async function bootstrap() {
       logger: ['error', 'warn', 'debug', 'log', 'verbose']
     });
 
-    // CONFIGURAR TRUST PROXY - DEBE IR ANTES QUE CUALQUIER MIDDLEWARE
-    // Esto permite que Express confíe en headers de proxy como X-Forwarded-For
+    // CONFIGURAR TRUST PROXY DE MANERA ESPECÍFICA Y SEGURA
+    // En lugar de 'true' (permisivo), configuramos de manera específica
     const expressApp = app.getHttpAdapter().getInstance();
-    expressApp.set('trust proxy', true);
+    
+    // Opción 1: Confiar solo en el primer proxy (Nginx)
+    expressApp.set('trust proxy', 1);
+    
+    // Opción 2 alternativa: Confiar en rangos específicos de IP (descomenta si necesitas)
+    // expressApp.set('trust proxy', ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']);
+    
+    // Opción 3 alternativa: Función personalizada (descomenta si necesitas control total)
+    // expressApp.set('trust proxy', (ip: string) => {
+    //   // Confiar solo en IPs específicas de tu infraestructura
+    //   return ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.') || ip.startsWith('192.168.');
+    // });
 
     // Habilitar CORS
     app.enableCors(CORS);

@@ -38,6 +38,49 @@ export class PolicyController {
       };
     }
   }
+
+  // ⚡ ENDPOINT OPTIMIZADO: Listar políticas SIN payments (evita memory leak)
+  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Get('get-all-policy-optimized')
+  public async allPolicyOptimized(@Query('search') search?: string) {
+    const allPolicy = await this.policyService.getAllPoliciesOptimized(search);
+    if (allPolicy) {
+      return {
+        status: 'success',
+        allPolicy,
+        message: 'Lista optimizada sin payments - Use para listados generales'
+      };
+    }
+  }
+
+  // 📄 ENDPOINT PAGINADO: Máximo control de memoria (recomendado)
+  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Get('get-all-policy-paginated')
+  public async allPolicyPaginated(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+    @Query('search') search?: string
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    
+    const result = await this.policyService.getAllPoliciesPaginated(pageNum, limitNum, search);
+    if (result) {
+      return {
+        status: 'success',
+        policies: result.policies,
+        pagination: {
+          currentPage: result.page,
+          totalPages: result.totalPages,
+          totalRecords: result.total,
+          limit: limitNum,
+          hasNextPage: result.page < result.totalPages,
+          hasPrevPage: result.page > 1
+        },
+        message: 'Lista paginada optimizada - RECOMENDADO para evitar memory leak'
+      };
+    }
+  }
   @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-policy-status')
   public async allPolicyStatus() {

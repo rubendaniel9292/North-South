@@ -53,7 +53,7 @@ export class CustomersService extends ValidateEntity {
     }
   };
 
-  //2: Método para obtener todos los clientes con las relaciones
+  //2: Método para obtener todos los clientes con las relaciones (INCLUYE POLÍTICAS - PUEDE CAUSAR MEMORY LEAK)
   public getAllCustomers = async (
     search?: string,
   ): Promise<CustomersEntity[]> => {
@@ -121,6 +121,181 @@ export class CustomersService extends ValidateEntity {
       ); // TTL de 9 horas
 
       return customers;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2B: Método OPTIMIZADO para obtener todos los clientes solo con el id de polizas (EVITA MEMORY LEAK)
+  public getAllCustomersOptimized = async (
+    search?: string,
+  ): Promise<CustomersEntity[]> => {
+    try {
+      // Cache específico para versión optimizada
+      const cacheKey = search ? `customers_optimized:${search}` : 'customers_optimized';
+      const cachedCustomer = await this.redisService.get(cacheKey);
+      if (cachedCustomer) {
+        return JSON.parse(cachedCustomer);
+      }
+
+      // Crea un array de condiciones de búsqueda
+      const whereConditions: any[] = [];
+
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push(
+          { firstName: searchCondition },
+          { surname: searchCondition },
+          { ci_ruc: searchCondition },
+          { secondSurname: searchCondition },
+          { secondName: searchCondition },
+        );
+      }
+
+      // VERSIÓN OPTIMIZADA: Obtener datos básicos primero
+      const customers: CustomersEntity[] = await this.customerRepository.find({
+        order: {
+          id: "DESC",
+        },
+        where: whereConditions.length > 0 ? whereConditions : undefined,
+        relations: ['civil', 'city', 'province', 'policies'], // SIN 'policies'
+        select: {
+          civil: {
+            id: true,
+            status: true,
+          },
+          city: {
+            id: true,
+            cityName: true,
+          },
+          province: {
+            id: true,
+            provinceName: true,
+          },
+          policies: { id: true } // Solo traer el ID de las polizas para contar
+        },
+      });
+
+      if (!customers.length) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+    
+
+      // Cache con TTL más corto para optimizar
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(customers),
+        14400, // TTL de 4 horas
+      );
+
+      return customers;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //2C: Método PAGINADO para obtener clientes (MÁXIMO CONTROL DE MEMORIA)
+  public getAllCustomersPaginated = async (
+    page: number = 1,
+    limit: number = 50,
+    search?: string,
+  ): Promise<{customers: CustomersEntity[], total: number, page: number, totalPages: number}> => {
+    try {
+      const offset = (page - 1) * limit;
+      
+      // Limitar el máximo de registros por página para evitar memory leaks
+      if (limit > 100) {
+        limit = 100;
+      }
+
+      // Cache específico para paginación
+      const cacheKey = search ? 
+        `customers_paginated:${page}:${limit}:${search}` : 
+        `customers_paginated:${page}:${limit}`;
+      
+      const cachedResult = await this.redisService.get(cacheKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+
+      // Condiciones de búsqueda
+      const whereConditions: any[] = [];
+      if (search) {
+        const searchCondition = Like(`%${search}%`);
+        whereConditions.push(
+          { firstName: searchCondition },
+          { surname: searchCondition },
+          { ci_ruc: searchCondition },
+          { secondSurname: searchCondition },
+          { secondName: searchCondition },
+        );
+      }
+
+      // Contar total de registros
+      const total = await this.customerRepository.count({
+        where: whereConditions.length > 0 ? whereConditions : undefined,
+      });
+
+      // Obtener registros paginados SIN políticas
+      const customers: CustomersEntity[] = await this.customerRepository.find({
+        order: {
+          id: "DESC",
+        },
+        where: whereConditions.length > 0 ? whereConditions : undefined,
+        relations: ['civil', 'city', 'province'], // SIN 'policies'
+        select: {
+          civil: {
+            id: true,
+            status: true,
+          },
+          city: {
+            id: true,
+            cityName: true,
+          },
+          province: {
+            id: true,
+            provinceName: true,
+          },
+        },
+        skip: offset,
+        take: limit,
+      });
+
+      // AGREGAR CONTEO DE POLÍTICAS SIN CARGAR LAS RELACIONES COMPLETAS
+      for (const customer of customers) {
+        // Query separada solo para contar políticas
+        const policyCount = await this.customerRepository
+          .createQueryBuilder('customer')
+          .leftJoin('customer.policies', 'policy')
+          .where('customer.id = :customerId', { customerId: customer.id })
+          .select('COUNT(policy.id)', 'count')
+          .getRawOne();
+        
+        // Agregar el conteo como propiedad virtual
+        (customer as any).policiesCount = parseInt(policyCount?.count || '0');
+      }
+
+      const totalPages = Math.ceil(total / limit);
+      
+      const result = {
+        customers,
+        total,
+        page,
+        totalPages
+      };
+
+      // Cache con TTL corto
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(result),
+        3600, // TTL de 1 hora
+      );
+
+      return result;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

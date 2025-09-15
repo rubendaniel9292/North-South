@@ -46,6 +46,49 @@ export class CustomersController {
       };
     }
   }
+
+  // ⚡ ENDPOINT OPTIMIZADO: Listar clientes SIN políticas (evita memory leak)
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
+  @Get('get-all-customer-optimized')
+  public async getCustomerOptimized(@Query('search') search?: string) {
+    const allCustomer = await this.customerService.getAllCustomersOptimized(search);
+    if (allCustomer) {
+      return {
+        status: 'success',
+        allCustomer,
+        message: 'Lista optimizada sin políticas - Use para listados generales'
+      };
+    }
+  }
+
+  // 📄 ENDPOINT PAGINADO: Máximo control de memoria (recomendado)
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
+  @Get('get-all-customer-paginated')
+  public async getCustomerPaginated(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+    @Query('search') search?: string
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    
+    const result = await this.customerService.getAllCustomersPaginated(pageNum, limitNum, search);
+    if (result) {
+      return {
+        status: 'success',
+        customers: result.customers,
+        pagination: {
+          currentPage: result.page,
+          totalPages: result.totalPages,
+          totalRecords: result.total,
+          limit: limitNum,
+          hasNextPage: result.page < result.totalPages,
+          hasPrevPage: result.page > 1
+        },
+        message: 'Lista paginada optimizada - RECOMENDADO para evitar memory leak'
+      };
+    }
+  }
   @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-customer-id/:id')
   public async getCustomeId(@Param('id') id: number) {

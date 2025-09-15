@@ -71,12 +71,15 @@ export class AdvisorService extends ValidateEntity {
           id: 'DESC',
         },
         relations: [
-          'commissionRefunds',
-          'commissions',
+          //'commissionRefunds',
+          //'commissions',
           'policies',
-          'policies.periods',
-          'policies.commissionRefunds',
+          //'policies.periods',
+          //'policies.commissionRefunds',
         ],
+        select: {
+          'policies': { id: true, numberPolicy: true } // Solo traer el ID de las polizas para contar
+        }
       });
       // Solo guardar en caché si no hubo búsqueda
 
@@ -190,13 +193,13 @@ export class AdvisorService extends ValidateEntity {
       });
 
       // Actualizar caché con los datos más recientes incluyendo relaciones
-      
+
       await this.redisService.set(
         `advisor:${id}`,
         JSON.stringify(advisorWithRelations),
         32400,
       );
-      
+
       return advisorWithRelations;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
