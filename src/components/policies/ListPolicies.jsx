@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import Modal from "../../helpers/modal/Modal";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
@@ -25,23 +25,43 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-const ListPolicies = () => {
+// ✅ Constantes para estados de póliza
+const POLICY_STATUS = {
+  ACTIVE: "1",
+  CANCELLED: "2",
+  COMPLETED: "3",
+  TO_COMPLETE: "4"
+};
+
+// ✅ Función utilitaria para mergear datos anidados
+const mergeNestedData = (existing, updates) => ({
+  ...existing,
+  ...updates,
+  customer: updates.customer || existing.customer,
+  company: updates.company || existing.company,
+  policyType: updates.policyType || existing.policyType,
+  policyStatus: updates.policyStatus || existing.policyStatus,
+  paymentMethod: updates.paymentMethod || existing.paymentMethod,
+  paymentFrequency: updates.paymentFrequency || existing.paymentFrequency,
+  payments: updates.payments || existing.payments,
+  renewals: updates.renewals || existing.renewals,
+});
+
+const ListPolicies = memo(() => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
   const [policies, setPolicies] = useState([]); // Estado para todas las pólizas
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [frequency, setFrequency] = useState([]);
-  const [customers, setCustomer] = useState([]);
   const [advisor, setAdvisor] = useState([]);
 
-  // ✅ Nuevos estados para el filtro de estado
+  // ✅ Estados para filtros
   const [statusFilter, setStatusFilter] = useState("");
   const [companyFilter, setCompanyFilter] = useState("");
   const [advisorFilter, setAdvisorFilter] = useState("");
   const [typesFilter, setTypesFilter] = useState("");
-  const itemsPerPage = 5; // Número de asesor por página
+  const itemsPerPage = 5; // Número de elementos por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
@@ -49,39 +69,37 @@ const ListPolicies = () => {
       console.log("poliza por id obtenida: ", response.data);
       if (response.data.status === "success") {
         console.log("poliza obtenida: ", response.data.policyById);
-        // Póliza encontrada, la almacenamos en el estado
         setPolicy(response.data.policyById);
-        setModalType(type); // Establece el tipo de modal a mostrar
+        setModalType(type);
         openModal(policyId);
         console.log("respuesta de la peticion: ", response.data.policyById);
       } else {
         alerts(
           "Error",
-          "No existen póilza registrada con id " + policyId,
+          "No existe póliza registrada con id " + policyId,
           "error"
         );
         console.error("Error fetching polizas:", response.message);
       }
     } catch (error) {
-      //setError(error);
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      alerts("Error", "Error al cargar la información de la póliza", "error");
       console.error("Error fetching póilzas:", error);
     }
-    return null; // Devuelve null en caso de error
+    return null;
   }, []);
   const getAllPolicies = useCallback(async () => {
     try {
-      const response = await http.get("policy/get-all-policy");
+      //const response = await http.get("policy/get-all-policy"); //RELACION `payments`, `renewals` (MUY LENTO Y ERROR DE MEMORY LEAK)
+      const response = await http.get("/policy/get-all-policy-optimized"); //SIN RELACIION  `payments`, `renewals`
       if (response.data.status === "success") {
         setPolicies(response.data.allPolicy);
         console.log("TODAS LAS POLIZAS: ", response.data.allPolicy);
       } else {
-        //alerts("Error", "No existen póilzas  registradas", "error");
+        alerts("Error", "No se pudieron cargar las pólizas", "error");
         console.error("Error fetching polizas:", response.message);
       }
     } catch (error) {
-      //setError(error);
-      //alerts("Error", "No se pudo ejecutar la consulta", "error");
+      alerts("Error", "Error de conexión al cargar las pólizas", "error");
       console.error("Error fetching póilzas:", error);
     }
   }, []);
@@ -132,25 +150,19 @@ const ListPolicies = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      // Cargar datos esenciales primero
+      // ✅ Cargar solo los datos que realmente se utilizan
       const [
         typeResponse,
-        companyResponse, //ok
-        frecuencyResponse,
-        customerResponse,
-        advisorResponse, //ok
+        companyResponse,
+        advisorResponse,
       ] = await Promise.all([
         http.get("policy/get-types"),
         http.get("company/get-all-company"),
-        http.get("policy/get-frecuency"),
-        http.get("customers/get-all-customer"),
         http.get("advisor/get-all-advisor"),
       ]);
 
       setType(typeResponse.data?.allTypePolicy);
       setCompanies(companyResponse.data?.allCompanies);
-      setFrequency(frecuencyResponse.data?.allFrecuency);
-      setCustomer(customerResponse.data?.allCustomer);
       setAdvisor(advisorResponse.data?.allAdvisors);
     } catch (error) {
       console.error("Error cargando datos principales:", error);
@@ -167,8 +179,8 @@ const ListPolicies = () => {
     fetchData();
   }, [fetchData]); // ✅ fetchData como dependencia
 
-  //actualizar el estado de las polizas reemplazando la polizas específica con los datos actualizados de la política
-  const handlePolicyUpdated = (policyUpdated) => {
+  // ✅ Actualizar el estado de las pólizas usando función utilitaria
+  const handlePolicyUpdated = useCallback((policyUpdated) => {
     if (!policyUpdated) return;
 
     console.log("Póliza actualizada recibida:", policyUpdated);
@@ -177,23 +189,7 @@ const ListPolicies = () => {
     setPolicies((prevPolicies) => {
       return prevPolicies.map((p) => {
         if (p.id === policyUpdated.id) {
-          // Crear una copia actualizada de la póliza
-          const updatedPolicy = {
-            ...p,
-            ...policyUpdated,
-            // Mantener las referencias a objetos anidados
-            customer: policyUpdated.customer || p.customer,
-            company: policyUpdated.company || p.company,
-            policyType: policyUpdated.policyType || p.policyType,
-            policyStatus: policyUpdated.policyStatus || p.policyStatus,
-            paymentMethod: policyUpdated.paymentMethod || p.paymentMethod,
-            paymentFrequency:
-              policyUpdated.paymentFrequency || p.paymentFrequency,
-            payments: policyUpdated.payments || p.payments,
-            renewals: policyUpdated.renewals || p.renewals,
-          };
-
-          return updatedPolicy;
+          return mergeNestedData(p, policyUpdated);
         }
         return p;
       });
@@ -201,27 +197,14 @@ const ListPolicies = () => {
 
     // También actualizamos la póliza seleccionada si es necesario
     if (policy && policy.id === policyUpdated.id) {
-      setPolicy({
-        ...policy,
-        ...policyUpdated,
-        // Asegurarnos de que estos objetos anidados se actualicen correctamente
-        customer: policyUpdated.customer || policy.customer,
-        company: policyUpdated.company || policy.company,
-        policyType: policyUpdated.policyType || policy.policyType,
-        policyStatus: policyUpdated.policyStatus || policy.policyStatus,
-        paymentMethod: policyUpdated.paymentMethod || policy.paymentMethod,
-        paymentFrequency:
-          policyUpdated.paymentFrequency || policy.paymentFrequency,
-        payments: policyUpdated.payments || policy.payments,
-        renewals: policyUpdated.renewals || policy.renewals,
-      });
+      setPolicy(prevPolicy => mergeNestedData(prevPolicy, policyUpdated));
     }
 
     // Forzar una recarga completa de las pólizas desde el servidor
     setTimeout(async () => {
       await getAllPolicies();
     }, 500);
-  };
+  }, [policy, getAllPolicies]);
 
   // ✅ función para limpiar filtros
   const clearFilters = () => {
@@ -386,7 +369,8 @@ const ListPolicies = () => {
                         className="form-select"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        aria-label="select example"
+                        aria-label="Filtrar por estado de póliza"
+                        id="statusFilter"
                       >
                         <option value="">Todos los estados</option>
                         <option value="1">Activa</option>
@@ -403,11 +387,12 @@ const ListPolicies = () => {
                       </label>
                       <select
                         className="form-select"
-                        aria-label="select example"
+                        aria-label="Filtrar por compañía"
                         value={companyFilter}
                         onChange={(e) => setCompanyFilter(e.target.value)}
+                        id="companyFilter"
                       >
-                        <option value="">Todas las compañiás</option>
+                        <option value="">Todas las compañías</option>
                         {companies.map((company) => (
                           <option key={company.id} value={company.id}>
                             {company.companyName}
@@ -425,8 +410,9 @@ const ListPolicies = () => {
                         className="form-select"
                         value={advisorFilter}
                         onChange={(e) => setAdvisorFilter(e.target.value)}
+                        aria-label="Filtrar por asesor"
+                        id="advisorFilter"
                       >
-                        {" "}
                         <option value="">Todos los asesores</option>
                         {advisor.map((item) => (
                           <option key={item.id} value={item.id}>
@@ -450,7 +436,8 @@ const ListPolicies = () => {
                         className="form-select"
                         value={typesFilter}
                         onChange={(e) => setTypesFilter(e.target.value)}
-                        aria-label="select example"
+                        aria-label="Filtrar por tipo de póliza"
+                        id="typesFilter"
                       >
                         <option value="">Todos los tipos de póliza</option>
                         {types.map((type) => (
@@ -503,12 +490,16 @@ const ListPolicies = () => {
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>{policy.numberPolicy}</td>
                     <td>
-                      {policy.customer?.firstName}{" "}
-                      {policy.customer?.secondName || " "}{" "}
+                      {policy.customer 
+                        ? `${policy.customer.firstName || ''} ${policy.customer.secondName || ''}`.trim() || 'N/A'
+                        : 'Cliente no disponible'
+                      }
                     </td>
                     <td>
-                      {policy.customer?.surname}{" "}
-                      {policy.customer?.secondSurname || " "}
+                      {policy.customer 
+                        ? `${policy.customer.surname || ''} ${policy.customer.secondSurname || ''}`.trim() || 'N/A'
+                        : 'Cliente no disponible'
+                      }
                     </td>
                     <td>{policy.company?.companyName}</td>
                     <td>{policy.policyType?.policyName}</td>
@@ -532,13 +523,13 @@ const ListPolicies = () => {
                     <td>
                       <span
                         className={`badge fw-bold fs-6 ${
-                          policy.policyStatus?.id == 1
-                            ? "bg-success" // ✅ Activa - Verde
-                            : policy.policyStatus?.id == 2
-                            ? "bg-danger" // ✅ Cancelada - Rojo
-                            : policy.policyStatus?.id == 3
-                            ? "bg-secondary" // ✅ Culminada - Gris
-                            : policy.policyStatus?.id == 4
+                          policy.policyStatus?.id == POLICY_STATUS.ACTIVE
+                            ? "bg-success text-white" // ✅ Activa - Verde
+                            : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
+                            ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                            : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
+                            ? "bg-secondary text-white" // ✅ Culminada - Gris
+                            : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
                             ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
                             : "bg-light text-dark" // ✅ Default - Claro
                         }`}
@@ -552,12 +543,14 @@ const ListPolicies = () => {
                         onClick={() =>
                           getPolicyById(policy.id, "editPoliciesValues")
                         }
+                        aria-label={`Ajustar valores de póliza ${policy.numberPolicy}`}
                       >
                         Ajustar valores
                       </button>
                       <button
                         className="btn btn-primary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "info")}
+                        aria-label={`Ver información completa de póliza ${policy.numberPolicy}`}
                       >
                         Ver info. Completa
                       </button>
@@ -565,6 +558,7 @@ const ListPolicies = () => {
                       <button
                         className="btn btn-success text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "updatePolicy")}
+                        aria-label={`Actualizar póliza ${policy.numberPolicy}`}
                       >
                         Actualizar
                       </button>
@@ -574,6 +568,7 @@ const ListPolicies = () => {
                       <button
                         className="btn btn-secondary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "renewal")}
+                        aria-label={`Renovar póliza ${policy.numberPolicy}`}
                         disabled={
                           !policy.payments?.length ||
                           parseFloat(
@@ -653,5 +648,6 @@ const ListPolicies = () => {
       </section>
     </>
   );
-};
+});
+
 export default ListPolicies;

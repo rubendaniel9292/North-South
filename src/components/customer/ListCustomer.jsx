@@ -25,8 +25,10 @@ const ListCustomer = () => {
   const getAllCustomers = useCallback(async () => {
     try {
       handleCustomerUpdated();
-      const response = await http.get("customers/get-all-customer");
+      //const response = await http.get("customers/get-all-customer"); //LISTADO GENERAL COMPLETO (CARGA LENTA Y ERROR DE MEMORY LEAK)
+      const response = await http.get("/customers/get-all-customer-optimized"); //LISTADO GENERAL SIN RELACIONES DE POLIZAS
       if (response.data.status === "success") {
+        console.log("TODOS LOS CLIENTES: ", response.data.allCustomer);
         setCustomers(response.data.allCustomer);
       }
     } catch (error) {
