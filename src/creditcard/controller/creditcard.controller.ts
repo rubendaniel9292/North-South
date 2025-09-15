@@ -57,7 +57,7 @@ export class CreditcardController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-cards')
   public async findAllCards(@Query('turnstileToken') turnstileToken: string) {
     if (!turnstileToken) {
@@ -71,7 +71,7 @@ export class CreditcardController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-cards-rp')
   public async findAllCardsRegpolicy() {
     const allCards = await this.creditCardService.findAllCrards();
@@ -83,7 +83,7 @@ export class CreditcardController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-types')
   public async findTypes() {
     const allTypes = await this.creditCardService.findCrardsOptions();
@@ -94,7 +94,7 @@ export class CreditcardController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-banks')
   public async findBanks() {
     const allBanks = await this.creditCardService.findBanks();
@@ -106,7 +106,7 @@ export class CreditcardController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-cards-expireds')
   public async findCardExpired() {
     const allCardsExpired = await this.creditCardService.findCardsExpired();

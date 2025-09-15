@@ -19,7 +19,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/decorators';
 
 @Controller('customers')
-//@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class CustomersController {
   constructor(private readonly customerService: CustomersService) { }
 
@@ -35,7 +35,7 @@ export class CustomersController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-customer')
   public async getCustomer(@Query('search') search?: string) {
     const allCustomer = await this.customerService.getAllCustomers(search);
@@ -46,7 +46,7 @@ export class CustomersController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-customer-id/:id')
   public async getCustomeId(@Param('id') id: number) {
     const customerById = await this.customerService.getCustomerById(id);
@@ -72,7 +72,7 @@ export class CustomersController {
   }
 
   // 🔒 LOPD - Verificar si un cliente puede ser anonimizado, PROBADO OK
-  //@Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('can-anonymize/:id')
   public async canCustomerBeAnonymized(@Param('id') id: number) {
     const analysisResult = await this.customerService.canCustomerBeAnonymized(id);
@@ -85,7 +85,7 @@ export class CustomersController {
   }
 
   // 🔒 LOPD - Anonimizar un cliente (cumplimiento protección de datos)
-  //@Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Patch('anonymize/:id')
   public async anonymizeCustomer(
     @Param('id') id: number,
@@ -106,7 +106,7 @@ export class CustomersController {
     }
   }
   // � LOPD - Evaluar solicitud de eliminación según Art. 15 y 18
-  //@Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Post('evaluate-elimination-request/:id')
   public async evaluateEliminationRequest(
     @Param('id') id: number,
@@ -127,7 +127,7 @@ export class CustomersController {
   }
 
   // 📅 LOPD - Consultar clientes elegibles para eliminación manual
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('elimination-eligible')
   public async getEliminationEligibleCustomers() {
     const eligibleCustomers = await this.customerService.getEliminationEligibleCustomers();
@@ -141,7 +141,7 @@ export class CustomersController {
   }
 
   // 📊 LOPD - Reporte de anonimizaciones
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('anonymization-report')
   public async getAnonymizationReport() {
     const reportAnonimyze = await this.customerService.getAnonymizationReport();

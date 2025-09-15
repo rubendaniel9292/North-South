@@ -21,7 +21,7 @@ export class AdvisorController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-advisor')
   public async allAdvisors(@Query('search') search?: string) {
     console.log('entrando al controlador de advisor');
@@ -34,7 +34,7 @@ export class AdvisorController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-advisor/:id')
   public async allAdvisor(@Param('id') id: number) {
     console.log('entrando al controlador de advisor');

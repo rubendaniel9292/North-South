@@ -197,6 +197,10 @@ async function bootstrap() {
       logger: ['error', 'warn', 'debug', 'log', 'verbose']
     });
 
+    // CONFIGURAR TRUST PROXY - DEBE IR ANTES QUE CUALQUIER MIDDLEWARE
+    // Esto permite que Express confíe en headers de proxy como X-Forwarded-For
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.set('trust proxy', true);
 
     // Habilitar CORS
     app.enableCors(CORS);

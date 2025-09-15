@@ -27,7 +27,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-policy')
   public async allPolicy(@Query('search') search?: string) {
     const allPolicy = await this.policyService.getAllPolicies(search);
@@ -38,7 +38,7 @@ export class PolicyController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-policy-status')
   public async allPolicyStatus() {
     const policiesStatus = await this.policyService.getAllPoliciesStatus();
@@ -50,7 +50,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-types')
   public async allTypesPolicy() {
     const allTypePolicy = await this.policyService.getTypesPolicies();
@@ -61,7 +61,7 @@ export class PolicyController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-frecuency')
   public async allFrecuency() {
     const allFrecuency = await this.policyService.getFrecuencyPolicies();
@@ -73,7 +73,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-payment-method')
   public async allPaymentMetohd() {
     const allPaymentMethod = await this.policyService.getPaymentMethod();
@@ -85,7 +85,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-policy-id/:id')
   public async policyID(@Param('id') id: number) {
     const policyById = await this.policyService.findPolicyById(id);
@@ -121,7 +121,7 @@ export class PolicyController {
 
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-satus-policy')
   public async allStatusPolicy() {
     const allStatusPolicy = await this.policyService.getPolicyStatus();
@@ -133,7 +133,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Put('update-values-by-year/:policy_id/:year')
   async updateValuesByYear(
     @Param('policy_id', ParseIntPipe) policy_id: number,
@@ -152,7 +152,7 @@ export class PolicyController {
   }
 
   // Endpoint para obtener todos los periodos de una póliza por ID
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get(':policy_id/periods')
   async getPolicyPeriods(
     @Param('policy_id') policy_id: number,

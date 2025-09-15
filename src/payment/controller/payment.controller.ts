@@ -27,7 +27,7 @@ export class PaymentController {
     private readonly paymentService: PaymentService,
     private readonly paymentSchedulerService: PaymentSchedulerService
   ) { }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Post('register-payment')
   public async registerPayment(@Body() body: PaymentDTO) {
     const newPayment = await this.paymentService.createPayment(body);
@@ -39,7 +39,7 @@ export class PaymentController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-payment')
   public async allPayment(@Query('search') search?: string, @Query('status') status?: number, @Query('policy_id') policyId?: number) {
     // IMPLEMENTAR BÚSQUEDA ESPECÍFICA PARA EVITAR MEMORY LEAK
@@ -70,7 +70,7 @@ export class PaymentController {
   }
 
   // Nuevo endpoint para casos específicos donde SÍ necesitan todos los pagos
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-payment-full')
   public async allPaymentFull(@Query('confirm') confirm?: string) {
     if (confirm !== 'true') {
@@ -90,7 +90,7 @@ export class PaymentController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-payment-id/:id')
   public async getPaymentId(@Param('id') id: number) {
     const paymentById = await this.paymentService.getPaymentsId(id);
@@ -102,7 +102,7 @@ export class PaymentController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-payment-by-status')
   public async getPaymentByStatus(@Query('companyId') companyId?: number) {
     const paymentByStatus = await this.paymentService.getPaymentsByStatus(companyId);
@@ -114,7 +114,7 @@ export class PaymentController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-payment-status')
   public async getPaymentStatus() {
     const paymentStatus = await this.paymentService.getPaymentStatus();
@@ -126,7 +126,7 @@ export class PaymentController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Put('update-payment/:id')
   public async updatePayment(
     @Param('id') id: number,
@@ -143,7 +143,7 @@ export class PaymentController {
   }
 
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Post('manual-process-payments')
   async manualProcessPayments() {
     try {

@@ -14,7 +14,7 @@ export class CommissionsPaymentsController {
         private readonly commissionRefundsServices: CommissionsPaymentsService
     ) { }
 
-    @Roles('ADMIN', 'BASIC')
+    @Roles('ADMIN', 'BASIC','ELOPDP')
     @Post('register-commissions')
     public async createCommission(@Body() body: CommissionsDTO) {
         const newCommission = await this.commissionsPaymentsServices.createCommissionsPayments(body);
@@ -26,13 +26,13 @@ export class CommissionsPaymentsController {
         }
     }
 
-    @Roles('ADMIN', 'BASIC')
+    @Roles('ADMIN', 'BASIC','ELOPDP')
     @Post('apply-advance-distribution')
     public async applyAdvanceDistribution(@Body() body: any) {
         return this.commissionsPaymentsServices.applyAdvanceDistribution(body);
     }
 
-    @Roles('ADMIN', 'BASIC')
+    @Roles('ADMIN', 'BASIC','ELOPDP')
     @Post('register-commission-refunds')
     public async createCommissionRefunds(@Body() body: CommissionRefundsDTO) {
         const commissionRefunds: CommissionRefundsEntity = await this.commissionRefundsServices.createCommissionRefunds(body);

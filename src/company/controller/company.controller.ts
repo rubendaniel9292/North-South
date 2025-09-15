@@ -12,7 +12,7 @@ export class CompanyController {
 
   constructor(private readonly companyService: CompanyService) { }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Post('register-company')
   public async registerCompany(@Body() body: CompanyDTO) {
 
@@ -29,7 +29,7 @@ export class CompanyController {
 
   }
 
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-company')
   public async getCompanies() {
 

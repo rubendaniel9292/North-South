@@ -46,7 +46,7 @@ export class UserController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC')
+  @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get(':id')
   public async findUserById(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.findUserById(id);
@@ -80,7 +80,7 @@ export class UserController {
     };
   }
 
-  @Roles('BASIC', 'ADMIN')
+  @Roles('BASIC', 'ADMIN','ELOPDP')
   @Post(':id/tasks')
   public async createTask(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -93,7 +93,7 @@ export class UserController {
     };
   }
 
-  @Roles('BASIC', 'ADMIN')
+  @Roles('BASIC', 'ADMIN','ELOPDP')
   @Get('get-task/:id/tasks')
   public async getTasksByUserId(@Param('id', new ParseUUIDPipe()) id: string) {
     const tasks = await this.userService.getTasksByUserId(id);
@@ -103,7 +103,7 @@ export class UserController {
     };
   }
 
-  @Roles('BASIC', 'ADMIN')
+  @Roles('BASIC', 'ADMIN','ELOPDP')
   @Delete('delete-tasks/:taskId')
   public async deleteTask(
     @Param('taskId', new ParseIntPipe()) taskId: number, // Corregido: agregado 'new'
