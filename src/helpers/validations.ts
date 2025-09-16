@@ -25,15 +25,20 @@ export class ValidateEntity {
           });
         }
 
+        // VALIDACIÓN DE EMAIL REMOVIDA - Permite correos duplicados
+        // Esto es útil para casos donde múltiples clientes pueden compartir
+        // el mismo email (familiares, representantes legales, etc.)
+        /*
         const existingEmail = await this.validateRepository.findOne({
           where: { email: body.email?.toLowerCase() },
         });
         if (existingEmail) {
           throw new ErrorManager({
             type: 'BAD_REQUEST',
-            message: 'El correo  ya está registrado',
+            message: 'El correo ya está registrado',
           });
         }
+        */
       }
       if (entityType === 'company') {
         body.companyName.toUpperCase();

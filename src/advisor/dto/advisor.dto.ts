@@ -31,9 +31,9 @@ export class AdvisorDTO {
   @IsDate()
   birthdate: Date;
 
-  @IsNotEmpty()
+   @IsOptional()
   @IsString()
-  email: string;
+  email?: string;
 
   @IsNotEmpty()
   @IsString()

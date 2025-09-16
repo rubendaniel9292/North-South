@@ -36,9 +36,9 @@ export class CustomerDTO {
   @IsDate()
   birthdate: Date;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  email: string;
+  email?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -93,7 +93,7 @@ export class UpDateCustomerDTO {
 
   @IsOptional()
   @IsString()
-  email: string;
+  email?: string;
 
   @IsOptional()
   @IsString()

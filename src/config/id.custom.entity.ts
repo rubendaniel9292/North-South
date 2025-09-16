@@ -23,8 +23,8 @@ export abstract class IdCustomEntity implements IAdvisor {
   @Column()
   birthdate: Date;
 
-  @Column({ unique: false })
-  email: string;
+  @Column({ nullable: true, unique: false })
+  email?: string;
 
   @Column()
   numberPhone: string;

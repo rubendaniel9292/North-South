@@ -17,7 +17,7 @@ export interface ICustomer {
   surname?: string;
   secondSurname?: string;
   birthdate: Date;
-  email: string;
+  email?: string;
   numberPhone: string;
   address: string;
   personalData: boolean;
@@ -56,7 +56,7 @@ export interface IAdvisor {
   surname?: string;
   secondSurname?: string;
   birthdate: Date;
-  email: string;
+  email?: string;
   numberPhone: string;
   personalData: boolean;
 }
