@@ -27,6 +27,7 @@ export class PolicyController {
     }
   }
 
+  //ENDPOINT ORIGINAL PARA OBTENER TODAS LAS POLIZAS 
   @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-policy')
   public async allPolicy(@Query('search') search?: string) {

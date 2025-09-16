@@ -541,8 +541,8 @@ export class PolicyService extends ValidateEntity {
         });
       }
       await this.redisService.set(
-        CacheKeys.GLOBAL_ALL_POLICIES, 
-        JSON.stringify(policies), 
+        CacheKeys.GLOBAL_ALL_POLICIES,
+        JSON.stringify(policies),
         32400
       ); // TTL de 9 horas
       //console.log(policies)
@@ -557,7 +557,7 @@ export class PolicyService extends ValidateEntity {
     try {
       // Cache específico para versión optimizada
       const cacheKey = search ? `policies_optimized:${search}` : CacheKeys.GLOBAL_ALL_POLICIES + '_optimized';
-      
+
       if (!search) {
         const cachedPolicies = await this.redisService.get(cacheKey);
         if (cachedPolicies) {
@@ -584,7 +584,7 @@ export class PolicyService extends ValidateEntity {
           'paymentFrequency',
           'company',
           'customer',
-      
+
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
@@ -592,14 +592,15 @@ export class PolicyService extends ValidateEntity {
             id: true,
             companyName: true,
           },
-          advisor: {
+
+          customer: {
             id: true,
             firstName: true,
             secondName: true,
             surname: true,
             secondSurname: true,
           },
-  
+
         },
       });
 
@@ -612,8 +613,8 @@ export class PolicyService extends ValidateEntity {
 
       // Cache con TTL más corto para optimizar
       await this.redisService.set(
-        cacheKey, 
-        JSON.stringify(policies), 
+        cacheKey,
+        JSON.stringify(policies),
         14400 // TTL de 4 horas
       );
 
@@ -628,20 +629,20 @@ export class PolicyService extends ValidateEntity {
     page: number = 1,
     limit: number = 50,
     search?: string,
-  ): Promise<{policies: PolicyEntity[], total: number, page: number, totalPages: number}> => {
+  ): Promise<{ policies: PolicyEntity[], total: number, page: number, totalPages: number }> => {
     try {
       const offset = (page - 1) * limit;
-      
+
       // Limitar el máximo de registros por página para evitar memory leaks
       if (limit > 100) {
         limit = 100;
       }
 
       // Cache específico para paginación
-      const cacheKey = search ? 
-        `policies_paginated:${page}:${limit}:${search}` : 
+      const cacheKey = search ?
+        `policies_paginated:${page}:${limit}:${search}` :
         `policies_paginated:${page}:${limit}`;
-      
+
       const cachedResult = await this.redisService.get(cacheKey);
       if (cachedResult) {
         return JSON.parse(cachedResult);
@@ -670,13 +671,8 @@ export class PolicyService extends ValidateEntity {
           'policyStatus',
           'paymentFrequency',
           'company',
-          'advisor',
+
           'customer',
-          'paymentMethod',
-          'bankAccount',
-          'bankAccount.bank',
-          'creditCard',
-          'creditCard.bank',
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
@@ -684,13 +680,7 @@ export class PolicyService extends ValidateEntity {
             id: true,
             companyName: true,
           },
-          advisor: {
-            id: true,
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
+
           customer: {
             id: true,
             ci_ruc: true,
@@ -699,25 +689,14 @@ export class PolicyService extends ValidateEntity {
             surname: true,
             secondSurname: true,
           },
-          bankAccount: {
-            bank_id: true,
-            bank: {
-              bankName: true,
-            },
-          },
-          creditCard: {
-            bank_id: true,
-            bank: {
-              bankName: true,
-            },
-          },
+
         },
         skip: offset,
         take: limit,
       });
 
       const totalPages = Math.ceil(total / limit);
-      
+
       const result = {
         policies,
         total,

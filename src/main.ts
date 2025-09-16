@@ -43,32 +43,7 @@ const securityLoggingMiddleware = (req: Request, _res: Response, next: NextFunct
 };
 
 // Middleware de sanitización personalizado para mitigar riesgos de inyección SQL o NoSQL.
-/*
-const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const sanitizeValue = (value: any): any => {
-    if (typeof value === 'string') {
-      return value
-        .replace(/<script.*?>.*?<\/script>/gim, '')
-        .replace(/[;<>&]/g, '')
-        .trim();
-    }
-    if (typeof value === 'object' && value !== null) {
-      return Object.keys(value).reduce((acc, key) => ({
-        ...acc,
-        [key]: sanitizeValue(value[key])
-      }), {});
-    }
-    return value;
-  };
 
-  req.body = sanitizeValue(req.body);
-  req.query = sanitizeValue(req.query);
-  req.params = sanitizeValue(req.params);
-
-  next();
-};
-
-*/
 const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const sanitizeValue = (value: any, isToken = false, isPassword = false): any => {
     if (typeof value === 'string') {
@@ -105,14 +80,18 @@ const sanitizationMiddleware = (req: Request, res: Response, next: NextFunction)
 
 // Configuración de Rate Limiting optimizada para proxy
 const rateLimitConfig = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: process.env.NODE_ENV === 'production' ? 1200 : undefined, // 200 en producción, sin límite en desarrollo
   message: 'Demasiadas solicitudes desde esta IP, por favor intente nuevamente después de 15 minutos',
   standardHeaders: true,
   legacyHeaders: false,
   // Generador de key personalizado para mejor identificación con proxy
   keyGenerator: (req) => {
-    // Usar X-Forwarded-For si está disponible, sino usar req.ip
+    // En desarrollo, usar IP simple para evitar problemas
+    if (process.env.NODE_ENV !== 'production') {
+      return req.ip;
+    }
+    // En producción, usar X-Forwarded-For si está disponible
     const forwardedIps = req.headers['x-forwarded-for'];
     if (forwardedIps && typeof forwardedIps === 'string') {
       // Tomar la primera IP de la cadena (IP real del cliente)
@@ -120,11 +99,14 @@ const rateLimitConfig = rateLimit({
     }
     return req.ip;
   },
-  // Skip para IPs internas/locales si es necesario
+  // Skip para IPs internas/locales y desarrollo local
   skip: (req) => {
     const ip = req.ip;
     // No aplicar rate limit a IPs locales/internas
-    return ip === '127.0.0.1' || ip === '::1' || ip?.startsWith('192.168.') || ip?.startsWith('10.');
+    const isLocalIP = ip === '127.0.0.1' || ip === '::1' || ip?.startsWith('192.168.') || ip?.startsWith('10.');
+    // En desarrollo, ser más permisivo
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    return isLocalIP || (isDevelopment && (ip === '::ffff:127.0.0.1' || ip?.includes('localhost')));
   }
 });
 
