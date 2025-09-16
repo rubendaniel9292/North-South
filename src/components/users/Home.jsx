@@ -80,8 +80,10 @@ const Home = () => {
 
   const getAllPolicies = useCallback(async () => {
     try {
-      const response = await http.get("policy/get-all-policy");
+      //const response = await http.get("policy/get-all-policy"); //RELACION `payments`, `renewals` (MUY LENTO Y ERROR DE MEMORY LEAK)
+      const response = await http.get("/policy/get-all-policy-optimized"); //SIN RELACIION  `payments`, `renewals`
       if (response.data.status === "success") {
+        console.log("TODAS LAS PÓLIZAS EN HOME: ", response.data.allPolicy);
         setAllPolicies(response.data.allPolicy);
         setPolicy(true);
       } else {
@@ -97,6 +99,10 @@ const Home = () => {
       //console.log("intentando obtener las polizas por estado");
       const response = await http.get("payment/get-payment-by-status");
       if (response.data.status === "success") {
+        console.log(
+          "PÓLIZAS CON PAGOS ATRASADOS EN HOME: ",
+          response.data.paymentByStatus
+        );
         setPayments(response.data.paymentByStatus);
         setPaymentStatus(true);
         if (type === "paymentByStatus") {

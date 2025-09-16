@@ -416,9 +416,8 @@ const ListPolicies = memo(() => {
                         <option value="">Todos los asesores</option>
                         {advisor.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {`${item.firstName} ${item.secondName || ""} ${
-                              item.surname
-                            } ${item.secondSurname || ""}`.trim()}
+                            {`${item.firstName} ${item.secondName || ""} ${item.surname
+                              } ${item.secondSurname || ""}`.trim()}
                           </option>
                         ))}
                       </select>
@@ -486,17 +485,17 @@ const ListPolicies = memo(() => {
               ) : (
                 currentPolicies.map((policy, index) => (
                   <tr key={policy.id}>
-                 
+
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>{policy.numberPolicy}</td>
                     <td>
-                      {policy.customer 
+                      {policy.customer
                         ? `${policy.customer.firstName || ''} ${policy.customer.secondName || ''}`.trim() || 'N/A'
                         : 'Cliente no disponible'
                       }
                     </td>
                     <td>
-                      {policy.customer 
+                      {policy.customer
                         ? `${policy.customer.surname || ''} ${policy.customer.secondSurname || ''}`.trim() || 'N/A'
                         : 'Cliente no disponible'
                       }
@@ -522,17 +521,16 @@ const ListPolicies = memo(() => {
                     <td>{policy.coverageAmount}</td>
                     <td>
                       <span
-                        className={`badge fw-bold fs-6 ${
-                          policy.policyStatus?.id == POLICY_STATUS.ACTIVE
+                        className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.ACTIVE
                             ? "bg-success text-white" // ✅ Activa - Verde
                             : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
-                            ? "bg-danger text-white" // ✅ Cancelada - Rojo
-                            : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
-                            ? "bg-secondary text-white" // ✅ Culminada - Gris
-                            : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
-                            ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
-                            : "bg-light text-dark" // ✅ Default - Claro
-                        }`}
+                              ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                              : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
+                                ? "bg-secondary text-white" // ✅ Culminada - Gris
+                                : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
+                                  ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
+                                  : "bg-light text-dark" // ✅ Default - Claro
+                          }`}
                       >
                         {policy.policyStatus?.statusName}
                       </span>
@@ -575,7 +573,7 @@ const ListPolicies = memo(() => {
                             policy.payments.reduce(
                               (latest, payment) =>
                                 parseInt(payment.number_payment) >
-                                parseInt(latest.number_payment)
+                                  parseInt(latest.number_payment)
                                   ? payment
                                   : latest,
                               policy.payments[0]
@@ -607,9 +605,8 @@ const ListPolicies = memo(() => {
                 {pageNumbers.map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginate(number)}
@@ -620,9 +617,8 @@ const ListPolicies = memo(() => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentPage === pageNumbers.length ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPage === pageNumbers.length ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"

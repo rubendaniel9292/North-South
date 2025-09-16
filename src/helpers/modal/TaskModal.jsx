@@ -99,16 +99,15 @@ const TaskModal = ({ onClose, tasks, onTaskDeleted }) => {
             </thead>
             <tbody>
               {tasks.map((task, idx) => (
-                <tr key={task.id || idx}>
-                  <td>{task.id || idx + 1}</td> {/* ✅ Usar ID o numeración */}
+                <tr key={task.id}>
+                  <td>{idx + 1}</td> {/* ✅ Usar ID o numeración */}
                   <td>{task.description || "Sin descripción"}</td>
                   <td>
                     <span
-                      className={`badge fs-6 ${
-                        task.statusTask === 1
+                      className={`badge fs-6 ${task.statusTask === 1
                           ? "bg-warning text-dark"
                           : "bg-success"
-                      }`}
+                        }`}
                     >
                       {task.estatusTask || "Pendiente"}
                     </span>

@@ -14,6 +14,12 @@ const PolicyStatusModal = ({ policies, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   //const [isDataValid, setIsDataValid] = useState(true);
 
+  // ✅ Constantes para estados de póliza
+  const POLICY_STATUS = {
+    COMPLETED: "3",
+    TO_COMPLETE: "4"
+  };
+
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
@@ -48,7 +54,7 @@ const PolicyStatusModal = ({ policies, onClose }) => {
                   <td>{policy.numberPolicy}</td>
                   <td>
                     {policy.customer?.firstName}{" "}
-                    {policy.customer?.secondName || ""} 
+                    {policy.customer?.secondName || ""}
                   </td>
                   <td>{policy.customer?.surname}{" "}
                     {policy.customer?.secondSurname || ""}</td>
@@ -63,28 +69,25 @@ const PolicyStatusModal = ({ policies, onClose }) => {
                     {policy.bankAccount && policy.bankAccount.bank
                       ? policy.bankAccount?.bank.bankName
                       : policy.creditCard && policy.creditCard.bank
-                      ? policy.creditCard?.bank.bankName
-                      : "NO APLICA"}
+                        ? policy.creditCard?.bank.bankName
+                        : "NO APLICA"}
                   </td>
                   <td>{policy.paymentFrequency?.frequencyName}</td>
                   <td>{policy.coverageAmount}</td>
                   <td>{policy.policyValue}</td>
-                  <td
-                    className={
-                      policy.policyStatus?.id == 4
-                        ? "bg-warning text-white fw-bold"
-                        : policy.policyStatus?.id == 3
-                        ? "bg-danger text-white fw-bold"
-                        : "bg-success-subtle"
-                    }
-                  >
-                    {policy.policyStatus?.statusName}
+                  <td>
+                    <span
+                      className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.COMPLETED
+                        ? "bg-secondary text-white" // ✅ Culminada - Gris
+                        : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
+                          ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
+                          : "bg-light text-dark" // ✅ Default - Claro
+                        }`}
+                    >
+                      {policy.policyStatus?.statusName}
+                    </span>
                   </td>
-                  {/*    <td>
-                    <button className="btn btn-success text-white fw-bold">
-                      Ver información completa
-                    </button>
-                  </td>*/}
+
                 </tr>
               ))}
             </tbody>
@@ -92,7 +95,7 @@ const PolicyStatusModal = ({ policies, onClose }) => {
 
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-              <button  
+              <button
                 type="submit"
                 //onClick={generateReport}
                 id="btnc"

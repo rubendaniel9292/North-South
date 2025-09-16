@@ -20,7 +20,7 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
   const [nameQuery, setNameQuery] = useState("");
   const itemsPerPage = 10; // Número de items por página
 
-  //console.log("polizas con pagos atarsados:", payments);
+  console.log("polizas con pagos atarsados:", payments);
   //array de compañias
   useEffect(() => {
     const fetchData = async () => {
@@ -28,7 +28,6 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
         const [companyResponse] = await Promise.all([
           http.get("company/get-all-company"),
         ]);
-        console.log(companyResponse.data.allCompanies);
         setCompanies(companyResponse.data.allCompanies);
       } catch (error) {
         console.error("Error fetching data:", error);
