@@ -12,13 +12,15 @@ import {
   faRectangleXmark,
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
-import {} from "@fortawesome/free-solid-svg-icons";
+import { } from "@fortawesome/free-solid-svg-icons";
 import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
+import useAuth from "../../hooks/useAuth";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [reportLoading, setReportLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState({});
   const [localPolicy, setLocalPolicy] = useState(policy);
+  const { auth } = useAuth();
   if (!localPolicy) return null;
   const itemsPerPage = 3; // Número de items por página
   //metodo para generacion de reporte
@@ -161,9 +163,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
     // Encuentra el último pago realizado
     const lastPayment = policy.payments?.length
       ? policy.payments.reduce((latest, p) => {
-          const date = new Date(p.createdAt);
-          return date > new Date(latest.createdAt) ? p : latest;
-        }, policy.payments[0])
+        const date = new Date(p.createdAt);
+        return date > new Date(latest.createdAt) ? p : latest;
+      }, policy.payments[0])
       : null;
 
     if (!lastPayment) return "Sin pagos registrados";
@@ -236,8 +238,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   {policy.bankAccount && policy.bankAccount.bank
                     ? policy.bankAccount.bank.bankName
                     : policy.creditCard && policy.creditCard.bank
-                    ? policy.creditCard.bank.bankName
-                    : "NO APLICA"}
+                      ? policy.creditCard.bank.bankName
+                      : "NO APLICA"}
                 </td>
                 <td>{policy.paymentFrequency.frequencyName}</td>
                 <td>
@@ -305,10 +307,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   {(
                     ((lastPeriod.policyValue - lastPeriod.policyFee) *
                       lastPeriod.agencyPercentage) /
-                      100 -
+                    100 -
                     ((lastPeriod.policyValue - lastPeriod.policyFee) *
                       lastPeriod.advisorPercentage) /
-                      100
+                    100
                   ).toFixed(2)}
                 </td>
                 <td>
@@ -320,17 +322,16 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 </td>
                 <td>
                   <span
-                    className={`badge fw-bold fs-6 ${
-                      policy.policyStatus?.id == 1
-                        ? "bg-success" // Activa - Verde
-                        : policy.policyStatus?.id == 2
+                    className={`badge fw-bold fs-6 ${policy.policyStatus?.id == 1
+                      ? "bg-success" // Activa - Verde
+                      : policy.policyStatus?.id == 2
                         ? "bg-danger" // Cancelada - Rojo
                         : policy.policyStatus?.id == 3
-                        ? "bg-secondary" // Culminada - Gris
-                        : policy.policyStatus?.id == 4
-                        ? "bg-warning text-dark" // Por Culminar - Amarillo
-                        : "bg-light text-dark" // Default - Claro
-                    }`}
+                          ? "bg-secondary" // Culminada - Gris
+                          : policy.policyStatus?.id == 4
+                            ? "bg-warning text-dark" // Por Culminar - Amarillo
+                            : "bg-light text-dark" // Default - Claro
+                      }`}
                   >
                     {policy.policyStatus.statusName}
                   </span>
@@ -401,13 +402,12 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
                       <td>
                         <span
-                          className={`badge fw-bold fs-6 ${
-                            payment.paymentStatus.id == 1
-                              ? "bg-warning text-dark" // Pendiente - Amarillo
-                              : payment.paymentStatus.id == 2
+                          className={`badge fw-bold fs-6 ${payment.paymentStatus.id == 1
+                            ? "bg-warning text-dark" // Pendiente - Amarillo
+                            : payment.paymentStatus.id == 2
                               ? "bg-success" // Al día - Verde
                               : "bg-light text-dark" // Default - Claro
-                          }`}
+                            }`}
                         >
                           {payment.paymentStatus.statusNamePayment}
                         </span>
@@ -423,16 +423,15 @@ const ListPolicyModal = ({ policy, onClose }) => {
                               localPolicy.payments
                             )
                           }
-                          className={`btn ${
-                            payment.paymentStatus.id == 2
-                              ? "bg-secondary"
-                              : isPaymentButtonEnabled(
-                                  payment,
-                                  localPolicy.payments
-                                )
+                          className={`btn ${payment.paymentStatus.id == 2
+                            ? "bg-secondary"
+                            : isPaymentButtonEnabled(
+                              payment,
+                              localPolicy.payments
+                            )
                               ? "bg-success"
                               : "bg-secondary" // Deshabilitado si no es el siguiente en la secuencia
-                          } fw-bold text-white w-100`}
+                            } fw-bold text-white w-100`}
                           onClick={() => updatePaymentStatus(payment)}
                         >
                           {paymentLoading[payment.id] ? (
@@ -450,9 +449,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
                           ) : payment.paymentStatus.id == 2 ? (
                             "Pago al día"
                           ) : isPaymentButtonEnabled(
-                              payment,
-                              localPolicy.payments
-                            ) ? (
+                            payment,
+                            localPolicy.payments
+                          ) ? (
                             "Actualizar Pago"
                           ) : (
                             "Pendiente de orden" // Texto para botones deshabilitados
@@ -463,9 +462,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
                               icon={faCircleCheck}
                             />
                           ) : isPaymentButtonEnabled(
-                              payment,
-                              localPolicy.payments
-                            ) ? (
+                            payment,
+                            localPolicy.payments
+                          ) ? (
                             <FontAwesomeIcon
                               className="mx-2"
                               icon={faFloppyDisk}
@@ -488,9 +487,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <nav aria-label="Page navigation example">
               <ul className="pagination">
                 <li
-                  className={`page-item${
-                    currentPaymentsPage === 1 ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPaymentsPage === 1 ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -505,9 +503,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 ).map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentPaymentsPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentPaymentsPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginatePayments(number)}
@@ -518,11 +515,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentPaymentsPage === totalPaymentsPages
-                      ? " disabled"
-                      : ""
-                  }`}
+                  className={`page-item${currentPaymentsPage === totalPaymentsPages
+                    ? " disabled"
+                    : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -580,9 +576,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <nav aria-label="Page navigation example">
               <ul className="pagination">
                 <li
-                  className={`page-item${
-                    currentRenewalsPage === 1 ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentRenewalsPage === 1 ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -597,9 +592,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 ).map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentRenewalsPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentRenewalsPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginateRenewals(number)}
@@ -610,11 +604,10 @@ const ListPolicyModal = ({ policy, onClose }) => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentRenewalsPage === totalRenewalsPages
-                      ? " disabled"
-                      : ""
-                  }`}
+                  className={`page-item${currentRenewalsPage === totalRenewalsPages
+                    ? " disabled"
+                    : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -628,44 +621,47 @@ const ListPolicyModal = ({ policy, onClose }) => {
           )}
 
           <div className="d-flex justify-content-around mt-1">
-            <div className="">
-              <button
-                type="submit"
-                onClick={handleGenerateReport}
-                id="btnc"
-                className="btn bg-success mx-5 text-white fw-bold "
-                disabled={reportLoading}
-              >
-                {reportLoading ? (
-                  <>
-                    <div
-                      className="spinner-border spinner-border-sm text-light me-2"
-                      role="status"
-                    >
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                    <span>Generando...</span>
-                  </>
-                ) : (
-                  "Generar reporte PDF"
-                )}
-                <FontAwesomeIcon className="mx-2" beat icon={faFile} />
-              </button>
+            {auth?.role !== "ELOPDP" && (
+              <>
+                <button
+                  type="submit"
+                  onClick={handleGenerateReport}
+                  id="btnc"
+                  className="btn bg-success mx-5 text-white fw-bold "
+                  disabled={reportLoading}
+                >
+                  {reportLoading ? (
+                    <>
+                      <div
+                        className="spinner-border spinner-border-sm text-light me-2"
+                        role="status"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      <span>Generando...</span>
+                    </>
+                  ) : (
+                    "Generar reporte PDF"
+                  )}
+                  <FontAwesomeIcon className="mx-2" beat icon={faFile} />
+                </button>
+              </>
+            )}
 
-              <button
-                type="submit"
-                onClick={onClose}
-                id="btnc"
-                className="btn bg-danger mx-5 text-white fw-bold"
-              >
-                Cerrar
-                <FontAwesomeIcon
-                  className="mx-2"
-                  beat
-                  icon={faRectangleXmark}
-                />
-              </button>
-            </div>
+            <button
+              type="submit"
+              onClick={onClose}
+              id="btnc"
+              className="btn bg-danger mx-5 text-white fw-bold"
+            >
+              Cerrar
+              <FontAwesomeIcon
+                className="mx-2"
+                beat
+                icon={faRectangleXmark}
+              />
+            </button>
+
           </div>
         </article>
       </div>

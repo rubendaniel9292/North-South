@@ -7,10 +7,11 @@ import dayjs from "dayjs";
 import generateReport from "../GenerateReportPDF";
 import http from "../../helpers/Http";
 import usePagination from "../../hooks/usePagination";
-
+import useAuth from "../../hooks/useAuth";
 const PaymentByStatusModal = ({ payments, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
+  const { auth } = useAuth();
   if (!payments) return null;
 
   const [filteredPayments, setFilteredPayments] = useState(payments);
@@ -220,15 +221,8 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
 
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-              {filteredPayments.length === 0 ? (
-                <button
-                  className="btn bg-success mx-5 text-white fw-bold"
-                  disabled
-                >
-                  Generar reporte PDF
-                  <FontAwesomeIcon className="mx-2" beat icon={faFile} />
-                </button>
-              ) : (
+              {/* ✅ Botón de generar reporte - Solo visible para roles autorizados */}
+              {auth?.role !== "ELOPDP"  && (
                 <button
                   type="submit"
                   onClick={handleGenerateReport}
@@ -237,23 +231,30 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="spinner-border text-light" role="status">
-                      <span className="visually-hidden">
-                        Generando reporte...
-                      </span>
-                    </div>
+                    <>
+                      <div className="spinner-border spinner-border-sm text-light me-2" role="status">
+                        <span className="visually-hidden">
+                          Generando reporte...
+                        </span>
+                      </div>
+                      Generando...
+                    </>
                   ) : (
-                    "Generar reporte PDF"
+                    <>
+                      Generar reporte PDF
+                      <FontAwesomeIcon className="mx-2" beat icon={faFile} />
+                    </>
                   )}
-                  <FontAwesomeIcon className="mx-2" beat icon={faFile} />
                 </button>
               )}
 
+              {/* ✅ Botón de cerrar - Siempre visible */}
               <button
-                type="submit"
+                type="button"
                 onClick={onClose}
                 id="btnc"
                 className="btn bg-danger mx-5 text-white fw-bold"
+                disabled={isLoading}
               >
                 Cerrar
                 <FontAwesomeIcon
@@ -281,9 +282,8 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                   (number) => (
                     <li
                       key={number}
-                      className={`page-item${
-                        currentPage === number ? " active" : ""
-                      }`}
+                      className={`page-item${currentPage === number ? " active" : ""
+                        }`}
                     >
                       <button
                         onClick={() => paginate(number)}
@@ -295,9 +295,8 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
                   )
                 )}
                 <li
-                  className={`page-item${
-                    currentPage === totalPages ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPage === totalPages ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"

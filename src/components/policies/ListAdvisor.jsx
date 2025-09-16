@@ -9,13 +9,14 @@ import useSearch from "../../hooks/useSearch";
 import { NavLink } from "react-router-dom";
 import { faSearch, faUserTie } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import useAuth from "../../hooks/useAuth";
 const ListAdvisor = () => {
   const [advisor, setAdvisor] = useState([]);
   const [advisorId, setAdvisorId] = useState({});
 
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-
+  const { auth } = useAuth();
   const itemsPerPage = 5; // Número de asesor por página
 
   dayjs.locale("es");
@@ -191,9 +192,8 @@ const ListAdvisor = () => {
                     <td>{item.email}</td>
                     <td>
                       <span
-                        className={`badge fw-bold fs-6 ${
-                          item.personalData ? "bg-success" : "bg-danger"
-                        }`}
+                        className={`badge fw-bold fs-6 ${item.personalData ? "bg-success" : "bg-danger"
+                          }`}
                       >
                         {item.personalData ? "SÍ" : "NO"}
                       </span>
@@ -210,22 +210,24 @@ const ListAdvisor = () => {
                           >
                             Ver historial de Com/Anticipos
                           </NavLink>
+                          {auth?.role !== "ELOPDP" && (<>
+                            <button
+                              onClick={() => getAvidorById(item.id, "advisor")}
+                              className="btn btn-secondary text-white fw-bold w-100 my-1"
+                            >
+                              Registrar Comisión
+                            </button>
 
-                          <button
-                            onClick={() => getAvidorById(item.id, "advisor")}
-                            className="btn btn-secondary text-white fw-bold w-100 my-1"
-                          >
-                            Registrar Comisión
-                          </button>
+                            <button
+                              onClick={() =>
+                                getAvidorById(item.id, "commissionRefunds")
+                              }
+                              className="btn btn-danger fw-bold w-100 my-1"
+                            >
+                              Descontar Comisiones
+                            </button>
+                          </>)}
 
-                          <button
-                            onClick={() =>
-                              getAvidorById(item.id, "commissionRefunds")
-                            }
-                            className="btn btn-danger fw-bold w-100 my-1"
-                          >
-                            Descontar Comisiones
-                          </button>
                         </>
                       ) : (
                         <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
@@ -263,9 +265,8 @@ const ListAdvisor = () => {
                 {pageNumbers.map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginate(number)}
@@ -276,9 +277,8 @@ const ListAdvisor = () => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentPage === pageNumbers.length ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPage === pageNumbers.length ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"

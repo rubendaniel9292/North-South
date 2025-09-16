@@ -9,12 +9,13 @@ import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
 import { faSearch, faUsers } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import useAuth from "../../hooks/useAuth";
 const ListCustomer = () => {
   const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
   const [customers, setCustomers] = useState([]); // Almacenar la lista de clientes en el estado
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
-
+  const { auth } = useAuth();
   const itemsPerPage = 7; // Número de asesor por página
 
   // Fetch all customers on component mount
@@ -222,9 +223,8 @@ const ListCustomer = () => {
                     </td>
                     <td>
                       <span
-                        className={`badge fw-bold fs-6 ${
-                          customer.personalData ? "bg-success" : "bg-danger"
-                        }`}
+                        className={`badge fw-bold fs-6 ${customer.personalData ? "bg-success" : "bg-danger"
+                          }`}
                       >
                         {customer.personalData ? "SÍ" : "NO"}
                       </span>
@@ -248,6 +248,22 @@ const ListCustomer = () => {
                           >
                             Ver pólizas
                           </button>
+                          {auth?.role != "ELOPDP" && (
+                            <NavLink
+                              to="/management/create-policy"
+                              state={{
+                                customer,
+                                isEditable: false,
+                              }}
+                              className="btn btn-secondary text-white fw-bold w-100 my-1"
+                            >
+                              Registrar póliza
+                            </NavLink>
+                          )}
+                        </>
+                      ) : (
+
+                        auth?.role !== "ELOPDP" && (
                           <NavLink
                             to="/management/create-policy"
                             state={{
@@ -258,18 +274,7 @@ const ListCustomer = () => {
                           >
                             Registrar póliza
                           </NavLink>
-                        </>
-                      ) : (
-                        <NavLink
-                          to="/management/create-policy"
-                          state={{
-                            customer,
-                            isEditable: false,
-                          }}
-                          className="btn btn-secondary text-white fw-bold w-100 my-1"
-                        >
-                          Registrar póliza
-                        </NavLink>
+                        )
                       )}
                     </td>
                   </tr>
@@ -295,9 +300,8 @@ const ListCustomer = () => {
                 {pageNumbers.map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginate(number)}
@@ -308,9 +312,8 @@ const ListCustomer = () => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentPage === pageNumbers.length ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPage === pageNumbers.length ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"

@@ -7,9 +7,36 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 //import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
-
+import useAuth from "../../hooks/useAuth";
 const CustomerModalContent = ({ onClose, customerId }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { auth } = useAuth();
+  // ✅ Función para manejar la generación del reporte PDF
+  const handleGenerateReport = async () => {
+    try {
+      setIsLoading(true);
+
+      // Aquí iría la lógica para generar el reporte PDF
+      // Por ejemplo, llamada a una API o generación con jsPDF
+
+      // Simulación de delay para mostrar el loading (pendiente de implementar)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // TODO: Implementar la generación real del PDF
+      console.log("Generando reporte para cliente:", customerId);
+
+      // Ejemplo de lo que podría ir aquí:
+      // const response = await http.post('/api/generate-report', { customerId: customerId.id });
+      // descargar el archivo o mostrar éxito
+
+    } catch (error) {
+      console.error("Error al generar el reporte:", error);
+      // TODO: Mostrar alerta de error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   //const isLoading = false; // Validación para evitar errores si customer o policy no existen
   // Validación para evitar errores si customer o policy no existen
 
@@ -24,7 +51,7 @@ const CustomerModalContent = ({ onClose, customerId }) => {
   );
   return (
     <>
-      <div className="modal d-flex justify-content-center align-items-center mx-auto ">
+      <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-4">
           <div className="d-flex justify-content-center align-items-center conten-title py-4 mb-3 rounded">
             <h3 className="text-white">
@@ -33,136 +60,166 @@ const CustomerModalContent = ({ onClose, customerId }) => {
             </h3>
           </div>
 
-          <table className="table table-striped">
-            <thead>
-              <tr>
-                <th>N° Index</th>
-                <th>Número de Póliza</th>
-                <th>Compañía</th>
-                <th>Tipo de Póliza</th>
-                <th>Fecha de Inicio</th>
-                <th>Fecha de Fin</th>
-                <th>Método de Pago</th>
-                <th>Banco (si aplica)</th>
-                <th>Frecuencia de Pago</th>
-                <th> Comisión por renovación</th>
-                <th>Número de renovaciones</th>
-              </tr>
-            </thead>
+          {/* ✅ Tabla con estado de loading */}
+          <div className="position-relative">
+            {/* ✅ Overlay de loading cuando se genera el reporte */}
+            {isLoading && (
+              <div
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.8)',
+                  zIndex: 10,
+                  borderRadius: '8px'
+                }}
+              >
+                <div className="text-center">
+                  <div className="spinner-border text-primary mb-2" role="status">
+                    <span className="visually-hidden">Generando reporte...</span>
+                  </div>
+                  <p className="fw-bold text-primary mb-0">Generando reporte PDF...</p>
+                </div>
+              </div>
+            )}
 
-            <tbody>
-              {customerId.policies.map((policy, index) => (
-                <tr key={policy.id}>
-                  <td>{index + 1}</td>
-                  <td>{policy.numberPolicy}</td>
-
-                  <td>{policy.company?.companyName || "N/A"}</td>
-                  <td>{policy.policyType?.policyName || "N/A"}</td>
-                  <td>
-                    {dayjs(policy.startDate).format("DD/MM/YYYY") || "N/A"}
-                  </td>
-                  <td>{dayjs(policy.endDate).format("DD/MM/YYYY") || "N/A"}</td>
-                  <td>{policy.paymentMethod?.methodName || "N/A"}</td>
-                  <td>
-                    {policy.bankAccount?.bank?.bankName ||
-                      policy.creditCard?.bank?.bankName ||
-                      "NO APLICA"}
-                  </td>
-                  <td>{policy.paymentFrequency?.frequencyName || "N/A"}</td>
-                  <td>
-                    <Badge
-                      className=""
-                      text={policy.renewalCommission === true ? "SI" : "NO"}
-                      color={
-                        policy.renewalCommission === true ? "dark" : "danger"
-                      }
-                    />
-                  </td>
-                  <td>{policy.renewals?.length || 0}</td>
+            <table className={`table table-striped ${isLoading ? 'opacity-50' : ''}`}>
+              <thead>
+                <tr>
+                  <th>N° Index</th>
+                  <th>Número de Póliza</th>
+                  <th>Compañía</th>
+                  <th>Tipo de Póliza</th>
+                  <th>Fecha de Inicio</th>
+                  <th>Fecha de Fin</th>
+                  <th>Método de Pago</th>
+                  <th>Banco (si aplica)</th>
+                  <th>Frecuencia de Pago</th>
+                  <th> Comisión por renovación</th>
+                  <th>Número de renovaciones</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
 
-            <thead>
-              <tr>
-                <th>Póliza correspondiente</th>
-                <th>Monto de Cobertura</th>
-                <th>Porcentaje de la Agencia</th>
-                <th>Porcentaje del Asesor</th>
-                <th>Valor de la Póliza</th>
-                <th>Número de Pagos</th>
-                <th>Pagos realizados</th>
-                <th>Derecho de Póliza</th>
-                <th>Pagos de comisiones al asesor</th>
-                <th>Estado</th>
-                <th colSpan="2" scope="row">
-                  Observaciones
-                </th>
-              </tr>
-            </thead>
+              <tbody>
+                {customerId.policies.map((policy, index) => (
+                  <tr key={policy.id}>
+                    <td>{index + 1}</td>
+                    <td>{policy.numberPolicy}</td>
 
-            <tbody>
-              {customerId.policies.map((policy) => (
-                <tr key={policy.id}>
-                  <td>{policy.numberPolicy}</td>
-                  <td>{policy.coverageAmount}</td>
-                  <td>{policy.agencyPercentage}</td>
-                  <td>{policy.advisorPercentage}</td>
-                  <td>{policy.policyValue}</td>
-                  <td>{policy.numberOfPayments}</td>
-                  <td>{policy.payments?.length || 0}</td>
-                  <td>{policy.policyFee || "NO APLICA"}</td>
-                  <td>{policy.paymentsToAdvisor}</td>
-                        <td>
-                  <span
-                    className={`badge fw-bold fs-6 ${
-                      policy.policyStatus?.id == 1
-                        ? "bg-success" // Activa - Verde
-                        : policy.policyStatus?.id == 2
-                        ? "bg-danger" // Cancelada - Rojo
-                        : policy.policyStatus?.id == 3
-                        ? "bg-secondary" // Culminada - Gris
-                        : policy.policyStatus?.id == 4
-                        ? "bg-warning text-dark" // Por Culminar - Amarillo
-                        : "bg-light text-dark" // Default - Claro
-                    }`}
-                  >
-                    {policy.policyStatus.statusName}
-                  </span>
-                </td>
-                  <td colSpan="2" scope="row">
-                    {policy.observations || "N/A"}
-                  </td>
+                    <td>{policy.company?.companyName || "N/A"}</td>
+                    <td>{policy.policyType?.policyName || "N/A"}</td>
+                    <td>
+                      {dayjs(policy.startDate).format("DD/MM/YYYY") || "N/A"}
+                    </td>
+                    <td>{dayjs(policy.endDate).format("DD/MM/YYYY") || "N/A"}</td>
+                    <td>{policy.paymentMethod?.methodName || "N/A"}</td>
+                    <td>
+                      {policy.bankAccount?.bank?.bankName ||
+                        policy.creditCard?.bank?.bankName ||
+                        "NO APLICA"}
+                    </td>
+                    <td>{policy.paymentFrequency?.frequencyName || "N/A"}</td>
+                    <td>
+                      <Badge
+                        className=""
+                        text={policy.renewalCommission === true ? "SI" : "NO"}
+                        color={
+                          policy.renewalCommission === true ? "dark" : "danger"
+                        }
+                      />
+                    </td>
+                    <td>{policy.renewals?.length || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+
+              <thead>
+                <tr>
+                  <th>Póliza correspondiente</th>
+                  <th>Monto de Cobertura</th>
+                  <th>Porcentaje de la Agencia</th>
+                  <th>Porcentaje del Asesor</th>
+                  <th>Valor de la Póliza</th>
+                  <th>Número de Pagos</th>
+                  <th>Pagos realizados</th>
+                  <th>Derecho de Póliza</th>
+                  <th>Pagos de comisiones al asesor</th>
+                  <th>Estado</th>
+                  <th colSpan="2" scope="row">
+                    Observaciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {customerId.policies.map((policy) => (
+                  <tr key={policy.id}>
+                    <td>{policy.numberPolicy}</td>
+                    <td>{policy.coverageAmount}</td>
+                    <td>{policy.agencyPercentage}</td>
+                    <td>{policy.advisorPercentage}</td>
+                    <td>{policy.policyValue}</td>
+                    <td>{policy.numberOfPayments}</td>
+                    <td>{policy.payments?.length || 0}</td>
+                    <td>{policy.policyFee || "NO APLICA"}</td>
+                    <td>{policy.paymentsToAdvisor}</td>
+                    <td>
+                      <span
+                        className={`badge fw-bold fs-6 ${policy.policyStatus?.id == 1
+                          ? "bg-success" // Activa - Verde
+                          : policy.policyStatus?.id == 2
+                            ? "bg-danger" // Cancelada - Rojo
+                            : policy.policyStatus?.id == 3
+                              ? "bg-secondary" // Culminada - Gris
+                              : policy.policyStatus?.id == 4
+                                ? "bg-warning text-dark" // Por Culminar - Amarillo
+                                : "bg-light text-dark" // Default - Claro
+                          }`}
+                      >
+                        {policy.policyStatus.statusName}
+                      </span>
+                    </td>
+                    <td colSpan="2" scope="row">
+                      {policy.observations || "N/A"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div> {/* ✅ Cerrar div position-relative */}
+
           <div className="d-flex justify-content-around mt-1">
             <div className="">
-              <button
-                type="submit"
-                //onClick={generateReport}
-                id="btnc"
-                className="btn bg-success mx-5 text-white fw-bold "
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">
-                      Generando reporte...
-                    </span>
-                  </div>
-                ) : (
-                  "Generar reporte PDF"
-                )}
-                <FontAwesomeIcon className="mx-2" beat icon={faFile} />
-              </button>
+              {auth?.role !== "ELOPDP" && (<>
+                <button
+                  type="button"
+                  onClick={handleGenerateReport}
+                  id="btnc"
+                  className="btn bg-success mx-5 text-white fw-bold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm text-light me-2" role="status">
+                        <span className="visually-hidden">
+                          Generando reporte...
+                        </span>
+                      </div>
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      Generar reporte PDF
+                      <FontAwesomeIcon className="mx-2" beat icon={faFile} />
+                    </>
+                  )}
+                </button>
+              </>)}
 
               <button
-                type="submit"
+                type="button"
                 onClick={onClose}
                 id="btnc"
                 className="btn bg-danger mx-5 text-white fw-bold"
+                disabled={isLoading}
               >
                 Cerrar
                 <FontAwesomeIcon

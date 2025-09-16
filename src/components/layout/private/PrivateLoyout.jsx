@@ -11,8 +11,7 @@ const PrivateLoyout = () => {
     return (
       <div
         className="spinner-border text-success"
-        role="sta
-            tus"
+        role="status"
       >
         <span className="visually-hidden">Loading...</span>
       </div>

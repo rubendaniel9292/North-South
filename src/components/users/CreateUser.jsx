@@ -2,6 +2,8 @@ import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useState, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk, faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const CreateUser = () => {
   const { form, changed } = UserForm({});
@@ -16,7 +18,7 @@ const CreateUser = () => {
         let newUser = form;
         const request = await http.post("users/register", newUser);
 
-        console.log(request.data);
+        //console.log(request.data);
 
         if (request.data.status === "success") {
           alerts(
@@ -50,8 +52,9 @@ const CreateUser = () => {
           id="user-form"
           className="needs-validation was-validated"
         >
-          <div className="row mt-3 fw-bold">
-           <h3>REGISTRO DE USUARIOS</h3>
+          <fieldset disabled={isLoading}>
+            <div className="row mt-3 fw-bold">
+              <h3>REGISTRO DE USUARIOS</h3>
             <div className="mb-3 col-6">
               <label htmlFor="name" className="form-label">
                 Nombres
@@ -134,15 +137,39 @@ const CreateUser = () => {
                   {option}
                 </option>
                 <option value="ADMIN">Administrador</option>
-                <option value="BASIC">Básico</option>
+                  <option value="BASIC">Básico</option>
+                   <option value="ELOPDP">Encargado TDP</option>
               </select>
             </div>
             <div className="mt-4 col-6">
-              <button type="submit" className="btn btn-primary">
-                Submit
+              <button 
+                type="submit" 
+                className="btn btn-success fw-bold"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <FontAwesomeIcon 
+                      icon={faSpinner} 
+                      className="me-2" 
+                      spin 
+                    />
+                    Registrando...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon 
+                      icon={faFloppyDisk} 
+                      className="me-2" 
+                      beat 
+                    />
+                    Registrar Usuario
+                  </>
+                )}
               </button>
             </div>
           </div>
+          </fieldset>
         </form>
       </div>
     </>

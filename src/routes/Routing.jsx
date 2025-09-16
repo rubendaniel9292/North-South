@@ -47,7 +47,7 @@ const Routing = () => {
             <Route path="get-all-cards" element={<ListCreditCard/>}></Route>
             <Route path="create-bank" element={<CreateBank/>}></Route>
             <Route path="create-companies" element={<CreateComapnies/>}></Route>
-            <Route path="get-all-comapanies" element={<ListCompanies/>}></Route>
+            <Route path="get-all-companies" element={<ListCompanies/>}></Route>
             <Route path="create-advisor" element={<CreateAdvisor/>}></Route>
             <Route path="get-all-advisor" element={<ListAdvisor/>}></Route>
             <Route path="create-policy" element={<CreatePolicy/>}></Route>

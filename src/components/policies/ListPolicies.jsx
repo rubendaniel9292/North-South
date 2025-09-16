@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
 import "dayjs/locale/es";
-
+import useAuth from "../../hooks/useAuth";
 // ✅ Importar iconos de FontAwesome
 import {
   faSearch,
@@ -55,6 +55,7 @@ const ListPolicies = memo(() => {
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [advisor, setAdvisor] = useState([]);
+  const { auth } = useAuth();
 
   // ✅ Estados para filtros
   const [statusFilter, setStatusFilter] = useState("");
@@ -522,14 +523,14 @@ const ListPolicies = memo(() => {
                     <td>
                       <span
                         className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.ACTIVE
-                            ? "bg-success text-white" // ✅ Activa - Verde
-                            : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
-                              ? "bg-danger text-white" // ✅ Cancelada - Rojo
-                              : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
-                                ? "bg-secondary text-white" // ✅ Culminada - Gris
-                                : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
-                                  ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
-                                  : "bg-light text-dark" // ✅ Default - Claro
+                          ? "bg-success text-white" // ✅ Activa - Verde
+                          : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
+                            ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                            : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
+                              ? "bg-secondary text-white" // ✅ Culminada - Gris
+                              : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
+                                ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
+                                : "bg-light text-dark" // ✅ Default - Claro
                           }`}
                       >
                         {policy.policyStatus?.statusName}
@@ -552,37 +553,41 @@ const ListPolicies = memo(() => {
                       >
                         Ver info. Completa
                       </button>
+                      {auth?.role !== "ELOPDP" && (
+                        <>
+                          <button
+                            className="btn btn-success text-white fw-bold my-1 w-100"
+                            onClick={() => getPolicyById(policy.id, "updatePolicy")}
+                            aria-label={`Actualizar póliza ${policy.numberPolicy}`}
+                          >
+                            Actualizar
+                          </button>
 
-                      <button
-                        className="btn btn-success text-white fw-bold my-1 w-100"
-                        onClick={() => getPolicyById(policy.id, "updatePolicy")}
-                        aria-label={`Actualizar póliza ${policy.numberPolicy}`}
-                      >
-                        Actualizar
-                      </button>
-
-                      {/*Identifica correctamente el último pago : 
+                          {/*Identifica correctamente el último pago : 
                       Usando reduce() para encontrar el pago con el número más alto, independientemente del orden en el array.*/}
-                      <button
-                        className="btn btn-secondary text-white fw-bold my-1 w-100"
-                        onClick={() => getPolicyById(policy.id, "renewal")}
-                        aria-label={`Renovar póliza ${policy.numberPolicy}`}
-                        disabled={
-                          !policy.payments?.length ||
-                          parseFloat(
-                            policy.payments.reduce(
-                              (latest, payment) =>
-                                parseInt(payment.number_payment) >
-                                  parseInt(latest.number_payment)
-                                  ? payment
-                                  : latest,
-                              policy.payments[0]
-                            ).pending_value
-                          ) > 0
-                        }
-                      >
-                        Renovar póliza
-                      </button>
+                          <button
+                            className="btn btn-secondary text-white fw-bold my-1 w-100"
+                            onClick={() => getPolicyById(policy.id, "renewal")}
+                            aria-label={`Renovar póliza ${policy.numberPolicy}`}
+                            disabled={
+                              !policy.payments?.length ||
+                              parseFloat(
+                                policy.payments.reduce(
+                                  (latest, payment) =>
+                                    parseInt(payment.number_payment) >
+                                      parseInt(latest.number_payment)
+                                      ? payment
+                                      : latest,
+                                  policy.payments[0]
+                                ).pending_value
+                              ) > 0
+                            }
+                          >
+                            Renovar póliza
+                          </button>
+                        </>
+                      )}
+
                     </td>
                   </tr>
                 ))

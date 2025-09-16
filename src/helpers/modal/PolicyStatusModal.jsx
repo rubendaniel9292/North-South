@@ -7,11 +7,39 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
-
+import useAuth from "../../hooks/useAuth";
 const PolicyStatusModal = ({ policies, onClose }) => {
   if (!policies) return null;
-  // eslint-disable-next-line react-hooks/rules-of-hooks, no-unused-vars
+  
   const [isLoading, setIsLoading] = useState(false);
+  const { auth } = useAuth();
+  
+  // ✅ Función para manejar la generación del reporte PDF
+  const handleGenerateReport = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Aquí iría la lógica para generar el reporte PDF de las pólizas filtradas
+      // Por ejemplo, llamada a una API o generación con jsPDF
+      
+      // Simulación de delay para mostrar el loading (remover en producción)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // TODO: Implementar la generación real del PDF
+      console.log("Generando reporte de pólizas:", policies);
+      
+      // Ejemplo de lo que podría ir aquí:
+      // const response = await http.post('/api/generate-policies-report', { policies });
+      // descargar el archivo o mostrar éxito
+      
+    } catch (error) {
+      console.error("Error al generar el reporte:", error);
+      // TODO: Mostrar alerta de error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   //const [isDataValid, setIsDataValid] = useState(true);
 
   // ✅ Constantes para estados de póliza
@@ -22,14 +50,36 @@ const PolicyStatusModal = ({ policies, onClose }) => {
 
   return (
     <>
-      <div className="modal d-flex justify-content-center align-items-center mx-auto ">
+      <div className="modal d-flex justify-content-center align-items-center mx-auto">
         <article className="modal-content text-center px-5 py-4">
           <div className="d-flex justify-content-center align-items-center conten-title mb-3 rounded">
             <h3 className="text-white">
-              Listado de todas las póilzas terminadas o por terminar
+              Listado de todas las pólizas terminadas o por terminar
             </h3>
           </div>
-          <table className="table table-striped">
+          
+          {/* ✅ Tabla con estado de loading */}
+          <div className="position-relative">
+            {/* ✅ Overlay de loading cuando se genera el reporte */}
+            {isLoading && (
+              <div 
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                style={{ 
+                  backgroundColor: 'rgba(255,255,255,0.8)', 
+                  zIndex: 10,
+                  borderRadius: '8px'
+                }}
+              >
+                <div className="text-center">
+                  <div className="spinner-border text-primary mb-2" role="status">
+                    <span className="visually-hidden">Generando reporte...</span>
+                  </div>
+                  <p className="fw-bold text-primary mb-0">Generando reporte PDF...</p>
+                </div>
+              </div>
+            )}
+
+            <table className={`table table-striped ${isLoading ? 'opacity-50' : ''}`}>
             <thead>
               <tr>
                 <th>N°</th>
@@ -92,42 +142,50 @@ const PolicyStatusModal = ({ policies, onClose }) => {
               ))}
             </tbody>
           </table>
+          </div> {/* ✅ Cerrar div position-relative */}
 
           <div className="d-flex justify-content-around mt-1">
-            <div className="">
+            {/* ✅ Botón de generar reporte solo para roles autorizados */}
+            {auth?.role !== "ELOPDP" ? (
               <button
-                type="submit"
-                //onClick={generateReport}
+                type="button"
+                onClick={handleGenerateReport}
                 id="btnc"
-                className="btn bg-success mx-5 text-white fw-bold "
+                className="btn bg-success mx-5 text-white fw-bold"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <div className="spinner-border text-light" role="status">
-                    <span className="visually-hidden">
-                      Generando reporte...
-                    </span>
-                  </div>
+                  <>
+                    <div className="spinner-border spinner-border-sm text-light me-2" role="status">
+                      <span className="visually-hidden">
+                        Generando reporte...
+                      </span>
+                    </div>
+                    Generando...
+                  </>
                 ) : (
-                  "Generar reporte PDF"
+                  <>
+                    Generar reporte PDF
+                    <FontAwesomeIcon className="mx-2" beat icon={faFile} />
+                  </>
                 )}
-                <FontAwesomeIcon className="mx-2" beat icon={faFile} />
               </button>
+            ) : null}
 
-              <button
-                type="submit"
-                onClick={onClose}
-                id="btnc"
-                className="btn bg-danger mx-5 text-white fw-bold"
-              >
-                Cerrar
-                <FontAwesomeIcon
-                  className="mx-2"
-                  beat
-                  icon={faRectangleXmark}
-                />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              id="btnc"
+              className="btn bg-danger mx-5 text-white fw-bold"
+              disabled={isLoading}
+            >
+              Cerrar
+              <FontAwesomeIcon
+                className="mx-2"
+                beat
+                icon={faRectangleXmark}
+              />
+            </button>
           </div>
         </article>
       </div>

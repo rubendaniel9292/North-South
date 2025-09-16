@@ -1,6 +1,6 @@
 import "../../assets/css/dasboard-styles.css";
 import { NavLink, Outlet } from "react-router-dom";
-import { useState } from "react";
+import React, { useState, useMemo, useCallback, memo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPowerOff,
@@ -16,7 +16,41 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import useAuth from "../../hooks/useAuth";
 
-const Index = () => {
+// ✅ Constantes para evitar valores mágicos, Define la altura en píxeles de cada elemento del menú desplegable.
+//Define la duración de las animaciones de apertura/cierre de menús., Esto permite que la animación sea suave y calcule la altura exacta
+const MENU_ITEM_HEIGHT = 55;
+const ANIMATION_DURATION = "0.25s";
+
+// ✅ Función helper para verificar permisos de rol
+const hasRolePermission = (allowedRoles, userRole) => {
+  if (!allowedRoles || allowedRoles.length === 0) return true; // Si no hay restricciones, permitir acceso
+  return allowedRoles.includes(userRole);
+};
+
+// ✅ Función para filtrar elementos del menú basado en roles
+const filterMenuByRole = (menuItems, userRole) => {
+  return menuItems
+    .filter(item => hasRolePermission(item.allowedRoles, userRole))
+    .map(item => {
+      if (item.items) {
+        const filteredSubItems = item.items.filter(subItem =>
+          hasRolePermission(subItem.allowedRoles, userRole)
+        );
+
+        // Si no hay sub-elementos visibles, no mostrar el menú padre
+        if (filteredSubItems.length === 0) return null;
+
+        return {
+          ...item,
+          items: filteredSubItems
+        };
+      }
+      return item;
+    })
+    .filter(Boolean); // Eliminar elementos null
+};
+
+const Index = memo(() => {
   const { auth } = useAuth();
   const [open, setOpen] = useState(null);
 
@@ -25,45 +59,71 @@ const Index = () => {
     return null;
   }
 
-  // Menú configurado para un solo dropdown abierto a la vez
-  const menuConfig = [
+  // ✅ Menú configurado con memoización para optimizar performance
+  const menuConfig = useMemo(() => [
     {
       id: "home",
       icon: faHome,
       label: "Inicio",
       link: "/management/home",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"], // Todos los roles pueden ver inicio
     },
     {
       id: "clientesMenu",
       icon: faUsers,
       label: "Gestión de Clientes",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
-        { label: "Registrar Cliente", link: "/management/create-customer" },
-        { label: "Listado de Clientes", link: "/management/get-all-customer" },
+        {
+          label: "Registrar Cliente",
+          link: "/management/create-customer",
+          allowedRoles: ["ADMIN", "BASIC"]
+        },
+        {
+          label: "Listado de Clientes",
+          link: "/management/get-all-customer",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"]
+        },
       ],
     },
     {
       id: "tarjetasMenu",
       icon: faCreditCard,
       label: "Gestión de Tarjetas",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
-        { label: "Registro de Tarjetas", link: "/management/create-cards" },
-        { label: "Registro de Bancos", link: "/management/create-bank" },
-        { label: "Listado de Tarjetas", link: "/management/get-all-cards" },
+        {
+          label: "Registro de Tarjetas",
+          link: "/management/create-cards",
+          allowedRoles: ["ADMIN", "BASIC"]
+        },
+        {
+          label: "Registro de Bancos",
+          link: "/management/create-bank",
+          allowedRoles: ["ADMIN", "BASIC"]
+        },
+        {
+          label: "Listado de Tarjetas",
+          link: "/management/get-all-cards",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
+        },
       ],
     },
     {
       id: "cuentasMenu",
       icon: faUniversity,
       label: "Gestión de Cuentas Bancarias",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
         {
           label: "Registro de cuentas bancarias",
           link: "/management/create-bankaccounts",
+          allowedRoles: ["ADMIN", "BASIC"]
         },
         {
           label: "Listar Cuentas Bancarias",
           link: "/management/list-bankaccounts",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
         },
       ],
     },
@@ -71,62 +131,105 @@ const Index = () => {
       id: "polizasMenu",
       icon: faFileContract,
       label: "Gestión de Pólizas",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
-        { label: "Registro de Polizas", link: "/management/create-policy" },
-        { label: "Listado de Pólizas", link: "/management/get-all-policy" },
-        /*{ label: "Lista de pagos", link: "/management/get-all-payments" },*/
+        {
+          label: "Registro de Polizas",
+          link: "/management/create-policy",
+          allowedRoles: ["ADMIN", "BASIC"]
+        },
+        {
+          label: "Listado de Pólizas",
+          link: "/management/get-all-policy",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
+        },
       ],
     },
     {
       id: "asesoresMenu",
       icon: faUserTie,
       label: "Gestión de Asesores",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
-        { label: "Registro de Asesores", link: "/management/create-advisor" },
-        { label: "Listado de Asesores", link: "/management/get-all-advisor" },
+        {
+          label: "Registro de Asesores",
+          link: "/management/create-advisor",
+          allowedRoles: ["ADMIN", "BASIC"]
+        },
+        {
+          label: "Listado de Asesores",
+          link: "/management/get-all-advisor",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
+        },
       ],
     },
     {
       id: "companiasMenu",
       icon: faBuilding,
       label: "Gestión de Compañías",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
         {
           label: "Registro de Compañías",
           link: "/management/create-companies",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
         },
         {
-          label: "Listado de Compañias",
-          link: "/management/get-all-comapanies",
+          label: "Listado de Compañías",
+          link: "/management/get-all-companies",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
         },
       ],
     },
     {
-      id: "gestionLopdpenu",
+      id: "gestionLopdp",
       icon: faScaleBalanced,
-      label: "Gestion de LOPDP",
+      label: "Gestión de LOPDP",
+      allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
       items: [
-        /*{ label: "Registro de LOPD", link: "/management/create-lopd" },*/
-        { label: "Listado de LOPDP", link: "/management/management-lopdp" },
+        {
+          label: "Listado de LOPDP",
+          link: "/management/management-lopdp",
+          allowedRoles: ["ADMIN", "BASIC", "ELOPDP"],
+        },
       ],
     },
-  ];
+  ], []); // ✅ Array vacío como dependencia ya que el menú es estático
 
-  if (auth?.role === "ADMIN") {
-    menuConfig.push({
-      id: "usuariosMenu",
-      icon: faUserCog,
-      label: "Gestión de Usuarios",
-      items: [
-        { label: "Añadir Usuario", link: "/management/create-user" },
-        { label: "Lista de Usuarios", link: "/management/user-list" },
-      ],
-    });
-  }
+  // ✅ Memoizar configuración final del menú incluyendo lógica de roles y ADMIN
+  const finalMenuConfig = useMemo(() => {
+    // Primero aplicar filtro por roles al menú base
+    let filteredMenu = filterMenuByRole(menuConfig, auth?.role);
 
-  const handleToggle = (id) => {
+    // Luego agregar menú de usuarios solo para ADMIN
+    if (auth?.role === "ADMIN") {
+      filteredMenu.push({
+        id: "usuariosMenu",
+        icon: faUserCog,
+        label: "Gestión de Usuarios",
+        allowedRoles: ["ADMIN"],
+        items: [
+          {
+            label: "Añadir Usuario",
+            link: "/management/create-user",
+            allowedRoles: ["ADMIN"]
+          },
+          {
+            label: "Lista de Usuarios",
+            link: "/management/user-list",
+            allowedRoles: ["ADMIN"]
+          },
+        ],
+      });
+    }
+
+    return filteredMenu;
+  }, [auth?.role, menuConfig]);
+
+  // ✅ Memoizar función de toggle para evitar re-renders
+  const handleToggle = useCallback((id) => {
     setOpen(open === id ? null : id);
-  };
+  }, [open]);
 
   return (
     <>
@@ -149,7 +252,7 @@ const Index = () => {
           </div>
           <div className="row dasboard">
             <div className="col-2 lateral">
-              {menuConfig.map((item) =>
+              {finalMenuConfig.map((item) =>
                 !item.items ? (
                   <NavLink
                     key={item.id}
@@ -167,12 +270,12 @@ const Index = () => {
                     style={{ width: "100%" }}
                   >
                     <button
-                      className={`btnDas text-white fw-bold d-flex align-items-center menu-btn-custom w-100 ${
-                        open === item.id ? "opened" : ""
-                      }`}
+                      className={`btnDas text-white fw-bold d-flex align-items-center menu-btn-custom w-100 ${open === item.id ? "opened" : ""
+                        }`}
                       type="button"
                       onClick={() => handleToggle(item.id)}
                       aria-expanded={open === item.id}
+                      aria-label={`${open === item.id ? 'Cerrar' : 'Abrir'} menú ${item.label}`}
                       style={{ display: "block" }}
                     >
                       <FontAwesomeIcon icon={item.icon} className="me-2" />
@@ -182,15 +285,14 @@ const Index = () => {
                       </span>
                     </button>
                     <div
-                      className={`custom-collapse ${
-                        open === item.id ? "show" : ""
-                      }`}
+                      className={`custom-collapse ${open === item.id ? "show" : ""
+                        }`}
                       style={{
                         maxHeight:
                           open === item.id
-                            ? `${item.items.length * 55}px`
+                            ? `${item.items.length * MENU_ITEM_HEIGHT}px`
                             : "0",
-                        transition: "max-height 0.25s ease",
+                        transition: `max-height ${ANIMATION_DURATION} ease`,
                         overflow: "hidden",
                       }}
                     >
@@ -219,6 +321,9 @@ const Index = () => {
       </section>
     </>
   );
-};
+});
+
+// Agregamos displayName para debugging, es una propiedad especial de React que se usa para identificar componentes durante el debugging y desarrollo.
+Index.displayName = 'Index';
 
 export default Index;
