@@ -103,10 +103,10 @@ const rateLimitConfig = rateLimit({
   skip: (req) => {
     const ip = req.ip;
     // No aplicar rate limit a IPs locales/internas
-    const isLocalIP = ip === '127.0.0.1' || ip === '::1' || ip?.startsWith('192.168.') || ip?.startsWith('10.');
+    const isLocalIP = ip === '192.168.61.110' || ip === '::1' || '' || ip?.startsWith('192.168.') || ip?.startsWith('10.');
     // En desarrollo, ser más permisivo
     const isDevelopment = process.env.NODE_ENV !== 'production';
-    return isLocalIP || (isDevelopment && (ip === '::ffff:127.0.0.1' || ip?.includes('localhost')));
+    return isLocalIP || (isDevelopment && (ip === '::ffff:192.168.61.110' || ip?.includes('localhost')));
   }
 });
 

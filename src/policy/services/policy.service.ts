@@ -732,36 +732,25 @@ export class PolicyService extends ValidateEntity {
           { policy_status_id: 4 }, // Estado: vencida
         ],
         relations: [
+          'advisor',
           'policyType',
           'policyStatus',
           'paymentFrequency',
           'company',
-          'advisor',
           'customer',
           'paymentMethod',
           'bankAccount',
           'bankAccount.bank',
           'creditCard',
           'creditCard.bank',
-          'payments',
-          'payments.paymentStatus',
-          'renewals',
-          'commissionRefunds',
-          'periods'
         ],
         select: {
           id: true,
           numberPolicy: true,
           coverageAmount: true,
-          agencyPercentage: true,
-          advisorPercentage: true,
           policyValue: true,
-          numberOfPayments: true,
           startDate: true,
           endDate: true,
-          paymentsToAdvisor: true,
-          observations: true,
-          renewalCommission: true,
           policyType: {
             policyName: true,
           },
@@ -781,12 +770,12 @@ export class PolicyService extends ValidateEntity {
             companyName: true,
           },
           advisor: {
+            id: true,
             firstName: true,
             secondName: true,
             surname: true,
             secondSurname: true,
           },
-
           paymentMethod: {
             methodName: true,
           },
