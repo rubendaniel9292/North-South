@@ -20,6 +20,7 @@ import { PolicyStatusEntity } from '../entities/policy_status.entity';
 import { DateHelper } from '@/helpers/date.helper';
 import { PolicyPeriodDataDTO } from '../dto/policy.period.data.dto';
 import { PolicyPeriodDataEntity } from '../entities/policy_period_data.entity';
+import { CommissionsPaymentsService } from '@/commissions-payments/services/commissions-payments.service';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
@@ -27,6 +28,7 @@ export class PolicyService extends ValidateEntity {
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly policyStatusService: PolicyStatusService,
     private readonly paymentService: PaymentService,
+    private readonly commissionsPaymentsService: CommissionsPaymentsService,
     @InjectRepository(PolicyTypeEntity)
     private readonly policyTypeRepository: Repository<PolicyTypeEntity>,
     @InjectRepository(PaymentFrequencyEntity)
@@ -482,6 +484,7 @@ export class PolicyService extends ValidateEntity {
           'periods',
         ],
         select: {
+
           company: {
             id: true,
             companyName: true,
@@ -588,6 +591,7 @@ export class PolicyService extends ValidateEntity {
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
+
           company: {
             id: true,
             companyName: true,
@@ -671,11 +675,11 @@ export class PolicyService extends ValidateEntity {
           'policyStatus',
           'paymentFrequency',
           'company',
-
           'customer',
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
+
           company: {
             id: true,
             companyName: true,
@@ -1020,6 +1024,15 @@ export class PolicyService extends ValidateEntity {
         where: { id },
       });
 
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró resultados',
+        });
+      }
+
+      const oldAdvisorId = policy.advisor_id; // Guarda el asesor anterior
+
       const startDate = updateData.startDate
         ? DateHelper.normalizeDateForDB(updateData.startDate)
         : policy.startDate;
@@ -1036,21 +1049,26 @@ export class PolicyService extends ValidateEntity {
           await this.policyStatusService.determineNewPolicyStatus(endDate);
         updateData.policy_status_id = determinedStatus.id;
       }
-      if (!policy) {
-        throw new ErrorManager({
-          type: 'BAD_REQUEST',
-          message: 'No se encontró resultados',
-        });
-      }
 
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(policy, updateData);
 
-      // Guardar la política actualizada en la base de datos
+      // Si el asesor cambió, anula las comisiones del asesor anterior
+      if (
+        updateData.advisor_id &&
+        String(updateData.advisor_id) !== String(oldAdvisorId)
+      ) {
+        await this.commissionsPaymentsService.revertCommissionsOnAdvisorChange(
+          policy.id,
+          oldAdvisorId
+        );
+      }
+
+      // Guardar la poliza actualizada en la base de datos
       const policyUpdate: PolicyEntity =
         await this.policyRepository.save(policy);
+
       // --- NUEVO: Actualizar periodo anual ---
-      // Determina el año que quieres actualizar (ejemplo: el año actual)
       const currentYear = new Date().getFullYear();
       const updatePeriodData: PolicyPeriodDataDTO = {
         policy_id: id,
@@ -1062,28 +1080,20 @@ export class PolicyService extends ValidateEntity {
       };
       await this.createOrUpdatePeriodForPolicy(
         id,
-        currentYear, // o el año del periodo que corresponda
+        currentYear,
         updatePeriodData
       );
 
-      // Limpiar todas las claves de caché relevantes
-      // ✅ MEJORAR: Pasar también el policyId para invalidación completa
       await this.invalidateCaches(policy.advisor_id, id);
-
-      // ✅ PEQUEÑA PAUSA PARA ASEGURAR PROPAGACIÓN DE INVALIDACIÓN
       await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Actualizar caché con los datos más recientes
-
       await this.redisService.set(
         `policy:${id}`,
         JSON.stringify(policyUpdate),
-        32400, // Tiempo de expiración en segundos (9 horas)
+        32400,
       );
 
       return policyUpdate;
     } catch (error) {
-      // Manejar errores y lanzar una excepción personalizada
       throw ErrorManager.createSignatureError(error.message);
     }
   };

@@ -29,7 +29,9 @@ export class CommissionsPaymentsController {
     @Roles('ADMIN', 'BASIC','ELOPDP')
     @Post('apply-advance-distribution')
     public async applyAdvanceDistribution(@Body() body: any) {
+        console.log('Cuerpo recibido en el controlador:', body);
         return this.commissionsPaymentsServices.applyAdvanceDistribution(body);
+
     }
 
     @Roles('ADMIN', 'BASIC','ELOPDP')

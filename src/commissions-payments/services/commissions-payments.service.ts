@@ -82,6 +82,7 @@ export class CommissionsPaymentsService {
     /** 
    * Private utility: Reparto FIFO de anticipos generales entre pólizas con saldo pendiente
    */
+    /*
     public async applyAdvanceDistribution(body: ApplyAdvanceDistributionDTO): Promise<any> {
         try {
             const applied: Array<{ policy_id: number; applied: number }> = [];
@@ -242,7 +243,206 @@ export class CommissionsPaymentsService {
             throw ErrorManager.createSignatureError(error.message);
         }
     }
+*/
+    public async applyAdvanceDistribution(body: ApplyAdvanceDistributionDTO): Promise<any> {
+        try {
+            console.log('Cuerpo recibido en el servicio:', body);
+            const applied: Array<{ policy_id: number; applied: number }> = [];
 
+            // --- Normalización robusta: aceptar array, objeto indexado o único ---
+            let policiesInput = body.policies;
+
+            // Si es objeto indexado (como {'0': {...}, '1': {...}}), conviértelo a array
+            if (!Array.isArray(policiesInput) && typeof policiesInput === 'object' && policiesInput !== null) {
+                policiesInput = Object.values(policiesInput);
+            }
+
+            // Si sigue sin ser array, inicializa vacío
+            if (!Array.isArray(policiesInput)) {
+                policiesInput = [];
+            }
+
+            // Filtra solo las pólizas con policy_id válido
+            const validPolicies = policiesInput.filter(
+                p =>
+                    p && (
+                        // Si es anticipo general, no requiere policy_id
+                        p.policy_id === undefined ||
+                        p.policy_id === null ||
+                        // Si tiene policy_id, debe ser un número o un string numérico no vacío
+                        (!isNaN(Number(p.policy_id)) && String(p.policy_id).trim() !== '')
+                    )
+            );
+
+            if (validPolicies.length === 0) {
+                throw new ErrorManager({
+                    type: 'BAD_REQUEST',
+                    message: 'No se recibieron pólizas válidas para procesar la comisión.',
+                });
+            }
+
+            // Justo después de obtener validPolicies y antes de registrar cualquier pago:
+            for (const policyInput of validPolicies) {
+                // Solo valida si hay policy_id (no para anticipos generales)
+                if (policyInput.policy_id) {
+                    const policy = await this.policyRepository.findOne({ where: { id: Number(policyInput.policy_id) } });
+                    if (policy && String(policy.advisor_id) !== String(body.advisor_id)) {
+                        throw new ErrorManager({
+                            type: 'BAD_REQUEST',
+                            message: `El asesor seleccionado (${body.advisor_id}) no coincide con el asesor actual (${policy.advisor_id}) de la póliza ${policyInput.policy_id}. Corrige el asesor antes de registrar la comisión.`,
+                        });
+                    }
+                }
+            }
+
+            // --- Buscar todas las pólizas relevantes ---
+            const policies = await this.policyRepository.find({
+                where: { id: In(validPolicies.map(p => p.policy_id)) },
+                relations: ['commissions', 'renewals', 'payments'] // payments restaurado
+            });
+            console.log('Policies encontradas:', policies);
+
+            // --- Obtener anticipos generales disponibles para este asesor ---
+            const allPayments = await this.commissionsPayments.find({
+                where: {
+                    advisor_id: body.advisor_id,
+                    policy_id: IsNull(), // Solo anticipos generales (sin policy_id)
+                    status_advance_id: 1 // Solo los que están disponibles
+                }
+            });
+
+            // --- Preparar datos de cada póliza para el reparto de anticipos ---
+            const policyData = await Promise.all(policies.map(async policy => {
+                let releasedCommission = 0;
+                if (policy.isCommissionAnnualized) {
+                    // Si la comisión es anualizada, multiplicar por el número de renovaciones + 1
+                    const numRenewals = Number(policy.renewals?.length || 0);
+                    releasedCommission = Number(policy.paymentsToAdvisor) * (numRenewals + 1);
+                } else {
+                    // Cargar solo los pagos necesarios para esta póliza
+                    const policyPayments = await this.loadPaymentsForPolicy(policy.id);
+                    releasedCommission = policyPayments
+                        ? policyPayments.reduce((sum, p) =>
+                            (Number(p.status_payment_id) == 2)
+                                ? sum + Number(p.value || 0)
+                                : sum
+                            , 0)
+                        : 0;
+                }
+                const paidCommission = policy.commissions
+                    ? policy.commissions.reduce((sum, c) =>
+                        c.status_advance_id === null
+                            ? sum + Number(c.advanceAmount || 0)
+                            : sum
+                        , 0)
+                    : 0;
+
+                return {
+                    id: policy.id,
+                    releasedCommission,
+                    paidCommission
+                };
+            }));
+
+            console.log("IDs recibidos del frontend:", validPolicies.map(p => p.policy_id));
+            console.log("IDs encontrados en la base de datos:", policyData.map(p => p.id));
+
+            // --- Calcular el total de anticipos generales disponibles ---
+            const totalGeneralAdvance = allPayments
+                .reduce((sum, p) => sum + Number(p.advanceAmount || 0), 0);
+
+            // --- Repartir anticipos generales entre pólizas (FIFO) ---
+            const advanceByPolicy = this.distributeGeneralAdvanceToPolicies(policyData, totalGeneralAdvance);
+
+            // --- Registrar abonos para cada póliza recibida en la petición ---
+            for (const policyInput of validPolicies) {
+                const policyId = policyInput.policy_id ?? policyInput.policy_id;
+                const policy = policyData.find(p => p.id === policyId);
+                console.log('Policy recibida:', policy);
+
+                if (!policy) {
+                    console.warn(`Póliza con id ${policyId} no encontrada. Se omite este registro.`);
+                    continue;
+                }
+
+                const fromGeneralAdvance = advanceByPolicy[policyId] || 0;
+
+                // Calcular saldo disponible para aplicar
+                const availableBalance = policy.releasedCommission - policy.paidCommission;
+
+                if (policyInput.advance_to_apply > availableBalance) {
+                    throw new Error(
+                        `No se puede aplicar $${policyInput.advance_to_apply} a la póliza ${policyId}. Liberado: $${policy.releasedCommission}, Ya pagado: $${policy.paidCommission}, Ya cubierto por anticipo general: $${fromGeneralAdvance}. Intente con un monto menor.`
+                    );
+                }
+                // 1. Registrar parte del anticipo general si corresponde
+                if (fromGeneralAdvance > 0) {
+                    const paymentFromAdvance = this.commissionsPayments.create({
+                        advisor_id: body.advisor_id,
+                        policy_id: policyId,
+                        receiptNumber: body.receiptNumber,
+                        advanceAmount: fromGeneralAdvance,
+                        createdAt: body.createdAt,
+                        observations: `Anticipo general descontado automáticamente el ${body.createdAt}`,
+                        payment_method_id: body.payment_method_id,
+                        status_advance_id: null,
+                    });
+                    await this.commissionsPayments.save(paymentFromAdvance);
+                    applied.push({
+                        policy_id: policyId,
+                        applied: fromGeneralAdvance,
+                    });
+                }
+                // 2. Registrar el monto restante a aplicar (pago manual)
+                if (policyInput.advance_to_apply > 0) {
+                    const paymentNormal = this.commissionsPayments.create({
+                        advisor_id: body.advisor_id,
+                        policy_id: policyId,
+                        receiptNumber: body.receiptNumber,
+                        advanceAmount: policyInput.advance_to_apply,
+                        createdAt: body.createdAt,
+                        observations: body.observations || "",
+                        payment_method_id: body.payment_method_id,
+                        status_advance_id: null,
+                    });
+                    await this.commissionsPayments.save(paymentNormal);
+
+                    applied.push({
+                        policy_id: policyId,
+                        applied: policyInput.advance_to_apply,
+                    });
+                }
+            }
+
+            // --- Marcar anticipos generales como liquidados si corresponde ---
+            let remainingGeneralAdvance = totalGeneralAdvance;
+            for (const id of Object.keys(advanceByPolicy)) {
+                remainingGeneralAdvance -= advanceByPolicy[Number(id)];
+            }
+            if (remainingGeneralAdvance === 0 && totalGeneralAdvance > 0) {
+                const generalAdvances = allPayments.filter(p => !p.policy_id && p.status_advance_id === 1);
+                const advancesIds = generalAdvances.map(a => a.id);
+                await this.commissionsPayments.update(
+                    { id: In(advancesIds) },
+                    { status_advance_id: 2 } // 2 = Liquidado
+                );
+            }
+
+            // --- Limpiar cachés relacionados ---
+            await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
+            await this.redisService.del(`advisor:${body.advisor_id}`);
+            await this.redisService.del('allAdvisors');
+            await this.liquidateAdvancesIfNeeded(body.advisor_id);
+
+            return {
+                status: 'success',
+                message: 'Pagos aplicados correctamente',
+                applied,
+            };
+        } catch (error) {
+            throw ErrorManager.createSignatureError(error.message);
+        }
+    }
     /**
      * Private utility: Distributes general advances among policies with pending commission (FIFO)
      */
@@ -408,4 +608,34 @@ export class CommissionsPaymentsService {
             throw ErrorManager.createSignatureError(error.message);
         }
     }
+
+    /*5. MÉTODO PARA ANULAR COMISIONES AL CAMBIAR ASESOR
+ * Anula todas las comisiones/anticipos activas de una póliza asociadas al asesor anterior,
+ * dejando el saldo disponible para el nuevo registro.
+ * Llama este método justo después de actualizar el asesor de la póliza.
+ */
+    public async revertCommissionsOnAdvisorChange(policyId: number, oldAdvisorId: number): Promise<void> {
+    console.log(`Revirtiendo comisiones para la póliza ${policyId} y asesor anterior ${oldAdvisorId}`);
+    // Buscar todas las comisiones/anticipos activas de la póliza y asesor anterior
+    const affectedCommissions = await this.commissionsPayments.find({
+        where: {
+            policy_id: policyId,
+            advisor_id: oldAdvisorId,
+            // Solo las que no estén anuladas (ajusta según tu modelo)
+            status_advance_id: null // O el valor que uses para "activa"
+        }
+    });
+
+    for (const commission of affectedCommissions) {
+        // Marcar como anulada (puedes usar el valor que corresponda en tu sistema)
+        commission.status_advance_id = 3; // 3 = Anulada (ajusta según tu catálogo)
+        commission.observations = (commission.observations || '') + ' [Anulada por cambio de asesor]';
+        await this.commissionsPayments.save(commission);
+    }
+
+    // Opcional: limpiar caché relacionado
+    await this.redisService.del('allAdvisors');
+    await this.redisService.del('commissions');
+    await this.redisService.del(`policy:${policyId}:commissions`);
+}
 }

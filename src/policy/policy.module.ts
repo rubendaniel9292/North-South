@@ -20,6 +20,9 @@ import { PaymentEntity } from '@/payment/entity/payment.entity';
 import { PaymentService } from '@/payment/services/payment.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PolicyPeriodDataEntity } from './entities/policy_period_data.entity';
+import { CommissionsPaymentsService } from '@/commissions-payments/services/commissions-payments.service';
+import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
+import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
 
 @Module({
   imports: [
@@ -35,7 +38,9 @@ import { PolicyPeriodDataEntity } from './entities/policy_period_data.entity';
       RenewalEntity,
       PaymentStatusEntity,
       PaymentEntity,
-      PolicyPeriodDataEntity
+      PolicyPeriodDataEntity,
+      CommissionsPaymentsEntity,
+      CommissionRefundsEntity
     ]),
     ScheduleModule.forRoot(),
     ProvidersModule,
@@ -47,8 +52,9 @@ import { PolicyPeriodDataEntity } from './entities/policy_period_data.entity';
     HttpCustomService,
     PolicyStatusService,
     GenerateReportPdfService,
+    CommissionsPaymentsService,
   ],
   controllers: [PolicyController],
-  exports: [PolicyService, TypeOrmModule, PolicyStatusService],
+  exports: [PolicyService, TypeOrmModule, PolicyStatusService, CommissionsPaymentsService],
 })
 export class PolicyModule {}
