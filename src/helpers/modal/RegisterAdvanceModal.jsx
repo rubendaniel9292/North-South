@@ -224,7 +224,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           if (!response?.data?.status || response.data.status !== "success") {
             alerts(
               "Error",
-              "No se pudo aplicar el anticipo a las pólizas. Verifica los datos.", // ✅ Corregir "Verifica"
+              "No se pudo registrar la comisión. Verifica los datos.", // ✅ Corregir "Verifica"
               "error"
             );
             setIsLoading(false);
@@ -234,7 +234,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           refreshAdvisor?.();
           alerts(
             "Registro exitoso",
-            "Anticipo aplicado correctamente",
+            "Anticipo comisión registrada correctamente",
             "success"
           );
           localStorage.removeItem(`selectedPolicies_${advisorId.id}`);

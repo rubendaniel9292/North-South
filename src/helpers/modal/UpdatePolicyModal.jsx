@@ -408,17 +408,15 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     name="customers_id"
                     value={form.customers_id} // Seleccionamos el cliente automáticamente o se setea en vacio
                     onChange={handleSelectChange}
-                    //disabled={!isEditable} // Deshabilitar el select si isEditable es false
+                  //disabled={!isEditable} // Deshabilitar el select si isEditable es false
                   >
                     {customers
                       .filter((item) => item.id === form.customers_id)
                       .map((customer) => (
                         <option key={customer.id} value={customer.id} disabled>
-                          {`${customer.firstName} ${
-                            customer.secondName || ""
-                          } ${customer.surname} ${
-                            customer.secondSurname || ""
-                          }`.trim()}
+                          {`${customer.firstName} ${customer.secondName || ""
+                            } ${customer.surname} ${customer.secondSurname || ""
+                            }`.trim()}
                         </option>
                       ))}
                   </select>
@@ -434,7 +432,20 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed}
                     value={form.advisor_id} // Establece el valor predeterminado
                   >
-                    {advisor
+                    {
+                      advisor
+                        .map((item) => (
+                          <option
+                            key={item.id}
+                            value={item.id}
+                            disabled={item.id == form.advisor_id}
+                          >
+                            {`${item.firstName} ${item.secondName || ""} ${item.surname
+                              } ${item.secondSurname || ""}`.trim()}
+                          </option>
+                        ))
+                    }
+                    {/*advisor
                       .filter((item) => item.id === form.advisor_id)
                       .map((item) => (
                         <option
@@ -446,7 +457,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                             item.surname
                           } ${item.secondSurname || ""}`.trim()}
                         </option>
-                      ))}
+                      ))*/}
                   </select>
                 </div>
                 <div className="mb-3 col-3">
