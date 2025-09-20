@@ -1053,15 +1053,21 @@ export class PolicyService extends ValidateEntity {
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(policy, updateData);
 
-      // Si el asesor cambió, anula las comisiones del asesor anterior
+      // Si el asesor cambió, elimina/anula las comisiones del asesor anterior
       if (
         updateData.advisor_id &&
         String(updateData.advisor_id) !== String(oldAdvisorId)
       ) {
-        await this.commissionsPaymentsService.revertCommissionsOnAdvisorChange(
+        console.log(`🔄 Detectado cambio de asesor: ${oldAdvisorId} → ${updateData.advisor_id}`);
+        const deleteResult = await this.commissionsPaymentsService.revertCommissionsOnAdvisorChange(
           policy.id,
-          oldAdvisorId
+          oldAdvisorId,
+          updateData.advisor_id
         );
+        
+        console.log(`✅ Eliminación completada:`, deleteResult);
+        console.log(`💰 Dinero liberado: $${deleteResult.totalDeleted} disponible para el nuevo asesor`);
+        console.log(`📋 Log de auditoría:`, deleteResult.auditLog.join(' | '));
       }
 
       // Guardar la poliza actualizada en la base de datos

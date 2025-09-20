@@ -49,16 +49,16 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
 
     //RELACION CON ASESOR
     @ManyToOne(() => AdvisorEntity, (advisor) => advisor.commissions, {
-        onDelete: 'SET NULL', // Eliminar asesor deja este campo en NULL
-        nullable: true,       // Permite que un anticipo quede sin asesor
+        onDelete: 'SET NULL', // Si se elimina el asesor, este campo queda en NULL
+        nullable: true,       // Permite que una comisión quede sin asesor
     })
     @JoinColumn({ name: 'advisor_id' })
     advisor: AdvisorEntity;
 
-    //RELACION CON POLIZAS
+    //RELACION CON POLIZAS  
     @ManyToOne(() => PolicyEntity, (policy) => policy.commissions, { 
-        nullable: true,
-        onDelete: 'CASCADE'
+        nullable: true,       // Permite comisiones sin póliza específica
+        onDelete: 'SET NULL'  // Si se elimina la póliza, este campo queda en NULL (más seguro)
     })
     @JoinColumn({ name: 'policy_id' })
     policy: PolicyEntity;
@@ -67,7 +67,10 @@ export class CommissionsPaymentsEntity extends IdEntity implements ICommissionsP
     @Column({ name: 'status_advance_id', nullable: true })
     status_advance_id?: number | null;
 
-    @ManyToOne(() => StatusAdvanceEntity, (statusAdvance) => statusAdvance.commissions, { nullable: true, onDelete: 'RESTRICT' })
+    @ManyToOne(() => StatusAdvanceEntity, (statusAdvance) => statusAdvance.commissions, { 
+        nullable: true, 
+        onDelete: 'SET NULL'  // Si se elimina el estado, este campo queda en NULL
+    })
     @JoinColumn({ name: 'status_advance_id' })
     statusAdvance: StatusAdvanceEntity;
 
