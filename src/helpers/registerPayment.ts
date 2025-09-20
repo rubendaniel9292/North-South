@@ -36,20 +36,15 @@ export class PaymentSchedulerService implements OnModuleInit {
   async onModuleInit() {
     console.log('Inicializando módulo y verificando pagos pendientes...');
     try {
-      // ⚠️ TEMPORAL: Deshabilitar procesamiento masivo al inicio
-      console.log('⚠️  Procesamiento de pagos vencidos deshabilitado temporalmente por alto volumen de datos');
-      return;
-      /*
       // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
       const hasPendingPayments = await this.checkIfPendingPaymentsExist();
       
       if (hasPendingPayments) {
         console.log('Se encontraron pagos pendientes que deben procesarse. Procesando...');
-        await this.processOverduePaymentsOnly();
+        await this.processOverduePaymentsBatched();
       } else {
         console.log('No hay pagos pendientes que procesar. Módulo inicializado correctamente.');
       }
-      */
     } catch (error) {
       console.error('Error al verificar pagos al inicializar el módulo:', error);
     }
@@ -58,10 +53,273 @@ export class PaymentSchedulerService implements OnModuleInit {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     try {
-      await this.verifyAndProcessPayments();
+      await this.verifyAndProcessPaymentsBatched();
     } catch (error) {
       console.error('Error al verificar y procesar pagos en el cron job:', error);
     }
+  }
+
+  // Versión por lotes para el cron diario
+  async verifyAndProcessPaymentsBatched() {
+    const today = new Date();
+    console.log(`Verificación diaria de pagos por lotes - ${today.toLocaleDateString('es-EC')}`);
+    
+    try {
+      const totalPolicies = await this.paymentService.countPoliciesWithPendingPayments();
+      
+      if (totalPolicies === 0) {
+        console.log('No hay pagos pendientes para procesar.');
+        return;
+      }
+
+      const batchSize = this.getBatchSize(totalPolicies);
+      const processedPolicies = new Set<number>();
+      let totalProcessed = 0;
+      let paymentsCreated = 0;
+      
+      for (let offset = 0; offset < totalPolicies; offset += batchSize) {
+        const batchPayments = await this.paymentService.getPaymentsWithPendingValuePaginated(batchSize, offset);
+        
+        if (batchPayments.length === 0) break;
+
+        for (const payment of batchPayments) {
+          try {
+            if (processedPolicies.has(payment.policy_id)) continue;
+            if (payment.pending_value <= 0) continue;
+            
+            const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+            processedPolicies.add(payment.policy_id);
+            totalProcessed++;
+            
+            if (!policy.renewals) policy.renewals = [];
+            if (policy.policy_status_id == 2 || policy.policy_status_id == 3) continue;
+            
+            const isRenewed = this.isPolicyRenewed(policy);
+            let maxAllowedPayments = policy.numberOfPayments;
+            if (isRenewed && policy.renewals && policy.renewals.length > 0) {
+              maxAllowedPayments = policy.numberOfPayments * (policy.renewals.length + 1);
+            }
+            const currentPaymentsCount = policy.payments.length;
+            if (currentPaymentsCount >= maxAllowedPayments && payment.pending_value <= 0) continue;
+            
+            const nextPaymentDate = this.calculateNextPaymentDate(payment);
+            const todayNorm = DateHelper.normalizeDateForComparison(today);
+            const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+
+            // SOLO crear pago si la fecha del próximo pago es HOY exactamente
+            if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
+              const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
+              if (createdPayment) {
+                paymentsCreated++;
+              }
+            }
+          } catch (error) {
+            console.error(`Error procesando pago ${payment.id}:`, error);
+            continue;
+          }
+        }
+        
+        // Pequeña pausa entre lotes
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      // Resumen consolidado solo si se procesó algo
+      if (totalProcessed > 0) {
+        console.log(`✅ Verificación diaria por lotes completada: ${totalProcessed} pólizas verificadas, ${paymentsCreated} pagos creados`);
+      }
+    } catch (error) {
+      console.error('Error en la verificación diaria por lotes:', error);
+      throw error;
+    }
+  }
+
+  // PROCESA SOLO PAGOS VENCIDOS (evita duplicados por fecha) - OPTIMIZADO CON LOTES
+  async processOverduePaymentsBatched() {
+    const today = new Date();
+    console.log(`Procesando pagos vencidos desde ${today.toLocaleDateString('es-EC')} (usando procesamiento por lotes)`);
+    
+    try {
+      // Obtener el total de pólizas con pagos pendientes
+      const totalPolicies = await this.paymentService.countPoliciesWithPendingPayments();
+      
+      if (totalPolicies === 0) {
+        console.log('No hay pagos pendientes para procesar.');
+        return;
+      }
+
+      // Calcular tamaño de lote dinámico basado en el volumen
+      const batchSize = this.getBatchSize(totalPolicies);
+      const totalBatches = Math.ceil(totalPolicies / batchSize);
+      
+      console.log(`📊 Total de registros: ${totalPolicies}, Lotes de ${batchSize}, Total de lotes: ${totalBatches}`);
+
+      const processedPolicies = new Set<number>();
+      let totalProcessed = 0;
+      let paymentsCreated = 0;
+      let skippedPolicies = 0;
+      let currentBatch = 1;
+
+      // Procesar por lotes
+      for (let offset = 0; offset < totalPolicies; offset += batchSize) {
+        console.log(`🔄 Procesando lote ${currentBatch}/${totalBatches} (registros ${offset + 1}-${Math.min(offset + batchSize, totalPolicies)})`);
+        
+        // Obtener el lote actual
+        const batchPayments = await this.paymentService.getPaymentsWithPendingValuePaginated(batchSize, offset);
+        
+        if (batchPayments.length === 0) {
+          console.log(`✅ Lote ${currentBatch} vacío, finalizando procesamiento`);
+          break;
+        }
+
+        // Procesar cada pago del lote actual
+        for (const payment of batchPayments) {
+          try {
+            if (processedPolicies.has(payment.policy_id)) continue;
+            if (payment.pending_value <= 0) continue;
+            
+            const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+            
+            // Marcar como procesada inmediatamente
+            processedPolicies.add(payment.policy_id);
+            totalProcessed++;
+            
+            if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+              skippedPolicies++;
+              continue;
+            }
+            
+            const isRenewed = this.isPolicyRenewed(policy);
+            let relevantPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+            if (isRenewed) {
+              const lastRenewalDate = this.getLastRenewalDate(policy);
+              relevantPayments = relevantPayments.filter(
+                p => DateHelper.normalizeDateForComparison(p.createdAt) >= lastRenewalDate
+              );
+            }
+            if (relevantPayments.length >= policy.numberOfPayments) {
+              continue;
+            }
+            
+            const nextPaymentDate = this.calculateNextPaymentDate(payment);
+            const todayNorm = DateHelper.normalizeDateForComparison(today);
+            const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+
+            // SOLO crear pago si la fecha del próximo pago es HOY exactamente
+            if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
+              const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
+              if (createdPayment) {
+                paymentsCreated++;
+              }
+            }
+          } catch (error) {
+            console.error(`Error procesando pago ${payment.id}:`, error);
+          }
+        }
+
+        // Progreso del lote
+        console.log(`✅ Lote ${currentBatch} completado`);
+        currentBatch++;
+
+        // Pequeña pausa entre lotes para no sobrecargar el sistema
+        if (currentBatch <= totalBatches) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      // Resumen consolidado final
+      console.log(`🎉 Procesamiento por lotes completado: ${totalProcessed} pólizas procesadas, ${paymentsCreated} pagos creados, ${skippedPolicies} pólizas omitidas (canceladas/culminadas)`);
+      
+    } catch (error) {
+      console.error('Error en el procesamiento por lotes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Detecta automáticamente la capacidad del servidor basándose en las especificaciones del sistema
+   */
+  private detectServerCapacity(): 'basic' | 'intermediate' | 'high' {
+    try {
+      const os = require('os');
+      const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024); // Convertir bytes a GB
+      const cpuCount = os.cpus().length;
+      
+      console.log(`🖥️ Especificaciones del servidor: ${totalMemoryGB.toFixed(1)}GB RAM, ${cpuCount} vCPU`);
+      
+      // Clasificación automática basada en recursos del sistema
+      if (totalMemoryGB >= 12 && cpuCount >= 6) {
+        console.log('📊 Servidor clasificado como: HIGH CAPACITY');
+        return 'high';        // 12GB+ RAM y 6+ vCPU = Servidor potente
+      } else if (totalMemoryGB >= 6 && cpuCount >= 4) {
+        console.log('📊 Servidor clasificado como: INTERMEDIATE CAPACITY');
+        return 'intermediate'; // 6-12GB RAM y 4-6 vCPU = Servidor intermedio
+      } else {
+        console.log('📊 Servidor clasificado como: BASIC CAPACITY (conservador)');
+        return 'basic';       // < 6GB RAM o < 4 vCPU = Servidor básico
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudo detectar capacidad del servidor, usando modo básico por seguridad');
+      return 'basic'; // Fallback seguro
+    }
+  }
+
+  /**
+   * Calcula el tamaño de lote dinámico basado en el volumen total y capacidad AUTO-DETECTADA del servidor
+   * 
+   * DETECCIÓN AUTOMÁTICA:
+   * - Básico: < 6GB RAM o < 4 vCPU (incluye tu servidor 2GB/2vCPU)
+   * - Intermedio: 6-12GB RAM y 4-6 vCPU  
+   * - Alto: 12GB+ RAM y 6+ vCPU
+   * 
+   * El sistema se ajusta automáticamente sin cambios manuales
+   */
+  private getBatchSize(totalPolicies: number): number {
+    // DETECCIÓN AUTOMÁTICA: Ya no necesitas cambiar esto manualmente
+    type ServerCapacity = 'basic' | 'intermediate' | 'high';
+    const SERVER_CAPACITY: ServerCapacity = this.detectServerCapacity();
+    
+    // Factores de escalamiento por capacidad del servidor
+    const capacityMultipliers: Record<ServerCapacity, number> = {
+      basic: 1,        // Servidor básico (conservador)
+      intermediate: 2, // Servidor intermedio (2x más capacidad)
+      high: 4          // Servidor potente (4x más capacidad)
+    };
+    
+    const multiplier = capacityMultipliers[SERVER_CAPACITY];
+    
+    // Tamaños base optimizados por volumen (AJUSTADO PARA SERVIDOR 2GB RAM / 2 vCPU)
+    let baseBatchSize: number;
+    
+    if (totalPolicies < 100) {
+      baseBatchSize = 15;              // Pocas pólizas: lotes pequeños (era 25)
+    } else if (totalPolicies < 500) {
+      baseBatchSize = 20;              // Volumen bajo-medio: lotes pequeños (era 50)
+    } else if (totalPolicies < 1000) {
+      baseBatchSize = 15;              // Volumen medio: lotes pequeños (era 35)
+    } else if (totalPolicies < 5000) {
+      baseBatchSize = 10;              // Volumen alto: lotes muy pequeños (era 25)
+    } else {
+      baseBatchSize = 8;               // Volumen muy alto: lotes ultra pequeños (era 15)
+    }
+    
+    // Aplicar multiplicador de capacidad del servidor
+    const scaledBatchSize = baseBatchSize * multiplier;
+    
+    // Límites de seguridad para evitar sobrecargas (AJUSTADO PARA SERVIDOR 2GB RAM)
+    const maxBatchSizes: Record<ServerCapacity, number> = {
+      basic: 50,       // Máximo conservador para 2GB RAM (era 100)
+      intermediate: 150, // Para servidores 4-8GB RAM (era 250)
+      high: 300        // Para servidores 16GB+ RAM (era 500)
+    };
+    
+    const maxBatchSize = maxBatchSizes[SERVER_CAPACITY];
+    const minBatchSize = 10;
+    
+    const finalBatchSize = Math.max(minBatchSize, Math.min(scaledBatchSize, maxBatchSize));
+    
+    console.log(`📊 Configuración de lotes: Servidor=${SERVER_CAPACITY}, Base=${baseBatchSize}, Escalado=${scaledBatchSize}, Final=${finalBatchSize}`);
+    
+    return finalBatchSize;
   }
 
   // PROCESA SOLO PAGOS VENCIDOS (evita duplicados por fecha) - OPTIMIZADO
@@ -310,9 +568,98 @@ export class PaymentSchedulerService implements OnModuleInit {
     return new Date(lastRenewal.createdAt);
   }
 
-  // Manual para pruebas (no requiere ajuste de lógica, pero debe pasar paymentDueDate correcto)
+  // Manual para pruebas (VERSIÓN OPTIMIZADA POR LOTES)
   async manualProcessPayments() {
-    console.log('Iniciando procesamiento manual de pagos...');
+    console.log('Iniciando procesamiento manual de pagos por lotes...');
+    try {
+      // Obtener el total de pólizas con pagos pendientes
+      const totalPolicies = await this.paymentService.countPoliciesWithPendingPayments();
+      
+      if (totalPolicies === 0) {
+        console.log('No hay pagos pendientes para procesar.');
+        return { 
+          message: 'No hay pagos pendientes para procesar.',
+          createdPayments: [],
+          totalProcessed: 0
+        };
+      }
+
+      // Usar lotes para el procesamiento manual también
+      const batchSize = this.getBatchSize(totalPolicies);
+      const totalBatches = Math.ceil(totalPolicies / batchSize);
+      
+      console.log(`📊 Procesamiento manual: ${totalPolicies} registros, lotes de ${batchSize}, total de lotes: ${totalBatches}`);
+
+      const createdPayments = [];
+      const processedPolicies = new Set<number>();
+      let currentBatch = 1;
+      
+      // Procesar por lotes
+      for (let offset = 0; offset < totalPolicies; offset += batchSize) {
+        console.log(`🔄 Procesando lote manual ${currentBatch}/${totalBatches} (registros ${offset + 1}-${Math.min(offset + batchSize, totalPolicies)})`);
+        
+        // Obtener el lote actual
+        const batchPayments = await this.paymentService.getPaymentsWithPendingValuePaginated(batchSize, offset);
+        
+        if (batchPayments.length === 0) {
+          console.log(`✅ Lote ${currentBatch} vacío, finalizando procesamiento manual`);
+          break;
+        }
+
+        // Procesar cada pago del lote
+        for (const payment of batchPayments) {
+          try {
+            if (processedPolicies.has(payment.policy_id)) continue;
+            
+            const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+            if (!policy.renewals) policy.renewals = [];
+            
+            if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+              processedPolicies.add(payment.policy_id);
+              continue;
+            }
+            
+            const nextPaymentDate = this.calculateNextPaymentDate(payment);
+            const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+            const newPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm, 'Pago generado de manera manual');
+            
+            if (newPayment) {
+              createdPayments.push(newPayment);
+            }
+            
+            processedPolicies.add(payment.policy_id);
+          } catch (error) {
+            console.error(`Error procesando pago manual ${payment.id}:`, error);
+          }
+        }
+
+        // Progreso del lote
+        console.log(`✅ Lote manual ${currentBatch} completado`);
+        currentBatch++;
+
+        // Pequeña pausa entre lotes para no sobrecargar
+        if (currentBatch <= totalBatches) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      console.log(`🎉 Procesamiento manual por lotes completado: ${processedPolicies.size} pólizas procesadas, ${createdPayments.length} pagos creados`);
+      
+      return { 
+        message: `Procesamiento manual completado: ${createdPayments.length} pagos creados`,
+        createdPayments,
+        totalProcessed: processedPolicies.size,
+        totalBatches
+      };
+    } catch (error) {
+      console.error('Error en el procesamiento manual por lotes:', error);
+      throw error;
+    }
+  }
+
+  // Versión original mantenida como fallback (DEPRECADA - usar la versión por lotes)
+  async manualProcessPaymentsLegacy() {
+    console.log('Iniciando procesamiento manual de pagos (versión legacy)...');
     try {
       // OPTIMIZACIÓN: Solo obtener pagos con pending_value > 0
       const payments = await this.paymentService.getPaymentsWithPendingValue();

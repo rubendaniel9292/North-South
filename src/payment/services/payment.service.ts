@@ -371,6 +371,62 @@ export class PaymentService {
     }
   };
 
+  /**
+   * Método paginado para obtener pagos con pending_value > 0 por lotes
+   * Permite procesamiento escalable sin crash de memoria
+   */
+  public getPaymentsWithPendingValuePaginated = async (limit: number = 50, offset: number = 0): Promise<PaymentEntity[]> => {
+    try {
+      const payments: PaymentEntity[] = await this.paymentRepository.find({
+        where: {
+          pending_value: MoreThan(0) // Solo pagos con saldo pendiente
+        },
+        relations: [
+          'policies',
+          'policies.renewals',
+          'policies.periods',
+          'paymentStatus',
+          'policies.paymentFrequency',
+        ],
+        select: {
+          policies: {
+            id: true,
+            numberPolicy: true,
+            policyValue: true,
+            numberOfPayments: true,
+            policy_status_id: true,
+          },
+        },
+        take: limit,
+        skip: offset,
+        order: { id: 'ASC' } // Orden consistente para paginación
+      });
+
+      return payments || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos paginados con saldo pendiente:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  /**
+   * Cuenta el total de pólizas con pagos pendientes para calcular lotes
+   */
+  public countPoliciesWithPendingPayments = async (): Promise<number> => {
+    try {
+      const count = await this.paymentRepository.count({
+        where: {
+          pending_value: MoreThan(0)
+        }
+      });
+
+      return count;
+    } catch (error) {
+      console.error('Error contando pólizas con pagos pendientes:', error);
+      return 0;
+    }
+  };
+
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
