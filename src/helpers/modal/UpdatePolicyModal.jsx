@@ -32,6 +32,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     paymentsToAgency: policy.paymentsToAgency,
     observations: policy.observations,
     renewalCommission: policy.renewalCommission,
+    isCommissionAnnualized: policy.isCommissionAnnualized,
     policy_type_id: policy.policyType.id,
     company_id: policy.company.id,
     customers_id: policy.customer.id,
@@ -371,9 +372,9 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   >
                     <option disabled>{option}</option>
                     {companies
-                      .filter((copmany) => copmany.id === form.company_id)
+                      //.filter((copmany) => copmany.id === form.company_id)
                       .map((copmany) => (
-                        <option key={copmany.id} value={copmany.id}>
+                        <option key={copmany.id} value={copmany.id} disabled={copmany.id == form.company_id}>
                           {copmany.companyName}
                         </option>
                       ))}
@@ -674,6 +675,47 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   </div>
                 </div>
                 <div className="mb-3 col-3">
+                  <label className="form-label">
+                    Frecuencia de pago de comisiones
+                  </label>
+                  <div className="form-check">
+                    <input
+
+                      className="form-check-input"
+                      type="radio"
+                      name="isCommissionAnnualized"
+                      id="commissionAnnualized"
+                      value="true"
+                      onChange={changed}
+                      defaultChecked={form.isCommissionAnnualized === true}
+                    />
+                    <label
+                      className="form-check-label"
+                      htmlFor="commissionAnnualized"
+                    >
+                      Anualizada
+                    </label>
+                  </div>
+                  <div className="form-check">
+                    <input
+
+                      className="form-check-input"
+                      type="radio"
+                      name="isCommissionAnnualized"
+                      id="commissionNormal"
+                      value="false"
+                      onChange={changed}
+                      defaultChecked={form.isCommissionAnnualized === false}
+                    />
+                    <label className="form-check-label" htmlFor="commissionNormal">
+                      Normal (según frecuencia de pago)
+                    </label>
+                    <div className="invalid-feedback">
+                      Por favor escoja una opción.
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3 col-3">
                   <label htmlFor="numberOfPayments" className="form-label">
                     Número de pagos de póliza
                   </label>
@@ -847,6 +889,7 @@ UpdatePolicyModal.propTypes = {
     policyFee: PropTypes.string,
     observations: PropTypes.string,
     renewalCommission: PropTypes.bool,
+    isCommissionAnnualized: PropTypes.bool,
     policyType: PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       policyName: PropTypes.string.isRequired,
@@ -903,41 +946,6 @@ UpdatePolicyModal.propTypes = {
       frequencyName: PropTypes.string.isRequired,
     }).isRequired,
 
-    payments: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired, // Hacer opcional y permitir string o number
-        pending_value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired,
-        number_payment: PropTypes.number.isRequired,
-        value: PropTypes.string.isRequired,
-        credit: PropTypes.string.isRequired,
-        balance: PropTypes.string.isRequired,
-        total: PropTypes.string.isRequired,
-        observations: PropTypes.string,
-        createdAt: PropTypes.string.isRequired,
-        status_payment_id: PropTypes.oneOfType([
-          PropTypes.string,
-          PropTypes.number,
-        ]).isRequired, // Hacer opcional y permitir string o number
-        paymentStatus: PropTypes.shape({
-          id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-            .isRequired, // Hacer opcional y permitir string o number
-          statusNamePayment: PropTypes.string.isRequired,
-        }).isRequired,
-        updatedAt: PropTypes.string.isRequired,
-      })
-    ).isRequired,
-
-    renewals: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-          .isRequired, // Hacer opcional y permitir string o number
-        renewalNumber: PropTypes.string.isRequired,
-        createdAt: PropTypes.string.isRequired,
-      }).isRequired
-    ),
-
     periods: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
@@ -951,6 +959,7 @@ UpdatePolicyModal.propTypes = {
         policyFee: PropTypes.number,
       })
     ).isRequired,
+
   }).isRequired,
 
   onClose: PropTypes.func.isRequired,

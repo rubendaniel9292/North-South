@@ -184,27 +184,41 @@ const ListPolicies = memo(() => {
   const handlePolicyUpdated = useCallback((policyUpdated) => {
     if (!policyUpdated) return;
 
-    console.log("Póliza actualizada recibida:", policyUpdated);
+    console.log("🔄 Póliza actualizada recibida:", policyUpdated);
+    console.log("- ID:", policyUpdated.id);
+    console.log("- Nuevo estado:", policyUpdated.policyStatus);
 
-    // Actualizar la póliza en el array de pólizas
+    // Actualizar inmediatamente la póliza en el estado local
     setPolicies((prevPolicies) => {
-      return prevPolicies.map((p) => {
+      const updatedPolicies = prevPolicies.map((p) => {
         if (p.id === policyUpdated.id) {
-          return mergeNestedData(p, policyUpdated);
+          const merged = mergeNestedData(p, policyUpdated);
+          console.log("✅ Póliza actualizada localmente:", {
+            id: merged.id,
+            numberPolicy: merged.numberPolicy,
+            oldStatus: p.policyStatus,
+            newStatus: merged.policyStatus
+          });
+          return merged;
         }
         return p;
       });
+      
+      console.log("📊 Total pólizas después de actualización:", updatedPolicies.length);
+      return updatedPolicies;
     });
 
     // También actualizamos la póliza seleccionada si es necesario
     if (policy && policy.id === policyUpdated.id) {
       setPolicy(prevPolicy => mergeNestedData(prevPolicy, policyUpdated));
+      console.log("🎯 Póliza seleccionada también actualizada");
     }
 
-    // Forzar una recarga completa de las pólizas desde el servidor
+    // Forzar recarga desde servidor como respaldo (reducido el tiempo)
     setTimeout(async () => {
+      console.log("🔄 Recargando pólizas desde servidor...");
       await getAllPolicies();
-    }, 500);
+    }, 300); // ✅ Reducido de 500ms a 300ms
   }, [policy, getAllPolicies]);
 
   // ✅ función para limpiar filtros
@@ -215,8 +229,7 @@ const ListPolicies = memo(() => {
     setTypesFilter("");
     setQuery("");
   };
-
-  // Usar el hook personalizado para la búsqueda
+  
   const {
     query,
     setQuery,
@@ -230,30 +243,66 @@ const ListPolicies = memo(() => {
     "customer.secondSurname",
   ]);
 
-  // ✅ Filtrado combinado (search + filtros)
+  // ✅ Filtrado combinado mejorado con comparaciones estrictas y debugging
   const filteredPolicy = useMemo(() => {
     let result = searchedPolicies;
+    
+    console.log("🔍 Aplicando filtros:");
+    console.log("- Pólizas base:", searchedPolicies.length);
+    console.log("- statusFilter:", statusFilter, typeof statusFilter);
+    console.log("- companyFilter:", companyFilter, typeof companyFilter);
+    console.log("- advisorFilter:", advisorFilter, typeof advisorFilter);
+    console.log("- typesFilter:", typesFilter, typeof typesFilter);
 
     // Aplicar filtro por estado si está seleccionado
     if (statusFilter) {
-      result = result.filter(
-        (policy) => policy.policyStatus?.id == statusFilter
-      );
+      const beforeCount = result.length;
+      result = result.filter((policy) => {
+        const policyStatusId = policy.policyStatus?.id;
+        const filterValue = statusFilter;
+        // ✅ Convertir ambos valores a string para comparación consistente
+        const matches = String(policyStatusId) === String(filterValue);
+        
+        if (!matches) {
+          console.log(`❌ Póliza ${policy.numberPolicy}: statusId=${policyStatusId} (${typeof policyStatusId}) !== filter=${filterValue} (${typeof filterValue})`);
+        }
+        
+        return matches;
+      });
+      console.log(`- Después filtro estado: ${beforeCount} → ${result.length}`);
     }
+    
     // Aplicar filtro por compañía si está seleccionado
     if (companyFilter) {
-      result = result.filter((policy) => policy.company?.id == companyFilter);
+      const beforeCount = result.length;
+      result = result.filter((policy) => {
+        const companyId = policy.company?.id;
+        return String(companyId) === String(companyFilter);
+      });
+      console.log(`- Después filtro compañía: ${beforeCount} → ${result.length}`);
     }
 
     // Aplicar filtro por asesor si está seleccionado
     if (advisorFilter) {
-      result = result.filter((policy) => policy.advisor?.id == advisorFilter);
+      const beforeCount = result.length;
+      result = result.filter((policy) => {
+        const advisorId = policy.advisor?.id;
+        return String(advisorId) === String(advisorFilter);
+      });
+      console.log(`- Después filtro asesor: ${beforeCount} → ${result.length}`);
     }
 
     if (typesFilter) {
-      result = result.filter((policy) => policy.policyType?.id == typesFilter);
+      const beforeCount = result.length;
+      result = result.filter((policy) => {
+        const typeId = policy.policyType?.id;
+        return String(typeId) === String(typesFilter);
+      });
+      console.log(`- Después filtro tipo: ${beforeCount} → ${result.length}`);
     }
 
+    console.log("✅ Resultado final filtrado:", result.length, "pólizas");
+    
     return result;
   }, [
     searchedPolicies,
@@ -340,12 +389,13 @@ const ListPolicies = memo(() => {
                 </small>
 */}
                 <button
-                  className="btn btn-secondary w-100"
+                  className="btn btn-secondary w-100 mb-2"
                   onClick={clearFilters}
                 >
                   <FontAwesomeIcon icon={faBroom} className="me-2" />
                   Limpiar filtros
                 </button>
+              
               </div>
             </div>
           </div>
