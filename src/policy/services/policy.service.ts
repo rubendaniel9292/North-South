@@ -353,6 +353,7 @@ export class PolicyService extends ValidateEntity {
     try {
       // Cachés globales
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES + '_optimized'); // ⭐ AGREGAR CACHÉ OPTIMIZADO
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES_BY_STATUS);
       await this.redisService.del(CacheKeys.GLOBAL_POLICY_STATUS);
       await this.redisService.del('customers');
@@ -370,23 +371,62 @@ export class PolicyService extends ValidateEntity {
       await this.redisService.del('allCommissions');
 
       // Cachés específicos del asesor (solo si advisorId existe y no es null)
-
-      await this.redisService.del(`advisor:${advisorId}`);
-      await this.redisService.del(`advisor:${advisorId}:policies`);
-      await this.redisService.del(`advisor:${advisorId}:commissions`);
-      await this.redisService.del(`advisor:${advisorId}:payments`);
-
+      if (advisorId) {
+        await this.redisService.del(`advisor:${advisorId}`);
+        await this.redisService.del(`advisor:${advisorId}:policies`);
+        await this.redisService.del(`advisor:${advisorId}:commissions`);
+        await this.redisService.del(`advisor:${advisorId}:payments`);
+      }
 
       // Cachés específicos de la póliza (solo si policyId existe y no es null)
-
-      await this.redisService.del(`policy:${policyId}`);
-      await this.redisService.del(`policy:${policyId}:periods`);
-      await this.redisService.del(`policy:${policyId}:renewals`);
-      await this.redisService.del(`policy:${policyId}:commissions`);
-
+      if (policyId) {
+        await this.redisService.del(`policy:${policyId}`);
+        await this.redisService.del(`policy:${policyId}:periods`);
+        await this.redisService.del(`policy:${policyId}:renewals`);
+        await this.redisService.del(`policy:${policyId}:commissions`);
+      }
 
     } catch (error) {
-      console.warn('Warning: Could not invalidate some cache keys:', error.message);
+      console.warn('⚠️ Warning: Could not invalidate some cache keys:', error.message);
+    }
+  }
+
+  // Método de diagnóstico para el caché
+  public async diagnoseCacheStatus(search?: string): Promise<any> {
+    try {
+      const cacheKey = CacheKeys.GLOBAL_ALL_POLICIES;
+      const cachedData = await this.redisService.get(cacheKey);
+      
+      const cacheOptimizedKey = CacheKeys.GLOBAL_ALL_POLICIES + '_optimized';
+      const cachedOptimizedData = await this.redisService.get(cacheOptimizedKey);
+      
+      // Si hay búsqueda, también verificar esas claves
+      let searchCacheStatus = null;
+      if (search) {
+        const searchKey = `policies_optimized:${search}`;
+        const searchCachedData = await this.redisService.get(searchKey);
+        searchCacheStatus = {
+          searchKey,
+          hasSearchCachedData: !!searchCachedData,
+          searchCachedDataLength: searchCachedData ? JSON.parse(searchCachedData).length : 0
+        };
+      }
+      
+      return {
+        cacheKey,
+        hasCachedData: !!cachedData,
+        cachedDataLength: cachedData ? JSON.parse(cachedData).length : 0,
+        cacheOptimizedKey,
+        hasCachedOptimizedData: !!cachedOptimizedData,
+        cachedOptimizedDataLength: cachedOptimizedData ? JSON.parse(cachedOptimizedData).length : 0,
+        searchCacheStatus,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -434,6 +474,7 @@ export class PolicyService extends ValidateEntity {
       );
 
       await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
+      
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -444,7 +485,6 @@ export class PolicyService extends ValidateEntity {
     try {
 
       // Solo usar caché si no hay búsqueda específica
-
       if (!search) {
         const cachedPolicies = await this.redisService.get(
           CacheKeys.GLOBAL_ALL_POLICIES,
@@ -543,11 +583,16 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      await this.redisService.set(
-        CacheKeys.GLOBAL_ALL_POLICIES,
-        JSON.stringify(policies),
-        32400
-      ); // TTL de 9 horas
+      
+      // Solo guardar en caché si NO hay búsqueda específica
+      if (!search) {
+        await this.redisService.set(
+          CacheKeys.GLOBAL_ALL_POLICIES,
+          JSON.stringify(policies),
+          32400
+        ); // TTL de 9 horas
+      }
+      
       //console.log(policies)
       return policies;
     } catch (error) {
@@ -615,12 +660,14 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // Cache con TTL más corto para optimizar
-      await this.redisService.set(
-        cacheKey,
-        JSON.stringify(policies),
-        14400 // TTL de 4 horas
-      );
+      // Solo cache si no hay búsqueda específica
+      if (!search) {
+        await this.redisService.set(
+          cacheKey,
+          JSON.stringify(policies),
+          14400 // TTL de 4 horas
+        );
+      }
 
       return policies;
     } catch (error) {

@@ -132,8 +132,9 @@ export class CustomersService extends ValidateEntity {
   ): Promise<CustomersEntity[]> => {
     try {
       // Cache específico para versión optimizada
-      const cacheKey = search ? `customers_optimized:${search}` : 'customers_optimized';
-      const cachedCustomer = await this.redisService.get(cacheKey);
+      //const cacheKey = search ? `customers_optimized:${search}` : 'customers_optimized';
+      //const cachedCustomer = await this.redisService.get(search);
+      const cachedCustomer = await this.redisService.get('customers');
       if (cachedCustomer) {
         return JSON.parse(cachedCustomer);
       }
@@ -183,14 +184,15 @@ export class CustomersService extends ValidateEntity {
         });
       }
 
-    
+
 
       // Cache con TTL más corto para optimizar
       await this.redisService.set(
-        cacheKey,
+        'customers',
         JSON.stringify(customers),
-        14400, // TTL de 4 horas
-      );
+        32400,
+      ); // TTL de 9 horas
+
 
       return customers;
     } catch (error) {
@@ -203,20 +205,20 @@ export class CustomersService extends ValidateEntity {
     page: number = 1,
     limit: number = 50,
     search?: string,
-  ): Promise<{customers: CustomersEntity[], total: number, page: number, totalPages: number}> => {
+  ): Promise<{ customers: CustomersEntity[], total: number, page: number, totalPages: number }> => {
     try {
       const offset = (page - 1) * limit;
-      
+
       // Limitar el máximo de registros por página para evitar memory leaks
       if (limit > 100) {
         limit = 100;
       }
 
       // Cache específico para paginación
-      const cacheKey = search ? 
-        `customers_paginated:${page}:${limit}:${search}` : 
+      const cacheKey = search ?
+        `customers_paginated:${page}:${limit}:${search}` :
         `customers_paginated:${page}:${limit}`;
-      
+
       const cachedResult = await this.redisService.get(cacheKey);
       if (cachedResult) {
         return JSON.parse(cachedResult);
@@ -274,13 +276,13 @@ export class CustomersService extends ValidateEntity {
           .where('customer.id = :customerId', { customerId: customer.id })
           .select('COUNT(policy.id)', 'count')
           .getRawOne();
-        
+
         // Agregar el conteo como propiedad virtual
         (customer as any).policiesCount = parseInt(policyCount?.count || '0');
       }
 
       const totalPages = Math.ceil(total / limit);
-      
+
       const result = {
         customers,
         total,
