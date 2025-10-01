@@ -1,0 +1,138 @@
+/* Estilos mejorados para el Dashboard Home */
+
+/* Animaciones y transiciones */
+.transition-hover {
+  transition: all 0.3s ease-in-out;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.transition-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 123, 255, 0.2) !important;
+}
+
+/* Animación de rebote personalizada */
+.bounce-animation {
+  animation: customBounce 2s infinite;
+}
+
+@keyframes customBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Cursor pointer para elementos interactivos */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Mejoras en los botones */
+.btn-outline-primary:hover {
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.btn-outline-warning:hover {
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* Botón personalizado naranja para tareas */
+button[style*="#ff9500"]:hover {
+  background-color: #e8860a !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+}
+
+/* Efecto de pulso para números importantes */
+.pulse-number {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Mejoras en las sombras */
+.shadow-lg {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Gradientes sutiles para los fondos de iconos */
+.gradient-bg-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 149, 0, 0.15) 100%);
+}
+
+.gradient-bg-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.15) 0%, rgba(255, 59, 48, 0.15) 100%);
+}
+
+.gradient-bg-success {
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.15) 0%, rgba(40, 167, 69, 0.15) 100%);
+}
+
+.gradient-bg-primary {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.15) 0%, rgba(102, 16, 242, 0.15) 100%);
+}
+
+.gradient-bg-info {
+  background: linear-gradient(135deg, rgba(13, 202, 240, 0.15) 0%, rgba(25, 135, 84, 0.15) 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .transition-hover:hover {
+    transform: none;
+  }
+  
+  .bounce-animation {
+    animation: none;
+  }
+}
+
+/* Mejor tipografía */
+.card-body h5 {
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.card-body .fs-1 {
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+/* Estados de éxito mejorados */
+.success-indicator {
+  color: #198754;
+  font-weight: 600;
+}
+
+.warning-indicator {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.danger-indicator {
+  color: #dc3545;
+  font-weight: 600;
+}

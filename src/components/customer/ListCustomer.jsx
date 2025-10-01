@@ -7,7 +7,25 @@ import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
-import { faSearch, faUsers } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faSearch, 
+  faUsers, 
+  faEdit, 
+  faEye, 
+  faPlus,
+  faFileContract,
+  faIdCard,
+  faUser,
+  faHeart,
+  faMapMarkerAlt,
+  faCity,
+  faBirthdayCake,
+  faPhone,
+  faEnvelope,
+  faCalendarAlt,
+  faShieldAlt,
+  faCogs
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import useAuth from "../../hooks/useAuth";
 const ListCustomer = () => {
@@ -177,19 +195,50 @@ const ListCustomer = () => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Cédula / RUC</th>
+                <th>
+                  <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                  Cédula / RUC
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
-                <th>Estado Civil</th>
-                <th>Provincia</th>
-                <th>Ciudad o Cantón</th>
-                <th>Fecha de nacimiento</th>
-                <th>Teléfono</th>
-                <th>Email</th>
-                <th>Fecha de Registro</th>
-                <th>Tratamiento de datos personales</th>
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faHeart} className="me-2" />
+                  Estado Civil
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
+                  Provincia
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCity} className="me-2" />
+                  Ciudad o Cantón
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faBirthdayCake} className="me-2" />
+                  Fecha de nacimiento
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPhone} className="me-2" />
+                  Teléfono
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faEnvelope} className="me-2" />
+                  Email
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Registro
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
+                  Tratamiento de datos personales
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCogs} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -235,7 +284,9 @@ const ListCustomer = () => {
                         onClick={() =>
                           getCustomerById(customer.id, "updateCustomer")
                         }
+                        title="Actualizar información del cliente"
                       >
+                        <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Actualizar Información
                       </button>
                       {customer.policies && customer.policies.length >= 1 ? (
@@ -245,7 +296,9 @@ const ListCustomer = () => {
                             onClick={() =>
                               getCustomerById(customer.id, "customerId")
                             }
+                            title="Ver pólizas del cliente"
                           >
+                            <FontAwesomeIcon icon={faEye} className="me-2" />
                             Ver pólizas
                           </button>
                           {auth?.role != "ELOPDP" && (
@@ -256,7 +309,9 @@ const ListCustomer = () => {
                                 isEditable: false,
                               }}
                               className="btn btn-secondary text-white fw-bold w-100 my-1"
+                              title="Crear nueva póliza para este cliente"
                             >
+                              <FontAwesomeIcon icon={faPlus} className="me-2" />
                               Registrar póliza
                             </NavLink>
                           )}
@@ -271,7 +326,9 @@ const ListCustomer = () => {
                               isEditable: false,
                             }}
                             className="btn btn-secondary text-white fw-bold w-100 my-1"
+                            title="Crear primera póliza para este cliente"
                           >
+                            <FontAwesomeIcon icon={faFileContract} className="me-2" />
                             Registrar póliza
                           </NavLink>
                         )

@@ -3,6 +3,12 @@ import { useState, useCallback } from "react"; // ✅ Agregar useCallback
 import {
   faRectangleXmark,
   faFloppyDisk,
+  faBarcode,
+  faDollarSign,
+  faCalendarAlt,
+  faStickyNote,
+  faExclamationTriangle,
+  faMinusCircle
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import UserForm from "../../hooks/UserForm";
@@ -83,6 +89,7 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
           {" "}
           {/* ✅ Agregar margen */}
           <h3 className="text-white fw-bold">
+            <FontAwesomeIcon icon={faMinusCircle} className="me-2" />
             Registro de descuento de comisión a: {advisorId.firstName}{" "}
             {advisorId.secondName || ""} {advisorId.surname}{" "}
             {advisorId.secondSurname || ""}{" "}
@@ -123,6 +130,7 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
                 {" "}
                 {/* ✅ Cambiar col-2 a col-3 para mejor espacio */}
                 <label htmlFor="policy_id" className="form-label">
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
                   Seleccionar Póliza
                 </label>
                 <select
@@ -161,6 +169,7 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
                 {" "}
                 {/* ✅ Cambiar col-2 a col-3 */}
                 <label htmlFor="amountRefunds" className="form-label">
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                   Monto del Descuento
                 </label>
                 <input
@@ -184,6 +193,7 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
                 {" "}
                 {/* ✅ Cambiar col-4 a col-3 */}
                 <label htmlFor="cancellationDate" className="form-label">
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                   Fecha de Cancelación
                 </label>
                 <input
@@ -203,6 +213,7 @@ const RegisterCommissionRefunds = ({ advisorId, onClose, refreshAdvisor }) => {
                 {" "}
                 {/* ✅ Cambiar col-4 a col-3 */}
                 <label htmlFor="reason" className="form-label">
+                  <FontAwesomeIcon icon={faStickyNote} className="me-2" />
                   Motivo del Descuento
                 </label>
                 <input

@@ -3,6 +3,13 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   faRectangleXmark,
   faFloppyDisk,
+  faTags,
+  faHashtag,
+  faCreditCard,
+  faDollarSign,
+  faCalendarAlt,
+  faFileAlt,
+  faMoneyBillWave
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import http from "../../helpers/Http";
@@ -306,6 +313,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
         <article className="modal-content text-center px-5 py-5">
           <div className="d-block conten-title-com rounded mb-3">
             <h3 className="text-white fw-bold">
+              <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Registro de anticipo/comisión a: {advisorId.firstName}{" "}
               {advisorId.surname} {advisorId.secondSurname || ""}
             </h3>
@@ -576,6 +584,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                 <div className="row g-3">
                   <div className="col-12 col-md-4">
                     <label className="form-label fw-bold text-dark">
+                      <FontAwesomeIcon icon={faTags} className="me-2" />
                       Tipo de operación
                     </label>
                     <select
@@ -596,6 +605,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       htmlFor="receiptNumber"
                       className="form-label fw-bold text-dark"
                     >
+                      <FontAwesomeIcon icon={faHashtag} className="me-2" />
                       Número de Recibo
                     </label>
                     <input
@@ -612,6 +622,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       htmlFor="payment_method_id"
                       className="form-label fw-bold text-dark"
                     >
+                      <FontAwesomeIcon icon={faCreditCard} className="me-2" />
                       Método de abono
                     </label>
                     <select
@@ -637,6 +648,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       htmlFor="advanceAmount"
                       className="form-label fw-bold text-dark"
                     >
+                      <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                       Valor del anticipo/comisión
                     </label>
                     <input
@@ -660,6 +672,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       htmlFor="createdAt"
                       className="form-label fw-bold text-dark"
                     >
+                      <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                       Fecha del anticipo
                     </label>
                     <input
@@ -676,6 +689,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       htmlFor="observations"
                       className="form-label fw-bold text-dark"
                     >
+                      <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                       Observaciones
                     </label>
                     <textarea

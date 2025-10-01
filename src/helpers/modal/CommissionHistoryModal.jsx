@@ -1,7 +1,22 @@
 import PropTypes from "prop-types";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { faRectangleXmark, faFile } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark, 
+  faFile,
+  faBarcode,
+  faUser,
+  faDollarSign,
+  faCheckCircle,
+  faMoneyBillWave,
+  faCalendarAlt,
+  faReceipt,
+  faStickyNote,
+  faBuilding,
+  faUserTie,
+  faTags,
+  faPercent
+} from "@fortawesome/free-solid-svg-icons";
 import { useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -52,14 +67,30 @@ const CommissionHistoryModal = ({ onClose, advisorId }) => {
           <table className="table table-striped table-bordered mb-0">
             <thead>
               <tr>
-                <th>N° de póliza</th>
-                <th>Cliente </th>
                 <th>
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                  N° de póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
+                  Cliente
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                   Comisiones totales <span>(hasta la fecha)</span>
                 </th>
-                <th>Comisiones liberadas</th>
-                <th>Comisiones pagadas</th>
-                <th>Comisiones a favor</th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Comisiones liberadas
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                  Comisiones pagadas
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Comisiones a favor
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -117,10 +148,22 @@ const CommissionHistoryModal = ({ onClose, advisorId }) => {
                           <table className="table table-sm table-bordered mb-0">
                             <thead>
                               <tr>
-                                <th>Fecha de pago</th>
-                                <th>Número de recibo</th>
-                                <th>Monto abonado</th>
-                                <th>Observaciones</th>
+                                <th>
+                                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                                  Fecha de pago
+                                </th>
+                                <th>
+                                  <FontAwesomeIcon icon={faReceipt} className="me-2" />
+                                  Número de recibo
+                                </th>
+                                <th>
+                                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                                  Monto abonado
+                                </th>
+                                <th>
+                                  <FontAwesomeIcon icon={faStickyNote} className="me-2" />
+                                  Observaciones
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -166,9 +209,18 @@ const CommissionHistoryModal = ({ onClose, advisorId }) => {
                     </th>
                   </tr>
                   <tr>
-                    <th>Fecha de pago</th>
-                    <th>Número de recibo</th>
-                    <th>Monto abonado</th>
+                    <th>
+                      <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                      Fecha de pago
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faReceipt} className="me-2" />
+                      Número de recibo
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                      Monto abonado
+                    </th>
                     <th>Observaciones</th>
                   </tr>
                 </thead>

@@ -7,7 +7,17 @@ import Modal from "../../helpers/modal/Modal";
 import { NavLink } from "react-router-dom";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
-import { faSearch, faUsers } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faSearch, 
+  faUsers, 
+  faShieldAlt, 
+  faCheckCircle, 
+  faExclamationTriangle,
+  faClipboardCheck,
+  faIdCard,
+  faUser,
+  faCogs
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const ManagementLOPDP = () => {
   const [customerId, setCustomerId] = useState(null); // Almacenar un cliente de clientes en el estado
@@ -143,6 +153,7 @@ const ManagementLOPDP = () => {
       <section>
         <div className="text-center py-2">
           <h2 className="py-2">
+            <FontAwesomeIcon icon={faShieldAlt} className="me-3 text-primary" />
             Listado general de clientes para el cumplimiento de la LOPDP
           </h2>
 
@@ -191,12 +202,19 @@ const ManagementLOPDP = () => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Cédula / RUC</th>
+                <th>
+                  <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                  Cédula / RUC
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
 
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faCogs} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -224,7 +242,9 @@ const ManagementLOPDP = () => {
                         onClick={() =>
                           getCustomerById(customer.id, "updateCustomer")
                         }
+                        title="Verificar y actualizar cumplimiento LOPDP"
                       >
+                        <FontAwesomeIcon icon={faClipboardCheck} className="me-2" />
                         Verificar cumplimiento
                       </button>
                       {/* 

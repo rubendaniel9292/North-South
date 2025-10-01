@@ -1,10 +1,15 @@
 import PropTypes from "prop-types";
-//import { useState } from "react";
-//import alerts from "../../helpers/Alerts";
-//import http from "../../helpers/Http";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-//import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
-import { faFile } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark,
+  faFile,
+  faCreditCard,
+  faCalendarAlt,
+  faIdCard,
+  faUser,
+  faPhone,
+  faBuilding,
+  faCheckCircle
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 const CardsModal = ({ cards, onClose }) => {
@@ -25,16 +30,38 @@ const CardsModal = ({ cards, onClose }) => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Número de tarjeta</th>
-                <th>Fecha de expiración</th>
-                <th>Cédula / RUC</th>
+                <th>
+                  <FontAwesomeIcon icon={faCreditCard} className="me-2" />
+                  Número de tarjeta
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de expiración
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                  Cédula / RUC
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
-                <th>Numero Telefónico</th>
-                <th>Banco</th>
-                <th>Tipo de tarjeta</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faPhone} className="me-2" />
+                  Número Telefónico
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                  Banco
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCreditCard} className="me-2" />
+                  Tipo de tarjeta
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -43,33 +70,35 @@ const CardsModal = ({ cards, onClose }) => {
                   <td>{index + 1}</td>
                   <td>{card.cardNumber}</td>
                   <td>
-                    <td>
-                      {dayjs.utc(card.expirationDate).format("DD/MM/YYYY")}
-                    </td>
+                    {dayjs.utc(card.expirationDate).format("DD/MM/YYYY")}
                   </td>
                   <td>{card.customer.ci_ruc}</td>
                   <td>{card.customer.firstName}</td>
                   <td>{card.customer.secondName}</td>
                   <td>{card.customer.surname}</td>
-                  <td>{card.customer.secondName}</td>
+                  <td>{card.customer.secondSurname}</td>
                   <td>{card.customer.numberPhone}</td>
                   <td>{card.bank.bankName}</td>
                   <td>{card.cardoption.cardName}</td>
-                  <td
-                    className={
-                      card.cardstatus.id == 2
-                        ? "bg-warning text-white fw-bold"
-                        : card.cardstatus.id == 3
-                        ? "bg-danger text-white fw-bold"
-                        : ""
-                    }
-                  >
-                    {card.cardstatus.cardStatusName}
+                  <td>
+                    <span 
+                      className={`fs-6 badge fw-bold ${
+                        card.cardstatus.id == 1
+                          ? "bg-success text-white"
+                          : card.cardstatus.id == 2
+                          ? "bg-warning text-dark"
+                          : card.cardstatus.id == 3
+                          ? "bg-danger text-white"
+                          : "bg-secondary text-white"
+                      }`}
+                    >
+                      {card.cardstatus.cardStatusName}
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>{" "}
+          </table>
           <div className="d-flex justify-content-around mt-1">
             <div className="">
               <button

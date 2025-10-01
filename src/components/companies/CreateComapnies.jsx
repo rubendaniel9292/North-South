@@ -2,7 +2,14 @@ import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk,
+  faIdCard,
+  faBuilding,
+  faPhone,
+  faEnvelope,
+  faMapMarkerAlt
+} from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 
 const CreateComapnies = () => {
@@ -40,6 +47,7 @@ const CreateComapnies = () => {
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
+                <FontAwesomeIcon icon={faIdCard} className="me-2" />
                 RUC de la compañía
               </label>
               <input
@@ -53,6 +61,7 @@ const CreateComapnies = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
+                <FontAwesomeIcon icon={faBuilding} className="me-2" />
                 Nombre de la compañía
               </label>
               <input

@@ -3,7 +3,25 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFloppyDisk,
+  faBarcode,
+  faFileContract,
+  faBuilding,
+  faSync,
+  faUser,
+  faUserTie,
+  faCreditCard,
+  faUniversity,
+  faDollarSign,
+  faCalendarAlt,
+  faPercent,
+  faShield,
+  faHashtag,
+  faCheckSquare,
+  faStickyNote,
+  faMoneyBillWave
+} from "@fortawesome/free-solid-svg-icons";
 import { useLocation } from "react-router-dom";
 
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
@@ -603,6 +621,7 @@ const CreatePolicy = () => {
         <div className="row pt-3 fw-bold">
           <div className="mb-3 col-3">
             <label htmlFor="numberPolicy" className="form-label">
+              <FontAwesomeIcon icon={faBarcode} className="me-2" />
               Número de póliza
             </label>
             <input
@@ -620,6 +639,7 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="policy_type_id" className="form-label">
+              <FontAwesomeIcon icon={faFileContract} className="me-2" />
               Tipo
             </label>
             <select
@@ -647,6 +667,7 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="company_id" className="form-label">
+              <FontAwesomeIcon icon={faBuilding} className="me-2" />
               Compañía
             </label>
             <select
@@ -674,6 +695,7 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="payment_frequency_id" className="form-label">
+              <FontAwesomeIcon icon={faSync} className="me-2" />
               Frecuencia de pago
             </label>
             <select
@@ -700,6 +722,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="customers_id" className="form-label">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
               Cliente Beneficiario
             </label>
             <select
@@ -717,9 +740,8 @@ const CreatePolicy = () => {
               </option>
               {customers?.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {`${customer.firstName} ${customer.secondName || ""} ${
-                    customer.surname
-                  } ${customer.secondSurname || ""}`.trim()}
+                  {`${customer.firstName} ${customer.secondName || ""} ${customer.surname
+                    } ${customer.secondSurname || ""}`.trim()}
                 </option>
               ))}
             </select>
@@ -727,6 +749,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="advisor_id" className="form-label">
+              <FontAwesomeIcon icon={faUserTie} className="me-2" />
               Asesor
             </label>
             <select
@@ -743,9 +766,8 @@ const CreatePolicy = () => {
               </option>
               {advisor.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {`${item.firstName} ${item.secondName || ""} ${
-                    item.surname
-                  } ${item.secondSurname || ""}`.trim()}
+                  {`${item.firstName} ${item.secondName || ""} ${item.surname
+                    } ${item.secondSurname || ""}`.trim()}
                 </option>
               ))}
             </select>
@@ -753,6 +775,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="payment_method_id" className="form-label">
+              <FontAwesomeIcon icon={faCreditCard} className="me-2" />
               Metodo de Pago
             </label>
             <select
@@ -910,11 +933,9 @@ const CreatePolicy = () => {
                           <option value="">Cliente seleccionado</option>
                           {customers?.map((customer) => (
                             <option key={customer.id} value={customer.id}>
-                              {`${customer.firstName} ${
-                                customer.secondName || ""
-                              } ${customer.surname} ${
-                                customer.secondSurname || ""
-                              }`.trim()}
+                              {`${customer.firstName} ${customer.secondName || ""
+                                } ${customer.surname} ${customer.secondSurname || ""
+                                }`.trim()}
                             </option>
                           ))}
                         </select>
@@ -1118,11 +1139,9 @@ const CreatePolicy = () => {
                           <option value="">Cliente seleccionado</option>
                           {customers?.map((customer) => (
                             <option key={customer.id} value={customer.id}>
-                              {`${customer.firstName} ${
-                                customer.secondName || ""
-                              } ${customer.surname} ${
-                                customer.secondSurname || ""
-                              }`.trim()}
+                              {`${customer.firstName} ${customer.secondName || ""
+                                } ${customer.surname} ${customer.secondSurname || ""
+                                }`.trim()}
                             </option>
                           ))}
                         </select>
@@ -1216,6 +1235,7 @@ const CreatePolicy = () => {
           )}
           <div className="mb-3 col-3">
             <label htmlFor="coverageAmount" className="form-label">
+              <FontAwesomeIcon icon={faShield} className="me-2" />
               Monto de Cobertura
             </label>
             <input
@@ -1234,6 +1254,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="policyValue" className="form-label">
+              <FontAwesomeIcon icon={faDollarSign} className="me-2" />
               Valor de la Póliza
             </label>
             <input
@@ -1252,6 +1273,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="policyFee" className="form-label">
+              <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Derecho de póliza (opcional)
             </label>
             <input
@@ -1268,6 +1290,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="agencyPercentage" className="form-label">
+              <FontAwesomeIcon icon={faPercent} className="me-2" />
               Procentaje de la Agencia
             </label>
             <input
@@ -1286,17 +1309,17 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="advisorPercentage" className="form-label">
+              <FontAwesomeIcon icon={faPercent} className="me-2" />
               Porcentaje del Asesor
             </label>
             <input
               required
               type="number"
-              className={`form-control ${
-                !form.advisorPercentage ||
+              className={`form-control ${!form.advisorPercentage ||
                 Number(form.advisorPercentage) > Number(form.agencyPercentage)
-                  ? "is-invalid"
-                  : "is-valid"
-              }`}
+                ? "is-invalid"
+                : "is-valid"
+                }`}
               id="advisorPercentage"
               name="advisorPercentage"
               onChange={handleAdvisorPercentageChange}
@@ -1317,6 +1340,7 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3 ">
             <label htmlFor="flexRadioDefault7" className="form-check-label">
+              <FontAwesomeIcon icon={faCheckSquare} className="me-2" />
               Comisión por renovación
             </label>
             <div className="form-check">
@@ -1353,6 +1377,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label className="form-label">
+              <FontAwesomeIcon icon={faSync} className="me-2" />
               Frecuencia de pago de comisiones
             </label>
             <div className="form-check">
@@ -1392,14 +1417,14 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="numberOfPayments" className="form-label">
+              <FontAwesomeIcon icon={faHashtag} className="me-2" />
               Número de pagos de póliza
             </label>
             <input
               required
               type="number"
-              className={`form-control ${
-                form.numberOfPayments ? "is-valid" : ""
-              }`}
+              className={`form-control ${form.numberOfPayments ? "is-valid" : ""
+                }`}
               id="numberOfPayments"
               name="numberOfPayments"
               value={form.numberOfPayments}
@@ -1411,6 +1436,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="startDate" className="form-label">
+              <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
               Fecha de Inicio de la póliza
             </label>
             <input
@@ -1427,6 +1453,7 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="endDate" className="form-label">
+              <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
               Fecha de Finalización de la póliza
             </label>
             <input
@@ -1443,15 +1470,15 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="paymentsToAgency" className="form-label">
+              <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Comisiones de la agencia
             </label>
             <input
               readOnly
               required
               type="number"
-              className={`form-control ${
-                form.paymentsToAgency ? "is-valid" : ""
-              }`}
+              className={`form-control ${form.paymentsToAgency ? "is-valid" : ""
+                }`}
               id="paymentsToAgency"
               name="paymentsToAgency"
               value={form.paymentsToAgency || 0}
@@ -1459,15 +1486,15 @@ const CreatePolicy = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="paymentsToAdvisor" className="form-label">
+              <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Comisiones de asesor
             </label>
             <input
               readOnly
               required
               type="number"
-              className={`form-control ${
-                form.paymentsToAdvisor ? "is-valid" : ""
-              }`}
+              className={`form-control ${form.paymentsToAdvisor ? "is-valid" : ""
+                }`}
               id="paymentsToAdvisor"
               name="paymentsToAdvisor"
               value={form.paymentsToAdvisor || 0}
@@ -1476,14 +1503,14 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="numberOfPaymentsAdvisor" className="form-label">
+              <FontAwesomeIcon icon={faHashtag} className="me-2" />
               Número de pagos al Asesor
             </label>
             <input
               required
               type="number"
-              className={`form-control ${
-                form.numberOfPaymentsAdvisor ? "is-valid" : ""
-              }`}
+              className={`form-control ${form.numberOfPaymentsAdvisor ? "is-valid" : ""
+                }`}
               id="numberOfPaymentsAdvisor"
               name="numberOfPaymentsAdvisor"
               value={form.numberOfPaymentsAdvisor}
@@ -1496,6 +1523,7 @@ const CreatePolicy = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="observations" className="form-label">
+              <FontAwesomeIcon icon={faStickyNote} className="me-2" />
               Observaciones
             </label>
             <textarea

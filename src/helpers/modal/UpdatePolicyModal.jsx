@@ -3,8 +3,27 @@ import UserForm from "../../hooks/UserForm";
 import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark,
+  faFloppyDisk,
+  faBarcode,
+  faFileContract,
+  faBuilding,
+  faSync,
+  faUser,
+  faUserTie,
+  faCreditCard,
+  faUniversity,
+  faDollarSign,
+  faCalendarAlt,
+  faPercent,
+  faShield,
+  faHashtag,
+  faCheckSquare,
+  faStickyNote,
+  faMoneyBillWave,
+  faCheckCircle
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -325,6 +344,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
               <div className="row pt-3 fw-bold">
                 <div className="mb-3 col-3">
                   <label htmlFor="numberPolicy" className="form-label">
+                    <FontAwesomeIcon icon={faBarcode} className="me-2" />
                     Número de póliza
                   </label>
                   <input
@@ -341,6 +361,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-3">
                   <label htmlFor="policy_type_id" className="form-label">
+                    <FontAwesomeIcon icon={faFileContract} className="me-2" />
                     Tipo
                   </label>
                   <select
@@ -361,6 +382,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="company_id" className="form-label">
+                    <FontAwesomeIcon icon={faBuilding} className="me-2" />
                     Compañía
                   </label>
                   <select
@@ -382,6 +404,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="payment_frequency_id" className="form-label">
+                    <FontAwesomeIcon icon={faSync} className="me-2" />
                     Frecuencia de pago
                   </label>
                   <select
@@ -401,6 +424,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="customers_id" className="form-label">
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
                     Cliente Beneficiario
                   </label>
                   <select
@@ -424,6 +448,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="advisor_id" className="form-label">
+                    <FontAwesomeIcon icon={faUserTie} className="me-2" />
                     Asesor
                   </label>
                   <select
@@ -463,6 +488,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="payment_method_id" className="form-label">
+                    <FontAwesomeIcon icon={faCreditCard} className="me-2" />
                     Metodo de Pago
                   </label>
                   <select
@@ -481,8 +507,9 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   </select>
                 </div>
                 <div className="mb-3 col-3">
-                  <label htmlFor="policy_status_id" className="form-label">
-                    Estado de la Póliza (opcional)
+                                    <label htmlFor="policy_status_id" className="form-label">
+                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                    Estado de Póliza
                   </label>
                   <select
                     className="form-select"
@@ -507,6 +534,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 {selectedPaymentMethod === "9" && (
                   <div className="mb-3 col-3">
                     <label htmlFor="account_type_id" className="form-label">
+                      <FontAwesomeIcon icon={faUniversity} className="me-2" />
                       Cuenta Bancaria
                     </label>
                     <select
@@ -537,6 +565,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 {selectedPaymentMethod === "6" && (
                   <div className="mb-3 col-3">
                     <label htmlFor="credit_card_id" className="form-label">
+                      <FontAwesomeIcon icon={faCreditCard} className="me-2" />
                       Tarjeta de Crédito
                     </label>
                     <select
@@ -565,6 +594,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 )}
                 <div className="mb-3 col-3">
                   <label htmlFor="coverageAmount" className="form-label">
+                    <FontAwesomeIcon icon={faShield} className="me-2" />
                     Monto de Cobertura
                   </label>
                   <input
@@ -579,6 +609,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="policyValue" className="form-label">
+                    <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                     Valor de la Póliza
                   </label>
                   <input
@@ -594,6 +625,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="policyFee" className="form-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
                     Derecho de póliza (opcional)
                   </label>
                   <input
@@ -608,6 +640,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="agencyPercentage" className="form-label">
+                    <FontAwesomeIcon icon={faPercent} className="me-2" />
                     Procentaje de la Agencia
                   </label>
                   <input
@@ -622,6 +655,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="advisorPercentage" className="form-label">
+                    <FontAwesomeIcon icon={faPercent} className="me-2" />
                     Porcentaje del Asesor
                   </label>
                   <input
@@ -637,6 +671,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-3 ">
                   <label htmlFor="flexRadioDefault7" className="form-label">
+                    <FontAwesomeIcon icon={faCheckSquare} className="me-2" />
                     Comisión por renovación
                   </label>
                   <div className="form-check">
@@ -676,6 +711,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label className="form-label">
+                    <FontAwesomeIcon icon={faSync} className="me-2" />
                     Frecuencia de pago de comisiones
                   </label>
                   <div className="form-check">
@@ -717,6 +753,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="numberOfPayments" className="form-label">
+                    <FontAwesomeIcon icon={faHashtag} className="me-2" />
                     Número de pagos de póliza
                   </label>
                   <input
@@ -736,6 +773,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="startDate" className="form-label">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                     Fecha de Inicio de la póliza
                   </label>
                   <input
@@ -750,6 +788,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="endDate" className="form-label">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                     Fecha de Finalización de la póliza
                   </label>
                   <input
@@ -764,6 +803,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="paymentsToAgency" className="form-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
                     Comisiones de la agencia
                   </label>
                   <input
@@ -778,6 +818,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="paymentsToAdvisor" className="form-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
                     Comisiones de asesor
                   </label>
                   <input
@@ -796,6 +837,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     htmlFor="numberOfPaymentsAdvisor"
                     className="form-label"
                   >
+                    <FontAwesomeIcon icon={faHashtag} className="me-2" />
                     Número de pagos al Asesor
                   </label>
                   <input
@@ -816,6 +858,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-3">
                   <label htmlFor="observations" className="form-label">
+                    <FontAwesomeIcon icon={faStickyNote} className="me-2" />
                     Observaciones
                   </label>
                   <textarea

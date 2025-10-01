@@ -3,7 +3,18 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk,
+  faIdCard,
+  faUser,
+  faPhone,
+  faEnvelope,
+  faMapMarkerAlt,
+  faCalendarAlt,
+  faRing,
+  faBuilding,
+  faCity
+} from "@fortawesome/free-solid-svg-icons";
 
 const CreateCustomer = () => {
   const { form, changed } = UserForm({});
@@ -115,6 +126,7 @@ const CreateCustomer = () => {
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="ci_ruc" className="form-label">
+                <FontAwesomeIcon icon={faIdCard} className="me-2" />
                 Número de cédula / RUC
               </label>
               <input
@@ -128,6 +140,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="firtsName" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Primer Nombre
               </label>
               <input
@@ -141,6 +154,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="secondName" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Segundo Nombre
               </label>
               <input
@@ -153,6 +167,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="surname" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Primer Apellido
               </label>
               <input
@@ -167,6 +182,7 @@ const CreateCustomer = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="secondSurname" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Segundo Apellido
               </label>
               <input
@@ -180,6 +196,7 @@ const CreateCustomer = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="email" className="form-label">
+                <FontAwesomeIcon icon={faEnvelope} className="me-2" />
                 Email
               </label>
               <input
@@ -193,6 +210,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="phone" className="form-label">
+                <FontAwesomeIcon icon={faPhone} className="me-2" />
                 Teléfono
               </label>
               <input
@@ -206,6 +224,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3 row">
               <label htmlFor="flexRadioDefault" className="form-check-label">
+                <FontAwesomeIcon icon={faRing} className="me-2" />
                 Estado Civil
               </label>
               {statuses.map((status) => (
@@ -230,6 +249,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="province_id" className="form-label">
+                <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
                 Provincia
               </label>
               <select
@@ -252,6 +272,7 @@ const CreateCustomer = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="city_id" className="form-label">
+                <FontAwesomeIcon icon={faCity} className="me-2" />
                 Ciudad o Cantón
               </label>
               <select
@@ -275,6 +296,7 @@ const CreateCustomer = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="text" className="form-label">
+                <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                 Fecha de nacimiento
               </label>
               <input
@@ -290,6 +312,7 @@ const CreateCustomer = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="text" className="form-label">
+                <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
                 Dirección
               </label>
               <input

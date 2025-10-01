@@ -9,6 +9,18 @@ import {
   faSearch,
   faFilter,
   faDollarSign,
+  faBarcode,
+  faBuilding,
+  faUser,
+  faSync,
+  faCalendarAlt,
+  faRotate,
+  faHashtag,
+  faSackDollar,
+  faMoneyBillWave,
+  faCheck,
+  faMinus,
+  faPlus
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
@@ -446,19 +458,58 @@ const ListCommissions = () => {
                       </tr>
                       <tr>
                         {/*  <th>Valor póliza</th>*/}
-                        <th>N° de póliza</th>
-                        <th>Compañía</th>
-                        <th>Cliente</th>
-                        <th>Frecuencia</th>
-                        <th>Pagos/Año</th>
-                        <th>Renovación</th>
-                        <th>N° de Com. Liberadas</th>
-                        <th>Com. Totales</th>
-                        <th>Com. Individual</th>
-                        <th>Com. Liberadas</th>
-                        <th>Descuento (si aplica)</th>
-                        <th>Com. Pagadas</th>
-                        <th>A Favor</th>
+                        <th>
+                          <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                          N° de póliza
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                          Compañía
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faUser} className="me-2" />
+                          Cliente
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faSync} className="me-2" />
+                          Frecuencia
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                          Pagos/Año
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faRotate} className="me-2" />
+                          Renovación
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                          N° de Com. Liberadas
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faSackDollar} className="me-2" />
+                          Com. Totales
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                          Com. Individual
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faCheck} className="me-2" />
+                          Com. Liberadas
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faMinus} className="me-2" />
+                          Descuento (si aplica)
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                          Com. Pagadas
+                        </th>
+                        <th>
+                          <FontAwesomeIcon icon={faPlus} className="me-2" />
+                          A Favor
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -663,11 +714,26 @@ const ListCommissions = () => {
                                     <table className="table table-sm table-bordered text-center mb-0">
                                       <thead>
                                         <tr>
-                                          <th>Fecha de pago</th>
-                                          <th>Número de recibo</th>
-                                          <th>N° Pagos Realizados</th>
-                                          <th>Comisión pagadas</th>
-                                          <th>Observaciones</th>
+                                          <th>
+                                            <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                                            Fecha de pago
+                                          </th>
+                                          <th>
+                                            <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                                            Número de recibo
+                                          </th>
+                                          <th>
+                                            <FontAwesomeIcon icon={faCheck} className="me-2" />
+                                            N° Pagos Realizados
+                                          </th>
+                                          <th>
+                                            <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                                            Comisión pagadas
+                                          </th>
+                                          <th>
+                                            <FontAwesomeIcon icon={faFile} className="me-2" />
+                                            Observaciones
+                                          </th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -752,10 +818,22 @@ const ListCommissions = () => {
                     </th>
                   </tr>
                   <tr>
-                    <th>Fecha de pago</th>
-                    <th>Número de recibo</th>
-                    <th>Monto abonado</th>
-                    <th>Observaciones</th>
+                    <th>
+                      <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                      Fecha de pago
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                      Número de recibo
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                      Monto abonado
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faFile} className="me-2" />
+                      Observaciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

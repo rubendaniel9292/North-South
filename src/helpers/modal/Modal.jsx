@@ -16,6 +16,7 @@ import RegisterCommissionRefunds from "./RegisterCommissionRefunds";
 import EditPolicyValuesModal from "./EditPolicyValuesModal";
 import CreateTaskModal from "./CreateTaskModal";
 import TaskModal from "./TaskModal";
+import UpdateCreditCardModal from "./UpdateCreditCardModal";
 export default function Modal({
   isOpen,
   onClose,
@@ -36,6 +37,8 @@ export default function Modal({
   onTaskCreated,
   tasks,
   onTaskDeleted,
+  selectedCard,
+  onCardUpdated,
 }) {
   if (!isOpen) return null;
 
@@ -141,6 +144,14 @@ export default function Modal({
             onTaskDeleted={onTaskDeleted}
           />
         );
+      case "updateCreditCard":
+        return (
+          <UpdateCreditCardModal
+            card={selectedCard}
+            onClose={onClose}
+            onCardUpdated={onCardUpdated}
+          />
+        );
       default:
         return null;
     }
@@ -186,4 +197,6 @@ Modal.propTypes = {
   userId: PropTypes.string,
   onTaskCreated: PropTypes.func,
   onTaskDeleted: PropTypes.func.isRequired,
+  selectedCard: PropTypes.object,
+  onCardUpdated: PropTypes.func,
 };

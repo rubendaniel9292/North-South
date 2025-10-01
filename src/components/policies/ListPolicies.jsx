@@ -22,6 +22,18 @@ import {
   faUserTie,
   faList,
   faFile,
+  faAdjust,
+  faEye,
+  faEdit,
+  faSync,
+  faRedo,
+  faFileContract,
+  faUser,
+  faCalendarAlt,
+  faDollarSign,
+  faCheckCircle,
+  faMoneyBillWave,
+  faBarcode
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -509,21 +521,49 @@ const ListPolicies = memo(() => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Número de Póliza</th>
+                <th>
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                  Número de Póliza
+                </th>
                 <th colSpan="2" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
-                <th>Compañía</th>
-                <th>Tipo de Póliza</th>
-                <th>Fecha de Inicio</th>
-                <th>Fecha de Fin</th>
+                <th>
+                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                  Compañía
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFileContract} className="me-2" />
+                  Tipo de Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Inicio
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Fin
+                </th>
                 {/*<th>Método de Pago</th>*/}
 
-                <th>Frecuencia de Pago</th>
-                <th>Monto de Cobertura</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                  Frecuencia de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Monto de Cobertura
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
 
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faCogs} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -594,14 +634,18 @@ const ListPolicies = memo(() => {
                           getPolicyById(policy.id, "editPoliciesValues")
                         }
                         aria-label={`Ajustar valores de póliza ${policy.numberPolicy}`}
+                        title="Ajustar valores de la póliza"
                       >
+                        <FontAwesomeIcon icon={faAdjust} className="me-2" />
                         Ajustar valores
                       </button>
                       <button
                         className="btn btn-primary text-white fw-bold my-1 w-100"
                         onClick={() => getPolicyById(policy.id, "info")}
                         aria-label={`Ver información completa de póliza ${policy.numberPolicy}`}
+                        title="Ver información completa de la póliza"
                       >
+                        <FontAwesomeIcon icon={faEye} className="me-2" />
                         Ver info. Completa
                       </button>
                       {auth?.role !== "ELOPDP" && (
@@ -610,7 +654,9 @@ const ListPolicies = memo(() => {
                             className="btn btn-success text-white fw-bold my-1 w-100"
                             onClick={() => getPolicyById(policy.id, "updatePolicy")}
                             aria-label={`Actualizar póliza ${policy.numberPolicy}`}
+                            title="Actualizar información de la póliza"
                           >
+                            <FontAwesomeIcon icon={faEdit} className="me-2" />
                             Actualizar
                           </button>
 
@@ -620,6 +666,7 @@ const ListPolicies = memo(() => {
                             className="btn btn-secondary text-white fw-bold my-1 w-100"
                             onClick={() => getPolicyById(policy.id, "renewal")}
                             aria-label={`Renovar póliza ${policy.numberPolicy}`}
+                            title="Renovar póliza para el siguiente período"
                             disabled={
                               !policy.payments?.length ||
                               parseFloat(
@@ -634,6 +681,7 @@ const ListPolicies = memo(() => {
                               ) > 0
                             }
                           >
+                            <FontAwesomeIcon icon={faRedo} className="me-2" />
                             Renovar póliza
                           </button>
                         </>

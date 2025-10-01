@@ -3,7 +3,14 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk,
+  faUser,
+  faHashtag,
+  faTags,
+  faUniversity,
+  faFileAlt
+} from "@fortawesome/free-solid-svg-icons";
 
 const CreateBankAccount = () => {
   const { form, changed } = UserForm({});
@@ -88,6 +95,7 @@ const CreateBankAccount = () => {
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Cliente
               </label>
               <select
@@ -111,6 +119,7 @@ const CreateBankAccount = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="accountNumber" className="form-label">
+                <FontAwesomeIcon icon={faHashtag} className="me-2" />
                 Número de cuenta
               </label>
               <input
@@ -125,6 +134,7 @@ const CreateBankAccount = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="account_type_id" className="form-label">
+                <FontAwesomeIcon icon={faTags} className="me-2" />
                 Tipo de cuenta
               </label>
               <select
@@ -146,6 +156,7 @@ const CreateBankAccount = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="bank_id" className="form-label">
+                <FontAwesomeIcon icon={faUniversity} className="me-2" />
                 Banco
               </label>
               <select
@@ -167,6 +178,7 @@ const CreateBankAccount = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="observations" className="form-label">
+                <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                 Observaciones
               </label>
               <textarea

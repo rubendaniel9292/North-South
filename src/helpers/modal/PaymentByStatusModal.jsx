@@ -1,7 +1,17 @@
 import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFile } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark,
+  faFile,
+  faBarcode,
+  faPhone,
+  faUser,
+  faBuilding,
+  faUserTie,
+  faDollarSign,
+  faCalendarAlt,
+  faCheckCircle
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import generateReport from "../GenerateReportPDF";
@@ -160,17 +170,42 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Número de póliza</th>
-                <th>Teléfono</th>
+                <th>
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                  Número de póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPhone} className="me-2" />
+                  Teléfono
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
-                <th>Compañía</th>
-                <th>Asesor</th>
-                <th>Valor Pendiente</th>
-                <th>Valor de la Póliza</th>
-                <th>Fecha de pago</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                  Compañía
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faUserTie} className="me-2" />
+                  Asesor
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Valor Pendiente
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Valor de la Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
               </tr>
             </thead>
             <tbody>

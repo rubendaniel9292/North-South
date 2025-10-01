@@ -11,8 +11,24 @@ import {
   faCircleCheck,
   faRectangleXmark,
   faFile,
+  faBarcode,
+  faUser,
+  faBuilding,
+  faFileContract,
+  faCalendarAlt,
+  faCreditCard,
+  faUniversity,
+  faSync,
+  faPercent,
+  faShield,
+  faDollarSign,
+  faCheckCircle,
+  faMoneyBillWave,
+  faHashtag,
+  faBalanceScale,
+  faPlus,
+  faMinus
 } from "@fortawesome/free-solid-svg-icons";
-import { } from "@fortawesome/free-solid-svg-icons";
 import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 import useAuth from "../../hooks/useAuth";
@@ -203,6 +219,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
         <article className="modal-content text-center px-5 py-4">
           <div className="d-flex justify-content-center align-items-center conten-title mb-3 rounded">
             <h3 className="text-white">
+              <FontAwesomeIcon icon={faFileContract} className="me-2" />
               Información completa de la póliza {policy.numberPolicy}
             </h3>
           </div>
@@ -210,16 +227,46 @@ const ListPolicyModal = ({ policy, onClose }) => {
           <table className="table table-striped">
             <thead>
               <tr>
-                <th>Número de Póliza</th>
-                <th colSpan={2}>Cliente</th>
-                <th>Compañía</th>
-                <th>Tipo de Póliza</th>
-                <th>Fecha de Inicio</th>
-                <th>Fecha de Fin</th>
-                <th>Método de Pago</th>
-                <th>Banco (si aplica)</th>
-                <th>Frecuencia de Pago</th>
-                <th>Comisión por renovación</th>
+                <th>
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                  Número de Póliza
+                </th>
+                <th colSpan={2}>
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
+                  Cliente
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                  Compañía
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFileContract} className="me-2" />
+                  Tipo de Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Inicio
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Fin
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCreditCard} className="me-2" />
+                  Método de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faUniversity} className="me-2" />
+                  Banco (si aplica)
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faSync} className="me-2" />
+                  Frecuencia de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPercent} className="me-2" />
+                  Comisión por renovación
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -256,17 +303,48 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
             <thead>
               <tr>
-                <th>Frecuencia de Comisiones</th>
-                <th>Monto de Cobertura</th>
-                <th>Porcentaje de la Agencia</th>
-                <th>Porcentaje del Asesor</th>
-                <th>Valor de la Póliza</th>
-                <th>Número de Pagos</th>
-                <th>Derecho de Póliza</th>
-                <th>Comisiones de la agencia</th>
-                <th>Comisiones del asesor</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faSync} className="me-2" />
+                  Frecuencia de Comisiones
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faShield} className="me-2" />
+                  Monto de Cobertura
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPercent} className="me-2" />
+                  Porcentaje de la Agencia
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPercent} className="me-2" />
+                  Porcentaje del Asesor
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Valor de la Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                  Número de Pagos
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Derecho de Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                  Comisiones de la agencia
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                  Comisiones del asesor
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
                 <th colSpan="2" scope="row">
+                  <FontAwesomeIcon icon={faFile} className="me-2" />
                   Observaciones
                 </th>
               </tr>
@@ -344,10 +422,14 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </tbody>
           </table>
 
-          <div className="d-block  justify-content-center align-items-center conten-title rounded mb-2 mt-2">
-            <h3 className="text-white">Historial de pagos</h3>
+          <div className="d-flex  justify-content-center align-items-center conten-title rounded mb-2 mt-2">
+            <h3 className="text-white">
+              <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+              Historial de pagos:
+            </h3>
 
-            <span className="badge mt-1 fs-5">
+            <span className="badge  fs-5">
+              <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
               Próxima fecha tentativa de cobro: {getNextPaymentDate(policy)}
             </span>
           </div>
@@ -355,17 +437,50 @@ const ListPolicyModal = ({ policy, onClose }) => {
             <thead>
               <tr>
                 {/*<th>Orden</th>*/}
-                <th>N° de Pago</th>
-                <th>Saldo Pendiente</th>
-                <th>Valor</th>
-                <th>Abono</th>
-                <th>Saldo</th>
-                <th>Total</th>
-                <th>Fecha de pago fija</th>
-                <th>Fecha de actualizacion</th>
-                <th>Estado</th>
-                <th>Observaciones</th>
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                  N° de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faBalanceScale} className="me-2" />
+                  Saldo Pendiente
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Valor
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPlus} className="me-2" />
+                  Abono
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMinus} className="me-2" />
+                  Saldo
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Total
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de pago fija
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de actualizacion
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFile} className="me-2" />
+                  Observaciones
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFloppyDisk} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -531,15 +646,27 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </nav>
           )}
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-2 mt-2">
-            <h3 className="text-white">Historial de renovaciones</h3>
+            <h3 className="text-white">
+              <FontAwesomeIcon icon={faSync} className="me-2" />
+              Historial de renovaciones
+            </h3>
           </div>
 
           <table className="table table-striped">
             <thead>
               <tr className="table-header">
-                <th>Numero de renovacion</th>
-                <th>Fecha de renovacion</th>
-                <th>Observaciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                  Numero de renovacion
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de renovacion
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFile} className="me-2" />
+                  Observaciones
+                </th>
               </tr>
             </thead>
             {currentRenewals.length === 0 ? (

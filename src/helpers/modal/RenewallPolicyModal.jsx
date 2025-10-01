@@ -3,8 +3,18 @@ import UserForm from "../../hooks/UserForm";
 import { useEffect, useState, useCallback } from "react"; 
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark, 
+  faFloppyDisk,
+  faHashtag,
+  faShield,
+  faDollarSign,
+  faPercent,
+  faCalendarAlt,
+  faMoneyBillWave,
+  faFileAlt,
+  faSync
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
 
@@ -202,6 +212,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
         <article className="modal-content modal-content-renewal text-center px-5 py-5">
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
             <h3 className="text-white fw-bold">
+              <FontAwesomeIcon icon={faSync} className="me-2" />
               Póliza seleccionada a renovar: {policy.numberPolicy} {/* ✅ Corregir "selecionada" */}
             </h3>
           </div>
@@ -230,6 +241,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="renewalNumber" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faHashtag} className="me-2" />
                     Número de renovación
                   </label>
                   <input
@@ -246,6 +258,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="coverageAmount" className="form-label">
+                    <FontAwesomeIcon icon={faShield} className="me-2" />
                     Monto de Cobertura
                   </label>
                   <input
@@ -261,6 +274,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="policyValue" className="form-label">
+                    <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                     Valor de la Póliza
                   </label>
                   <input
@@ -276,6 +290,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="policyFee" className="form-label">
+                    <FontAwesomeIcon icon={faDollarSign} className="me-2" />
                     Derecho de póliza
                   </label>
                   <input
@@ -290,6 +305,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="agencyPercentage" className="form-label">
+                    <FontAwesomeIcon icon={faPercent} className="me-2" />
                     Porcentaje de la Agencia {/* ✅ Corregir "Procentaje" */}
                   </label>
                   <input
@@ -305,6 +321,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="advisorPercentage" className="form-label">
+                    <FontAwesomeIcon icon={faPercent} className="me-2" />
                     Porcentaje del Asesor
                   </label>
                   <input
@@ -320,6 +337,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="createdAt" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                     Fecha de renovación
                   </label>
                   <input
@@ -337,6 +355,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="paymentsToAgency" className="form-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
                     Comisiones de la agencia
                   </label>
                   <input
@@ -352,6 +371,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-3 col-2">
                   <label htmlFor="paymentsToAdvisor" className="form-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
                     Comisiones de asesor
                   </label>
                   <input
@@ -367,6 +387,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
                 <div className="mb-2 col-6">
                   <label htmlFor="observations" className="form-label">
+                    <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                     Observaciones
                   </label>
                   <textarea

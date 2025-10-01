@@ -4,6 +4,16 @@ import http from "../../helpers/Http";
 import useAuth from "../../hooks/useAuth";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { 
+  faUsers, 
+  faTrash, 
+  faUser,
+  faShieldAlt,
+  faEnvelope,
+  faCalendarAlt,
+  faCogs
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const UserList = () => {
   const [users, setUsers] = useState([]); // Almacenar la lista de usuarios en el estado
@@ -80,19 +90,54 @@ const UserList = () => {
   return (
     <>
       <div>
-        <h2>Lista de usuarios que hacen uso del sistema</h2>
+        <div className="text-center py-3">
+          <h2 className="py-2">
+            <FontAwesomeIcon icon={faUsers} className="me-3 text-primary" />
+            Lista de usuarios que hacen uso del sistema
+          </h2>
+          
+          {/* Header con información */}
+          <div className="row mb-4">
+            <div className="col-md-6 mx-auto">
+              <div className="card bg-info text-white">
+                <div className="card-body py-2">
+                  <h5 className="card-title mb-1">
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
+                    Total de usuarios registrados
+                  </h5>
+                  <h3 className="mb-0">{users.length}</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <table className="table table-striped">
           <thead>
             <tr>
               <th>N°</th>
-              <th>Nombre</th>
+              <th>
+                <FontAwesomeIcon icon={faUser} className="me-2" />
+                Nombre
+              </th>
               <th>Apellido</th>
-              <th>Rol</th>
-              <th>Email</th>
+              <th>
+                <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
+                Rol
+              </th>
+              <th>
+                <FontAwesomeIcon icon={faEnvelope} className="me-2" />
+                Email
+              </th>
               <th>Username</th>
-              <th>Fecha de Registro</th>
-              <th>Acciones</th>
+              <th>
+                <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                Fecha de Registro
+              </th>
+              <th>
+                <FontAwesomeIcon icon={faCogs} className="me-2" />
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +157,9 @@ const UserList = () => {
                     <button
                       onClick={() => deleteUser(user.uuid)}
                       className="btn btn-danger text-white fw-bold"
+                      title={`Eliminar usuario ${user.firstName} ${user.surname}`}
                     >
+                      <FontAwesomeIcon icon={faTrash} className="me-2" />
                       Eliminar usuario
                     </button>
                   )}

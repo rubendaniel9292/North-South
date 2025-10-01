@@ -3,8 +3,17 @@ import UserForm from "../../hooks/UserForm";
 import { useEffect, useState, useCallback } from "react"; // ✅ Agregar useCallback
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark, 
+  faFloppyDisk,
+  faIdCard,
+  faUser,
+  faEnvelope,
+  faPhone,
+  faCalendarAlt,
+  faShieldAlt,
+  faUserEdit
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -82,6 +91,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
         <article className="modal-content text-center px-5 py-5">
           <div className="d-flex justify-content-center align-items-center conten-title rounded mb-3">
             <h3 className="text-white fw-bold">
+              <FontAwesomeIcon icon={faUserEdit} className="me-2" />
               Asesor seleccionado: {advisorId.firstName} {advisorId.surname}
             </h3>
           </div>
@@ -95,6 +105,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
               <div className="row pt-3 fw-bold">
                 <div className="my-1 col-3">
                   <label htmlFor="ci_ruc" className="form-label">
+                    <FontAwesomeIcon icon={faIdCard} className="me-2" />
                     Número de cédula / RUC
                   </label>
                   <input
@@ -110,6 +121,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="firstName" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
                     Primer Nombre
                   </label>
                   <input
@@ -125,6 +137,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="secondName" className="form-label">
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
                     Segundo Nombre
                   </label>
                   <input
@@ -139,6 +152,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="surname" className="form-label">
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
                     Primer Apellido
                   </label>
                   <input
@@ -154,6 +168,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="secondSurname" className="form-label">
+                    <FontAwesomeIcon icon={faUser} className="me-2" />
                     Segundo Apellido
                   </label>
                   <input
@@ -168,6 +183,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="mb-3 col-3">
                   <label htmlFor="birthdate" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                     Fecha de nacimiento
                   </label>
                   <input
@@ -187,6 +203,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="email" className="form-label">
+                    <FontAwesomeIcon icon={faEnvelope} className="me-2" />
                     Email
                   </label>
                   <input
@@ -202,6 +219,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="numberPhone" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faPhone} className="me-2" />
                     Teléfono
                   </label>
                   <input
@@ -217,6 +235,7 @@ const UpdateAdvisorModal = ({ advisorId, onClose, onAdvisorUpdated }) => {
 
                 <div className="my-1 col-3">
                   <label htmlFor="personalData" className="form-label"> {/* ✅ Corregir htmlFor */}
+                    <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
                     ¿El asesor acepta el tratamiento de datos personales? {/* ✅ Corregir typos */}
                   </label>
                   <div className="form-check">

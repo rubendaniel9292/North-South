@@ -2,7 +2,7 @@ import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { faFloppyDisk, faUniversity } from "@fortawesome/free-solid-svg-icons";
 import { useCallback } from "react";
 
 const CreateBank = () => {
@@ -45,6 +45,7 @@ const CreateBank = () => {
           <div className="row pt-3">
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
+                <FontAwesomeIcon icon={faUniversity} className="me-2" />
                 Nombre del banco o cooperativa
               </label>
               <input

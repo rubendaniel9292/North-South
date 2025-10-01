@@ -8,6 +8,8 @@ import {
   faFloppyDisk,
   faTimes,
   faRectangleXmark,
+  faClipboardList,
+  faPlus
 } from "@fortawesome/free-solid-svg-icons";
 const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -60,13 +62,13 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
       <div
         className="modal fade show d-block"
         tabIndex="-1"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
       >
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">
-                <FontAwesomeIcon icon={faFloppyDisk} className="me-2" />
+        <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-content shadow-lg border-0" >
+            <div className="modal-header  conten-title text-white p-3">
+              <h5 className="modal-title fw-bold fs-5">
+                <FontAwesomeIcon icon={faPlus} className="me-2" />
                 Nueva Tarea
               </h5>
               <button
@@ -75,22 +77,21 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
                 onClick={handleClose}
                 disabled={isLoading}
                 aria-label="Cerrar"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
+              ></button>
             </div>
 
             <form id="user-form" onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label htmlFor="description" className="form-label">
+              <div className="modal-body p-4">
+                <div className="mb-4">
+                  <label htmlFor="description" className="form-label fw-bold fs-6">
+                    <FontAwesomeIcon icon={faClipboardList} className="me-2" />
                     Descripción de la Tarea{" "}
                     <span className="text-danger">*</span>
                   </label>
                   <textarea
                     id="description"
                     name="description"
-                    className="form-control"
+                    className="form-control shadow-sm border-2"
                     value={form.description}
                     onChange={changed}
                     placeholder="Describe la tarea que deseas crear..."
@@ -99,16 +100,23 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
                     required
                     style={{
                       resize: "vertical",
-                      minHeight: "100px",
+                      minHeight: "120px",
+                      borderRadius: "8px"
                     }}
                   />
+                  <div className="form-text">
+                    <small className="fs-6 text-muted">
+                      <FontAwesomeIcon icon={faClipboardList} className="me-1" />
+                      Proporciona una descripción clara y detallada de la tarea.
+                    </small>
+                  </div>
                 </div>
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer bg-light p-3">
                 <button
                   type="button"
-                  className="btn btn-danger"
+                  className="btn btn-danger fw-bold px-4"
                   onClick={handleClose}
                   disabled={isLoading}
                 >
@@ -117,7 +125,7 @@ const CreateTaskModal = ({ onClose, userId, onTaskCreated }) => {
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-success"
+                  className="btn btn-success fw-bold px-4 shadow-sm"
                   disabled={isLoading || !form.description.trim()}
                 >
                   {isLoading ? (

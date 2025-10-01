@@ -5,17 +5,30 @@ import dayjs from "dayjs";
 import Turnstile from "react-turnstile";
 import useSearch from "../../hooks/useSearch";
 import usePagination from "../../hooks/usePagination";
+import Modal from "../../helpers/modal/Modal";
 
 // ✅ Importar iconos de FontAwesome
 import {
   faSearch,
   faCreditCard,
+  faEdit,
+  faTrash,
+  faHashtag,
+  faKey,
+  faCalendarAlt,
+  faIdCard,
+  faUser,
+  faBuilding,
+  faCheckCircle,
+  faCogs
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const ListCreditCard = () => {
   const [cards, setCards] = useState([]);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
   const itemsPerPage = 10;
 
   const siteKey = import.meta.env.VITE_REACT_APP_TURNSTILE_SITE_KEY;
@@ -86,6 +99,36 @@ const ListCreditCard = () => {
     }
   }, [turnstileToken]);
 
+  // ✅ Funciones para manejar el modal de actualización
+  const handleUpdateCard = (card) => {
+    console.log("🔄 Abriendo modal para actualizar tarjeta:", card);
+    setSelectedCard(card);
+    setShowUpdateModal(true);
+  };
+
+  const handleCloseUpdateModal = () => {
+    setShowUpdateModal(false);
+    setSelectedCard(null);
+  };
+
+  const handleCardUpdated = useCallback((updatedCard) => {
+    console.log("✅ Tarjeta actualizada:", updatedCard);
+    
+    // Actualizar la tarjeta en el estado local
+    setCards((prevCards) => 
+      prevCards.map((card) => 
+        card.id === updatedCard.id 
+          ? { ...card, ...updatedCard }
+          : card
+      )
+    );
+
+    // Opcional: Recargar todas las tarjetas desde el servidor
+    setTimeout(() => {
+      getAllCards();
+    }, 500);
+  }, [getAllCards]);
+
   return (
     <>
       <section>
@@ -153,17 +196,42 @@ const ListCreditCard = () => {
                 <thead>
                   <tr>
                     <th>N°</th>
-                    <th>Número de tarjeta</th>
-                    <th>Código</th>
-                    <th>Fecha de expiración</th>
-                    <th>Cédula / RUC</th>
+                    <th>
+                      <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                      Número de tarjeta
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faKey} className="me-2" />
+                      Código
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                      Fecha de expiración
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                      Cédula / RUC
+                    </th>
                     <th colSpan="4" scope="row">
+                      <FontAwesomeIcon icon={faUser} className="me-2" />
                       Cliente
                     </th>
-                    <th>Banco</th>
-                    <th>Tipo de tarjeta</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th>
+                      <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                      Banco
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faCreditCard} className="me-2" />
+                      Tipo de tarjeta
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                      Estado
+                    </th>
+                    <th>
+                      <FontAwesomeIcon icon={faCogs} className="me-2" />
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,12 +275,13 @@ const ListCreditCard = () => {
                           </span>
                         </td>
                         <td className="d-flex gap-2">
-                          {(card.cardstatus?.id == 2 || card.cardstatus?.id == 3) && (
-                            <button className="btn bg-danger text-white fw-bold w-100 my-1">
-                              Eliminar tarjeta
-                            </button>
-                          )}
-                          <button className="btn btn-success text-white fw-bold w-100 my-1">
+                  
+                          <button 
+                            className="btn btn-success text-white fw-bold w-100 my-1"
+                            onClick={() => handleUpdateCard(card)}
+                            title="Actualizar tarjeta"
+                          >
+                            <FontAwesomeIcon icon={faEdit} className="me-1" />
                             Actualizar
                           </button>
                         </td>
@@ -262,6 +331,30 @@ const ListCreditCard = () => {
           )}
         </div>
       </section>
+
+      {/* ✅ Modal para actualizar tarjeta */}
+      {showUpdateModal && selectedCard && (
+        <Modal
+          isOpen={showUpdateModal}
+          onClose={handleCloseUpdateModal}
+          modalType="updateCreditCard"
+          selectedCard={selectedCard}
+          onCardUpdated={handleCardUpdated}
+          // ✅ Props obligatorias del Modal (con valores por defecto)
+          policies={[]}
+          cards={[]}
+          payments={[]}
+          onAdvisorUpdated={() => {}}
+          onCustomerUpdated={() => {}}
+          onPolicyUpdated={() => {}}
+          onPaymentUpdated={() => {}}
+          commissionHistory={() => {}}
+          commissionRefunds={() => {}}
+          editPoliciesValues={[]}
+          onTaskDeleted={() => {}}
+          tasks={{ id: 0, description: "", estatusTask: "" }}
+        />
+      )}
     </>
   );
 };

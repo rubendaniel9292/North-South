@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import "@fontsource/roboto/500.css";
+import "../../assets/css/home-dashboard.css";
 import { NavLink } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,6 +15,13 @@ import {
   faListCheck,
   faPlus,
   faEye,
+  faChartLine,
+  faTasks,
+  faExclamationTriangle,
+  faCheckCircle,
+  faMoneyBillWave,
+  faCalendarCheck,
+  faInfoCircle
 } from "@fortawesome/free-solid-svg-icons";
 import Modal from "../../helpers/modal/Modal";
 const Home = () => {
@@ -215,312 +223,335 @@ const Home = () => {
     <>
       <TaskReminder />
       <section>
-        <h2 className="py-2">Detalle de pagos, pólizas y tarjetas y tareas</h2>
-        <p className="py-1 fs-5">
-          Coloque el cursor sobre el ícono correspondiente para saber más
-          detalles
-        </p>
+        <div className="text-center mb-4">
+          <h2 className="py-2 mb-3">
+            <FontAwesomeIcon icon={faChartLine} className="me-3 text-primary pt-4" />
+            Panel de Control - Resumen Ejecutivo de pólizas, pagos y tarjetas con sus respectivos estados
+          </h2>
+          <p className="py-1 fs-5 text-muted">
+            <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
+            Coloque el cursor sobre el ícono correspondiente para saber más detalles
+          </p>
+        </div>
 
         <div className="container-fluid text-center">
-          <div className="row  justify-center-between pt-3  gap-2 ">
-            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
-              <div className="p-4 text-center ">
-                {!paymentStatusId ? (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 193, 7, 0.1)" }}
-                    >
-                      <button
-                        disabled
-                        //onClick={() => getPaymenstByStatus("paymentByStatus")}
+          <div className="row justify-content-center pt-3 gap-3">
+            {/* Tarjeta de Pagos Atrasados */}
+            <div className="col-lg-2 col-md-4 col-sm-6">
+              <div className="card border-0 rounded-4 shadow-lg h-100 transition-hover">
+                <div className="card-body p-4 text-center">
+                  {!paymentStatusId ? (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm"
+                        style={{ backgroundColor: "rgba(255, 193, 7, 0.15)" }}
                       >
                         <FontAwesomeIcon
-                          size={24}
+                          size="2x"
                           style={{ color: "#ffc107" }}
-                          icon={faCircleExclamation}
+                          icon={faCheckCircle}
                         />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Pólizas con pagos atrasados</h4>
-                    <p
-                      className="fs-4 fw-bold mb-0 "
-                      style={{ color: "#ffc107" }}
-                    >
-                      No hay pagos atrasados
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 193, 7, 0.1)" }}
-                    >
-                      <button
-                        onClick={() => getPaymenstByStatus("paymentByStatus")}
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Pagos Atrasados</h5>
+                      <p className="fs-5 fw-bold mb-2 text-success">
+                        ✅ Al día
+                      </p>
+                      <span className="text-muted fs-6">No hay pagos pendientes</span>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm cursor-pointer"
+                        style={{ backgroundColor: "rgba(255, 193, 7, 0.15)" }}
                       >
-                        <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#ffc107" }}
-                          bounce
-                          icon={faCircleExclamation}
-                        />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Pólizas con pagos atrasados</h4>
-                    <p
-                      className="fs-1 fw-bold mb-0 "
-                      style={{ color: "#ffc107" }}
-                    >
-                      {payments.length}
-                    </p>
-                  </>
-                )}
+                        <button
+                          onClick={() => getPaymenstByStatus("paymentByStatus")}
+                          className="btn p-0 border-0 bg-transparent"
+                          title="Ver detalles de pagos atrasados"
+                        >
+                          <FontAwesomeIcon
+                            size="2x"
+                            style={{ color: "#ffc107" }}
+                            icon={faExclamationTriangle}
+                            className="bounce-animation"
+                          />
+                        </button>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Pagos Atrasados</h5>
+                      <p
+                        className="fs-1 fw-bold mb-2"
+                        style={{ color: "#ffc107" }}
+                      >
+                        {payments.length}
+                      </p>
+                      <span className="text-muted fs-6">
+                        <FontAwesomeIcon icon={faMoneyBillWave} className="me-1" />
+                        Requieren atención
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
-              <div className="p-4 text-center ">
-                {!policyStatus ? (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 59, 48, 0.1)" }}
-                    >
-                      <button
-                        disabled
-                        //onClick={() => getAllPoliciesStatus("policyByStatus")}
+            {/* Tarjeta de Pólizas Vencidas */}
+            <div className="col-lg-2 col-md-4 col-sm-6">
+              <div className="card border-0 rounded-4 shadow-lg h-100 transition-hover">
+                <div className="card-body p-4 text-center">
+                  {!policyStatus ? (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm"
+                        style={{ backgroundColor: "rgba(40, 167, 69, 0.15)" }}
                       >
                         <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#ff3b30" }}
-                          icon={faClock}
+                          size="2x"
+                          style={{ color: "#28a745" }}
+                          icon={faCalendarCheck}
                         />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Pólizas culminadas o culminar</h4>
-                    <p
-                      className="fs-4 fw-bold mb-0 "
-                      style={{ color: "#ff3b30" }}
-                    >
-                      No hay polzias vencidas
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 59, 48, 0.1)" }}
-                    >
-                      <button
-                        onClick={() => getAllPoliciesStatus("policyByStatus")}
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Pólizas Vigentes</h5>
+                      <p className="fs-5 fw-bold mb-2 text-success">
+                        ✅ Todas vigentes
+                      </p>
+                      <span className="text-muted fs-6">Sin vencimientos próximos</span>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm cursor-pointer"
+                        style={{ backgroundColor: "rgba(220, 53, 69, 0.15)" }}
                       >
-                        <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#ff3b30" }}
-                          icon={faClock}
-                          bounce
-                        />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Pólizas culminadas o culminar</h4>
-                    <p
-                      className="fs-1 fw-bold mb-0 "
-                      style={{ color: "#ff3b30" }}
-                    >
-                      {policies.length}
-                    </p>
-                  </>
-                )}
+                        <button
+                          onClick={() => getAllPoliciesStatus("policyByStatus")}
+                          className="btn p-0 border-0 bg-transparent"
+                          title="Ver pólizas vencidas o por vencer"
+                        >
+                          <FontAwesomeIcon
+                            size="2x"
+                            style={{ color: "#dc3545" }}
+                            icon={faClock}
+                            className="bounce-animation"
+                          />
+                        </button>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Pólizas Culminadas o por Culminar</h5>
+                      <p
+                        className="fs-1 fw-bold mb-2"
+                        style={{ color: "#dc3545" }}
+                      >
+                        {policies.length}
+                      </p>
+                      <span className="text-muted fs-6">
+                        <FontAwesomeIcon icon={faClock} className="me-1" />
+                        Requieren renovación
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
-              <div className="p-4 text-center ">
-                {!policy ? (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(52, 199, 89, 0.1)" }}
-                    >
-                      <button disabled>
+            {/* Tarjeta de Pólizas Contratadas */}
+            <div className="col-lg-2 col-md-4 col-sm-6">
+              <div className="card border-0 rounded-4 shadow-lg h-100 transition-hover">
+                <div className="card-body p-4 text-center">
+                  {!policy ? (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm"
+                        style={{ backgroundColor: "rgba(108, 117, 125, 0.15)" }}
+                      >
                         <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#34c759" }}
+                          size="2x"
+                          style={{ color: "#6c757d" }}
                           icon={faWallet}
                         />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Pólizas Contratadas</h4>
-                    <p
-                      className="fs-4 fw-bold mb-0 "
-                      style={{ color: "#34c759" }}
-                    >
-                      No hay pólizas registardas
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(52, 199, 89, 0.1)" }}
-                    >
-                      <NavLink to="/management/get-all-policy">
-                        <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#34c759" }}
-                          icon={faWallet}
-                          bounce
-                        />
-                      </NavLink>
-                    </div>
-                    <h4 className="mb-3">Pólizas Contratadas</h4>
-                    <p
-                      className="fs-1 fw-bold mb-0 "
-                      style={{ color: "#34c759" }}
-                    >
-                      {allPolicies.length}
-                    </p>
-                  </>
-                )}
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Total de Pólizas
+                        Contratadas
+                      </h5>
+                                            <h5 className="mb-3 text-dark fw-bold">Pólizas Activas</h5>
+                      <p className="fs-5 fw-bold mb-2 text-muted">
+                        📋 Sin registro
+                      </p>
+                      <span className="text-muted fs-6">No hay pólizas registradas</span>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm cursor-pointer"
+                        style={{ backgroundColor: "rgba(25, 135, 84, 0.15)" }}
+                      >
+                        <NavLink
+                          to="/management/get-all-policy"
+                          className="text-decoration-none"
+                          title="Ver todas las pólizas"
+                        >
+                          <FontAwesomeIcon
+                            size="2x"
+                            style={{ color: "#198754" }}
+                            icon={faWallet}
+                            className="bounce-animation"
+                          />
+                        </NavLink>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Total de Pólizas
+                        Contratadas</h5>
+                      <p
+                        className="fs-1 fw-bold mb-2"
+                        style={{ color: "#198754" }}
+                      >
+                        {allPolicies.length}
+                      </p>
+                      <span className="text-muted fs-6">
+                        <FontAwesomeIcon icon={faCheckCircle} className="me-1" />
+                        Contratos vigentes
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
-              <div className="p-4 text-center ">
-                {!cardStatus ? (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(88, 86, 214, 0.1)" }}
-                    >
-                      <button
-                        disabled
-                        //onClick={() => getAllCardsExpireds("cardsByStatus")}
+            {/* Tarjeta de Tarjetas de Crédito */}
+            <div className="col-lg-2 col-md-4 col-sm-6">
+              <div className="card border-0 rounded-4 shadow-lg h-100 transition-hover">
+                <div className="card-body p-4 text-center">
+                  {!cardStatus ? (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm"
+                        style={{ backgroundColor: "rgba(25, 135, 84, 0.15)" }}
                       >
                         <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#5856d6" }}
-                          icon={faCreditCard}
+                          size="2x"
+                          style={{ color: "#198754" }}
+                          icon={faCheckCircle}
                         />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Tarjetas vencidas o por vencer</h4>
-                    <p
-                      className="fs-4 fw-bold mb-0 "
-                      style={{ color: "#5856d6" }}
-                    >
-                      No hay tarjetas actualmete
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(88, 86, 214, 0.1)" }}
-                    >
-                      <button
-                        onClick={() => getAllCardsExpireds("cardsByStatus")}
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Tarjetas Activas</h5>
+                      <p className="fs-5 fw-bold mb-2 text-success">
+                        ✅ Todas vigentes
+                      </p>
+                      <span className="text-muted fs-6">Sin vencimientos próximos</span>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm cursor-pointer"
+                        style={{ backgroundColor: "rgba(102, 16, 242, 0.15)" }}
                       >
-                        <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#5856d6" }}
-                          icon={faCreditCard}
-                          bounce
-                        />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Tarjetas vencidas o por vencer</h4>
-                    <p
-                      className="fs-1 fw-bold mb-0 "
-                      style={{ color: "#5856d6" }}
-                    >
-                      {cards.length}
-                    </p>
-                  </>
-                )}
+                        <button
+                          onClick={() => getAllCardsExpireds("cardsByStatus")}
+                          className="btn p-0 border-0 bg-transparent"
+                          title="Ver tarjetas vencidas o por vencer"
+                        >
+                          <FontAwesomeIcon
+                            size="2x"
+                            style={{ color: "#6610f2" }}
+                            icon={faCreditCard}
+                            className="bounce-animation"
+                          />
+                        </button>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Tarjetas por Vencer</h5>
+                      <p
+                        className="fs-1 fw-bold mb-2"
+                        style={{ color: "#6610f2" }}
+                      >
+                        {cards.length}
+                      </p>
+                      <span className="text-muted fs-6">
+                        <FontAwesomeIcon icon={faCreditCard} className="me-1" />
+                        Requieren renovación
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            {/*tarjeta de tareas  */}
-            <div className="col-2 card border-4 rounded-4 shadow-sm transition mx-1">
-              <div className="p-4 text-center">
-                {!taskStatus ? (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 149, 0, 0.1)" }}
-                    >
-                      <FontAwesomeIcon
-                        size={24}
-                        style={{ color: "#ff9500" }}
-                        icon={faListCheck}
-                      />
-                    </div>
-                    <h4 className="mb-3">Tareas pendientes</h4>
-                    <p
-                      className="fs-4 fw-bold mb-3"
-                      style={{ color: "#ff9500" }}
-                    >
-                      No hay tareas pendientes
-                    </p>
-
-                    {/* Botón crear siempre disponible */}
-                    <button
-                      className="btn  d-flex align-items-center gap-1 mx-auto text-white fw-bold bt-task"
-                      onClick={() => {
-                        setModalType("task");
-                        openModal();
-                      }}
-                      title="Crear nueva tarea"
-                    >
-                      <FontAwesomeIcon icon={faPlus} size="sm" />
-                      Crear Tarea
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="d-inline-flex p-3 rounded-circle mb-3"
-                      style={{ backgroundColor: "rgba(255, 149, 0, 0.1)" }}
-                    >
-                      <button
-                        onClick={() => {
-                          console.log("Abriendo modal de tareas...");
-                          // ✅ Refrescar tareas antes de abrir el modal
-                          getTask(auth?.uuid, "taskList");
-                        }}
+            {/* Tarjeta de Tareas */}
+            <div className="col-lg-2 col-md-4 col-sm-6">
+              <div className="card border-0 rounded-4 shadow-lg h-100 transition-hover">
+                <div className="card-body p-4 text-center">
+                  {!taskStatus ? (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm"
+                        style={{ backgroundColor: "rgba(25, 135, 84, 0.15)" }}
                       >
-                        {" "}
                         <FontAwesomeIcon
-                          size={24}
-                          style={{ color: "#ff9500" }}
-                          icon={faListCheck}
-                          bounce
+                          size="2x"
+                          style={{ color: "#198754" }}
+                          icon={faCheckCircle}
                         />
-                      </button>
-                    </div>
-                    <h4 className="mb-3">Tareas pendientes</h4>
-                    <p
-                      className="fs-1 fw-bold mb-3"
-                      style={{ color: "#ff9500" }}
-                    >
-                      {task.length}
-                    </p>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Tareas Pendientes</h5>
+                      <p className="fs-5 fw-bold mb-3 text-success">
+                        ✅ Todo al día
+                      </p>
 
-                    <div className="d-flex gap-2 justify-content-center  fw-bold">
+                      {/* Botón crear siempre disponible */}
                       <button
-                        className="btn  bt-task text-white d-flex align-items-center gap-1 fw-bold"
+                        className="btn d-flex align-items-center gap-2 mx-auto text-white fw-bold"
+                        style={{ backgroundColor: "#ff9500" }}
                         onClick={() => {
                           setModalType("task");
                           openModal();
                         }}
                         title="Crear nueva tarea"
                       >
-                        <FontAwesomeIcon icon={faPlus} size="sm" />
-                        Crear Tarea
+                        <FontAwesomeIcon icon={faPlus} />
+                        Nueva Tarea
                       </button>
-                    </div>
-                  </>
-                )}
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="d-inline-flex p-3 rounded-circle mb-3 shadow-sm cursor-pointer"
+                        style={{ backgroundColor: "rgba(255, 149, 0, 0.15)" }}
+                      >
+                        <button
+                          onClick={() => {
+                            console.log("Abriendo modal de tareas...");
+                            getTask(auth?.uuid, "taskList");
+                          }}
+                          className="btn p-0 border-0 bg-transparent"
+                          title="Ver tareas pendientes"
+                        >
+                          <FontAwesomeIcon
+                            size="2x"
+                            style={{ color: "#ff9500" }}
+                            icon={faTasks}
+                            className="bounce-animation"
+                          />
+                        </button>
+                      </div>
+                      <h5 className="mb-3 text-dark fw-bold">Tareas Pendientes</h5>
+                      <p
+                        className="fs-1 fw-bold mb-3"
+                        style={{ color: "#ff9500" }}
+                      >
+                        {task.length}
+                      </p>
+
+                      <div className="d-flex gap-2 justify-content-center">
+                        <button
+                          className="btn btn-sm d-flex align-items-center gap-1 text-white fw-bold"
+                          style={{ backgroundColor: "#ff9500" }}
+                          onClick={() => {
+                            setModalType("task");
+                            openModal();
+                          }}
+                          title="Crear nueva tarea"
+                        >
+                          <FontAwesomeIcon icon={faPlus} />
+                          Nueva
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>

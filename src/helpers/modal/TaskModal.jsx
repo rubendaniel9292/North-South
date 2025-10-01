@@ -7,6 +7,8 @@ import {
   faRectangleXmark,
   faTrashCan,
   faSpinner,
+  faClipboardList,
+  faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
 const TaskModal = ({ onClose, tasks, onTaskDeleted }) => {
   const [deletingTasks, setDeletingTasks] = useState(new Set());
@@ -93,8 +95,14 @@ const TaskModal = ({ onClose, tasks, onTaskDeleted }) => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Descripción</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faClipboardList} className="me-2" />
+                  Descripción
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -7,7 +7,21 @@ import Modal from "../../helpers/modal/Modal";
 import usePagination from "../../hooks/usePagination";
 import useSearch from "../../hooks/useSearch";
 import { NavLink } from "react-router-dom";
-import { faSearch, faUserTie } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faSearch, 
+  faUserTie, 
+  faHistory, 
+  faPlus, 
+  faMinus, 
+  faEdit,
+  faExclamationTriangle,
+  faIdCard,
+  faBirthdayCake,
+  faPhone,
+  faEnvelope,
+  faShieldAlt,
+  faCogs
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import useAuth from "../../hooks/useAuth";
 const ListAdvisor = () => {
@@ -158,15 +172,34 @@ const ListAdvisor = () => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Cédula / RUC</th>
+                <th>
+                  <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                  Cédula / RUC
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUserTie} className="me-2" />
                   Asesor
                 </th>
-                <th>Fecha de nacimiento</th>
-                <th>Teléfono</th>
-                <th>Email</th>
-                <th>Tratamiento de datos personales</th>
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faBirthdayCake} className="me-2" />
+                  Fecha de nacimiento
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faPhone} className="me-2" />
+                  Teléfono
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faEnvelope} className="me-2" />
+                  Email
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
+                  Tratamiento de datos personales
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCogs} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -207,14 +240,18 @@ const ListAdvisor = () => {
                               advisor: item,
                             }}
                             className="btn btn-primary text-white fw-bold w-100 my-1"
+                            title="Ver historial completo de comisiones y anticipos"
                           >
+                            <FontAwesomeIcon icon={faHistory} className="me-2" />
                             Ver historial de Com/Anticipos
                           </NavLink>
                           {auth?.role !== "ELOPDP" && (<>
                             <button
                               onClick={() => getAvidorById(item.id, "advisor")}
                               className="btn btn-secondary text-white fw-bold w-100 my-1"
+                              title="Registrar nueva comisión para el asesor"
                             >
+                              <FontAwesomeIcon icon={faPlus} className="me-2" />
                               Registrar Comisión
                             </button>
 
@@ -223,7 +260,9 @@ const ListAdvisor = () => {
                                 getAvidorById(item.id, "commissionRefunds")
                               }
                               className="btn btn-danger fw-bold w-100 my-1"
+                              title="Descontar comisiones del asesor"
                             >
+                              <FontAwesomeIcon icon={faMinus} className="me-2" />
                               Descontar Comisiones
                             </button>
                           </>)}
@@ -231,6 +270,7 @@ const ListAdvisor = () => {
                         </>
                       ) : (
                         <div className="btn btn-secondary disabled text-white fw-bold w-100 my-1">
+                          <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
                           No se registran pólizas
                         </div>
                       )}
@@ -238,7 +278,9 @@ const ListAdvisor = () => {
                       <button
                         className="btn btn-success text-white fw-bold w-100 my-1"
                         onClick={() => getAvidorById(item.id, "updateAdvisor")}
+                        title="Actualizar información del asesor"
                       >
+                        <FontAwesomeIcon icon={faEdit} className="me-2" />
                         Actualizar
                       </button>
                     </td>

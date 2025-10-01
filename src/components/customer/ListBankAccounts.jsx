@@ -8,6 +8,13 @@ import usePagination from "../../hooks/usePagination";
 import {
   faSearch,
   faUniversity,
+  faHashtag,
+  faIdCard,
+  faUser,
+  faBuilding,
+  faFolderOpen,
+  faStickyNote,
+  faCogs
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -122,15 +129,34 @@ const ListBankAccounts = () => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Número de cuenta</th>
-                <th>Cédula / RUC</th>
+                <th>
+                  <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                  Número de cuenta
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                  Cédula / RUC
+                </th>
                 <th colSpan="4" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
                   Cliente
                 </th>
-                <th>Banco</th>
-                <th>Tipo de cuenta</th>
-                <th>Observaciones</th>
-                <th>Acciones</th>
+                <th>
+                  <FontAwesomeIcon icon={faUniversity} className="me-2" />
+                  Banco
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFolderOpen} className="me-2" />
+                  Tipo de cuenta
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faStickyNote} className="me-2" />
+                  Observaciones
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCogs} className="me-2" />
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>

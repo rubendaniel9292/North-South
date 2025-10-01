@@ -1,10 +1,19 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
-//import alerts from "../../helpers/Alerts";
-//import http from "../../helpers/Http";
-import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
-//import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
-import { faFile } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faRectangleXmark,
+  faFile,
+  faBarcode,
+  faUser,
+  faBuilding,
+  faFileContract,
+  faCalendarAlt,
+  faCreditCard,
+  faUniversity,
+  faMoneyBillWave,
+  faDollarSign,
+  faCheckCircle
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import useAuth from "../../hooks/useAuth";
@@ -83,18 +92,54 @@ const PolicyStatusModal = ({ policies, onClose }) => {
             <thead>
               <tr>
                 <th>N°</th>
-                <th>Número de Póliza</th>
-                <th colSpan="2" scope="row">Cliente</th>
-                <th>Compañía</th>
-                <th>Tipo de Póliza</th>
-                <th>Fecha de Inicio</th>
-                <th>Fecha de Fin</th>
-                <th>Método de Pago</th>
-                <th>Banco (si aplica)</th>
-                <th>Frecuencia de Pago</th>
-                <th>Monto de Cobertura</th>
-                <th>Valor de la Póliza</th>
-                <th>Estado</th>
+                <th>
+                  <FontAwesomeIcon icon={faBarcode} className="me-2" />
+                  Número de Póliza
+                </th>
+                <th colSpan="2" scope="row">
+                  <FontAwesomeIcon icon={faUser} className="me-2" />
+                  Cliente
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faBuilding} className="me-2" />
+                  Compañía
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faFileContract} className="me-2" />
+                  Tipo de Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Inicio
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                  Fecha de Fin
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCreditCard} className="me-2" />
+                  Método de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faUniversity} className="me-2" />
+                  Banco (si aplica)
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
+                  Frecuencia de Pago
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Monto de Cobertura
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faDollarSign} className="me-2" />
+                  Valor de la Póliza
+                </th>
+                <th>
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                  Estado
+                </th>
               </tr>
             </thead>
             <tbody>

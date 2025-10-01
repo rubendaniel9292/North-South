@@ -3,7 +3,15 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk, 
+  faSpinner,
+  faUser,
+  faEnvelope,
+  faLock,
+  faUserTag,
+  faUserShield
+} from "@fortawesome/free-solid-svg-icons";
 
 const CreateUser = () => {
   const { form, changed } = UserForm({});
@@ -57,6 +65,7 @@ const CreateUser = () => {
               <h3>REGISTRO DE USUARIOS</h3>
             <div className="mb-3 col-6">
               <label htmlFor="name" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Nombres
               </label>
               <input
@@ -70,6 +79,7 @@ const CreateUser = () => {
             </div>
             <div className="mb-3 col-6">
               <label htmlFor="surname" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Apellidos
               </label>
               <input
@@ -83,6 +93,7 @@ const CreateUser = () => {
             </div>
             <div className="mb-3 col-6">
               <label htmlFor="username" className="form-label">
+                <FontAwesomeIcon icon={faUserTag} className="me-2" />
                 Usuario
               </label>
               <input
@@ -96,6 +107,7 @@ const CreateUser = () => {
             </div>
             <div className="mb-3 col-6">
               <label htmlFor="email" className="form-label">
+                <FontAwesomeIcon icon={faEnvelope} className="me-2" />
                 Email
               </label>
               <input
@@ -109,6 +121,7 @@ const CreateUser = () => {
             </div>
             <div className="mb-3 col-6">
               <label htmlFor="password" className="form-label">
+                <FontAwesomeIcon icon={faLock} className="me-2" />
                 Contraseña
               </label>
               <input
@@ -122,6 +135,7 @@ const CreateUser = () => {
             </div>
             <div className="mb-3 col-6">
               <label htmlFor="role" className="form-label">
+                <FontAwesomeIcon icon={faUserShield} className="me-2" />
                 Seleccione un rol para el usuario
               </label>
               <select

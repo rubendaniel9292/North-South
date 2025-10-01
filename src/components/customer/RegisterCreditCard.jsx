@@ -3,7 +3,16 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk,
+  faCreditCard,
+  faUser,
+  faUniversity,
+  faKey,
+  faCalendarAlt,
+  faHashtag,
+  faTags
+} from "@fortawesome/free-solid-svg-icons";
 const RegisterCreditCard = () => {
   const { form, changed } = UserForm({});
   const [customers, setCustomer] = useState([]);
@@ -104,6 +113,7 @@ const RegisterCreditCard = () => {
           <div className="row pt-3 fw-bold">
             <div className="mb-3 col-3">
               <label htmlFor="customers_id" className="form-label">
+                <FontAwesomeIcon icon={faUser} className="me-2" />
                 Cliente
               </label>
               <select
@@ -127,6 +137,7 @@ const RegisterCreditCard = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="cardNumber" className="form-label">
+                <FontAwesomeIcon icon={faCreditCard} className="me-2" />
                 Número de tarjeta
               </label>
               <input
@@ -141,6 +152,7 @@ const RegisterCreditCard = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="code" className="form-label">
+                <FontAwesomeIcon icon={faKey} className="me-2" />
                 Código CVV
               </label>
               <input
@@ -159,6 +171,7 @@ const RegisterCreditCard = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="expirationMonth" className="form-label">
+                <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                 Mes de Vencimiento
               </label>
               <select
@@ -182,6 +195,7 @@ const RegisterCreditCard = () => {
 
             <div className="mb-3 col-3">
               <label htmlFor="expirationYear" className="form-label">
+                <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                 Año de Vencimiento
               </label>
               <select
@@ -204,6 +218,7 @@ const RegisterCreditCard = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="card_option_id" className="form-label">
+                <FontAwesomeIcon icon={faTags} className="me-2" />
                 Tipo de tarjeta
               </label>
               <select
@@ -225,6 +240,7 @@ const RegisterCreditCard = () => {
             </div>
             <div className="mb-3 col-3">
               <label htmlFor="bank_id" className="form-label">
+                <FontAwesomeIcon icon={faUniversity} className="me-2" />
                 Banco
               </label>
               <select

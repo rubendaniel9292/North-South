@@ -3,7 +3,15 @@ import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import { useCallback, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFloppyDisk,
+  faIdCard,
+  faUser,
+  faEnvelope,
+  faPhone,
+  faCalendarAlt,
+  faShieldAlt
+} from "@fortawesome/free-solid-svg-icons";
 const CreateAdvisor = () => {
   const { form, changed } = UserForm({});
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +54,7 @@ const CreateAdvisor = () => {
         <div className="row pt-3 fw-bold">
           <div className="mb-3 col-3">
             <label htmlFor="ci_ruc" className="form-label">
+              <FontAwesomeIcon icon={faIdCard} className="me-2" />
               Número de cédula / RUC
             </label>
             <input
@@ -59,6 +68,7 @@ const CreateAdvisor = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="firstName" className="form-label">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
               Primer Nombre
             </label>
             <input
@@ -72,6 +82,7 @@ const CreateAdvisor = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="secondName" className="form-label">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
               Segundo Nombre
             </label>
             <input
@@ -84,6 +95,7 @@ const CreateAdvisor = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="surname" className="form-label">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
               Primer Apellido
             </label>
             <input
@@ -98,6 +110,7 @@ const CreateAdvisor = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="secondSurname" className="form-label">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
               Segundo Apellido
             </label>
             <input
@@ -111,6 +124,7 @@ const CreateAdvisor = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="email" className="form-label">
+              <FontAwesomeIcon icon={faEnvelope} className="me-2" />
               Email
             </label>
             <input
@@ -124,6 +138,7 @@ const CreateAdvisor = () => {
           </div>
           <div className="mb-3 col-3">
             <label htmlFor="numberPhon" className="form-label">
+              <FontAwesomeIcon icon={faPhone} className="me-2" />
               Teléfono
             </label>
             <input
@@ -138,6 +153,7 @@ const CreateAdvisor = () => {
 
           <div className="mb-3 col-3">
             <label htmlFor="birthdate" className="form-label">
+              <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
               Fecha de nacimiento
             </label>
             <input
@@ -152,6 +168,7 @@ const CreateAdvisor = () => {
 
           <div className="mb-3 col-3 ">
             <label htmlFor="flexRadioDefault7" className="form-check-label">
+              <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
               ¿El asesor acepta el tratamiento de datos personales?
             </label>
             <div className="form-check">
