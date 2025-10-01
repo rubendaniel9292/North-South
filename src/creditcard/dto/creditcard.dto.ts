@@ -49,6 +49,10 @@ export class UpdateCreditCardDTO {
   expirationDate: Date;
 
   @IsOptional()
+  @IsString()
+  code: string;
+
+  @IsOptional()
   @IsInt()
   card_option_id: number;
 

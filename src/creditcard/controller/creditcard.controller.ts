@@ -3,9 +3,12 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Param,
   Query,
   UseGuards,
   BadRequestException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { BankDTO } from '../dto/bank.dto';
 import { CardOptionDTO } from '../dto/cardptions.dto';
@@ -13,7 +16,7 @@ import { CreditcardService } from '../services/creditcard.service';
 import { AuthGuard } from '@/auth/guards/auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
-import { CreditCardDTO } from '../dto/creditcard.dto';
+import { CreditCardDTO, UpdateCreditCardDTO } from '../dto/creditcard.dto';
 @Controller('creditcard')
 @UseGuards(AuthGuard, RolesGuard)
 export class CreditcardController {
@@ -53,6 +56,23 @@ export class CreditcardController {
       return {
         status: 'success',
         newCard,
+      };
+    }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Put('update-card/:id')
+  public async updateCard(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateCreditCardDTO
+  ) {
+    const updatedCard = await this.creditCardService.updateCard(id, body);
+
+    if (updatedCard) {
+      return {
+        status: 'success',
+        message: 'Tarjeta actualizada correctamente',
+        updatedCard,
       };
     }
   }
