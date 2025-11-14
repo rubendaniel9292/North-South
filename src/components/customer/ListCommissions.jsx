@@ -95,7 +95,10 @@ const ListCommissions = () => {
   }, [advisorFromNav]);
   */
   const fetchAdvisor = useCallback(async (page = 1) => {
-    setIsLoading(true);
+    if (page === 1) {
+      setIsLoading(true);
+    }
+    
     try {
       const response = await http.get(
         `advisor/get-advisor-optimized/${advisorFromNav.id}?page=${page}&limit=50`
@@ -119,11 +122,8 @@ const ListCommissions = () => {
         setAdvisor(null);
       }
     } finally {
-      if (page === 1) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
+      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [advisorFromNav]);
 
@@ -143,6 +143,7 @@ const ListCommissions = () => {
           !isLoading
         ) {
           // Cargar siguiente página
+          setIsLoadingMore(true);
           fetchAdvisor(pagination.currentPage + 1);
         }
       },
@@ -159,17 +160,6 @@ const ListCommissions = () => {
       }
     };
   }, [pagination, isLoadingMore, isLoading, fetchAdvisor]);
-
-  useEffect(() => {
-    if (advisorFromNav?.id) fetchAdvisor();
-  }, [advisorFromNav, fetchAdvisor]);
-
-  useEffect(() => {
-    if (advisor) {
-      console.log(advisor.policies);
-      //testNewExamplePolicy(advisor.policies); en caso de querer probar un ejemplo
-    }
-  }, [advisor]);
 
   // Manejar el cambio en el filtro de búsqueda
   const handleSearchChange = (e) => {
