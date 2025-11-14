@@ -143,35 +143,53 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-  //3.1: Método OPTIMIZADO para listar asesor por id (sin memory leaks)
-  public getAdvisorByIdOptimized = async (id: number): Promise<AdvisorEntity> => {
+  //3.1: Método OPTIMIZADO con PAGINACIÓN para evitar memory leaks definitivamente
+  public getAdvisorByIdOptimized = async (
+    id: number, 
+    page: number = 1, 
+    limit: number = 50
+  ): Promise<any> => {
     try {
-      // 1. Verificar caché primero
-      const cacheKey = `advisor:${id}:optimized`;
-      const cachedAdvisor = await this.redisService.get(cacheKey);
-      if (cachedAdvisor) {
-        return JSON.parse(cachedAdvisor);
+      // 1. Verificar caché (solo para datos básicos del asesor, no pólizas)
+      const cacheKey = `advisor:${id}:basic`;
+      let advisor = await this.redisService.get(cacheKey);
+      
+      if (!advisor) {
+        // Cargar datos básicos del asesor
+        const advisorData = await this.advisdorRepository.findOne({
+          where: { id },
+          relations: [
+            'commissionRefunds',
+            'commissions',
+            'commissions.statusAdvance',
+          ],
+        });
+
+        if (!advisorData) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'No se encontró el asesor',
+          });
+        }
+
+        // Guardar datos básicos en caché (1 hora)
+        await this.redisService.set(cacheKey, JSON.stringify(advisorData), 3600);
+        advisor = JSON.stringify(advisorData);
       }
 
-      // 2. Cargar datos básicos del asesor solo con comisiones y devoluciones (ligero)
-      const advisor = await this.advisdorRepository.findOne({
-        where: { id },
-        relations: [
-          'commissionRefunds',
-          'commissions',
-          'commissions.statusAdvance',
-        ],
+      const advisorParsed = JSON.parse(advisor);
+
+      // 2. Contar total de pólizas para paginación
+      const policyRepository = this.advisdorRepository.manager.getRepository(PolicyEntity);
+      const totalPolicies = await policyRepository.count({
+        where: { advisor_id: id },
       });
 
-      if (!advisor) {
-        throw new ErrorManager({
-          type: 'BAD_REQUEST',
-          message: 'No se encontró el asesor',
-        });
-      }
+      // 3. Calcular skip para paginación
+      const skip = (page - 1) * limit;
+      const totalPages = Math.ceil(totalPolicies / limit);
 
-      // 3. Cargar pólizas con relaciones básicas (sin payments aún para reducir memoria)
-      const policyRepository = this.advisdorRepository.manager.getRepository(PolicyEntity);
+      // 4. Cargar pólizas paginadas con relaciones básicas (sin payments)
       const policies = await policyRepository.find({
         where: { advisor_id: id },
         relations: [
@@ -185,19 +203,18 @@ export class AdvisorService extends ValidateEntity {
         order: {
           id: 'DESC',
         },
+        skip,
+        take: limit,
       });
 
-      // 4. Si hay pólizas, cargar payments en lotes para evitar sobrecarga de memoria
+      // 5. Cargar payments solo para las pólizas de esta página en lotes pequeños
       if (policies && policies.length > 0) {
-        const policyIds = policies.map(p => p.id);
         const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
-        
-        // Procesar en lotes de 10 pólizas para evitar queries demasiado grandes
-        const batchSize = 10;
-        const allPayments = [];
+        const batchSize = 5;
 
-        for (let i = 0; i < policyIds.length; i += batchSize) {
-          const batchIds = policyIds.slice(i, i + batchSize);
+        for (let i = 0; i < policies.length; i += batchSize) {
+          const policiesBatch = policies.slice(i, i + batchSize);
+          const batchIds = policiesBatch.map(p => p.id);
           
           const paymentsInBatch = await paymentRepository.find({
             where: { policy_id: In(batchIds) },
@@ -207,26 +224,31 @@ export class AdvisorService extends ValidateEntity {
             },
           });
 
-          allPayments.push(...paymentsInBatch);
-        }
+          // Asignar payments inmediatamente
+          policiesBatch.forEach(policy => {
+            policy.payments = paymentsInBatch.filter(payment => payment.policy_id === policy.id);
+          });
 
-        // 5. Asignar payments a sus respectivas pólizas
-        policies.forEach(policy => {
-          policy.payments = allPayments.filter(payment => payment.policy_id === policy.id);
-        });
+          // Liberar memoria
+          paymentsInBatch.length = 0;
+        }
       }
 
-      // 6. Asignar pólizas al asesor
-      advisor.policies = policies || [];
+      // 6. Asignar pólizas paginadas al asesor
+      advisorParsed.policies = policies || [];
 
-      // 7. Guardar en caché con TTL de 30 minutos (más corto para evitar datos obsoletos)
-      await this.redisService.set(
-        cacheKey,
-        JSON.stringify(advisor),
-        1800, // 30 minutos
-      );
-
-      return advisor;
+      // 7. Retornar con metadata de paginación
+      return {
+        advisor: advisorParsed,
+        pagination: {
+          currentPage: page,
+          itemsPerPage: limit,
+          totalItems: totalPolicies,
+          totalPages,
+          hasMore: page < totalPages,
+          hasPrevious: page > 1,
+        },
+      };
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -267,6 +289,7 @@ export class AdvisorService extends ValidateEntity {
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`advisor:${id}`);
       await this.redisService.del(`advisor:${id}:optimized`);
+      await this.redisService.del(`advisor:${id}:basic`);
       await this.redisService.del('allAdvisors');
 
       // Obtener el asesor actualizado con todas sus relaciones
