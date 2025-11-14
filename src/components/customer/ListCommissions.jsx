@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -20,7 +20,8 @@ import {
   faMoneyBillWave,
   faCheck,
   faMinus,
-  faPlus
+  faPlus,
+  faSpinner // NUEVO: Para indicador de carga
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
@@ -45,6 +46,10 @@ const ListCommissions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [typeFilter, setTypeFilter] = useState("AMBOS");
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // NUEVO: Para cargar más
+  const [pagination, setPagination] = useState(null); // NUEVO: Estado de paginación
+  // --- Ref para scroll infinito ---
+  const observerTarget = useRef(null); // NUEVO: Para detectar scroll
 
   // --- Traer compañías registrado para el filstrado ---
   useEffect(() => {
@@ -69,14 +74,15 @@ const ListCommissions = () => {
   const [renewal, setRenewal] = useState("all");
   const [selectedCompany, setSelectedCompany] = useState("");
   // --- Traer asesor completo con todas sus pólizas y comisiones ---
-  const fetchAdvisor = useCallback(async () => {
+
+  /*const fetchAdvisor = useCallback(async () => {
     setIsLoading(true);
     try {
       /*
       const response = await http.get(
         `advisor/get-advisor/${advisorFromNav.id}`
       );
-      */
+      
       const response = await http.get(
         `advisor/get-advisor-optimized/${advisorFromNav.id}`
       );
@@ -87,18 +93,84 @@ const ListCommissions = () => {
     }
     setIsLoading(false);
   }, [advisorFromNav]);
+  */
+  const fetchAdvisor = useCallback(async (page = 1) => {
+    setIsLoading(true);
+    try {
+      const response = await http.get(
+        `advisor/get-advisor-optimized/${advisorFromNav.id}?page=${page}&limit=50`
+      );
+
+      if (page === 1) {
+        // Primera página
+        setAdvisor(response.data.advisorById);
+      } else {
+        // Páginas siguientes - agregar pólizas
+        setAdvisor(prev => ({
+          ...prev,
+          policies: [...prev.policies, ...response.data.advisorById.policies]
+        }));
+      }
+
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error("Error fetching advisor:", error);
+      if (page === 1) {
+        setAdvisor(null);
+      }
+    } finally {
+      if (page === 1) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
+    }
+  }, [advisorFromNav]);
+
+  // Cargar primera página al montar
+  useEffect(() => {
+    if (advisorFromNav?.id) fetchAdvisor(1);
+  }, [advisorFromNav, fetchAdvisor]);
+
+  // --- SCROLL INFINITO: Observar cuando el usuario llega al final ---
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (
+          entries[0].isIntersecting &&
+          pagination?.hasMore &&
+          !isLoadingMore &&
+          !isLoading
+        ) {
+          // Cargar siguiente página
+          fetchAdvisor(pagination.currentPage + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [pagination, isLoadingMore, isLoading, fetchAdvisor]);
 
   useEffect(() => {
     if (advisorFromNav?.id) fetchAdvisor();
   }, [advisorFromNav, fetchAdvisor]);
-  /*
+
   useEffect(() => {
     if (advisor) {
       console.log(advisor.policies);
       //testNewExamplePolicy(advisor.policies); en caso de querer probar un ejemplo
     }
   }, [advisor]);
-*/
+
   // Manejar el cambio en el filtro de búsqueda
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -228,6 +300,15 @@ const ListCommissions = () => {
                   : ""}
               </span>
             </div>
+            {/* NUEVO: Mostrar progreso de carga */}
+            {pagination && (
+              <div className="mb-1">
+                <span className="text-muted small">
+                  Mostrando {advisor?.policies?.length || 0} de {pagination.totalItems} pólizas
+                  {pagination.hasMore && " - Cargando más al hacer scroll..."}
+                </span>
+              </div>
+            )}
             {customerFromNav && (
               <div className="mb-1">
                 <span className="fw-bold">Cliente:</span>{" "}
@@ -820,6 +901,29 @@ const ListCommissions = () => {
               </div>
             </div>
           ))}
+        {/* NUEVO: Indicador de "cargando más" al hacer scroll */}
+        {isLoadingMore && (
+          <div className="text-center my-3">
+            <FontAwesomeIcon icon={faSpinner} spin className="text-success me-2" />
+            <span className="text-muted">Cargando más pólizas...</span>
+          </div>
+        )}
+
+        {/* NUEVO: Elemento observador para scroll infinito */}
+        {pagination?.hasMore && (
+          <div
+            ref={observerTarget}
+            style={{ height: '20px', margin: '20px 0' }}
+          />
+        )}
+        {/* NUEVO: Mensaje cuando se cargaron todas */}
+        {pagination && !pagination.hasMore && advisor?.policies?.length > 0 && (
+          <div className="text-center my-3">
+            <span className="text-muted">
+              ✓ Todas las pólizas cargadas ({pagination.totalItems})
+            </span>
+          </div>
+        )}
 
         {/* --- Anticipos generales sin póliza asignada SOLO si es ANTICIPOS o AMBOS --- */}
         {(typeFilter === "ANTICIPOS" || typeFilter === "AMBOS") &&
