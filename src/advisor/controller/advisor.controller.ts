@@ -46,6 +46,18 @@ export class AdvisorController {
       };
     }
   }
+    @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Get('get-advisor-optimized/:id')
+  public async allAdviso(@Param('id') id: number) {
+    console.log('entrando al controlador de advisor');
+    const advisorById = await this.advisorService.getAdvisorByIdOptimized(id);
+    if (advisorById) {
+      return {
+        status: 'success',
+        advisorById,
+      };
+    }
+  }
 
 
   @Roles('ADMIN', 'BASIC')

@@ -632,6 +632,7 @@ export class PolicyService extends ValidateEntity {
           'paymentFrequency',
           'company',
           'customer',
+          'advisor',  
 
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
@@ -648,6 +649,13 @@ export class PolicyService extends ValidateEntity {
             secondName: true,
             surname: true,
             secondSurname: true,
+          },
+          advisor: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,  
           },
 
         },
