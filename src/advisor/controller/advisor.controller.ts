@@ -58,7 +58,8 @@ export class AdvisorController {
     
     return {
       status: 'success',
-      ...result,
+      advisorById: result.advisor, // Mantener compatibilidad con frontend
+      pagination: result.pagination,
     };
   }
 
