@@ -72,9 +72,15 @@ const ListCommissions = () => {
   const fetchAdvisor = useCallback(async () => {
     setIsLoading(true);
     try {
+      /*
       const response = await http.get(
         `advisor/get-advisor/${advisorFromNav.id}`
       );
+      */
+      const response = await http.get(
+        `advisor/get-advisor-optimized/${advisorFromNav.id}`
+      );
+      console.log("response advisor en listado de comisiones:", response.data.advisorById);
       setAdvisor(response.data.advisorById);
     } catch (error) {
       setAdvisor(null);
@@ -126,14 +132,14 @@ const ListCommissions = () => {
       policies = policies.filter((policy) => {
         const policyClient = policy.customer
           ? [
-              policy.customer.firstName,
-              policy.customer.secondName,
-              policy.customer.surname,
-              policy.customer.secondSurname,
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLowerCase()
+            policy.customer.firstName,
+            policy.customer.secondName,
+            policy.customer.surname,
+            policy.customer.secondSurname,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
           : "";
         const matchSearch =
           policyClient.includes(search.toLowerCase()) ||
@@ -212,13 +218,13 @@ const ListCommissions = () => {
               <span className="fw-semibold">
                 {advisor
                   ? [
-                      advisor.firstName,
-                      advisor.secondName,
-                      advisor.surname,
-                      advisor.secondSurname,
-                    ]
-                      .filter(Boolean)
-                      .join(" ")
+                    advisor.firstName,
+                    advisor.secondName,
+                    advisor.surname,
+                    advisor.secondSurname,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
                   : ""}
               </span>
             </div>
@@ -583,26 +589,26 @@ const ListCommissions = () => {
                                 <td>
                                   {policyFiltered.customer
                                     ? [
-                                        policyFiltered.customer.firstName,
-                                        policyFiltered.customer.secondName,
-                                        policyFiltered.customer.surname,
-                                        policyFiltered.customer.secondSurname,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" ")
+                                      policyFiltered.customer.firstName,
+                                      policyFiltered.customer.secondName,
+                                      policyFiltered.customer.surname,
+                                      policyFiltered.customer.secondSurname,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")
                                     : "N/A"}
                                 </td>
                                 <td>
                                   <Badge
                                     text={
                                       policyFiltered.isCommissionAnnualized ===
-                                      false
+                                        false
                                         ? "Normal"
                                         : "Anualizada"
                                     }
                                     color={
                                       policyFiltered.isCommissionAnnualized ===
-                                      false
+                                        false
                                         ? "info"
                                         : "secondary"
                                     }
@@ -610,7 +616,7 @@ const ListCommissions = () => {
                                 </td>
                                 <td>
                                   {policyFiltered.isCommissionAnnualized ===
-                                  false
+                                    false
                                     ? policyFiltered.numberOfPaymentsAdvisor
                                     : 1}
                                 </td>
@@ -628,7 +634,7 @@ const ListCommissions = () => {
                                     }
                                   />
                                 </td>
-                                
+
                                 <td>
                                   <Badge
                                     text={releasedPayments + "/" + totalPayments}
@@ -636,8 +642,8 @@ const ListCommissions = () => {
                                       releasedPayments === totalPayments
                                         ? "success"
                                         : releasedPayments > 0
-                                        ? "warning text-dark"
-                                        : "secondary"
+                                          ? "warning text-dark"
+                                          : "secondary"
                                     }
                                   />
                                 </td>
@@ -672,8 +678,8 @@ const ListCommissions = () => {
                                 </td>
                                 <td className="fw-bold text-warning">
                                   ${
-                                    isNaN(policyFiltered.released) || !isFinite(policyFiltered.released) 
-                                      ? "0.00" 
+                                    isNaN(policyFiltered.released) || !isFinite(policyFiltered.released)
+                                      ? "0.00"
                                       : Number(policyFiltered.released).toFixed(2)
                                   }
                                 </td>
@@ -687,7 +693,7 @@ const ListCommissions = () => {
                                     }
                                   </div>
 
-                             
+
                                   {policyFiltered.refundsDetails &&
                                     policyFiltered.refundsDetails.length > 0 && (
                                       <div className="mt-1">
@@ -722,7 +728,7 @@ const ListCommissions = () => {
                               <tr>
                                 <td colSpan={13} className="p-0">
                                   {Array.isArray(policyFiltered.commissions) &&
-                                  policyFiltered.commissions.length > 0 ? (
+                                    policyFiltered.commissions.length > 0 ? (
                                     <table className="table table-sm table-bordered text-center mb-0">
                                       <thead>
                                         <tr>
@@ -761,8 +767,8 @@ const ListCommissions = () => {
                                                 <td>
                                                   {payment.createdAt
                                                     ? dayjs(
-                                                        payment.createdAt
-                                                      ).format("DD/MM/YYYY")
+                                                      payment.createdAt
+                                                    ).format("DD/MM/YYYY")
                                                     : "-"}
                                                 </td>
                                                 <td>{payment.receiptNumber}</td>
@@ -775,7 +781,7 @@ const ListCommissions = () => {
                                                     }
                                                     color={
                                                       paidCommissions ===
-                                                      totalPaymentsPolicy
+                                                        totalPaymentsPolicy
                                                         ? "success"
                                                         : "info"
                                                     }
