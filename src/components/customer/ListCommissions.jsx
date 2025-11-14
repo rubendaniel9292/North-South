@@ -528,7 +528,7 @@ const ListCommissions = () => {
                         </tr>
                       ) : (
                         filteredPoliciesWithFields.map((policyFiltered) => {
-                          // Calcular pagos liberados (AL DÍA) y total de pagos
+                          // Calcular pagos liberados (AL DÍA) y total de pagos por periodo
                           let releasedPayments, totalPayments;
 
                           if (policyFiltered.isCommissionAnnualized === true) {
@@ -543,19 +543,31 @@ const ListCommissions = () => {
                             releasedPayments = releasedPeriods;
                             totalPayments = totalPeriods;
                           } else {
-                            // ✅ PARA NORMALES: Usar pagos mensuales como antes
-                            releasedPayments = policyFiltered.payments?.filter(
+                            // ✅ PARA NORMALES: Contar pagos liberados del periodo actual (año en curso)
+                            // Obtener el último periodo (año más reciente)
+                            const lastPeriod = policyFiltered.periods?.length
+                              ? policyFiltered.periods.reduce((a, b) => (a.year > b.year ? a : b))
+                              : null;
+
+                            // Total de pagos por año según la frecuencia
+                            totalPayments = policyFiltered.numberOfPaymentsAdvisor || 12;
+
+                            // Obtener todos los pagos liberados (AL DÍA)
+                            const allReleasedPayments = policyFiltered.payments?.filter(
                               (payment) =>
                                 payment.paymentStatus &&
                                 payment.paymentStatus.id == 2
-                            ).length
-                              ? policyFiltered.payments?.filter(
-                                  (payment) =>
-                                    payment.paymentStatus &&
-                                    payment.paymentStatus.id == 2
-                                ).length
-                              : 0;
-                            totalPayments = policyFiltered.payments?.length || 0;
+                            ) || [];
+
+                            // Si hay periodo definido y pagos tienen year, filtrar por último periodo
+                            if (lastPeriod && allReleasedPayments.some(p => p.year)) {
+                              releasedPayments = allReleasedPayments.filter(
+                                (payment) => payment.year === lastPeriod.year
+                              ).length;
+                            } else {
+                              // Si no hay year en pagos, tomar los últimos N pagos liberados según totalPayments
+                              releasedPayments = Math.min(allReleasedPayments.length, totalPayments);
+                            }
                           }
 
                           return (
@@ -741,8 +753,8 @@ const ListCommissions = () => {
                                           (payment, index) => {
                                             // Calcular cuántas comisiones se han pagado hasta este punto
                                             const paidCommissions = index + 1;
-                                            const totalCommissions =
-                                              policyFiltered.commissions.length;
+                                            // Total basado en todos los pagos de la póliza (no solo el periodo actual)
+                                            const totalPaymentsPolicy = policyFiltered.payments?.length || 0;
 
                                             return (
                                               <tr key={payment.id}>
@@ -759,11 +771,11 @@ const ListCommissions = () => {
                                                     text={
                                                       paidCommissions +
                                                       "/" +
-                                                      totalCommissions
+                                                      totalPaymentsPolicy
                                                     }
                                                     color={
                                                       paidCommissions ===
-                                                      totalCommissions
+                                                      totalPaymentsPolicy
                                                         ? "success"
                                                         : "info"
                                                     }

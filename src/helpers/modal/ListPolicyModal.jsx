@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import http from "../../helpers/Http";
 import "dayjs/locale/es";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import generateReport from "../GenerateReportPDF";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -210,7 +210,24 @@ const ListPolicyModal = ({ policy, onClose }) => {
   };
 
   // obtener último periodo registrado (por año mayor):
-  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+  const lastPeriod = useMemo(
+    () => policy.periods.reduce((a, b) => (a.year > b.year ? a : b)),
+    [policy.periods]
+  );
+
+  // Memoizar cálculos de comisiones
+  const agencyCommission = useMemo(() => {
+    const baseValue = lastPeriod.policyValue - lastPeriod.policyFee;
+    const agencyTotal = (baseValue * lastPeriod.agencyPercentage) / 100;
+    const advisorTotal = (baseValue * lastPeriod.advisorPercentage) / 100;
+    return (agencyTotal - advisorTotal).toFixed(2);
+  }, [lastPeriod.policyValue, lastPeriod.policyFee, lastPeriod.agencyPercentage, lastPeriod.advisorPercentage]);
+
+  const advisorCommission = useMemo(() => {
+    const baseValue = lastPeriod.policyValue - lastPeriod.policyFee;
+    return ((baseValue * lastPeriod.advisorPercentage) / 100).toFixed(2);
+  }, [lastPeriod.policyValue, lastPeriod.policyFee, lastPeriod.advisorPercentage]);
+
   console.log("periods:", policy.periods);
   console.log("lastPeriod:", lastPeriod);
   return (
@@ -222,6 +239,13 @@ const ListPolicyModal = ({ policy, onClose }) => {
               <FontAwesomeIcon icon={faFileContract} className="me-2" />
               Información completa de la póliza {policy.numberPolicy}
             </h3>
+          </div>
+          
+          <div className="mb-3">
+            <p className="fs-5 fw-semibold">
+              <FontAwesomeIcon icon={faUser} className="me-2" />
+              Asesor: {policy.advisor.firstName} {policy.advisor.secondName ? policy.advisor.secondName + ' ' : ''}{policy.advisor.surname} {policy.advisor.secondSurname || ''}
+            </p>
           </div>
 
           <table className="table table-striped">
@@ -381,23 +405,8 @@ const ListPolicyModal = ({ policy, onClose }) => {
                 <td>{policy.numberOfPayments}</td>
                 <td>{lastPeriod.policyFee}</td>
 
-                <td>
-                  {(
-                    ((lastPeriod.policyValue - lastPeriod.policyFee) *
-                      lastPeriod.agencyPercentage) /
-                    100 -
-                    ((lastPeriod.policyValue - lastPeriod.policyFee) *
-                      lastPeriod.advisorPercentage) /
-                    100
-                  ).toFixed(2)}
-                </td>
-                <td>
-                  {(
-                    ((lastPeriod.policyValue - lastPeriod.policyFee) *
-                      lastPeriod.advisorPercentage) /
-                    100
-                  ).toFixed(2)}
-                </td>
+                <td>{agencyCommission}</td>
+                <td>{advisorCommission}</td>
                 <td>
                   <span
                     className={`badge fw-bold fs-6 ${policy.policyStatus?.id == 1
