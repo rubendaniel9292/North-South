@@ -46,19 +46,19 @@ export class AdvisorController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+    @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-advisor-optimized/:id')
-  public async allAdvisorOptimized(
+  public async allAdviso(
     @Param('id') id: number,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 50,
+    @Query('limit') limit: number = 10,
   ) {
     console.log(`Cargando asesor ${id} - Página ${page}, Límite ${limit}`);
     const result = await this.advisorService.getAdvisorByIdOptimized(id, Number(page), Number(limit));
     
     return {
       status: 'success',
-      advisorById: result.advisor, // Mantener compatibilidad con frontend
+      advisorById: result.advisor,
       pagination: result.pagination,
     };
   }

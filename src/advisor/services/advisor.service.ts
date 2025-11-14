@@ -143,143 +143,85 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-  //3.1: Método ULTRA-OPTIMIZADO - Solo datos esenciales, SIN relations pesadas
+    //3.1: Método OPTIMIZADO con TODOS los datos pero paginado en lotes de 10
   public getAdvisorByIdOptimized = async (
     id: number, 
     page: number = 1, 
-    limit: number = 20  // Reducido a 20 para máxima seguridad
+    limit: number = 10  // Solo 10 pólizas por página con TODOS los datos
   ): Promise<any> => {
     try {
-      // 1. Cargar datos básicos del asesor SIN relations pesadas
-      const advisorData = await this.advisdorRepository.findOne({
-        where: { id },
-        select: ['id', 'firstName', 'secondName', 'surname', 'secondSurname', 'ci_ruc', 'email'],
-      });
-
+      // 1. Cargar datos básicos del asesor (solo primera vez)
+      const cacheKey = `advisor:${id}:basic`;
+      let advisorData = await this.redisService.get(cacheKey);
+      
       if (!advisorData) {
-        throw new ErrorManager({
-          type: 'BAD_REQUEST',
-          message: 'No se encontró el asesor',
+        const advisor = await this.advisdorRepository.findOne({
+          where: { id },
+          relations: ['commissionRefunds', 'commissions', 'commissions.statusAdvance'],
         });
+
+        if (!advisor) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'No se encontró el asesor',
+          });
+        }
+
+        await this.redisService.set(cacheKey, JSON.stringify(advisor), 1800);
+        advisorData = JSON.stringify(advisor);
       }
 
-      // 2. Cargar comisiones del asesor por separado (ligero)
-      const commissionsRepo = this.advisdorRepository.manager.getRepository('CommissionsPaymentsEntity');
-      const commissions = await commissionsRepo.find({
-        where: { advisor_id: id },
-        select: ['id', 'receiptNumber', 'advanceAmount', 'createdAt', 'observations', 'policy_id', 'status_advance_id'],
-      });
+      const advisor = JSON.parse(advisorData);
 
-      // 3. Contar pólizas
+      // 2. Contar pólizas
       const policyRepository = this.advisdorRepository.manager.getRepository(PolicyEntity);
       const totalPolicies = await policyRepository.count({
         where: { advisor_id: id },
       });
 
-      // 4. Calcular paginación
+      // 3. Calcular paginación
       const skip = (page - 1) * limit;
       const totalPages = Math.ceil(totalPolicies / limit);
 
-      // 5. Cargar SOLO datos esenciales de pólizas (SIN relations)
+      // 4. Cargar pólizas CON todas las relations necesarias pero solo 10 a la vez
       const policies = await policyRepository.find({
         where: { advisor_id: id },
-        select: [
-          'id', 'numberPolicy', 'policyValue', 'paymentsToAdvisor', 
-          'numberOfPaymentsAdvisor', 'isCommissionAnnualized', 'renewalCommission',
-          'company_id', 'customers_id'
+        relations: [
+          'company',
+          'customer',
+          'periods',
+          'renewals',
+          'commissions',
+          'commissionRefunds',
         ],
         order: { id: 'DESC' },
         skip,
         take: limit,
       });
 
-      if (policies.length === 0) {
-        return {
-          advisor: { ...advisorData, commissions, policies: [] },
-          pagination: {
-            currentPage: page,
-            itemsPerPage: limit,
-            totalItems: totalPolicies,
-            totalPages,
-            hasMore: false,
-            hasPrevious: page > 1,
-          },
-        };
+      // 5. Cargar payments POR PÓLIZA de forma controlada (una a una)
+      const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
+      
+      for (const policy of policies) {
+        // Cargar payments de esta póliza específica
+        const payments = await paymentRepository.find({
+          where: { policy_id: policy.id },
+          relations: ['paymentStatus'],
+          order: { number_payment: 'ASC' },
+        });
+        
+        policy.payments = payments;
+        
+        // Forzar liberación de memoria después de cada póliza
+        if (global.gc) global.gc();
       }
 
-      const policyIds = policies.map(p => p.id);
+      // 6. Asignar pólizas al asesor
+      advisor.policies = policies;
 
-      // 6. Cargar datos relacionados POR SEPARADO y de forma ULTRA-LIGERA
-      const [companies, customers, periods, renewals, policyCommissions, payments] = await Promise.all([
-        // Companies
-        this.advisdorRepository.manager.query(
-          `SELECT id, companyName, ci_ruc FROM company WHERE id IN (SELECT DISTINCT company_id FROM policy WHERE id IN (${policyIds.join(',')}))`
-        ),
-        // Customers
-        this.advisdorRepository.manager.query(
-          `SELECT id, firstName, secondName, surname, secondSurname FROM customers WHERE id IN (SELECT DISTINCT customers_id FROM policy WHERE id IN (${policyIds.join(',')}))`
-        ),
-        // Periods
-        this.advisdorRepository.manager.query(
-          `SELECT id, policy_id, year FROM policy_periods WHERE policy_id IN (${policyIds.join(',')})`
-        ),
-        // Renewals
-        this.advisdorRepository.manager.query(
-          `SELECT id, policy_id, renewalNumber FROM policy_renewals WHERE policy_id IN (${policyIds.join(',')})`
-        ),
-        // Policy commissions
-        commissionsRepo.find({
-          where: { policy_id: In(policyIds) },
-          select: ['id', 'policy_id', 'advanceAmount', 'receiptNumber', 'createdAt'],
-        }),
-        // Payments (solo contar pagados)
-        this.advisdorRepository.manager.query(
-          `SELECT policy_id, status_payment_id, COUNT(*) as count, SUM(value) as total FROM payment WHERE policy_id IN (${policyIds.join(',')}) GROUP BY policy_id, status_payment_id`
-        ),
-      ]);
-
-      // 7. Mapear datos relacionados
-      const companiesMap = new Map(companies.map(c => [c.id, c]));
-      const customersMap = new Map(customers.map(c => [c.id, c]));
-      const periodsMap = new Map();
-      periods.forEach(p => {
-        if (!periodsMap.has(p.policy_id)) periodsMap.set(p.policy_id, []);
-        periodsMap.get(p.policy_id).push(p);
-      });
-      const renewalsMap = new Map();
-      renewals.forEach(r => {
-        if (!renewalsMap.has(r.policy_id)) renewalsMap.set(r.policy_id, []);
-        renewalsMap.get(r.policy_id).push(r);
-      });
-      const commissionsMap = new Map();
-      policyCommissions.forEach(c => {
-        if (!commissionsMap.has(c.policy_id)) commissionsMap.set(c.policy_id, []);
-        commissionsMap.get(c.policy_id).push(c);
-      });
-      const paymentsMap = new Map();
-      payments.forEach(p => {
-        if (!paymentsMap.has(p.policy_id)) paymentsMap.set(p.policy_id, []);
-        paymentsMap.get(p.policy_id).push(p);
-      });
-
-      // 8. Ensamblar pólizas con datos relacionados
-      const enrichedPolicies = policies.map(policy => ({
-        ...policy,
-        company: companiesMap.get(policy.company_id) || null,
-        customer: customersMap.get(policy.customers_id) || null,
-        periods: periodsMap.get(policy.id) || [],
-        renewals: renewalsMap.get(policy.id) || [],
-        commissions: commissionsMap.get(policy.id) || [],
-        paymentsStats: paymentsMap.get(policy.id) || [], // Solo estadísticas, no todos los payments
-      }));
-
-      // 9. Retornar
+      // 7. Retornar
       return {
-        advisor: {
-          ...advisorData,
-          commissions,
-          policies: enrichedPolicies,
-        },
+        advisor,
         pagination: {
           currentPage: page,
           itemsPerPage: limit,
@@ -329,7 +271,6 @@ export class AdvisorService extends ValidateEntity {
 
       // Limpiar todas las claves de caché relevantes
       await this.redisService.del(`advisor:${id}`);
-      await this.redisService.del(`advisor:${id}:optimized`);
       await this.redisService.del(`advisor:${id}:basic`);
       await this.redisService.del('allAdvisors');
 
