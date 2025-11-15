@@ -9,6 +9,19 @@ import { RedisModuleService } from '@/redis-module/services/redis-module.service
 import { DateHelper } from '@/helpers/date.helper';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
+
+interface AdvisorWithPoliciesPagination {
+  advisor: AdvisorEntity;
+  pagination: {
+    currentPage: number;
+    itemsPerPage: number;
+    totalItems: number;
+    totalPages: number;
+    hasMore: boolean;
+    hasPrevious: boolean;
+  };
+}
+
 @Injectable()
 export class AdvisorService extends ValidateEntity {
   constructor(
@@ -143,12 +156,12 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-    //3.1: Método OPTIMIZADO con TODOS los datos pero paginado en lotes de 10
+  //3.1: Método ULTRA OPTIMIZADO - Paginación con datos completos pero carga controlada
   public getAdvisorByIdOptimized = async (
     id: number, 
     page: number = 1, 
-    limit: number = 10  // Solo 10 pólizas por página con TODOS los datos
-  ): Promise<any> => {
+    limit: number = 10  // 15 pólizas por página con payments mínimos
+  ): Promise<AdvisorWithPoliciesPagination> => {
     try {
       // 1. Cargar datos básicos del asesor (solo primera vez)
       const cacheKey = `advisor:${id}:basic`;
@@ -183,7 +196,7 @@ export class AdvisorService extends ValidateEntity {
       const skip = (page - 1) * limit;
       const totalPages = Math.ceil(totalPolicies / limit);
 
-      // 4. Cargar pólizas CON todas las relations necesarias pero solo 10 a la vez
+      // 4. Cargar pólizas SIN payments (esto es la clave para evitar el crash)
       const policies = await policyRepository.find({
         where: { advisor_id: id },
         relations: [
@@ -199,21 +212,18 @@ export class AdvisorService extends ValidateEntity {
         take: limit,
       });
 
-      // 5. Cargar payments POR PÓLIZA de forma controlada (una a una)
+      // 5. Cargar payments MÍNIMOS solo con campos esenciales para comisiones
       const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
       
       for (const policy of policies) {
-        // Cargar payments de esta póliza específica
+        // Cargar payments con SOLO los campos necesarios para calcular comisiones
         const payments = await paymentRepository.find({
           where: { policy_id: policy.id },
-          relations: ['paymentStatus'],
-          order: { number_payment: 'ASC' },
+          select: ['id', 'number_payment', 'value', 'status_payment_id', 'total', 'pending_value'],
+          order: { number_payment: 'ASC' }
         });
         
         policy.payments = payments;
-        
-        // Forzar liberación de memoria después de cada póliza
-        if (global.gc) global.gc();
       }
 
       // 6. Asignar pólizas al asesor
