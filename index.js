@@ -11,7 +11,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 5, // Límite de reintentos para evitar crash loops
       min_uptime: '10s', // Tiempo mínimo antes de considerar startup exitoso
-      node_args: '--max-old-space-size=2048', // 2GB de memoria para manejar 300 pólizas
+      node_args: '--max-old-space-size=1324', // 1GB de memoria (dejando espacio para el SO)
       out_file: './logs/out.log',
       error_file: './logs/err.log',
       log_file: './logs/combined.log',
@@ -27,7 +27,7 @@ module.exports = {
       // Configuración de monitoreo
       pmx: true,
       // Configuración de memoria
-      max_memory_restart: '1800M', // Reinicia si supera 1.8GB (dejando margen de seguridad)
+      max_memory_restart: '900M', // Reinicia si supera 900MB (dejando margen de seguridad)
       // Log rotation
       log_date_format: 'YYYY-MM-DD HH:mm Z',
     },
