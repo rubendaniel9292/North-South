@@ -11,8 +11,7 @@ module.exports = {
       autorestart: true,
       max_restarts: 5, // Límite de reintentos para evitar crash loops
       min_uptime: '10s', // Tiempo mínimo antes de considerar startup exitoso
-      node_args: '--max-old-space-size=1024', // 1GB de memoria (dejando espacio para el SO)
-      env_file: '.production.env', // Cargar variables de entorno desde este archivo
+      node_args: '--max-old-space-size=1324', // 1GB de memoria (dejando espacio para el SO)
       out_file: './logs/out.log',
       error_file: './logs/err.log',
       log_file: './logs/combined.log',

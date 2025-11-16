@@ -21,7 +21,7 @@ export class AdvisorController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-advisor')
   public async allAdvisors(@Query('search') search?: string) {
     console.log('entrando al controlador de advisor');
@@ -34,7 +34,7 @@ export class AdvisorController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-advisor/:id')
   public async allAdvisor(@Param('id') id: number) {
     console.log('entrando al controlador de advisor');
@@ -46,20 +46,36 @@ export class AdvisorController {
       };
     }
   }
-    @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-advisor-optimized/:id')
-  public async allAdviso(
+  public async allAdvisorOptimized(
     @Param('id') id: number,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('customerId') customerId?: number,
+    @Query('policyId') policyId?: number,
+    @Query('search') search?: string,
   ) {
-    console.log(`Cargando asesor ${id} - Página ${page}, Límite ${limit}`);
-    const result = await this.advisorService.getAdvisorByIdOptimized(id, Number(page), Number(limit));
+    console.log(`Cargando asesor ${id} con filtros - Página: ${page}, Límite: ${limit}, Cliente: ${customerId}, Póliza: ${policyId}, Búsqueda: ${search}`);
     
+    const result = await this.advisorService.getAdvisorByIdOptimized(
+      Number(id),
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10,
+      customerId ? Number(customerId) : undefined,
+      policyId ? Number(policyId) : undefined,
+      search
+    );
+
     return {
       status: 'success',
       advisorById: result.advisor,
       pagination: result.pagination,
+      filters: {
+        customerId: customerId ? Number(customerId) : null,
+        policyId: policyId ? Number(policyId) : null,
+        search: search || null,
+      }
     };
   }
 
