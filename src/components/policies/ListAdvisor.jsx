@@ -46,14 +46,33 @@ const ListAdvisor = () => {
   }, []);
   const getAvidorById = useCallback(async (advisorId, type) => {
     try {
-      const response = await http.get(`advisor/get-advisor/${advisorId}`);
-      console.log("Asesor por id obtenido: ", response.data.advisorById);
+      // Para "advisor" (registro de comisiones), cargar con endpoint optimizado sin pólizas completas
+      // Las pólizas se cargarán bajo demanda en el modal cuando se apliquen filtros
+      const endpoint = type === "advisor" || type === "commissionRefunds"
+        ? `advisor/get-advisor-basic/${advisorId}` // Endpoint que solo trae info básica del asesor
+        : `advisor/get-advisor/${advisorId}`; // Endpoint completo para otros casos
+      
+      const response = await http.get(endpoint);
+      console.log("Asesor obtenido: ", response.data.advisorById);
       setAdvisorId(response.data.advisorById);
       setModalType(type);
       openModal();
     } catch (error) {
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error fetching asesores:", error);
+      // Si el endpoint básico no existe, intentar con el completo
+      if (error.response?.status === 404 && (type === "advisor" || type === "commissionRefunds")) {
+        try {
+          const fallbackResponse = await http.get(`advisor/get-advisor/${advisorId}`);
+          setAdvisorId(fallbackResponse.data.advisorById);
+          setModalType(type);
+          openModal();
+        } catch (fallbackError) {
+          alerts("Error", "No se pudo cargar el asesor", "error");
+          console.error("Error fetching asesor:", fallbackError);
+        }
+      } else {
+        alerts("Error", "No se pudo ejecutar la consulta", "error");
+        console.error("Error fetching asesores:", error);
+      }
     }
   }, []);
 

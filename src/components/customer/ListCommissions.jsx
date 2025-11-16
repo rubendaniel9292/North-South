@@ -274,28 +274,35 @@ const ListCommissions = () => {
             <h1 className="h2 mb-1 mt-1">
               Historial de anticipos y comisiones
             </h1>
-            <div className="mb-1">
-              <span className="fw-bold">Asesor:</span>{" "}
-              <FontAwesomeIcon icon={faDollarSign} className="text-muted m-1" />
-              <span className="fw-semibold">
-                {advisor
-                  ? [
-                    advisor.firstName,
-                    advisor.secondName,
-                    advisor.surname,
-                    advisor.secondSurname,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                  : ""}
-              </span>
+            <div className="mb-1 d-flex align-items-center">
+              <div>
+                <span className="fw-bold">Asesor:</span>{" "}
+                <FontAwesomeIcon icon={faDollarSign} className="text-muted m-1" />
+                <span className="fw-semibold">
+                  {advisor
+                    ? [
+                      advisor.firstName,
+                      advisor.secondName,
+                      advisor.surname,
+                      advisor.secondSurname,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                    : ""}
+                </span>
+              </div>
+              {filteredPoliciesWithFields.length > 0 && (
+                <span className="badge bg-primary ms-3 fs-5 px-3 py-2">
+                  {filteredPoliciesWithFields.length} {filteredPoliciesWithFields.length === 1 ? 'póliza' : 'pólizas'}
+                </span>
+              )}
             </div>
             {/* NUEVO: Mostrar progreso de carga */}
-            {pagination && (
+            {pagination && pagination.hasMore && (
               <div className="mb-1">
                 <span className="text-muted small">
-                  Mostrando {advisor?.policies?.length || 0} de {pagination.totalItems} pólizas
-                  {pagination.hasMore && " - Cargando más al hacer scroll..."}
+                  <FontAwesomeIcon icon={faSpinner} spin className="me-1" />
+                  Mostrando {advisor?.policies?.length || 0} de {pagination.totalItems} pólizas - Cargando más al hacer scroll...
                 </span>
               </div>
             )}

@@ -55,26 +55,43 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const [selectedPolicies, setSelectedPolicies] = useState([]); // pólizas seleccionadas
   const advanceValueRef = useRef(null);
 
+  // NUEVO: Estados para filtrado avanzado
+  const [filterMode, setFilterMode] = useState("NINGUNO"); // "NINGUNO", "TODAS", "POR_CLIENTE", "POR_POLIZA"
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [policySearch, setPolicySearch] = useState("");
+  const [selectedPolicyId, setSelectedPolicyId] = useState(""); // Para el select de pólizas
+
   // 4. CALCULAR ANTICIPOS TOTALES DEL ASESOR (helper)
   const advisorTotalAdvances = useMemo(
     () => getAdvisorTotalAdvances(advisorId),
     [advisorId]
   );
 
-  // 5. MEMOIZAR POLIZAS CON ANTICIPO HISTÓRICO APLICADO
+    // 5. MEMOIZAR POLIZAS CON ANTICIPO HISTÓRICO APLICADO
   const policiesWithFavor = useMemo(
-    () => applyHistoricalAdvance(selectedPolicies, advisorTotalAdvances),
-    [selectedPolicies, advisorTotalAdvances]
+    () => {
+      // Si hay pólizas seleccionadas, devolverlas directamente SIN filtrar por saldo
+      // El filtro de saldo solo debe aplicarse al REGISTRAR, no al MOSTRAR
+      return selectedPolicies;
+    },
+    [selectedPolicies]
   );
 
   // 6. DISTRIBUIR EL VALOR ACTUAL DEL FORMULARIO ENTRE LAS POLIZAS
   const distributedPolicies = useMemo(
-    () =>
-      distributeAdvance(policiesWithFavor, advanceValue).map((policy) => ({
+    () => {
+      if (policiesWithFavor.length === 0) return [];
+      
+      const withHistorical = applyHistoricalAdvance(policiesWithFavor, advisorTotalAdvances);
+      const afterDistribute = distributeAdvance(withHistorical, advanceValue);
+      
+      return afterDistribute.map((policy) => ({
         ...policy,
         ...getPolicyFields(policy),
-      })),
-    [policiesWithFavor, advanceValue]
+      }));
+    },
+    [policiesWithFavor, advanceValue, advisorTotalAdvances]
   );
 
   // 7. CARGAR SELECCIÓN PREVIA DE POLIZAS DESDE LOCALSTORAGE
@@ -90,28 +107,82 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     if (advisorId?.id) saveSelectedPolicies(advisorId.id, selectedPolicies);
   }, [selectedPolicies, advisorId]);
 
-  // 9. CAMBIAR POLIZAS SELECCIONADAS SEGÚN EL TIPO DE OPERACIÓN
+  // NUEVO: Cargar pólizas bajo demanda según filtros
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
+  const [loadedPolicies, setLoadedPolicies] = useState([]);
+
+  // 9. CARGAR PÓLIZAS BAJO DEMANDA SEGÚN FILTROS
   useEffect(() => {
-    if (operationType === "COMISION" && Array.isArray(advisorId.policies)) {
-      const releasedPolicies = advisorId.policies.filter((policy) => {
-        const released = calculateReleasedCommissionsGenerated(policy);
-        const total = calculateTotalAdvisorCommissionsGenerated(policy);
-        const paid = Array.isArray(policy.commissions)
-          ? policy.commissions.reduce(
-              (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
-              0
-            )
-          : 0;
-        const maxReleased = Math.min(released, total);
-        const balance = maxReleased - paid;
-        return balance > 0; // Solo pólizas con saldo a favor
-      });
-      setSelectedPolicies(releasedPolicies);
-    }
-    if (operationType === "ANTICIPO") {
-      setSelectedPolicies([]); // Limpiar para anticipos
-    }
-  }, [operationType, advisorId]);
+    const loadPolicies = async () => {
+      // Solo cargar si:
+      // 1. Es TODAS
+      // 2. Es POR_CLIENTE y hay un cliente seleccionado
+      // 3. Es POR_POLIZA y hay una póliza seleccionada o búsqueda
+      const shouldLoad = operationType === "COMISION" && (
+        filterMode === "TODAS" ||
+        (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
+        (filterMode === "POR_POLIZA" && (policySearch || selectedPolicyId))
+      );
+
+      if (shouldLoad) {
+        setIsLoadingPolicies(true);
+        
+        // Usar directamente advisorId.policies (ya tenemos todos los datos)
+        if (Array.isArray(advisorId.policies)) {
+            let filteredPolicies = advisorId.policies;
+
+            // PASO 1: Filtrar por cliente o póliza específica
+            if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
+              filteredPolicies = filteredPolicies.filter(
+                (policy) => 
+                  policy.customer && 
+                  policy.customer.id && 
+                  String(policy.customer.id) === String(selectedCustomerId)
+              );
+            } else if (filterMode === "POR_POLIZA" && (policySearch || selectedPolicyId)) {
+              if (selectedPolicyId && selectedPolicyId !== "TODAS") {
+                filteredPolicies = filteredPolicies.filter(
+                  (policy) => String(policy.id) === String(selectedPolicyId)
+                );
+              } else if (policySearch) {
+                filteredPolicies = filteredPolicies.filter((policy) =>
+                  (policy.numberPolicy || "").toLowerCase().includes(policySearch.toLowerCase())
+                );
+              }
+              // Si selectedPolicyId === "TODAS", no filtrar, usar todas las pólizas
+            }
+
+            // PASO 2: Filtrar por saldo a favor (solo pólizas con balance > 0)
+            const releasedPolicies = filteredPolicies.filter((policy) => {
+              const released = calculateReleasedCommissionsGenerated(policy);
+              const total = calculateTotalAdvisorCommissionsGenerated(policy);
+              const paid = Array.isArray(policy.commissions)
+                ? policy.commissions.reduce(
+                    (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
+                    0
+                  )
+                : 0;
+              const maxReleased = Math.min(released, total);
+              const balance = maxReleased - paid;
+              return balance > 0; // Solo pólizas con saldo a favor
+            });
+
+            setSelectedPolicies(releasedPolicies);
+        } else {
+          setSelectedPolicies([]);
+        }
+        
+        setIsLoadingPolicies(false);
+      } else if (operationType === "ANTICIPO") {
+        setSelectedPolicies([]);
+        setFilterMode("NINGUNO");
+      } else {
+        setSelectedPolicies([]);
+      }
+    };
+
+    loadPolicies();
+  }, [operationType, advisorId.id, advisorId.policies, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
 
   // 10. REMOVER POLIZA DE LA SELECCIÓN
   const removePolicy = useCallback((policyId) => {
@@ -138,18 +209,42 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
-  // 13. CARGAR MÉTODOS DE PAGO AL MONTAR
+  // 13. CARGAR MÉTODOS DE PAGO Y CLIENTES AL MONTAR
   const fetchData = useCallback(async () => {
     try {
-      const [paymentMethodResponse] = await Promise.all([
-        http.get("policy/get-payment-method"),
-      ]);
-      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod);
+      const paymentMethodResponse = await http.get("policy/get-payment-method");
+      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod || []);
+
+      // Extraer clientes únicos de las pólizas del asesor SOLO PARA EL DROPDOWN
+      if (advisorId.policies && Array.isArray(advisorId.policies)) {
+        // Crear un Map para eliminar duplicados manteniendo solo un cliente por ID
+        const customersMap = new Map();
+        
+        advisorId.policies.forEach(policy => {
+          if (policy.customer && policy.customer.id) {
+            // Solo agregar si no existe o si queremos actualizar
+            if (!customersMap.has(policy.customer.id)) {
+              customersMap.set(policy.customer.id, policy.customer);
+            }
+          }
+        });
+        
+        // Convertir Map a Array y ordenar
+        const uniqueCustomers = Array.from(customersMap.values())
+          .sort((a, b) => 
+            `${a.firstName || ''} ${a.surname || ''}`.localeCompare(`${b.firstName || ''} ${b.surname || ''}`)
+          );
+        
+        setCustomers(uniqueCustomers);
+      } else {
+        setCustomers([]);
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
-      alerts("Error", "Error al cargar métodos de pago.", "error");
+      console.error("Error fetching initial data:", error);
+      setPaymentMethod([]);
+      setCustomers([]);
     }
-  }, []);
+  }, [advisorId.policies]);
 
   useEffect(() => {
     fetchData();
@@ -319,8 +414,147 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
             </h3>
           </div>
 
-          {/*Tabla múltiple de pólizas solo para COMISIÓN */}
+          {/*NUEVO: Filtros para COMISIÓN */}
           {operationType === "COMISION" && (
+            <div className="card mb-3 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title mb-3">
+                  <FontAwesomeIcon icon={faFileAlt} className="me-2" />
+                  Filtrar pólizas a incluir
+                </h5>
+                <div className="row g-3">
+                  {/* Modo de filtro */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold">Cargar pólizas por:</label>
+                    <select
+                      className="form-select"
+                      value={filterMode}
+                      onChange={(e) => {
+                        setFilterMode(e.target.value);
+                        setSelectedCustomerId("");
+                        setPolicySearch("");
+                        setSelectedPolicyId("");
+                      }}
+                    >
+                      <option value="NINGUNO">Seleccione un filtro...</option>
+                      <option value="TODAS">Cargar todas (puede ser lento)</option>
+                      <option value="POR_CLIENTE">Por cliente específico</option>
+                      <option value="POR_POLIZA">Por póliza específica</option>
+                    </select>
+                  </div>
+
+                  {/* Selector de cliente */}
+                  {filterMode === "POR_CLIENTE" && (
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold">
+                        Seleccionar cliente: 
+                        <small className="text-muted ms-2">({customers?.length || 0} disponibles)</small>
+                        
+                      </label>
+                      <select
+                        className="form-select"
+                        value={selectedCustomerId}
+                        onChange={(e) => setSelectedCustomerId(e.target.value)}
+                      >
+                        <option value="">Seleccione un cliente...</option>
+                        {customers && customers.length > 0 ? (
+                          customers
+                            .sort((a, b) =>
+                              `${a?.firstName || ''} ${a?.surname || ''}`.localeCompare(`${b?.firstName || ''} ${b?.surname || ''}`)
+                            )
+                            .map((customer) => (
+                              <option key={customer.id} value={customer.id}>
+                                {`${customer?.firstName || ''} ${customer?.secondName || ''} ${customer?.surname || ''} ${customer?.secondSurname || ''}`.trim()}
+                              </option>
+                            ))
+                        ) : (
+                          <option value="" disabled>
+                            {customers === null || customers === undefined ? 'Cargando clientes...' : 'No hay clientes disponibles'}
+                          </option>
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Selección de póliza */}
+                  {filterMode === "POR_POLIZA" && (
+                    <>
+                      <div className="col-md-4">
+                        <label className="form-label fw-semibold">Seleccionar póliza:</label>
+                        <select
+                          className="form-select"
+                          value={selectedPolicyId}
+                          onChange={(e) => {
+                            setSelectedPolicyId(e.target.value);
+                            setPolicySearch(""); // Limpiar buscador al usar select
+                          }}
+                        >
+                          <option value="">Seleccione una póliza...</option>
+                          <option value="TODAS">TODAS (mostrar listado completo)</option>
+                          {advisorId.policies && advisorId.policies
+                            .sort((a, b) => (a.numberPolicy || "").localeCompare(b.numberPolicy || ""))
+                            .map((policy) => (
+                              <option key={policy.id} value={policy.id}>
+                                {policy.numberPolicy} - {policy.customer ?
+                                  `${policy.customer.firstName} ${policy.customer.surname}` :
+                                  "Sin cliente"}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label fw-semibold">O buscar por número:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Ej: 12345..."
+                          value={policySearch}
+                          onChange={(e) => {
+                            setPolicySearch(e.target.value);
+                            setSelectedPolicyId(""); // Limpiar select al usar buscador
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Mensaje informativo */}
+                  {filterMode !== "NINGUNO" && (
+                    <div className="col-12">
+                      <div className={`alert mb-0 ${(filterMode === "TODAS") ||
+                          (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
+                          (filterMode === "POR_POLIZA" && (selectedPolicyId || policySearch))
+                          ? "alert-info"
+                          : "alert-warning"
+                        }`}>
+                        <small>
+                          {filterMode === "TODAS" && "Se cargarán todas las pólizas con saldo a favor. Esto puede tardar si hay muchas."}
+                          {filterMode === "POR_CLIENTE" && !selectedCustomerId && "⚠️ Por favor, seleccione un cliente para cargar sus pólizas."}
+                          {filterMode === "POR_CLIENTE" && selectedCustomerId && "Se cargarán solo las pólizas de este cliente."}
+                          {filterMode === "POR_POLIZA" && !(selectedPolicyId || policySearch) && "⚠️ Por favor, seleccione una póliza o busque por número."}
+                          {filterMode === "POR_POLIZA" && (selectedPolicyId || policySearch) &&
+                            `Se ${selectedPolicyId === "TODAS" ? 'cargarán todas las pólizas con saldo a favor' : selectedPolicyId ? 'cargará la póliza seleccionada' : 'buscarán pólizas que coincidan con el número ingresado'}.`}
+                        </small>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Indicador de carga */}
+          {operationType === "COMISION" && isLoadingPolicies && (
+            <div className="text-center my-4">
+              <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Cargando pólizas...</span>
+              </div>
+              <p className="mt-2 fw-bold">Cargando pólizas...</p>
+            </div>
+          )}
+
+          {/*Tabla múltiple de pólizas solo para COMISIÓN */}
+          {operationType === "COMISION" && !isLoadingPolicies && distributedPolicies.length > 0 && (
             <>
               <div className="row pt-2">
                 <table className="table table-striped">
@@ -373,15 +607,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                               {policy.company.companyName}
                             </td>
                             <td className="fw-bold">
-                              {policy.customer
-                                ? [
-                                    policy.customer.firstName,
-                                    policy.customer.secondName,
-                                    policy.customer.surname,
-                                    policy.customer.secondSurname,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" ")
+                              {policy.customer?.firstName
+                                ? `${policy.customer.firstName} ${policy.customer.secondName || ''} ${policy.customer.surname} ${policy.customer.secondSurname || ''}`.trim()
                                 : "N/A"}
                             </td>
                             {/* Frecuencia */}
@@ -399,7 +626,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 }
                               />
                             </td>
-                            
+
                             <td>
                               {policy.isCommissionAnnualized === false
                                 ? policy.numberOfPaymentsAdvisor
@@ -420,23 +647,23 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                                 }
                               />
                             </td>
-                                   <td>
+                            <td>
                               <Badge
                                 text={releasedPayments + "/" + totalPayments}
                                 color={
                                   releasedPayments === totalPayments
                                     ? "success"
                                     : releasedPayments > 0
-                                    ? "warning text-dark"
-                                    : "secondary"
+                                      ? "warning text-dark"
+                                      : "secondary"
                                 }
                               />
                             </td>
-                           
+
                             <td className="fw-bold text-primary">
                               ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
                             </td>
-                     
+
 
                             <td className="fw-bold text-warning">
                               ${policy.released?.toFixed(2) ?? "0.00"}
@@ -456,9 +683,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                               ${policy.refundsAmount?.toFixed(2) ?? "0.00"}
                             </td>
                             <td
-                              className={`fw-bold ${
-                                afterBalance <= 0 ? "text-danger" : "text-dark"
-                              }`}
+                              className={`fw-bold ${afterBalance <= 0 ? "text-danger" : "text-dark"
+                                }`}
                             >
                               ${afterBalance.toFixed(2)}
                             </td>
