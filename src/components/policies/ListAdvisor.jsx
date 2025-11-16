@@ -46,33 +46,20 @@ const ListAdvisor = () => {
   }, []);
   const getAvidorById = useCallback(async (advisorId, type) => {
     try {
-      // Para "advisor" (registro de comisiones), cargar con endpoint optimizado sin pólizas completas
+      // Para "advisor" (registro de comisiones), usar endpoint optimizado con limit=0 para obtener solo datos básicos
       // Las pólizas se cargarán bajo demanda en el modal cuando se apliquen filtros
-      const endpoint = type === "advisor" || type === "commissionRefunds"
-        ? `advisor/get-advisor-basic/${advisorId}` // Endpoint que solo trae info básica del asesor
+      const endpoint = type === "advisor"
+        ? `advisor/get-advisor-optimized/${advisorId}?page=1&limit=0` // Solo datos básicos, sin pólizas
         : `advisor/get-advisor/${advisorId}`; // Endpoint completo para otros casos
       
       const response = await http.get(endpoint);
-      console.log("Asesor obtenido: ", response.data.advisorById);
-      setAdvisorId(response.data.advisorById);
+      console.log("Asesor obtenido: ", response.data.advisorById || response.data.advisor);
+      setAdvisorId(response.data.advisorById || response.data.advisor);
       setModalType(type);
       openModal();
     } catch (error) {
-      // Si el endpoint básico no existe, intentar con el completo
-      if (error.response?.status === 404 && (type === "advisor" || type === "commissionRefunds")) {
-        try {
-          const fallbackResponse = await http.get(`advisor/get-advisor/${advisorId}`);
-          setAdvisorId(fallbackResponse.data.advisorById);
-          setModalType(type);
-          openModal();
-        } catch (fallbackError) {
-          alerts("Error", "No se pudo cargar el asesor", "error");
-          console.error("Error fetching asesor:", fallbackError);
-        }
-      } else {
-        alerts("Error", "No se pudo ejecutar la consulta", "error");
-        console.error("Error fetching asesores:", error);
-      }
+      alerts("Error", "No se pudo cargar el asesor", "error");
+      console.error("Error fetching asesor:", error);
     }
   }, []);
 

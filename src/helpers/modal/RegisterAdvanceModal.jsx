@@ -15,10 +15,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import http from "../../helpers/Http";
 import UserForm from "../../hooks/UserForm";
 import alerts from "../../helpers/Alerts";
-import {
-  saveSelectedPolicies,
-  loadSelectedPolicies,
-} from "../../helpers/localStorageUtils";
+import { saveSelectedPolicies } from "../../helpers/localStorageUtils";
 import {
   calculateTotalAdvisorCommissionsGenerated,
   calculateReleasedCommissionsGenerated,
@@ -56,11 +53,12 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const advanceValueRef = useRef(null);
 
   // NUEVO: Estados para filtrado avanzado
-  const [filterMode, setFilterMode] = useState("NINGUNO"); // "NINGUNO", "TODAS", "POR_CLIENTE", "POR_POLIZA"
-  const [customers, setCustomers] = useState([]);
+  const [filterMode, setFilterMode] = useState(""); // "", "TODAS", "POR_CLIENTE", "POR_POLIZA"
+  const [customers, setCustomers] = useState([]); // Clientes únicos del asesor
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [policySearch, setPolicySearch] = useState("");
   const [selectedPolicyId, setSelectedPolicyId] = useState(""); // Para el select de pólizas
+  const [policiesList, setPoliciesList] = useState([]); // Lista básica de pólizas para dropdown
 
   // 4. CALCULAR ANTICIPOS TOTALES DEL ASESOR (helper)
   const advisorTotalAdvances = useMemo(
@@ -94,11 +92,12 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [policiesWithFavor, advanceValue, advisorTotalAdvances]
   );
 
-  // 7. CARGAR SELECCIÓN PREVIA DE POLIZAS DESDE LOCALSTORAGE
+  // 7. LIMPIAR LOCALSTORAGE AL ABRIR MODAL (para evitar pólizas antiguas sin saldo)
   useEffect(() => {
     if (advisorId?.id) {
-      const prev = loadSelectedPolicies(advisorId.id);
-      if (prev) setSelectedPolicies(prev);
+      // Limpiar siempre al abrir para evitar datos obsoletos
+      localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
+      setSelectedPolicies([]);
     }
   }, [advisorId]);
 
@@ -111,13 +110,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
   const [loadedPolicies, setLoadedPolicies] = useState([]);
 
-  // 9. CARGAR PÓLIZAS BAJO DEMANDA SEGÚN FILTROS
+  // 9. CARGAR PÓLIZAS BAJO DEMANDA MEDIANTE API OPTIMIZADA
   useEffect(() => {
     const loadPolicies = async () => {
-      // Solo cargar si:
-      // 1. Es TODAS
-      // 2. Es POR_CLIENTE y hay un cliente seleccionado
-      // 3. Es POR_POLIZA y hay una póliza seleccionada o búsqueda
       const shouldLoad = operationType === "COMISION" && (
         filterMode === "TODAS" ||
         (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
@@ -127,33 +122,32 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       if (shouldLoad) {
         setIsLoadingPolicies(true);
         
-        // Usar directamente advisorId.policies (ya tenemos todos los datos)
-        if (Array.isArray(advisorId.policies)) {
-            let filteredPolicies = advisorId.policies;
-
-            // PASO 1: Filtrar por cliente o póliza específica
-            if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
-              filteredPolicies = filteredPolicies.filter(
-                (policy) => 
-                  policy.customer && 
-                  policy.customer.id && 
-                  String(policy.customer.id) === String(selectedCustomerId)
-              );
-            } else if (filterMode === "POR_POLIZA" && (policySearch || selectedPolicyId)) {
-              if (selectedPolicyId && selectedPolicyId !== "TODAS") {
-                filteredPolicies = filteredPolicies.filter(
-                  (policy) => String(policy.id) === String(selectedPolicyId)
-                );
-              } else if (policySearch) {
-                filteredPolicies = filteredPolicies.filter((policy) =>
-                  (policy.numberPolicy || "").toLowerCase().includes(policySearch.toLowerCase())
-                );
-              }
-              // Si selectedPolicyId === "TODAS", no filtrar, usar todas las pólizas
+        try {
+          // Construir parámetros para el endpoint optimizado
+          const params = new URLSearchParams();
+          params.append('page', '1');
+          params.append('limit', '1000'); // Límite alto para obtener todas las que coincidan
+          
+          if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
+            params.append('customerId', selectedCustomerId);
+          } else if (filterMode === "POR_POLIZA") {
+            if (selectedPolicyId && selectedPolicyId !== "TODAS") {
+              params.append('policyId', selectedPolicyId);
+            } else if (policySearch) {
+              params.append('search', policySearch);
             }
+          }
 
-            // PASO 2: Filtrar por saldo a favor (solo pólizas con balance > 0)
-            const releasedPolicies = filteredPolicies.filter((policy) => {
+          // Usar el endpoint optimizado que ya tienes
+          const response = await http.get(
+            `advisor/get-advisor-optimized/${advisorId.id}?${params.toString()}`
+          );
+          
+          if (response.data && response.data.advisorById && response.data.advisorById.policies) {
+            const loadedPolicies = response.data.advisorById.policies;
+            
+            // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
+            const policiesWithBalance = loadedPolicies.filter((policy) => {
               const released = calculateReleasedCommissionsGenerated(policy);
               const total = calculateTotalAdvisorCommissionsGenerated(policy);
               const paid = Array.isArray(policy.commissions)
@@ -164,25 +158,36 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                 : 0;
               const maxReleased = Math.min(released, total);
               const balance = maxReleased - paid;
-              return balance > 0; // Solo pólizas con saldo a favor
+              
+              // Filtrar solo pólizas con saldo real a favor (mínimo 1 centavo)
+              return balance > 0.01; // Excluye balances menores a $0.01 por redondeo
             });
 
-            setSelectedPolicies(releasedPolicies);
-        } else {
+            setSelectedPolicies(policiesWithBalance);
+          } else {
+            setSelectedPolicies([]);
+          }
+        } catch (error) {
+          console.error("Error cargando pólizas:", error);
+          alerts("Error", "No se pudieron cargar las pólizas. Intenta nuevamente.", "error");
           setSelectedPolicies([]);
         }
         
         setIsLoadingPolicies(false);
       } else if (operationType === "ANTICIPO") {
         setSelectedPolicies([]);
-        setFilterMode("NINGUNO");
+        setFilterMode("");
+        // Limpiar localStorage cuando cambia a ANTICIPO
+        if (advisorId?.id) {
+          localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
+        }
       } else {
         setSelectedPolicies([]);
       }
     };
 
     loadPolicies();
-  }, [operationType, advisorId.id, advisorId.policies, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
+  }, [operationType, advisorId.id, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
 
   // 10. REMOVER POLIZA DE LA SELECCIÓN
   const removePolicy = useCallback((policyId) => {
@@ -209,42 +214,69 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
-  // 13. CARGAR MÉTODOS DE PAGO Y CLIENTES AL MONTAR
+  // 13. CARGAR MÉTODOS DE PAGO, CLIENTES Y PÓLIZAS BÁSICAS
   const fetchData = useCallback(async () => {
     try {
       const paymentMethodResponse = await http.get("policy/get-payment-method");
       setPaymentMethod(paymentMethodResponse.data.allPaymentMethod || []);
 
-      // Extraer clientes únicos de las pólizas del asesor SOLO PARA EL DROPDOWN
-      if (advisorId.policies && Array.isArray(advisorId.policies)) {
-        // Crear un Map para eliminar duplicados manteniendo solo un cliente por ID
-        const customersMap = new Map();
+      // Cargar lista básica de clientes y pólizas usando el endpoint optimizado (limit=1000 para obtener todos)
+      try {
+        const response = await http.get(
+          `advisor/get-advisor-optimized/${advisorId.id}?page=1&limit=1000`
+        );
         
-        advisorId.policies.forEach(policy => {
-          if (policy.customer && policy.customer.id) {
-            // Solo agregar si no existe o si queremos actualizar
-            if (!customersMap.has(policy.customer.id)) {
-              customersMap.set(policy.customer.id, policy.customer);
+        if (response.data && response.data.advisorById && response.data.advisorById.policies) {
+          const policies = response.data.advisorById.policies;
+          
+          // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
+          const policiesWithBalance = policies.filter((policy) => {
+            const released = calculateReleasedCommissionsGenerated(policy);
+            const total = calculateTotalAdvisorCommissionsGenerated(policy);
+            const paid = Array.isArray(policy.commissions)
+              ? policy.commissions.reduce(
+                  (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
+                  0
+                )
+              : 0;
+            const maxReleased = Math.min(released, total);
+            const balance = maxReleased - paid;
+            return balance > 0.01; // Excluye balances menores a $0.01 por redondeo
+          });
+          
+          // Extraer clientes únicos SOLO de pólizas con saldo a favor
+          const customersMap = new Map();
+          policiesWithBalance.forEach(policy => {
+            if (policy.customer && policy.customer.id) {
+              if (!customersMap.has(policy.customer.id)) {
+                customersMap.set(policy.customer.id, policy.customer);
+              }
             }
-          }
-        });
-        
-        // Convertir Map a Array y ordenar
-        const uniqueCustomers = Array.from(customersMap.values())
-          .sort((a, b) => 
-            `${a.firstName || ''} ${a.surname || ''}`.localeCompare(`${b.firstName || ''} ${b.surname || ''}`)
-          );
-        
-        setCustomers(uniqueCustomers);
-      } else {
-        setCustomers([]);
+          });
+          
+          const uniqueCustomers = Array.from(customersMap.values())
+            .sort((a, b) => 
+              `${a.firstName || ''} ${a.surname || ''}`.localeCompare(`${b.firstName || ''} ${b.surname || ''}`)
+            );
+          
+          setCustomers(uniqueCustomers);
+          
+          // Guardar lista de pólizas para el dropdown (solo las que tienen saldo)
+          const basicPoliciesList = policiesWithBalance.map(p => ({
+            id: p.id,
+            numberPolicy: p.numberPolicy,
+            customer: p.customer
+          }));
+          setPoliciesList(basicPoliciesList);
+        }
+      } catch (error) {
+        console.warn("Error cargando lista de clientes/pólizas:", error);
       }
     } catch (error) {
       console.error("Error fetching initial data:", error);
       setPaymentMethod([]);
-      setCustomers([]);
     }
-  }, [advisorId.policies]);
+  }, [advisorId.id]);
 
   useEffect(() => {
     fetchData();
@@ -436,7 +468,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         setSelectedPolicyId("");
                       }}
                     >
-                      <option value="NINGUNO">Seleccione un filtro...</option>
+                      <option value="" disabled>Seleccione un filtro...</option>
                       <option value="TODAS">Cargar todas (puede ser lento)</option>
                       <option value="POR_CLIENTE">Por cliente específico</option>
                       <option value="POR_POLIZA">Por póliza específica</option>
@@ -456,7 +488,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                         value={selectedCustomerId}
                         onChange={(e) => setSelectedCustomerId(e.target.value)}
                       >
-                        <option value="">Seleccione un cliente...</option>
+                        <option value="" disabled>Seleccione un cliente...</option>
                         {customers && customers.length > 0 ? (
                           customers
                             .sort((a, b) =>
@@ -489,10 +521,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                             setPolicySearch(""); // Limpiar buscador al usar select
                           }}
                         >
-                          <option value="">Seleccione una póliza...</option>
+                          <option value="" disabled>Seleccione una póliza...</option>
                           <option value="TODAS">TODAS (mostrar listado completo)</option>
-                          {advisorId.policies && advisorId.policies
-                            .sort((a, b) => (a.numberPolicy || "").localeCompare(b.numberPolicy || ""))
+                          {policiesList && policiesList.length > 0 && policiesList
                             .map((policy) => (
                               <option key={policy.id} value={policy.id}>
                                 {policy.numberPolicy} - {policy.customer ?
@@ -519,7 +550,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   )}
 
                   {/* Mensaje informativo */}
-                  {filterMode !== "NINGUNO" && (
+                  {filterMode !== "" && (
                     <div className="col-12">
                       <div className={`alert mb-0 ${(filterMode === "TODAS") ||
                           (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
