@@ -66,7 +66,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [advisorId]
   );
 
-    // 5. MEMOIZAR POLIZAS CON ANTICIPO HISTÓRICO APLICADO
+  // 5. MEMOIZAR POLIZAS CON ANTICIPO HISTÓRICO APLICADO
   const policiesWithFavor = useMemo(
     () => {
       // Si hay pólizas seleccionadas, devolverlas directamente SIN filtrar por saldo
@@ -80,10 +80,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const distributedPolicies = useMemo(
     () => {
       if (policiesWithFavor.length === 0) return [];
-      
+
       const withHistorical = applyHistoricalAdvance(policiesWithFavor, advisorTotalAdvances);
       const afterDistribute = distributeAdvance(withHistorical, advanceValue);
-      
+
       return afterDistribute.map((policy) => ({
         ...policy,
         ...getPolicyFields(policy),
@@ -111,6 +111,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const [loadedPolicies, setLoadedPolicies] = useState([]);
 
   // 9. CARGAR PÓLIZAS BAJO DEMANDA MEDIANTE API OPTIMIZADA
+  /*
   useEffect(() => {
     const loadPolicies = async () => {
       const shouldLoad = operationType === "COMISION" && (
@@ -121,13 +122,13 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
       if (shouldLoad) {
         setIsLoadingPolicies(true);
-        
+
         try {
           // Construir parámetros para el endpoint optimizado
           const params = new URLSearchParams();
           params.append('page', '1');
           params.append('limit', '1000'); // Límite alto para obtener todas las que coincidan
-          
+
           if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
             params.append('customerId', selectedCustomerId);
           } else if (filterMode === "POR_POLIZA") {
@@ -142,23 +143,23 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           const response = await http.get(
             `advisor/get-advisor-optimized/${advisorId.id}?${params.toString()}`
           );
-          
+
           if (response.data && response.data.advisorById && response.data.advisorById.policies) {
             const loadedPolicies = response.data.advisorById.policies;
-            
+
             // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
             const policiesWithBalance = loadedPolicies.filter((policy) => {
               const released = calculateReleasedCommissionsGenerated(policy);
               const total = calculateTotalAdvisorCommissionsGenerated(policy);
               const paid = Array.isArray(policy.commissions)
                 ? policy.commissions.reduce(
-                    (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
-                    0
-                  )
+                  (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
+                  0
+                )
                 : 0;
               const maxReleased = Math.min(released, total);
               const balance = maxReleased - paid;
-              
+
               // Filtrar solo pólizas con saldo real a favor (mínimo 1 centavo)
               return balance > 0.01; // Excluye balances menores a $0.01 por redondeo
             });
@@ -172,7 +173,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           alerts("Error", "No se pudieron cargar las pólizas. Intenta nuevamente.", "error");
           setSelectedPolicies([]);
         }
-        
+
         setIsLoadingPolicies(false);
       } else if (operationType === "ANTICIPO") {
         setSelectedPolicies([]);
@@ -188,7 +189,82 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
     loadPolicies();
   }, [operationType, advisorId.id, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
+*/
+  useEffect(() => {
+    const loadPolicies = async () => {
+      const shouldLoad = operationType === "COMISION" && (
+        filterMode === "TODAS" ||
+        (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
+        (filterMode === "POR_POLIZA" && (policySearch || selectedPolicyId))
+      );
 
+      if (shouldLoad) {
+        setIsLoadingPolicies(true);
+
+        try {
+          // Construir parámetros para el endpoint optimizado
+          const params = new URLSearchParams();
+          params.append('page', '1');
+          params.append('limit', '50'); // ✅ REDUCIR de 1000 a 100 para evitar colapso
+
+          if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
+            params.append('customerId', selectedCustomerId);
+          } else if (filterMode === "POR_POLIZA") {
+            if (selectedPolicyId && selectedPolicyId !== "TODAS") {
+              params.append('policyId', selectedPolicyId);
+            } else if (policySearch) {
+              params.append('search', policySearch);
+            }
+          }
+
+          // Usar el endpoint optimizado CON FILTROS
+          const response = await http.get(
+            `advisor/get-advisor-optimized/${advisorId.id}?${params.toString()}`
+          );
+
+          if (response.data && response.data.advisorById && response.data.advisorById.policies) {
+            const loadedPolicies = response.data.advisorById.policies;
+
+            // Filtrar solo pólizas con comisiones a favor > 0.01
+            const policiesWithBalance = loadedPolicies.filter((policy) => {
+              const released = calculateReleasedCommissionsGenerated(policy);
+              const total = calculateTotalAdvisorCommissionsGenerated(policy);
+              const paid = Array.isArray(policy.commissions)
+                ? policy.commissions.reduce(
+                  (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
+                  0
+                )
+                : 0;
+              const maxReleased = Math.min(released, total);
+              const balance = maxReleased - paid;
+
+              return balance > 0.01;
+            });
+
+            setSelectedPolicies(policiesWithBalance);
+          } else {
+            setSelectedPolicies([]);
+          }
+        } catch (error) {
+          console.error("Error cargando pólizas:", error);
+          alerts("Error", "No se pudieron cargar las pólizas. Intenta nuevamente.", "error");
+          setSelectedPolicies([]);
+        }
+
+        setIsLoadingPolicies(false);
+      } else if (operationType === "ANTICIPO") {
+        setSelectedPolicies([]);
+        setFilterMode("");
+        if (advisorId?.id) {
+          localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
+        }
+      } else {
+        setSelectedPolicies([]);
+      }
+    };
+
+    loadPolicies();
+  }, [operationType, advisorId.id, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
   // 10. REMOVER POLIZA DE LA SELECCIÓN
   const removePolicy = useCallback((policyId) => {
     setSelectedPolicies((prev) =>
@@ -215,6 +291,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   // 13. CARGAR MÉTODOS DE PAGO, CLIENTES Y PÓLIZAS BÁSICAS
+  /*
   const fetchData = useCallback(async () => {
     try {
       const paymentMethodResponse = await http.get("policy/get-payment-method");
@@ -277,7 +354,54 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       setPaymentMethod([]);
     }
   }, [advisorId.id]);
+*/
+  const fetchData = useCallback(async () => {
+    try {
+      const paymentMethodResponse = await http.get("policy/get-payment-method");
+      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod || []);
 
+      // ✅ CAMBIO: Solo cargar lista básica de clientes SIN cargar todas las pólizas
+      try {
+        const response = await http.get(
+          `advisor/get-advisor-optimized/${advisorId.id}?page=1&limit=50` // Solo primeras 50 para lista rápida
+        );
+
+        if (response.data && response.data.advisorById && response.data.advisorById.policies) {
+          const policies = response.data.advisorById.policies;
+
+          // Extraer clientes únicos
+          const customersMap = new Map();
+          policies.forEach(policy => {
+            if (policy.customer && policy.customer.id) {
+              if (!customersMap.has(policy.customer.id)) {
+                customersMap.set(policy.customer.id, policy.customer);
+              }
+            }
+          });
+
+          const uniqueCustomers = Array.from(customersMap.values())
+            .sort((a, b) =>
+              `${a.firstName || ''} ${a.surname || ''}`.localeCompare(`${b.firstName || ''} ${b.surname || ''}`)
+            );
+
+          setCustomers(uniqueCustomers);
+
+          // Lista básica de pólizas para dropdown (solo primeras 50)
+          const basicPoliciesList = policies.map(p => ({
+            id: p.id,
+            numberPolicy: p.numberPolicy,
+            customer: p.customer
+          }));
+          setPoliciesList(basicPoliciesList);
+        }
+      } catch (error) {
+        console.warn("Error cargando lista de clientes/pólizas:", error);
+      }
+    } catch (error) {
+      console.error("Error fetching initial data:", error);
+      setPaymentMethod([]);
+    }
+  }, [advisorId.id]);
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -479,9 +603,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   {filterMode === "POR_CLIENTE" && (
                     <div className="col-md-4">
                       <label className="form-label fw-semibold">
-                        Seleccionar cliente: 
+                        Seleccionar cliente:
                         <small className="text-muted ms-2">({customers?.length || 0} disponibles)</small>
-                        
+
                       </label>
                       <select
                         className="form-select"
@@ -553,10 +677,10 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                   {filterMode !== "" && (
                     <div className="col-12">
                       <div className={`alert mb-0 ${(filterMode === "TODAS") ||
-                          (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
-                          (filterMode === "POR_POLIZA" && (selectedPolicyId || policySearch))
-                          ? "alert-info"
-                          : "alert-warning"
+                        (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
+                        (filterMode === "POR_POLIZA" && (selectedPolicyId || policySearch))
+                        ? "alert-info"
+                        : "alert-warning"
                         }`}>
                         <small>
                           {filterMode === "TODAS" && "Se cargarán todas las pólizas con saldo a favor. Esto puede tardar si hay muchas."}

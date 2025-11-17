@@ -44,6 +44,7 @@ const ListAdvisor = () => {
   useEffect(() => {
     getAllAdvisor();
   }, []);
+  /*
   const getAvidorById = useCallback(async (advisorId, type) => {
     try {
       // Para "advisor" (registro de comisiones), usar endpoint optimizado con limit=0 para obtener solo datos básicos
@@ -62,7 +63,23 @@ const ListAdvisor = () => {
       console.error("Error fetching asesor:", error);
     }
   }, []);
-
+*/
+  
+const getAvidorById = useCallback(async (advisorId, type) => {
+  try {
+    // SIEMPRE cargar solo datos básicos sin pólizas (limit=0)
+    const endpoint = `advisor/get-advisor-optimized/${advisorId}?page=1&limit=0`;
+    
+    const response = await http.get(endpoint);
+    setAdvisorId(response.data.advisorById);
+    setModalType(type);
+    openModal();
+  } catch (error) {
+    alerts("Error", "No se pudo cargar el asesor", "error");
+    console.error("Error fetching asesor:", error);
+  }
+}, []);
+  
   const getAllAdvisor = useCallback(async () => {
     try {
       const response = await http.get("advisor/get-all-advisor");
