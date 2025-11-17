@@ -43,6 +43,9 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  
+  // Estado para controlar qué grupo está seleccionado (solo uno a la vez)
+  const [selectedGroupRange, setSelectedGroupRange] = useState(null);
 
   // Carga los periodos del backend SOLO cuando cambia la policy.id
   const fetchPeriods = useCallback(async () => {
@@ -197,6 +200,46 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
       onClose();
     }
   }, [form.periods, policy.id, fetchPeriods, onPolicyUpdated, onClose]); // ✅ Dependencias
+  
+  // Función para agrupar periodos por rangos de 4 años
+  const groupPeriodsByYears = useCallback(() => {
+    const sortedPeriods = [...form.periods].sort((a, b) => Number(a.year) - Number(b.year));
+    
+    // Si hay 4 o menos periodos, no agrupar
+    if (sortedPeriods.length <= 4) {
+      return [{ range: 'all', periods: sortedPeriods }];
+    }
+    
+    const groups = [];
+    for (let i = 0; i < sortedPeriods.length; i += 4) {
+      const chunk = sortedPeriods.slice(i, i + 4);
+      const startYear = chunk[0].year;
+      const endYear = chunk[chunk.length - 1].year;
+      groups.push({
+        range: `${startYear}-${endYear}`,
+        periods: chunk,
+        startYear,
+        endYear
+      });
+    }
+    
+    return groups;
+  }, [form.periods]);
+  
+  // Inicializar grupo seleccionado (último grupo por defecto)
+  useEffect(() => {
+    const groups = groupPeriodsByYears();
+    if (groups.length > 0) {
+      // Seleccionar el último grupo (más reciente) por defecto
+      setSelectedGroupRange(groups[groups.length - 1].range);
+    }
+  }, [groupPeriodsByYears]);
+  
+  // Seleccionar un grupo (solo uno a la vez)
+  const selectGroup = (range) => {
+    setSelectedGroupRange(range);
+  };
+  
   // Manejo robusto de carga y error
   if (fetchError) {
     return (
@@ -224,8 +267,8 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
     <>
       <div className="modal d-flex justify-content-center align-items-center">
         <article
-          className="modal-content "
-          style={{ maxWidth: "900px", width: "92vw" }}
+          className="modal-content"
+          style={{ maxWidth: "900px", width: "92vw", maxHeight: "95vh", display: "flex", flexDirection: "column" }}
         >
           <div className="modal-header  conten-title text-white text-center">
             <h2 className="modal-title mb-0">
@@ -267,40 +310,84 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                 handleUpdate();
               }}
             >
-              {/* Períodos Cards */}
-              <div className="row">
-                {[...form.periods]
-                  .sort((a, b) => Number(a.year) - Number(b.year))
-                  .map((row, idx) => {
-                    const realIdx = form.periods.findIndex(
-                      (p) => p.year === row.year
-                    );
+              {/* Selector de rangos horizontal (solo si hay más de 4 periodos) */}
+              {groupPeriodsByYears().length > 1 && (
+                <div className="card border-0 shadow-sm mb-3">
+                  <div className="card-body py-2">
+                    <div className="d-flex flex-wrap gap-2 align-items-center">
+                      <span className="fw-semibold text-muted me-2">
+                        <i className="fas fa-calendar-alt me-1"></i>
+                        Seleccionar rango:
+                      </span>
+                      {groupPeriodsByYears().map((group) => {
+                        const isSelected = selectedGroupRange === group.range;
+                        const hasChanges = group.periods.some(p => p.isChanged);
+                        
+                        return (
+                          <button
+                            key={group.range}
+                            type="button"
+                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                            onClick={() => selectGroup(group.range)}
+                          >
+                            <input
+                              type="radio"
+                              className="form-check-input me-2"
+                              checked={isSelected}
+                              onChange={() => selectGroup(group.range)}
+                              style={{ pointerEvents: 'none' }}
+                            />
+                            {group.startYear} - {group.endYear}
+                            <span className="badge bg-light text-dark ms-2">
+                              {group.periods.length}
+                            </span>
+                            {hasChanges && (
+                              <i className="fas fa-exclamation-triangle ms-2 text-warning"></i>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                    return (
-                      <div className="col-12" key={row.year}>
-                        <div
-                          className={`card border-start border-3 ${
-                            row.isChanged
-                              ? "border-warning"
-                              : "border-secondary"
-                          }`}
-                        >
-                          <div className="card-header bg-transparent">
-                            <div className="d-flex align-items-center">
-                              <span className="badge bg-dark fs-6 me-2">
-                                AÑO {row.year}
-                              </span>
-                              {row.isChanged && (
-                                <span className="badge bg-warning text-dark">
-                                  <i className="fas fa-exclamation-triangle me-1"></i>
-                                  Modificado
-                                </span>
-                              )}
-                            </div>
-                          </div>
+              {/* Períodos del grupo seleccionado */}
+              <div className="row" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {groupPeriodsByYears()
+                  .filter(group => group.range === selectedGroupRange)
+                  .map((group) => (
+                    <div key={group.range} className="col-12">
+                      {group.periods.map((row) => {
+                        const realIdx = form.periods.findIndex(
+                          (p) => p.year === row.year
+                        );
 
-                          <div className="card-body">
-                            <div className="row g-3">
+                        return (
+                          <div key={row.year} className="mb-3">
+                            <div
+                              className={`card border-start border-3 ${
+                                row.isChanged
+                                  ? "border-warning"
+                                  : "border-secondary"
+                              }`}
+                            >
+                              <div className="card-header bg-transparent">
+                                <div className="d-flex align-items-center">
+                                  <span className="badge bg-dark fs-6 me-2">
+                                    AÑO {row.year}
+                                  </span>
+                                  {row.isChanged && (
+                                    <span className="badge bg-warning text-dark">
+                                      <i className="fas fa-exclamation-triangle me-1"></i>
+                                      Modificado
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="card-body">
+                                <div className="row g-3">
                               {/* Valor de Póliza */}
                               <div className="col-lg-3 col-md-6">
                                 <label className="form-label fw-semibold text-muted small">
@@ -404,36 +491,38 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                               </div>
                             </div>
 
-                            {/* Preview de cálculos */}
-                            <div className="row mt-1">
-                              <div className="col-12">
-                                <div className="alert alert-info py-1">
-                                  <small>
-                                    <strong>Comisión Agencia:</strong> $
-                                    {(
-                                      ((row.value - row.policyFee) *
-                                        row.agencyPercentage) /
-                                      100
-                                    ).toFixed(2)}{" "}
-                                    |
-                                    <strong className="ms-2">
-                                      Comisión Asesor:
-                                    </strong>{" "}
-                                    $
-                                    {(
-                                      ((row.value - row.policyFee) *
-                                        row.advisorPercentage) /
-                                      100
-                                    ).toFixed(2)}
-                                  </small>
+                                {/* Preview de cálculos */}
+                                <div className="row mt-1">
+                                  <div className="col-12">
+                                    <div className="alert alert-info py-1">
+                                      <small>
+                                        <strong>Comisión Agencia:</strong> $
+                                        {(
+                                          ((row.value - row.policyFee) *
+                                            row.agencyPercentage) /
+                                          100
+                                        ).toFixed(2)}{" "}
+                                        |
+                                        <strong className="ms-2">
+                                          Comisión Asesor:
+                                        </strong>{" "}
+                                        $
+                                        {(
+                                          ((row.value - row.policyFee) *
+                                            row.advisorPercentage) /
+                                          100
+                                        ).toFixed(2)}
+                                      </small>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ))}
               </div>
             </form>
           </div>
