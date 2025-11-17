@@ -159,8 +159,113 @@ export class AdvisorService extends ValidateEntity {
     }
   };
 
-  //3.1: Método ULTRA OPTIMIZADO - Paginación con filtros dinámicos
-  //3.1: Método ULTRA OPTIMIZADO - Paginación con filtros dinámicos
+  //3.1: Método OPTIMIZADO VERSION ORIGINAL - Solo paginación sin filtros
+  public getAdvisorByIdOptimizedSimple = async (
+    id: number,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<AdvisorWithPoliciesPagination> => {
+    try {
+      // 1. Cargar datos básicos del asesor
+      const cacheKey = `advisor:${id}:basic`;
+      let advisorData = await this.redisService.get(cacheKey);
+
+      if (!advisorData) {
+        const advisor = await this.advisdorRepository.findOne({
+          where: { id },
+          relations: ['commissionRefunds', 'commissions', 'commissions.statusAdvance'],
+        });
+
+        if (!advisor) {
+          throw new ErrorManager({
+            type: 'BAD_REQUEST',
+            message: 'No se encontró el asesor',
+          });
+        }
+
+        await this.redisService.set(cacheKey, JSON.stringify(advisor), 1800);
+        advisorData = JSON.stringify(advisor);
+      }
+
+      const advisor = JSON.parse(advisorData);
+
+      // CASO ESPECIAL: Si limit=0, devolver solo el asesor sin pólizas
+      if (limit === 0) {
+        advisor.policies = [];
+        return {
+          advisor,
+          pagination: {
+            currentPage: 1,
+            itemsPerPage: 0,
+            totalItems: 0,
+            totalPages: 0,
+            hasMore: false,
+            hasPrevious: false,
+          },
+        };
+      }
+
+      // 2. Contar pólizas
+      const policyRepository = this.advisdorRepository.manager.getRepository(PolicyEntity);
+      const totalPolicies = await policyRepository.count({
+        where: { advisor_id: id },
+      });
+
+      // 3. Calcular paginación
+      const skip = (page - 1) * limit;
+      const totalPages = Math.ceil(totalPolicies / limit);
+
+      // 4. Cargar pólizas con relaciones necesarias
+      const policies = await policyRepository.find({
+        where: { advisor_id: id },
+        relations: [
+          'company',
+          'customer',
+          'periods',
+          'renewals',
+          'commissions',
+          'commissionRefunds',
+        ],
+        order: { id: 'DESC' },
+        skip,
+        take: limit,
+      });
+
+      // 5. Cargar payments mínimos
+      const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
+      
+      for (const policy of policies) {
+        const payments = await paymentRepository.find({
+          where: { policy_id: policy.id },
+          select: ['id', 'number_payment', 'value', 'status_payment_id', 'total', 'pending_value'],
+          order: { number_payment: 'ASC' }
+        });
+        
+        policy.payments = payments;
+      }
+
+      // 6. Asignar pólizas al asesor
+      advisor.policies = policies;
+
+      // 7. Retornar
+      return {
+        advisor,
+        pagination: {
+          currentPage: page,
+          itemsPerPage: limit,
+          totalItems: totalPolicies,
+          totalPages,
+          hasMore: page < totalPages,
+          hasPrevious: page > 1,
+        },
+      };
+    } catch (error) {
+      console.error('Error en getAdvisorByIdOptimizedSimple:', error);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //3.2: Método ULTRA OPTIMIZADO - Paginación con filtros dinámicos (versión con filtros)
   public getAdvisorByIdOptimized = async (
     id: number,
     page: number = 1,
@@ -237,7 +342,7 @@ export class AdvisorService extends ValidateEntity {
       const skip = (page - 1) * limit;
       const totalPages = Math.ceil(totalPolicies / limit);
 
-      // 5. Cargar pólizas con filtros y relaciones necesarias
+      // 5. Cargar pólizas con filtros y relaciones necesarias (SIN payments aún)
       const policies = await policyRepository.find({
         where: whereConditions,
         relations: [
@@ -247,18 +352,29 @@ export class AdvisorService extends ValidateEntity {
           'renewals',
           'commissions',
           'commissionRefunds',
-          'payments',
-          'payments.paymentStatus', // ✅ Incluir paymentStatus en la carga
         ],
         order: { id: 'DESC' },
         skip,
         take: limit,
       });
 
-      // 6. Asignar pólizas al asesor
+      // 6. Cargar payments MÍNIMOS de forma controlada (igual que en el método simple)
+      const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
+      
+      for (const policy of policies) {
+        const payments = await paymentRepository.find({
+          where: { policy_id: policy.id },
+          select: ['id', 'number_payment', 'value', 'status_payment_id', 'total', 'pending_value'],
+          order: { number_payment: 'ASC' }
+        });
+        
+        policy.payments = payments;
+      }
+
+      // 7. Asignar pólizas al asesor
       advisor.policies = policies;
 
-      // 7. Retornar con metadata de paginación
+      // 8. Retornar con metadata de paginación
       return {
         advisor,
         pagination: {
