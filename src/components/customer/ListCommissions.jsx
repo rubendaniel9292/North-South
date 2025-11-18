@@ -638,9 +638,11 @@ const ListCommissions = () => {
 
                             // Obtener todos los pagos liberados (AL DÍA)
                             const allReleasedPayments = policyFiltered.payments?.filter(
-                              (payment) =>
-                                payment.paymentStatus &&
-                                payment.paymentStatus.id == 2
+                              (payment) => {
+                                // Acepta ambos formatos: paymentStatus.id o status_payment_id
+                                const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+                                return statusId == 2;
+                              }
                             ) || [];
 
                             // Si hay periodo definido y pagos tienen year, filtrar por último periodo

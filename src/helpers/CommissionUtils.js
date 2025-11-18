@@ -89,37 +89,36 @@ export const calculateTotalAgencyCommissionAllPeriods = (policy) => {
 export const getAdvisorCommissionForPayment = (payment, policy) => {
   let period = null;
 
-  if (payment.createdAt && payment.number_payment) {
+  // ✅ PRIORIDAD 1: Usar number_payment para calcular el año del ciclo
+  if (payment.number_payment && policy.startDate && policy.periods?.length) {
     const policyStartDate = new Date(policy.startDate);
-
-    // ✅ LÓGICA MEJORADA: Calcular el año del ciclo basado en el número de pago
     const cycleYear = Math.floor((payment.number_payment - 1) / 12);
     const targetYear = policyStartDate.getFullYear() + cycleYear;
 
-    period = policy.periods?.find((p) => Number(p.year) === targetYear);
-
-    // Fallback: usar año del pago si no se encuentra
-    if (!period) {
-      const paymentYear = new Date(payment.createdAt).getFullYear();
-      period = policy.periods?.find((p) => Number(p.year) === paymentYear);
-    }
+    period = policy.periods.find((p) => Number(p.year) === targetYear);
   }
 
-  // Fallback: buscar por year si existe en el pago
+  // Fallback 2: usar createdAt si existe
+  if (!period && payment.createdAt) {
+    const paymentYear = new Date(payment.createdAt).getFullYear();
+    period = policy.periods?.find((p) => Number(p.year) === paymentYear);
+  }
+
+  // Fallback 3: buscar por year si existe en el pago
   if (!period && payment.year) {
     period = policy.periods?.find(
       (p) => Number(p.year) === Number(payment.year)
     );
   }
 
-  // Fallback: buscar por periodId si existe
+  // Fallback 4: buscar por periodId si existe
   if (!period && payment.periodId) {
     period = policy.periods?.find((p) => p.id === payment.periodId);
   }
 
-  // Último fallback: usar el último periodo
+  // Último fallback: usar el primer periodo (no el último)
   if (!period && policy.periods?.length) {
-    period = policy.periods[policy.periods.length - 1];
+    period = policy.periods[0];
   }
 
   if (!period) return 0;
@@ -233,7 +232,11 @@ export const calculateReleasedCommissionsGenerated = (policy) => {
 
   // Si es normal, solo libera comisiones de pagos "AL DÍA" (status 2)
   return policy.payments
-    .filter((payment) => payment.paymentStatus && payment.paymentStatus.id == 2)
+    .filter((payment) => {
+      // Acepta ambos formatos: paymentStatus.id o status_payment_id
+      const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+      return statusId == 2;
+    })
     .reduce(
       (total, payment) =>
         total + getAdvisorCommissionForPayment(payment, policy),
@@ -244,7 +247,11 @@ export const calculateReleasedCommissionsGenerated = (policy) => {
 export const calculateReleasedAgencyCommissionsGenerated = (policy) => {
   if (!policy || !Array.isArray(policy.payments)) return 0;
   return policy.payments
-    .filter((payment) => payment.paymentStatus && payment.paymentStatus.id == 2)
+    .filter((payment) => {
+      // Acepta ambos formatos: paymentStatus.id o status_payment_id
+      const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+      return statusId == 2;
+    })
     .reduce(
       (total, payment) =>
         total + getAgencyCommissionForPayment(payment, policy),
@@ -549,10 +556,13 @@ export const getPolicyFields = (policy) => {
   const refundsData = getRefundsDetails(policy);
   const refundsAmount = refundsData.total;
 
-  // Usa la función mejorada que calcula correctamente por periodos con pagos generados
+  // Usa la función que calcula correctamente por periodos con pagos generados
   const commissionTotal = calculateTotalAdvisorCommissionsGenerated(policy);
 
-  const released = calculateReleasedCommissions(policy); // ✅ Usar método correcto
+  const releasedCalculated = calculateReleasedCommissions(policy);
+  
+  // ✅ IMPORTANTE: Las comisiones liberadas NUNCA pueden superar las comisiones totales
+  const released = Math.min(releasedCalculated, commissionTotal);
   
   // Validar que released es un número válido
   const validReleased = isNaN(released) || !isFinite(released) ? 0 : released;
@@ -720,7 +730,11 @@ export const calculateReleasedCommissions = (policy) => {
 
   const releasedInstallments = Array.isArray(policy.payments)
     ? policy.payments.filter(
-        (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+        (payment) => {
+          // Acepta ambos formatos: paymentStatus.id o status_payment_id
+          const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+          return statusId == 2;
+        }
       ).length
     : 0;
 
@@ -729,7 +743,11 @@ export const calculateReleasedCommissions = (policy) => {
     for (const renewal of policy.renewals) {
       if (Array.isArray(renewal.payments)) {
         releasedInstallmentsRenewals += renewal.payments.filter(
-          (payment) => payment.paymentStatus && payment.paymentStatus.id == 2
+          (payment) => {
+            // Acepta ambos formatos: paymentStatus.id o status_payment_id
+            const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+            return statusId == 2;
+          }
         ).length;
       }
     }
