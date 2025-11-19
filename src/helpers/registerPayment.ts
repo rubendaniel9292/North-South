@@ -298,9 +298,9 @@ export class PaymentSchedulerService implements OnModuleInit {
         console.log(`✅ Lote ${currentBatch} completado`);
         currentBatch++;
 
-        // Pequeña pausa entre lotes para no sobrecargar el sistema
+        // Pausa entre lotes para permitir garbage collection y evitar colapso
         if (currentBatch <= totalBatches) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500)); // Aumentado de 100ms a 500ms
         }
       }
       
@@ -365,29 +365,29 @@ export class PaymentSchedulerService implements OnModuleInit {
     
     const multiplier = capacityMultipliers[SERVER_CAPACITY];
     
-    // Tamaños base optimizados por volumen (AJUSTADO PARA SERVIDOR 2GB RAM / 2 vCPU)
+    // Tamaños base optimizados por volumen (ULTRA CONSERVADOR PARA SERVIDOR 1GB RAM)
     let baseBatchSize: number;
     
     if (totalPolicies < 100) {
-      baseBatchSize = 15;              // Pocas pólizas: lotes pequeños (era 25)
+      baseBatchSize = 5;               // Pocas pólizas: lotes muy pequeños
     } else if (totalPolicies < 500) {
-      baseBatchSize = 20;              // Volumen bajo-medio: lotes pequeños (era 50)
+      baseBatchSize = 8;               // Volumen bajo-medio: lotes pequeños
     } else if (totalPolicies < 1000) {
-      baseBatchSize = 15;              // Volumen medio: lotes pequeños (era 35)
+      baseBatchSize = 6;               // Volumen medio: lotes reducidos
     } else if (totalPolicies < 5000) {
-      baseBatchSize = 10;              // Volumen alto: lotes muy pequeños (era 25)
+      baseBatchSize = 4;               // Volumen alto: lotes mínimos
     } else {
-      baseBatchSize = 8;               // Volumen muy alto: lotes ultra pequeños (era 15)
+      baseBatchSize = 3;               // Volumen muy alto: lotes ultra mínimos
     }
     
     // Aplicar multiplicador de capacidad del servidor
     const scaledBatchSize = baseBatchSize * multiplier;
     
-    // Límites de seguridad para evitar sobrecargas (AJUSTADO PARA SERVIDOR 2GB RAM)
+    // Límites de seguridad para evitar sobrecargas (ULTRA CONSERVADOR)
     const maxBatchSizes: Record<ServerCapacity, number> = {
-      basic: 50,       // Máximo conservador para 2GB RAM (era 100)
-      intermediate: 150, // Para servidores 4-8GB RAM (era 250)
-      high: 300        // Para servidores 16GB+ RAM (era 500)
+      basic: 20,       // Máximo ultra conservador para 1GB RAM
+      intermediate: 100, // Para servidores 4-8GB RAM
+      high: 300        // Para servidores 16GB+ RAM
     };
     
     const maxBatchSize = maxBatchSizes[SERVER_CAPACITY];
