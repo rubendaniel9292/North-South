@@ -111,7 +111,6 @@ export class PaymentService {
       // Si no se proporciona una fecha de creación, usar la fecha actual normalizada
       if (!body.createdAt) {
         body.createdAt = DateHelper.normalizeDateForDB(new Date());
-        //body.createdAt = DateHelper.normalizeDateForComparison(new Date());
       } else {
         // Si se proporciona una fecha, normalizarla
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
@@ -349,9 +348,9 @@ export class PaymentService {
           'policies',
           'policies.renewals',
           'policies.periods',
+          'policies.payments', // Necesario para cálculos del scheduler
           'paymentStatus',
           'policies.paymentFrequency',
-          // 'policies.payments', // TEMPORAL: REMOVIDO para evitar crash de memoria
         ],
         select: {
           policies: {
@@ -385,6 +384,7 @@ export class PaymentService {
           'policies',
           'policies.renewals',
           'policies.periods',
+          'policies.payments', // CRÍTICO: Necesario para el scheduler (calcular último pago, ciclo actual)
           'paymentStatus',
           'policies.paymentFrequency',
         ],
@@ -585,17 +585,19 @@ export class PaymentService {
         });
       }
 
-      // Calcular el nuevo valor pendiente
-      const newPendingValue = payment.pending_value;
-      updateData.updatedAt = DateHelper.normalizeDateForComparison(new Date());
+      // Actualizar timestamp
+      updateData.updatedAt = DateHelper.normalizeDateForDB(new Date());
 
-      if (newPendingValue < 0) {
+      // Aplicar cambios
+      Object.assign(payment, updateData);
+
+      // Validar que pending_value no sea negativo después de actualizar
+      if (payment.pending_value < 0) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'El valor pendiente no puede ser negativo',
         });
       }
-      Object.assign(payment, updateData);
 
       const paymentUpdated = await this.paymentRepository.save(payment);
 
