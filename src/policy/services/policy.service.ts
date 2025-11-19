@@ -1396,7 +1396,130 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
-  //13: Método para crear/actualizar  periodos para actualizar valores y % de comisiones para el calculo correcto de comiciones
+  //13: Método auxiliar para recalcular valores de pagos cuando cambia el valor de la póliza en un año específico
+  private async recalculatePaymentsForYear(
+    policy_id: number,
+    year: number,
+    newPolicyValue: number
+  ): Promise<{ updatedPayments: number; message: string }> {
+    try {
+      console.log(`🔄 Recalculando pagos para año/periodo ${year} con nuevo valor $${newPolicyValue}`);
+
+      // 1. Obtener la póliza con frecuencia de pago
+      const policy = await this.findPolicyById(policy_id);
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: `Póliza ${policy_id} no encontrada`,
+        });
+      }
+
+      const paymentFrequency = Number(policy.payment_frequency_id);
+
+      // 2. Calcular el nuevo valor por pago según la frecuencia
+      const newValuePerPayment = this.calculatePaymentValue(
+        newPolicyValue,
+        paymentFrequency,
+        policy.numberOfPayments
+      );
+
+      console.log(`💰 Nuevo valor por pago: $${newValuePerPayment} (frecuencia: ${paymentFrequency})`);
+
+      // 3. Calcular el PERIODO ANUAL basado en la fecha de inicio de la póliza
+      const policyStartDate = new Date(policy.startDate);
+      const startMonth = policyStartDate.getMonth();
+      const startDay = policyStartDate.getDate();
+
+      // Calcular cuántos años han pasado desde el inicio de la póliza hasta el año objetivo
+      const policyStartYear = policyStartDate.getFullYear();
+      const yearsDifference = year - policyStartYear;
+
+      // Fecha de inicio del periodo: startDate + yearsDifference años
+      const periodStartDate = new Date(policy.startDate);
+      periodStartDate.setFullYear(policyStartYear + yearsDifference);
+
+      // Fecha de fin del periodo: 1 día antes del siguiente aniversario
+      const periodEndDate = new Date(periodStartDate);
+      periodEndDate.setFullYear(periodEndDate.getFullYear() + 1);
+      periodEndDate.setDate(periodEndDate.getDate() - 1);
+      periodEndDate.setHours(23, 59, 59, 999);
+
+      console.log(`📅 Periodo anual ${year}: ${periodStartDate.toISOString().split('T')[0]} → ${periodEndDate.toISOString().split('T')[0]}`);
+
+      // 4. Obtener todos los pagos del periodo especificado
+      const paymentsOfYear = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .where('payment.policy_id = :policy_id', { policy_id })
+        .andWhere('payment.createdAt >= :periodStartDate', { periodStartDate })
+        .andWhere('payment.createdAt <= :periodEndDate', { periodEndDate })
+        .orderBy('payment.number_payment', 'ASC')
+        .getMany();
+
+      if (paymentsOfYear.length === 0) {
+        console.log(`⚠️ No se encontraron pagos para el periodo anual ${year} (${periodStartDate.toISOString().split('T')[0]} - ${periodEndDate.toISOString().split('T')[0]})`);
+        return {
+          updatedPayments: 0,
+          message: `No hay pagos para recalcular en el periodo anual ${year}`,
+        };
+      }
+
+      console.log(`📋 Encontrados ${paymentsOfYear.length} pagos para recalcular en el periodo`);
+
+      // 5. Recalcular valores y pending_value para cada pago
+      let updatedCount = 0;
+      let accumulatedValue = 0;
+
+      for (const payment of paymentsOfYear) {
+        const oldValue = Number(payment.value);
+        const oldPending = Number(payment.pending_value);
+        const oldBalance = Number(payment.balance || 0);
+
+        // Actualizar el valor del pago
+        payment.value = newValuePerPayment;
+        accumulatedValue += newValuePerPayment;
+
+        // Recalcular pending_value: valor total - acumulado hasta este pago
+        const newPendingValue = newPolicyValue - accumulatedValue;
+        payment.pending_value = newPendingValue > 0 ? newPendingValue : 0;
+
+        // Recalcular balance considerando abonos previos
+        // balance = value - credit - total
+        const credit = Number(payment.credit || 0);
+        const total = Number(payment.total || 0);
+        const newBalance = newValuePerPayment - credit - total;
+        
+        // Solo actualizar balance si el pago NO está completamente pagado (status_payment_id != 2)
+        // Si está pagado (status=2), balance debería ser 0
+        if (payment.status_payment_id === 2) {
+          payment.balance = 0;
+        } else {
+          // Para pagos pendientes o atrasados, recalcular balance
+          payment.balance = newBalance > 0 ? newBalance : 0;
+        }
+
+        await this.paymentRepository.save(payment);
+        updatedCount++;
+
+        console.log(
+          `  ✓ Pago #${payment.number_payment}: Valor: $${oldValue} → $${newValuePerPayment} | Balance: $${oldBalance} → $${payment.balance} | Pendiente: $${oldPending} → $${payment.pending_value}`
+        );
+      }
+
+      console.log(`✅ ${updatedCount} pagos recalculados exitosamente para periodo anual ${year}`);
+
+      return {
+        updatedPayments: updatedCount,
+        message: `${updatedCount} pagos actualizados con nuevo valor $${newPolicyValue}`,
+      };
+    } catch (error) {
+      console.error(`❌ Error al recalcular pagos para año ${year}:`, error.message);
+      throw ErrorManager.createSignatureError(
+        `Error al recalcular pagos: ${error.message}`
+      );
+    }
+  }
+
+  //14: Método para crear/actualizar  periodos para actualizar valores y % de comisiones para el calculo correcto de comiciones
   public async createOrUpdatePeriodForPolicy(
     policy_id: number,
     year: number,
@@ -1410,7 +1533,8 @@ export class PolicyService extends ValidateEntity {
       });
 
       let savedPeriod: PolicyPeriodDataEntity;
-
+      let isUpdate = false;
+      let oldValue: number | undefined;
 
       if (!period) {
         // Crear nuevo periodo
@@ -1425,11 +1549,21 @@ export class PolicyService extends ValidateEntity {
         savedPeriod = await this.policyPeriodDataRepository.save(newPeriod);
       } else {
         // Actualizar datos del periodo existente
+        isUpdate = true;
+        oldValue = Number(period.policyValue);
+        const newValue = Number(data.policyValue);
+        
         period.policyValue = data.policyValue;
         period.agencyPercentage = data.agencyPercentage;
         period.advisorPercentage = data.advisorPercentage;
         period.policyFee = data.policyFee;
         savedPeriod = await this.policyPeriodDataRepository.save(period);
+
+        // 🔧 NUEVO: Si el valor de la póliza cambió, recalcular pagos de ese año
+        if (oldValue !== newValue) {
+          console.log(`📊 Detectado cambio en valor de póliza para año ${year}: $${oldValue} → $${newValue}`);
+          await this.recalculatePaymentsForYear(policy_id, year, newValue);
+        }
       }
 
       const advisorId = await this.getAdvisorIdByPolicyId(policy_id);
@@ -1448,7 +1582,7 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
-  //14: Método para obtener el periodo anual de una póliza, con caché
+  //15: Método para obtener el periodo anual de una póliza, con caché
   public async getPolicyPeriods(policy_id: number): Promise<PolicyPeriodDataEntity[]> {
     try {
       if (!policy_id) {
@@ -1479,7 +1613,7 @@ export class PolicyService extends ValidateEntity {
   }
 
   /**
-   * 15: Método para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
+   * 16: Método para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
    * Orden de eliminación:
    * 1. Commission Refunds
    * 2. Commissions Payments
@@ -1634,7 +1768,7 @@ export class PolicyService extends ValidateEntity {
   }
 
   /**
-   * 16: Método para REGENERAR PAGOS Y RENOVACIONES cuando cambia la startDate de una póliza
+   * 17: Método para REGENERAR PAGOS Y RENOVACIONES cuando cambia la startDate de una póliza
    * 
    * Escenario:
    * - Póliza registrada con startDate incorrecta (ej: 11/03/2023)
