@@ -21,6 +21,9 @@ import { DateHelper } from '@/helpers/date.helper';
 import { PolicyPeriodDataDTO } from '../dto/policy.period.data.dto';
 import { PolicyPeriodDataEntity } from '../entities/policy_period_data.entity';
 import { CommissionsPaymentsService } from '@/commissions-payments/services/commissions-payments.service';
+import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
+import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
+import { PaymentEntity } from '@/payment/entity/payment.entity';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
@@ -44,6 +47,15 @@ export class PolicyService extends ValidateEntity {
 
     @InjectRepository(PolicyPeriodDataEntity)
     private readonly policyPeriodDataRepository: Repository<PolicyPeriodDataEntity>,
+
+    @InjectRepository(CommissionsPaymentsEntity)
+    private readonly commissionsPaymentsRepository: Repository<CommissionsPaymentsEntity>,
+
+    @InjectRepository(CommissionRefundsEntity)
+    private readonly commissionRefundsRepository: Repository<CommissionRefundsEntity>,
+
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -1087,6 +1099,7 @@ export class PolicyService extends ValidateEntity {
       }
 
       const oldAdvisorId = policy.advisor_id; // Guarda el asesor anterior
+      const oldStartDate = policy.startDate; // Guarda la fecha de inicio anterior
 
       const startDate = updateData.startDate
         ? DateHelper.normalizeDateForDB(updateData.startDate)
@@ -1096,6 +1109,11 @@ export class PolicyService extends ValidateEntity {
         : policy.endDate;
       updateData.startDate = startDate;
       updateData.endDate = endDate;
+
+      // 🔧 NUEVO: Detectar si la startDate cambió para ajustar fechas de pagos
+      const startDateChanged = updateData.startDate && 
+        DateHelper.normalizeDateForComparison(oldStartDate).getTime() !== 
+        DateHelper.normalizeDateForComparison(startDate).getTime();
 
       // Respetar el estado "Cancelado" enviado desde el frontend
       if (updateData.policy_status_id !== 2) {
@@ -1129,6 +1147,21 @@ export class PolicyService extends ValidateEntity {
       const policyUpdate: PolicyEntity =
         await this.policyRepository.save(policy);
 
+      // 🔧 NUEVO: Ajustar fechas de pagos y renovaciones si la startDate cambió
+      let dateAdjustmentResult;
+      if (startDateChanged) {
+        console.log('🔔 Detectado cambio en startDate - Ajustando fechas de pagos y renovaciones...');
+        dateAdjustmentResult = await this.adjustPaymentDatesOnStartDateChange(
+          id,
+          startDate,
+          oldStartDate
+        );
+        console.log(`✅ ${dateAdjustmentResult.message}`);
+        if (dateAdjustmentResult.warning) {
+          console.warn(`⚠️ ${dateAdjustmentResult.warning}`);
+        }
+      }
+
       // --- NUEVO: Actualizar periodo anual ---
       const currentYear = new Date().getFullYear();
       const updatePeriodData: PolicyPeriodDataDTO = {
@@ -1152,6 +1185,11 @@ export class PolicyService extends ValidateEntity {
         JSON.stringify(policyUpdate),
         32400,
       );
+
+      // Agregar información del ajuste de fechas en la respuesta si ocurrió
+      if (dateAdjustmentResult) {
+        (policyUpdate as any).dateAdjustment = dateAdjustmentResult;
+      }
 
       return policyUpdate;
     } catch (error) {
@@ -1437,6 +1475,325 @@ export class PolicyService extends ValidateEntity {
       return policyPeriods;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  /**
+   * 15: Método para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
+   * Orden de eliminación:
+   * 1. Commission Refunds
+   * 2. Commissions Payments
+   * 3. Payments (payment_record)
+   * 4. Policy Periods (policy_period_data)
+   * 5. Renewals
+   * 6. Policy
+   * 
+   * Usa transacción para garantizar atomicidad (todo o nada)
+   * Invalida cachés relacionados
+   */
+  public async deletePolicyComplete(policyId: number): Promise<{
+    success: boolean;
+    message: string;
+    deletedRecords: {
+      commissionRefunds: number;
+      commissionsPayments: number;
+      payments: number;
+      periods: number;
+      renewals: number;
+      policy: boolean;
+    };
+  }> {
+    // Iniciar un query runner para manejar la transacción manualmente
+    const queryRunner = this.policyRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Verificar que la póliza existe y obtener información
+      const policy = await queryRunner.manager.findOne(PolicyEntity, {
+        where: { id: policyId },
+        relations: ['company', 'advisor', 'customer'],
+      });
+
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: `No se encontró la póliza con ID ${policyId}`,
+        });
+      }
+
+      console.log('==========================================');
+      console.log(`Eliminando póliza ID: ${policyId}`);
+      console.log(`Número de póliza: ${policy.numberPolicy}`);
+      console.log(`Cliente: ${policy.customer?.firstName || 'N/A'} ${policy.customer?.surname || ''}`);
+      console.log(`Asesor: ${policy.advisor?.firstName || 'N/A'} ${policy.advisor?.surname || ''}`);
+      console.log('==========================================');
+
+      // Contadores para el resultado
+      const deletedRecords = {
+        commissionRefunds: 0,
+        commissionsPayments: 0,
+        payments: 0,
+        periods: 0,
+        renewals: 0,
+        policy: false,
+      };
+
+      // 2. ELIMINAR COMMISSION REFUNDS
+      const refundsResult = await queryRunner.manager.delete(
+        CommissionRefundsEntity,
+        { policy_id: policyId }
+      );
+      deletedRecords.commissionRefunds = refundsResult.affected || 0;
+      console.log(`✓ Commission Refunds eliminados: ${deletedRecords.commissionRefunds}`);
+
+      // 3. ELIMINAR COMMISSIONS PAYMENTS
+      const commissionsResult = await queryRunner.manager.delete(
+        CommissionsPaymentsEntity,
+        { policy_id: policyId }
+      );
+      deletedRecords.commissionsPayments = commissionsResult.affected || 0;
+      console.log(`✓ Commissions Payments eliminados: ${deletedRecords.commissionsPayments}`);
+
+      // 4. ELIMINAR PAYMENTS (payment_record)
+      const paymentsResult = await queryRunner.manager.delete(
+        PaymentEntity,
+        { policy_id: policyId }
+      );
+      deletedRecords.payments = paymentsResult.affected || 0;
+      console.log(`✓ Pagos eliminados: ${deletedRecords.payments}`);
+
+      // 5. ELIMINAR POLICY PERIODS (policy_period_data)
+      const periodsResult = await queryRunner.manager.delete(
+        PolicyPeriodDataEntity,
+        { policy_id: policyId }
+      );
+      deletedRecords.periods = periodsResult.affected || 0;
+      console.log(`✓ Períodos eliminados: ${deletedRecords.periods}`);
+
+      // 6. ELIMINAR RENEWALS
+      const renewalsResult = await queryRunner.manager.delete(
+        RenewalEntity,
+        { policy_id: policyId }
+      );
+      deletedRecords.renewals = renewalsResult.affected || 0;
+      console.log(`✓ Renovaciones eliminadas: ${deletedRecords.renewals}`);
+
+      // 7. FINALMENTE, ELIMINAR LA PÓLIZA
+      const policyResult = await queryRunner.manager.delete(
+        PolicyEntity,
+        { id: policyId }
+      );
+      deletedRecords.policy = (policyResult.affected || 0) > 0;
+      console.log(`✓ Póliza eliminada: ${policy.numberPolicy}`);
+
+      // 8. COMMIT de la transacción
+      await queryRunner.commitTransaction();
+      console.log('==========================================');
+      console.log('✅ ELIMINACIÓN COMPLETADA EXITOSAMENTE');
+      console.log('==========================================');
+
+      // 9. INVALIDAR CACHÉS RELACIONADOS (fuera de la transacción)
+      try {
+        await this.invalidateCaches(policy.advisor_id, policyId);
+        
+        // Cachés adicionales específicos de la póliza eliminada
+        await this.redisService.del(`policy:${policyId}`);
+        await this.redisService.del(`policy:${policyId}:periods`);
+        await this.redisService.del(`policy:${policyId}:renewals`);
+        await this.redisService.del(`policy:${policyId}:commissions`);
+        
+        // Cachés globales
+        await this.redisService.del('policies');
+        await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
+        await this.redisService.del('payments');
+        
+        console.log('✓ Cachés invalidados correctamente');
+      } catch (cacheError) {
+        console.warn('⚠️ Warning: Error al invalidar cachés:', cacheError.message);
+        // No fallar la operación si hay error en caché
+      }
+
+      return {
+        success: true,
+        message: `Póliza ${policy.numberPolicy} eliminada completamente`,
+        deletedRecords,
+      };
+
+    } catch (error) {
+      // ROLLBACK en caso de error
+      await queryRunner.rollbackTransaction();
+      console.error('❌ ERROR: Transacción revertida', error.message);
+      throw ErrorManager.createSignatureError(
+        `Error al eliminar la póliza: ${error.message}`
+      );
+    } finally {
+      // Liberar el query runner
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * 16: Método para REGENERAR PAGOS Y RENOVACIONES cuando cambia la startDate de una póliza
+   * 
+   * Escenario:
+   * - Póliza registrada con startDate incorrecta (ej: 11/03/2023)
+   * - Pagos/renovaciones generados desde esa fecha
+   * - Usuario corrige startDate (ej: 20/03/2023)
+   * - Este método ELIMINA todo y REGENERA desde cero con la nueva fecha
+   * 
+   * Características:
+   * - Elimina TODOS los pagos y renovaciones existentes
+   * - Regenera desde cero respetando:
+   *   * Día de la nueva startDate
+   *   * Solo hasta la fecha actual (no futuros)
+   *   * Frecuencia de pago original
+   * - Usa transacción para garantizar atomicidad
+   * - Invalida cachés relacionados
+   * 
+   * @param policyId - ID de la póliza
+   * @param newStartDate - Nueva fecha de inicio
+   * @param oldStartDate - Fecha de inicio anterior (para logging)
+   * @returns Resultado con pagos y renovaciones regenerados
+   */
+  public async adjustPaymentDatesOnStartDateChange(
+    policyId: number,
+    newStartDate: Date,
+    oldStartDate: Date
+  ): Promise<{
+    success: boolean;
+    message: string;
+    adjustedPayments: number;
+    adjustedRenewals: number;
+    delta: { months: number; days: number };
+    warning?: string;
+  }> {
+    const queryRunner = this.policyRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Verificar que la póliza existe
+      const policy = await queryRunner.manager.findOne(PolicyEntity, {
+        where: { id: policyId },
+        relations: ['payments', 'renewals', 'paymentFrequency'],
+      });
+
+      if (!policy) {
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: `No se encontró la póliza con ID ${policyId}`,
+        });
+      }
+
+      // 2. Normalizar fechas
+      const normalizedOldStart = DateHelper.normalizeDateForComparison(oldStartDate);
+      const normalizedNewStart = DateHelper.normalizeDateForComparison(newStartDate);
+
+      console.log('==========================================');
+      console.log(`🔄 REGENERANDO pagos/renovaciones - Póliza ID: ${policyId}`);
+      console.log(`Fecha antigua: ${normalizedOldStart.toISOString()}`);
+      console.log(`Fecha nueva: ${normalizedNewStart.toISOString()}`);
+      console.log('==========================================');
+
+      // 3. Si no hay cambio, no hacer nada
+      if (normalizedOldStart.getTime() === normalizedNewStart.getTime()) {
+        await queryRunner.rollbackTransaction();
+        return {
+          success: true,
+          message: 'No hay cambios en la fecha de inicio',
+          adjustedPayments: 0,
+          adjustedRenewals: 0,
+          delta: { months: 0, days: 0 },
+        };
+      }
+
+      // 4. Contar registros antes de eliminar
+      const oldPaymentsCount = policy.payments?.length || 0;
+      const oldRenewalsCount = policy.renewals?.length || 0;
+      
+      console.log(`📊 Registros actuales: ${oldPaymentsCount} pagos, ${oldRenewalsCount} renovaciones`);
+
+      // 5. Verificar si hay pagos PAGADOS (status=2)
+      const paidPayments = policy.payments?.filter(p => p.status_payment_id === 2) || [];
+      let warningMessage: string | undefined;
+      
+      if (paidPayments.length > 0) {
+        warningMessage = `⚠️ ADVERTENCIA: Se eliminarán ${paidPayments.length} pagos que ya estaban PAGADOS. Esto puede afectar reportes históricos.`;
+        console.log(warningMessage);
+      }
+
+      // 6. ELIMINAR todos los pagos y renovaciones existentes
+      console.log('🗑️ Eliminando pagos y renovaciones existentes...');
+      
+      await queryRunner.manager.delete(PaymentEntity, { policy_id: policyId });
+      console.log(`  ✓ ${oldPaymentsCount} pagos eliminados`);
+      
+      await queryRunner.manager.delete(RenewalEntity, { policy_id: policyId });
+      console.log(`  ✓ ${oldRenewalsCount} renovaciones eliminadas`);
+
+      // 7. COMMIT de la eliminación
+      await queryRunner.commitTransaction();
+      console.log('✅ Eliminación completada');
+
+      // 8. REGENERAR pagos y renovaciones con la nueva fecha
+      console.log('🔄 Regenerando con nueva fecha...');
+      
+      const today = new Date();
+      const paymentFrequency = Number(policy.payment_frequency_id);
+      
+      // Regenerar pagos iniciales (hasta hoy o primera renovación)
+      await this.generatePaymentsUsingService(policy, normalizedNewStart, today, paymentFrequency);
+      
+      // Regenerar renovaciones y sus pagos (solo hasta hoy)
+      await this.handleRenewals(policy, normalizedNewStart, today);
+
+      // 9. Contar nuevos registros
+      const updatedPolicy = await this.findPolicyById(policyId);
+      const newPaymentsCount = updatedPolicy.payments?.length || 0;
+      const newRenewalsCount = updatedPolicy.renewals?.length || 0;
+
+      console.log('==========================================');
+      console.log('✅ REGENERACIÓN COMPLETADA');
+      console.log(`Nuevos registros: ${newPaymentsCount} pagos, ${newRenewalsCount} renovaciones`);
+      console.log('==========================================');
+
+      // 10. Calcular delta para el resumen
+      const deltaYears = normalizedNewStart.getFullYear() - normalizedOldStart.getFullYear();
+      const deltaMonths = normalizedNewStart.getMonth() - normalizedOldStart.getMonth();
+      const deltaDays = normalizedNewStart.getDate() - normalizedOldStart.getDate();
+
+      // 11. INVALIDAR CACHÉS
+      try {
+        await this.invalidateCaches(policy.advisor_id, policyId);
+        await this.redisService.del(`policy:${policyId}`);
+        await this.redisService.del(`policy:${policyId}:periods`);
+        await this.redisService.del(`policy:${policyId}:renewals`);
+        await this.redisService.del('payments');
+        console.log('✓ Cachés invalidados correctamente');
+      } catch (cacheError) {
+        console.warn('⚠️ Warning: Error al invalidar cachés:', cacheError.message);
+      }
+
+      return {
+        success: true,
+        message: `Pagos y renovaciones regenerados correctamente: ${newPaymentsCount} pagos y ${newRenewalsCount} renovaciones`,
+        adjustedPayments: newPaymentsCount,
+        adjustedRenewals: newRenewalsCount,
+        delta: { months: deltaMonths + (deltaYears * 12), days: deltaDays },
+        warning: warningMessage,
+      };
+
+    } catch (error) {
+      // ROLLBACK en caso de error
+      await queryRunner.rollbackTransaction();
+      console.error('❌ ERROR: Transacción revertida', error.message);
+      throw ErrorManager.createSignatureError(
+        `Error al regenerar pagos y renovaciones: ${error.message}`
+      );
+    } finally {
+      // Liberar el query runner
+      await queryRunner.release();
     }
   }
 }

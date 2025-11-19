@@ -1,4 +1,4 @@
-import { Body, Controller, Put, Get, Param, Post, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Put, Get, Param, Post, Query, UseGuards, ParseIntPipe, Delete } from '@nestjs/common';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { Roles } from '@/auth/decorators/decorators';
 import { AuthGuard } from '@/auth/guards/auth.guard';
@@ -210,6 +210,33 @@ export class PolicyController {
       };
     }
 
+  }
+
+  /**
+   * Endpoint para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
+   * ⚠️ OPERACIÓN DESTRUCTIVA - Solo para administradores
+   * Elimina:
+   * - Commission Refunds
+   * - Commissions Payments
+   * - Payments (payment_record)
+   * - Policy Periods
+   * - Renewals
+   * - Policy
+   * 
+   * Usa transacción para garantizar atomicidad (todo o nada)
+   */
+  @Roles('ADMIN')  // ⚠️ SOLO ADMIN puede eliminar pólizas completas
+  @Delete('delete-policy-complete/:id')
+  async deletePolicyComplete(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const result = await this.policyService.deletePolicyComplete(id);
+    
+    return {
+      status: result.success ? 'success' : 'error',
+      message: result.message,
+      deletedRecords: result.deletedRecords,
+    };
   }
 }
 
