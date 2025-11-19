@@ -92,10 +92,28 @@ export const getAdvisorCommissionForPayment = (payment, policy) => {
   // ✅ PRIORIDAD 1: Usar number_payment para calcular el año del ciclo
   if (payment.number_payment && policy.startDate && policy.periods?.length) {
     const policyStartDate = new Date(policy.startDate);
+    const startYear = policyStartDate.getFullYear();
+    
+    // Calcular a qué año pertenece este pago
     const cycleYear = Math.floor((payment.number_payment - 1) / 12);
-    const targetYear = policyStartDate.getFullYear() + cycleYear;
+    const targetYear = startYear + cycleYear;
 
+    // Buscar el periodo por año
     period = policy.periods.find((p) => Number(p.year) === targetYear);
+    
+    // Si no se encuentra por año exacto, buscar el periodo más cercano
+    if (!period) {
+      // Ordenar periodos por año
+      const sortedPeriods = [...policy.periods].sort((a, b) => Number(a.year) - Number(b.year));
+      
+      // Encontrar el periodo correcto basado en el índice del ciclo
+      if (cycleYear < sortedPeriods.length) {
+        period = sortedPeriods[cycleYear];
+      } else {
+        // Si el pago está más allá de los periodos definidos, usar el último
+        period = sortedPeriods[sortedPeriods.length - 1];
+      }
+    }
   }
 
   // Fallback 2: usar createdAt si existe
@@ -116,7 +134,7 @@ export const getAdvisorCommissionForPayment = (payment, policy) => {
     period = policy.periods?.find((p) => p.id === payment.periodId);
   }
 
-  // Último fallback: usar el primer periodo (no el último)
+  // Último fallback: usar el primer periodo
   if (!period && policy.periods?.length) {
     period = policy.periods[0];
   }
@@ -204,7 +222,39 @@ export const calculateTotalAdvisorCommissionsGenerated = (policy) => {
     return Number(policy.paymentsToAdvisor || 0) * periods;
   }
 
-  // ✅ Para pólizas NORMALES: usar pagos generados (como antes)
+  // ✅ VERIFICAR SI TIENE COMISIÓN POR RENOVACIÓN (campo correcto del backend: renewalCommission)
+  const hasRenewalCommission = policy.renewalCommission === true || 
+                                policy.renewalCommission === 1 ||
+                                policy.renewalCommission === "true";
+
+  // DEBUG temporal para VIDAFALSA0002
+  if (policy.numberPolicy === "VIDAFALSA0002") {
+    console.log("🔍 VIDAFALSA0002 - Debug:");
+    console.log("  renewalCommission:", policy.renewalCommission);
+    console.log("  hasRenewalCommission (calculado):", hasRenewalCommission);
+    console.log("  Total pagos:", policy.payments?.length);
+    console.log("  Periodos:", policy.periods?.length);
+    console.log("  Pagos detalle:", policy.payments?.map(p => ({ 
+      num: p.number_payment, 
+      comision: getAdvisorCommissionForPayment(p, policy).toFixed(2)
+    })));
+  }
+
+  // Si NO tiene comisión por renovación, solo contar pagos del PRIMER año
+  if (!hasRenewalCommission) {
+    return policy.payments
+      .filter(payment => {
+        if (!payment.number_payment) return false;
+        // Solo pagos del 1 al 12 (primer año)
+        return payment.number_payment >= 1 && payment.number_payment <= 12;
+      })
+      .reduce(
+        (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
+        0
+      );
+  }
+
+  // ✅ Si tiene renovación: sumar TODOS los pagos generados
   return policy.payments.reduce(
     (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
     0
@@ -230,18 +280,34 @@ export const calculateReleasedCommissionsGenerated = (policy) => {
     return Number(policy.paymentsToAdvisor || 0) * periods;
   }
 
-  // Si es normal, solo libera comisiones de pagos "AL DÍA" (status 2)
-  return policy.payments
-    .filter((payment) => {
-      // Acepta ambos formatos: paymentStatus.id o status_payment_id
-      const statusId = payment.paymentStatus?.id || payment.status_payment_id;
-      return statusId == 2;
-    })
-    .reduce(
-      (total, payment) =>
-        total + getAdvisorCommissionForPayment(payment, policy),
-      0
-    );
+  // ✅ VERIFICAR SI TIENE COMISIÓN POR RENOVACIÓN (campo correcto del backend: renewalCommission)
+  const hasRenewalCommission = policy.renewalCommission === true || 
+                                policy.renewalCommission === 1 ||
+                                policy.renewalCommission === "true";
+
+  // Filtrar pagos "AL DÍA" (status 2)
+  const releasedPayments = policy.payments.filter((payment) => {
+    const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+    return statusId == 2;
+  });
+
+  // Si NO tiene comisión por renovación, solo contar pagos del PRIMER año
+  let paymentsToCount = releasedPayments;
+  
+  if (!hasRenewalCommission) {
+    paymentsToCount = releasedPayments.filter(payment => {
+      if (!payment.number_payment) return false;
+      // Solo pagos del 1 al 12 (primer año)
+      return payment.number_payment >= 1 && payment.number_payment <= 12;
+    });
+  }
+
+  // Calcular comisiones liberadas
+  return paymentsToCount.reduce(
+    (total, payment) =>
+      total + getAdvisorCommissionForPayment(payment, policy),
+    0
+  );
 };
 
 export const calculateReleasedAgencyCommissionsGenerated = (policy) => {
