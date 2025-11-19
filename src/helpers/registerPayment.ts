@@ -249,22 +249,16 @@ export class PaymentSchedulerService implements OnModuleInit {
             
             const createdPaymentsDates: string[] = [];
             
-            // 🔍 LOG DEBUG: Información inicial del ciclo
-            console.log(`🔍 ${policy.numberPolicy}: relevantPayments=${relevantPayments.length}, numberOfPayments=${policy.numberOfPayments}, lastPayment=#${currentPayment.number_payment} (${new Date(currentPayment.createdAt).toISOString().split('T')[0]}), pending_value=${currentPayment.pending_value}`);
-            
             while (iterations < maxIterations) {
               iterations++;
               
               const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
               if (!nextPaymentDate) {
-                console.log(`  ❌ Iter ${iterations}: No se pudo calcular nextPaymentDate`);
                 break;
               }
               
               const todayNorm = DateHelper.normalizeDateForComparison(today);
               const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
-
-              console.log(`  🔄 Iter ${iterations}: nextDate=${nextPaymentDateNorm.toISOString().split('T')[0]}, today=${todayNorm.toISOString().split('T')[0]}, isPast=${nextPaymentDateNorm.getTime() <= todayNorm.getTime()}`);
 
               // Si la fecha del próximo pago es HOY o ANTERIOR
               if (nextPaymentDateNorm.getTime() <= todayNorm.getTime()) {
@@ -273,25 +267,20 @@ export class PaymentSchedulerService implements OnModuleInit {
                   paymentsCreated++;
                   paymentsCreatedForThisPolicy++;
                   createdPaymentsDates.push(nextPaymentDateNorm.toISOString().split('T')[0]);
-                  console.log(`  ✓ Pago #${createdPayment.number_payment} creado`);
                   // Actualizar el pago actual para calcular el siguiente
                   currentPayment = createdPayment;
                   // Actualizar la póliza con el nuevo pago
                   policy.payments.push(createdPayment);
                 } else {
-                  console.log(`  ❌ createOverduePayment retornó null`);
                   break;
                 }
               } else {
-                console.log(`  ⏹ Fecha es futura, deteniendo loop`);
                 break;
               }
               
               // Verificar si ya se completó el ciclo
               const updatedRelevantPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
-              console.log(`  📊 Total payments now: ${updatedRelevantPayments.length}/${policy.numberOfPayments}`);
               if (updatedRelevantPayments.length >= policy.numberOfPayments) {
-                console.log(`  ⏹ Ciclo completo (${updatedRelevantPayments.length} >= ${policy.numberOfPayments}), deteniendo loop`);
                 break;
               }
             }
