@@ -102,17 +102,53 @@ export class PaymentSchedulerService implements OnModuleInit {
             const currentPaymentsCount = policy.payments.length;
             if (currentPaymentsCount >= maxAllowedPayments && payment.pending_value <= 0) continue;
             
-            const nextPaymentDate = this.calculateNextPaymentDate(payment);
-            const todayNorm = DateHelper.normalizeDateForComparison(today);
-            const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+            // 🔧 CREAR TODOS LOS PAGOS FALTANTES HASTA HOY (bucle)
+            // CRÍTICO: Usar el ÚLTIMO pago de la póliza como base, no el primero con pending_value
+            const allPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+            const lastPayment = allPolicyPayments.sort((a, b) => b.number_payment - a.number_payment)[0];
+            let currentPayment = lastPayment || payment;
+            let paymentsCreatedForThisPolicy = 0;
+            const maxIterations = 100; // Protección contra bucle infinito
+            let iterations = 0;
+            const createdPaymentsDates: string[] = [];
+            
+            while (iterations < maxIterations) {
+              iterations++;
+              
+              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
+              if (!nextPaymentDate) break;
+              
+              const todayNorm = DateHelper.normalizeDateForComparison(today);
+              const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
-            // SOLO crear pago si la fecha del próximo pago es HOY exactamente
-            if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
-              const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
-              if (createdPayment) {
-                paymentsCreated++;
+              // Si la fecha del próximo pago es HOY o ANTERIOR
+              if (nextPaymentDateNorm.getTime() <= todayNorm.getTime()) {
+                const createdPayment = await this.createOverduePayment(currentPayment, policy, nextPaymentDateNorm);
+                if (createdPayment) {
+                  paymentsCreated++;
+                  paymentsCreatedForThisPolicy++;
+                  createdPaymentsDates.push(nextPaymentDateNorm.toISOString().split('T')[0]);
+                  // Actualizar el pago actual para calcular el siguiente
+                  currentPayment = createdPayment;
+                  // Actualizar la póliza con el nuevo pago
+                  policy.payments.push(createdPayment);
+                } else {
+                  break;
+                }
+              } else {
+                break;
+              }
+              
+              // Verificar límite de pagos
+              if (policy.payments.length >= maxAllowedPayments) {
+                break;
               }
             }
+            
+            if (paymentsCreatedForThisPolicy > 0) {
+              console.log(`✓ ${policy.numberPolicy || `Póliza ${policy.id}`}: ${paymentsCreatedForThisPolicy} pagos [${createdPaymentsDates.join(', ')}]`);
+            }
+            
           } catch (error) {
             console.error(`Error procesando pago ${payment.id}:`, error);
             continue;
@@ -200,17 +236,57 @@ export class PaymentSchedulerService implements OnModuleInit {
               continue;
             }
             
-            const nextPaymentDate = this.calculateNextPaymentDate(payment);
-            const todayNorm = DateHelper.normalizeDateForComparison(today);
-            const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+            // 🔧 CREAR TODOS LOS PAGOS FALTANTES HASTA HOY (bucle)
+            let currentPayment = payment;
+            let paymentsCreatedForThisPolicy = 0;
+            const maxIterations = 100; // Protección contra bucle infinito
+            let iterations = 0;
+            
+            // 🔧 CRÍTICO: Usar el ÚLTIMO pago de la póliza como base, no el primero con pending_value
+            const allPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+            const lastPayment = allPolicyPayments.sort((a, b) => b.number_payment - a.number_payment)[0];
+            currentPayment = lastPayment || payment;
+            
+            const createdPaymentsDates: string[] = [];
+            
+            while (iterations < maxIterations) {
+              iterations++;
+              
+              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
+              if (!nextPaymentDate) break;
+              
+              const todayNorm = DateHelper.normalizeDateForComparison(today);
+              const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
-            // SOLO crear pago si la fecha del próximo pago es HOY exactamente
-            if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
-              const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
-              if (createdPayment) {
-                paymentsCreated++;
+              // Si la fecha del próximo pago es HOY o ANTERIOR
+              if (nextPaymentDateNorm.getTime() <= todayNorm.getTime()) {
+                const createdPayment = await this.createOverduePayment(currentPayment, policy, nextPaymentDateNorm);
+                if (createdPayment) {
+                  paymentsCreated++;
+                  paymentsCreatedForThisPolicy++;
+                  createdPaymentsDates.push(nextPaymentDateNorm.toISOString().split('T')[0]);
+                  // Actualizar el pago actual para calcular el siguiente
+                  currentPayment = createdPayment;
+                  // Actualizar la póliza con el nuevo pago
+                  policy.payments.push(createdPayment);
+                } else {
+                  break;
+                }
+              } else {
+                break;
+              }
+              
+              // Verificar si ya se completó el ciclo
+              const updatedRelevantPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
+              if (updatedRelevantPayments.length >= policy.numberOfPayments) {
+                break;
               }
             }
+            
+            if (paymentsCreatedForThisPolicy > 0) {
+              console.log(`✓ ${policy.numberPolicy || `Póliza ${policy.id}`}: ${paymentsCreatedForThisPolicy} pagos [${createdPaymentsDates.join(', ')}]`);
+            }
+            
           } catch (error) {
             console.error(`Error procesando pago ${payment.id}:`, error);
           }
@@ -367,11 +443,11 @@ export class PaymentSchedulerService implements OnModuleInit {
           continue;
         }
 
-        const nextPaymentDate = this.calculateNextPaymentDate(payment);
+        const nextPaymentDate = this.calculateNextPaymentDate(payment, policy);
         const todayNorm = DateHelper.normalizeDateForComparison(today);
         const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
-        // SOLO crear pago si la fecha del próximo pago es HOY exactamente
+        // SOLO crear pago si la fecha del próximo pago es HOY o ANTES
         if (nextPaymentDateNorm.getTime() === todayNorm.getTime()) {
           const createdPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm);
           if (createdPayment) {
@@ -420,7 +496,7 @@ export class PaymentSchedulerService implements OnModuleInit {
         const currentPaymentsCount = policy.payments.length;
         if (currentPaymentsCount >= maxAllowedPayments && payment.pending_value <= 0) continue;
 
-        const nextPaymentDate = this.calculateNextPaymentDate(payment);
+        const nextPaymentDate = this.calculateNextPaymentDate(payment, policy);
         const todayNorm = DateHelper.normalizeDateForComparison(today);
         const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
 
@@ -450,7 +526,6 @@ export class PaymentSchedulerService implements OnModuleInit {
         return null;
       }
       if (!policy.payments) {
-        console.error('Error: No se encontraron pagos asociados a la póliza.');
         return null;
       }
       if (!policy.renewals) policy.renewals = [];
@@ -516,12 +591,24 @@ export class PaymentSchedulerService implements OnModuleInit {
   }
 
   // Cálculo de próxima fecha de pago
-  calculateNextPaymentDate(payment: PaymentEntity): Date | null {
-    if (!payment.policies?.paymentFrequency || !payment.createdAt) {
-      console.error(`No se puede calcular la próxima fecha de pago para el pago ID: ${payment.id}.`);
+  calculateNextPaymentDate(payment: PaymentEntity, policy?: PolicyEntity): Date | null {
+    if (!payment.createdAt) {
+      console.error(`No se puede calcular la próxima fecha de pago para el pago ID: ${payment.id} (falta createdAt).`);
       return null;
     }
-    const paymentFrequencyId = Number(payment.policies.paymentFrequency.id);
+    
+    // Intentar obtener la frecuencia desde el payment o desde la policy
+    let paymentFrequencyId: number;
+    
+    if (payment.policies?.paymentFrequency) {
+      paymentFrequencyId = Number(payment.policies.paymentFrequency.id);
+    } else if (policy?.payment_frequency_id) {
+      paymentFrequencyId = Number(policy.payment_frequency_id);
+    } else {
+      console.error(`No se puede calcular la próxima fecha de pago para el pago ID: ${payment.id} (falta frecuencia).`);
+      return null;
+    }
+    
     const lastPaymentDate = DateHelper.normalizeDateForComparison(new Date(payment.createdAt));
     if (isNaN(lastPaymentDate.getTime())) {
       console.error(`Fecha de último pago inválida para el pago ID: ${payment.id}.`);
@@ -619,7 +706,7 @@ export class PaymentSchedulerService implements OnModuleInit {
               continue;
             }
             
-            const nextPaymentDate = this.calculateNextPaymentDate(payment);
+            const nextPaymentDate = this.calculateNextPaymentDate(payment, policy);
             const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
             const newPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm, 'Pago generado de manera manual');
             
@@ -677,7 +764,7 @@ export class PaymentSchedulerService implements OnModuleInit {
           processedPolicies.add(payment.policy_id);
           continue;
         }
-        const nextPaymentDate = this.calculateNextPaymentDate(payment);
+        const nextPaymentDate = this.calculateNextPaymentDate(payment, policy);
         const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
         const newPayment = await this.createOverduePayment(payment, policy, nextPaymentDateNorm, 'Pago generado de manera manual');
         if (newPayment) createdPayments.push(newPayment);
