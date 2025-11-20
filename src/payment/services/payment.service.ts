@@ -384,7 +384,7 @@ export class PaymentService {
           'policies',
           'policies.renewals',
           'policies.periods',
-          'policies.payments', // CRÍTICO: Necesario para el scheduler (calcular último pago, ciclo actual)
+          // 'policies.payments' REMOVIDO: se carga bajo demanda con getPolicyWithPayments()
           'paymentStatus',
           'policies.paymentFrequency',
         ],
@@ -403,13 +403,15 @@ export class PaymentService {
             numberOfPayments: true,
             policy_status_id: true,
             payment_frequency_id: true,
-            payments: {
+            /*
+              payments: {
               id: true,
               number_payment: true,
               pending_value: true,
               createdAt: true,
               policy_id: true,
             },
+            */
           },
         },
         take: limit,
