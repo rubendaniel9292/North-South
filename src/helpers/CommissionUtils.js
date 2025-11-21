@@ -147,9 +147,11 @@ export const getAdvisorCommissionForPayment = (payment, policy) => {
   const advisorPercentage = Number(
     period.advisorPercentage ?? period.advisor_percentage ?? 0
   );
-  const numPayments = Number(
-    period.numberOfPaymentsAdvisor ?? policy.numberOfPaymentsAdvisor ?? 1
-  );
+  
+  // ✅ SIEMPRE usar 12 pagos/año para calcular comisión por pago
+  // Esto mantiene consistencia: la comisión total no cambia si modificas la frecuencia de cobro
+  // La comisión anual se divide entre 12 meses, independiente de cómo el cliente pague
+  const numPayments = 12;
 
   // Comisión de ese pago específico usando los valores del periodo correcto
   return ((policyValue - policyFee) * advisorPercentage) / 100 / numPayments;
@@ -571,7 +573,9 @@ export const getPolicyFields = (policy) => {
     const policyValue = Number(lastPeriod.policyValue || 0);
     const policyFee = Number(lastPeriod.policyFee || 0);
     const advisorPercentage = Number(lastPeriod.advisorPercentage || 0);
-    const numberOfPayments = Number(lastPeriod.numberOfPaymentsAdvisor || 12);
+    
+    // ✅ USAR LA FRECUENCIA ACTUAL DE LA PÓLIZA, NO DEL PERIODO
+    const numberOfPayments = Number(policy.numberOfPaymentsAdvisor || 12);
 
     // Validar valores
     if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage) || isNaN(numberOfPayments) || numberOfPayments === 0) {
@@ -592,7 +596,7 @@ export const getPolicyFields = (policy) => {
       return totalCommissionLastPeriod;
     }
 
-    // Si es normal, se divide entre el número de pagos del último periodo
+    // Si es normal, se divide entre la frecuencia ACTUAL de la póliza
     const result = totalCommissionLastPeriod / numberOfPayments;
     return isNaN(result) || !isFinite(result) ? 0 : result;
   };

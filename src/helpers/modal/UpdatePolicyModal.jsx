@@ -34,6 +34,18 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Mapeo inverso: de número de pagos a ID de frecuencia
+  const getFrequencyIdFromPayments = (numberOfPayments) => {
+    const paymentsToFrequencyMap = {
+      12: 1, // 12 pagos = Mensual (ID 1)
+      4: 2,  // 4 pagos = Trimestral (ID 2)
+      2: 3,  // 2 pagos = Semestral (ID 3)
+      1: 4,  // 1 pago = Anual (ID 4)
+    };
+    return paymentsToFrequencyMap[numberOfPayments] || policy.payment?.paymentFrequency.id || 1;
+  };
+
   const { form, changed } = UserForm({
     numberPolicy: policy.numberPolicy,
     coverageAmount: policy.coverageAmount,
@@ -59,7 +71,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     payment_method_id: policy.paymentMethod.id,
     credit_card_id: policy.creditCard?.id,
     bank_account_id: policy.bankAccount?.id,
-    payment_frequency_id: policy.payment?.paymentFrequency.id,
+    payment_frequency_id: getFrequencyIdFromPayments(policy.numberOfPayments),
     numberOfPayments: policy.numberOfPayments,
     numberOfPaymentsAdvisor: policy.numberOfPayments,
     policy_status_id: policy.policyStatus.id,
