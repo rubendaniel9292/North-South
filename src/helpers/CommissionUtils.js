@@ -670,15 +670,24 @@ export const getPolicyFields = (policy) => {
   const afterBalance = releasedNet - paid - validAppliedHistoricalAdvance;
   const commissionInFavor = Math.max(afterBalance, 0);
 
+  // AJUSTE: Si es escenario 4 (anualizada, sin comisión por renovación), solo considerar el primer periodo para 'commissionInFavor'
+  let commissionInFavorAdjusted = commissionInFavor;
+  let commissionTotalAdjusted = commissionTotal;
+  if (policy.isCommissionAnnualized === true && policy.renewalCommission === false) {
+    const firstPeriod = policy.periods?.reduce((min, curr) => curr.year < min.year ? curr : min, policy.periods[0]);
+    const commissionFirstPeriod = ((Number(firstPeriod.policyValue ?? 0) - Number(firstPeriod.policyFee ?? 0)) * Number(firstPeriod.advisorPercentage ?? 0)) / 100;
+    commissionInFavorAdjusted = Math.max(commissionFirstPeriod - paid - validRefundsAmount, 0);
+    commissionTotalAdjusted = commissionFirstPeriod;
+  }
   return {
-    commissionTotal: Number((commissionTotal || 0).toFixed(2)), // Suma solo pagos generados, usando valores específicos de cada periodo
+    commissionTotal: Number((commissionTotalAdjusted || 0).toFixed(2)),
     released: Number(validReleased.toFixed(2)),
     paid: Number(paid.toFixed(2)),
     appliedHistoricalAdvance: Number(validAppliedHistoricalAdvance.toFixed(2)),
     refundsAmount: Number(validRefundsAmount.toFixed(2)),
-    refundsDetails: refundsData.details, // ✅ CORREGIR: Usar refundsData.details
+    refundsDetails: refundsData.details,
     afterBalance: Number(afterBalance.toFixed(2)),
-    commissionInFavor: Number(commissionInFavor.toFixed(2)),
+    commissionInFavor: Number(commissionInFavorAdjusted.toFixed(2)),
     individualCommission: calculateIndividualCommission(),
     frequencyText: getFrequencyText(),
   };
