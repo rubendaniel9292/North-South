@@ -24,7 +24,7 @@ import {
   faSpinner // NUEVO: Para indicador de carga
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getTotals, getPolicyFields } from "../../helpers/CommissionUtils";
+import { getTotals, getPolicyFields, getReleasedCommissionsLastPeriod } from "../../helpers/CommissionUtils";
 
 // Badge Bootstrap helper
 const Badge = ({ text, color = "secondary" }) => (
@@ -103,6 +103,7 @@ const ListCommissions = () => {
       const response = await http.get(
         `advisor/get-advisor-optimized/${advisorFromNav.id}?page=${page}&limit=50`
       );
+      console.log("response advisor en listado de comisiones:", response.data.advisorById);
 
       if (page === 1) {
         // Primera página
@@ -614,46 +615,26 @@ const ListCommissions = () => {
                         filteredPoliciesWithFields.map((policyFiltered) => {
                           // Calcular pagos liberados (AL DÍA) y total de pagos por periodo
                           let releasedPayments, totalPayments;
-
                           if (policyFiltered.isCommissionAnnualized === true) {
-                            // ✅ PARA ANUALIZADAS: Contar períodos, no pagos mensuales
-                            const totalPeriods =
-                              1 +
-                              (Array.isArray(policyFiltered.renewals)
-                                ? policyFiltered.renewals.length
-                                : 0);
-                            const releasedPeriods = totalPeriods; // Para anualizadas, se liberan todos los períodos
-
-                            releasedPayments = releasedPeriods;
-                            totalPayments = totalPeriods;
-                          } else {
-                            // ✅ PARA NORMALES: Contar pagos liberados del periodo actual (año en curso)
-                            // Obtener el último periodo (año más reciente)
-                            const lastPeriod = policyFiltered.periods?.length
-                              ? policyFiltered.periods.reduce((a, b) => (a.year > b.year ? a : b))
-                              : null;
-
-                            // Total de pagos por año según la frecuencia
-                            totalPayments = policyFiltered.numberOfPaymentsAdvisor || 12;
-
-                            // Obtener todos los pagos liberados (AL DÍA)
-                            const allReleasedPayments = policyFiltered.payments?.filter(
-                              (payment) => {
-                                // Acepta ambos formatos: paymentStatus.id o status_payment_id
-                                const statusId = payment.paymentStatus?.id || payment.status_payment_id;
-                                return statusId == 2;
-                              }
-                            ) || [];
-
-                            // Si hay periodo definido y pagos tienen year, filtrar por último periodo
-                            if (lastPeriod && allReleasedPayments.some(p => p.year)) {
-                              releasedPayments = allReleasedPayments.filter(
-                                (payment) => payment.year === lastPeriod.year
-                              ).length;
+                            // Escenario 4: anualizada sin comisión por renovación
+                            if (policyFiltered.renewalCommission === false) {
+                              releasedPayments = 1;
+                              totalPayments = 1;
+                              // Calcular comisión solo del primer periodo
+                              const firstPeriod = policyFiltered.periods?.reduce((min, curr) => curr.year < min.year ? curr : min, policyFiltered.periods[0]);
+                              policyFiltered.commissionTotal = ((Number(firstPeriod.policyValue ?? 0) - Number(firstPeriod.policyFee ?? 0)) * Number(firstPeriod.advisorPercentage ?? 0)) / 100;
+                              policyFiltered.individualCommission = policyFiltered.commissionTotal;
                             } else {
-                              // Si no hay year en pagos, tomar los últimos N pagos liberados según totalPayments
-                              releasedPayments = Math.min(allReleasedPayments.length, totalPayments);
+                              // Para anualizadas con comisión por renovación: mostrar todos los periodos como liberados
+                              const totalPeriods = 1 + (Array.isArray(policyFiltered.renewals) ? policyFiltered.renewals.length : 0);
+                              releasedPayments = totalPeriods;
+                              totalPayments = totalPeriods;
                             }
+                          } else {
+                            // Para normales: usar helper para liberadas/total del último periodo
+                            const { liberadas, total } = getReleasedCommissionsLastPeriod(policyFiltered);
+                            releasedPayments = liberadas;
+                            totalPayments = total;
                           }
 
                           return (
@@ -757,10 +738,15 @@ const ListCommissions = () => {
                                   </small>
                                 </td>
                                 <td className="fw-bold text-warning">
-                                  ${
-                                    isNaN(policyFiltered.released) || !isFinite(policyFiltered.released)
-                                      ? "0.00"
-                                      : Number(policyFiltered.released).toFixed(2)
+                                  {
+                                    policyFiltered.isCommissionAnnualized === true && policyFiltered.renewalCommission === false
+                                      ? (() => {
+                                          const firstPeriod = policyFiltered.periods?.reduce((min, curr) => curr.year < min.year ? curr : min, policyFiltered.periods[0]);
+                                          return ((Number(firstPeriod.policyValue ?? 0) - Number(firstPeriod.policyFee ?? 0)) * Number(firstPeriod.advisorPercentage ?? 0)).toFixed(2) / 100;
+                                        })()
+                                      : (isNaN(policyFiltered.released) || !isFinite(policyFiltered.released)
+                                          ? "0.00"
+                                          : Number(policyFiltered.released).toFixed(2))
                                   }
                                 </td>
                                 <td className="fw-bold text-danger">

@@ -388,7 +388,7 @@ const ListPolicies = memo(() => {
             {/* Botón de pruebas (temporal) */}
             <div className="col-md-3 mb-3" >
               <div className="d-grid">
-                {/* Botón para registro manual de pagos (solo para pruebas) 
+                {/* Botón para registro manual de pagos (solo para pruebas) */ }
                 <button
                   className="btn btn-danger fw-bold"
                   onClick={() => registerPaymentTest()}
@@ -399,7 +399,7 @@ const ListPolicies = memo(() => {
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
                 </small>
-*/}
+
                 <button
                   className="btn btn-secondary w-100 mb-2"
                   onClick={clearFilters}

@@ -1,3 +1,39 @@
+// Devuelve { liberadas, total } del último periodo para mostrar en columna "N° comisiones liberadas"
+export function getReleasedCommissionsLastPeriod(policy) {
+  if (!policy || !policy.payments || !policy.periods || policy.periods.length === 0) {
+    return { liberadas: 0, total: 0 };
+  }
+  // Escenario 4: anualizada y sin comisión por renovación
+  if (policy.isCommissionAnnualized === true && policy.renewalCommission === false) {
+    // Solo el primer periodo
+    const firstPeriod = policy.periods.reduce((min, curr) => curr.year < min.year ? curr : min, policy.periods[0]);
+    const firstPeriodIndex = policy.periods.findIndex(p => p.id === firstPeriod.id);
+    const pagosPorPeriodo = firstPeriod.numberOfPaymentsAdvisor || policy.numberOfPaymentsAdvisor || 1;
+    const startPayment = firstPeriodIndex * pagosPorPeriodo + 1;
+    const endPayment = startPayment + pagosPorPeriodo - 1;
+    const liberadas = policy.payments.filter(
+      (p) => (p.status_payment_id === '2' || p.status_payment_id === 2) &&
+        p.number_payment >= startPayment && p.number_payment <= endPayment
+    ).length;
+    return { liberadas, total: pagosPorPeriodo };
+  }
+  // Si no hay comisión por renovación, tomar solo el primer periodo
+  const useFirstPeriod = policy.renewalCommission === false;
+  const targetPeriod = useFirstPeriod
+    ? policy.periods.reduce((min, curr) => curr.year < min.year ? curr : min, policy.periods[0])
+    : policy.periods.reduce((max, curr) => curr.year > max.year ? curr : max, policy.periods[0]);
+  const targetPeriodIndex = policy.periods.findIndex(p => p.id === targetPeriod.id);
+  const pagosPorPeriodo = targetPeriod.numberOfPaymentsAdvisor || policy.numberOfPaymentsAdvisor || 12;
+  const startPayment = targetPeriodIndex * pagosPorPeriodo + 1;
+  const endPayment = startPayment + pagosPorPeriodo - 1;
+  // Pagos liberados en el periodo correspondiente
+  const liberadas = policy.payments.filter(
+    (p) => (p.status_payment_id === '2' || p.status_payment_id === 2) &&
+      p.number_payment >= startPayment && p.number_payment <= endPayment
+  ).length;
+  return { liberadas, total: pagosPorPeriodo };
+}
+
 // Comisión de asesor/agencia por periodo (teórico, por periodo)
 export const calculateAdvisorCommissionPerPeriod = (period) => {
   if (!period) return 0;
@@ -273,43 +309,22 @@ export const calculateTotalAgencyCommissionsGenerated = (policy) => {
 
 // Comisión liberada: solo pagos creados y liberados (AL DÍA)
 export const calculateReleasedCommissionsGenerated = (policy) => {
-  if (!policy || !Array.isArray(policy.payments)) return 0;
-  // Si la comisión está anualizada, libera TODA la comisión generada
-  // PÓLIZA ANUALIZADA (sin cambios)
-  if (policy.isCommissionAnnualized === true) {
-    const periods =
-      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
-    return Number(policy.paymentsToAdvisor || 0) * periods;
-  }
-
-  // ✅ VERIFICAR SI TIENE COMISIÓN POR RENOVACIÓN (campo correcto del backend: renewalCommission)
-  const hasRenewalCommission = policy.renewalCommission === true || 
-                                policy.renewalCommission === 1 ||
-                                policy.renewalCommission === "true";
-
-  // Filtrar pagos "AL DÍA" (status 2)
-  const releasedPayments = policy.payments.filter((payment) => {
-    const statusId = payment.paymentStatus?.id || payment.status_payment_id;
-    return statusId == 2;
-  });
-
-  // Si NO tiene comisión por renovación, solo contar pagos del PRIMER año
-  let paymentsToCount = releasedPayments;
-  
-  if (!hasRenewalCommission) {
-    paymentsToCount = releasedPayments.filter(payment => {
-      if (!payment.number_payment) return false;
-      // Solo pagos del 1 al 12 (primer año)
-      return payment.number_payment >= 1 && payment.number_payment <= 12;
-    });
-  }
-
-  // Calcular comisiones liberadas
-  return paymentsToCount.reduce(
-    (total, payment) =>
-      total + getAdvisorCommissionForPayment(payment, policy),
-    0
+ 
+  if (!policy || !policy.payments || !policy.periods || policy.periods.length === 0) return 0;
+  // Encontrar el último periodo (mayor año)
+  const lastPeriod = policy.periods.reduce((max, curr) => curr.year > max.year ? curr : max, policy.periods[0]);
+  // Determinar el índice del último periodo
+  const lastPeriodIndex = policy.periods.findIndex(p => p.id === lastPeriod.id);
+  // Calcular el rango de pagos para ese periodo
+  const pagosPorPeriodo = policy.numberOfPayments || 12;
+  const startPayment = lastPeriodIndex * pagosPorPeriodo + 1;
+  const endPayment = startPayment + pagosPorPeriodo - 1;
+  // Filtrar pagos liberados del último periodo
+  const releasedPayments = policy.payments.filter(
+    (p) => (p.status_payment_id === '2' || p.status_payment_id === 2) &&
+      p.number_payment >= startPayment && p.number_payment <= endPayment
   );
+  return releasedPayments.length;
 };
 
 export const calculateReleasedAgencyCommissionsGenerated = (policy) => {
@@ -742,95 +757,57 @@ export const calculateAdvisorAndAgencyPayments = (
 export const calculateReleasedCommissions = (policy) => {
   if (!policy) return 0;
 
-  // ✅ PÓLIZA ANUALIZADA: Usar cálculo por períodos
+  // PÓLIZA ANUALIZADA: Usar cálculo por períodos (sin cambios)
   if (policy.isCommissionAnnualized === true) {
-    // ✅ CAMBIAR: En lugar de usar policy.paymentsToAdvisor
-    // Calcular la suma de todos los períodos
     if (policy.periods && Array.isArray(policy.periods)) {
       let total = 0;
       for (const period of policy.periods) {
         const policyValue = Number(period.policyValue || 0);
         const policyFee = Number(period.policyFee || 0);
         const advisorPercentage = Number(period.advisorPercentage || 0);
-
-        // Validar que los valores son números válidos
         if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
-          continue; // Saltar período con valores inválidos
+          continue;
         }
-
-        const periodCommission =
-          ((policyValue - policyFee) * advisorPercentage) / 100;
-        
-        // Validar que el resultado es un número válido
+        const periodCommission = ((policyValue - policyFee) * advisorPercentage) / 100;
         if (!isNaN(periodCommission) && isFinite(periodCommission)) {
           total += periodCommission;
         }
       }
       return total;
     }
-
-    // Fallback al método anterior si no hay períodos
-    const periods =
-      1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
+    const periods = 1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
     const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
-    
-    // Validar valores antes de calcular
     if (isNaN(paymentsToAdvisor) || isNaN(periods)) {
       return 0;
     }
-    
     return paymentsToAdvisor * periods;
   }
 
-  // ✅ PÓLIZA NORMAL: Mejorar validación de valores
-  const numberOfPayments = Number(policy.numberOfPaymentsAdvisor) || 1;
-  const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
-  
-  // Validar que los valores son números válidos
-  if (isNaN(numberOfPayments) || isNaN(paymentsToAdvisor) || numberOfPayments === 0) {
-    return 0;
-  }
-
-  const paymentPerInstallment = paymentsToAdvisor / numberOfPayments;
-  
-  // Validar el resultado de la división
-  if (isNaN(paymentPerInstallment) || !isFinite(paymentPerInstallment)) {
-    return 0;
-  }
-
-  const releasedInstallments = Array.isArray(policy.payments)
-    ? policy.payments.filter(
-        (payment) => {
-          // Acepta ambos formatos: paymentStatus.id o status_payment_id
-          const statusId = payment.paymentStatus?.id || payment.status_payment_id;
-          return statusId == 2;
-        }
-      ).length
-    : 0;
-
-  let releasedInstallmentsRenewals = 0;
-  if (Array.isArray(policy.renewals)) {
-    for (const renewal of policy.renewals) {
-      if (Array.isArray(renewal.payments)) {
-        releasedInstallmentsRenewals += renewal.payments.filter(
-          (payment) => {
-            // Acepta ambos formatos: paymentStatus.id o status_payment_id
-            const statusId = payment.paymentStatus?.id || payment.status_payment_id;
-            return statusId == 2;
-          }
-        ).length;
+  // PÓLIZA NORMAL: Sumar la comisión real de cada pago liberado usando los valores del periodo correspondiente
+  let totalReleased = 0;
+  if (Array.isArray(policy.payments)) {
+    for (const payment of policy.payments) {
+      const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+      if (statusId == 2) {
+        totalReleased += getAdvisorCommissionForPayment(payment, policy);
       }
     }
   }
-
-  const totalReleased =
-    (releasedInstallments + releasedInstallmentsRenewals) *
-    paymentPerInstallment;
-    
-  // Validar el resultado final
+  // Si hay renovaciones, sumar también los pagos liberados de cada renovación
+  if (Array.isArray(policy.renewals)) {
+    for (const renewal of policy.renewals) {
+      if (Array.isArray(renewal.payments)) {
+        for (const payment of renewal.payments) {
+          const statusId = payment.paymentStatus?.id || payment.status_payment_id;
+          if (statusId == 2) {
+            totalReleased += getAdvisorCommissionForPayment(payment, policy);
+          }
+        }
+      }
+    }
+  }
   if (isNaN(totalReleased) || !isFinite(totalReleased)) {
     return 0;
   }
-    
   return totalReleased;
 };
