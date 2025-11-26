@@ -360,7 +360,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Número de póliza
                   </label>
                   <input
-                    readOnly
+                    
                     required
                     type="text"
                     className="form-control"
@@ -377,7 +377,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Tipo
                   </label>
                   <select
-                    readOnly
+                    
                     className="form-select"
                     id="policy_type_id"
                     name="policy_type_id"
