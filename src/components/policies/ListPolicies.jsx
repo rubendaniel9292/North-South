@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
+
 import Modal from "../../helpers/modal/Modal";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
@@ -118,6 +119,7 @@ const ListPolicies = memo(() => {
   }, []);
 
   //metodo de prueba de registro de pago de poliza
+  /*
 
   const registerPaymentTest = useCallback(async () => {
     try {
@@ -134,6 +136,34 @@ const ListPolicies = memo(() => {
 
         // Programar otra actualización después de un breve retraso
         // para asegurarse de que los datos del servidor estén actualizados
+        setTimeout(async () => {
+          await getAllPolicies();
+        }, 2000);
+      } else {
+        alerts("Error", response.data.message, "error");
+      }
+    } catch (error) {
+      alerts("Error", "No se pudo ejecutar la consulta", "error");
+      console.error("Error registering payment:", error);
+    }
+  }, [getAllPolicies]);
+  */
+  const registerPaymentTest = useCallback(async (createFuture = false) => {
+    try {
+      // Agregar el query parameter si createFuture es true
+      const url = createFuture
+        ? `payment/manual-process-payments?createFuture=true`
+        : `payment/manual-process-payments`;
+
+      const response = await http.post(url);
+      console.log("respuesta de la peticion: ", response.data);
+
+      if (response.data.status === "success") {
+        alerts("Pago registrado", response.data.message, "success");
+        console.log("Pagos creados:", response.data.data.createdPayments);
+
+        await getAllPolicies();
+
         setTimeout(async () => {
           await getAllPolicies();
         }, 2000);
@@ -215,7 +245,7 @@ const ListPolicies = memo(() => {
         }
         return p;
       });
-      
+
       console.log("📊 Total pólizas después de actualización:", updatedPolicies.length);
       return updatedPolicies;
     });
@@ -241,7 +271,7 @@ const ListPolicies = memo(() => {
     setTypesFilter("");
     setQuery("");
   };
-  
+
   const {
     query,
     setQuery,
@@ -258,7 +288,7 @@ const ListPolicies = memo(() => {
   // ✅ Filtrado combinado mejorado con comparaciones estrictas y debugging
   const filteredPolicy = useMemo(() => {
     let result = searchedPolicies;
-    
+
     console.log("🔍 Aplicando filtros:");
     console.log("- Pólizas base:", searchedPolicies.length);
     console.log("- statusFilter:", statusFilter, typeof statusFilter);
@@ -274,16 +304,16 @@ const ListPolicies = memo(() => {
         const filterValue = statusFilter;
         // ✅ Convertir ambos valores a string para comparación consistente
         const matches = String(policyStatusId) === String(filterValue);
-        
+
         if (!matches) {
           console.log(`❌ Póliza ${policy.numberPolicy}: statusId=${policyStatusId} (${typeof policyStatusId}) !== filter=${filterValue} (${typeof filterValue})`);
         }
-        
+
         return matches;
       });
       console.log(`- Después filtro estado: ${beforeCount} → ${result.length}`);
     }
-    
+
     // Aplicar filtro por compañía si está seleccionado
     if (companyFilter) {
       const beforeCount = result.length;
@@ -314,7 +344,7 @@ const ListPolicies = memo(() => {
     }
 
     console.log("✅ Resultado final filtrado:", result.length, "pólizas");
-    
+
     return result;
   }, [
     searchedPolicies,
@@ -388,10 +418,10 @@ const ListPolicies = memo(() => {
             {/* Botón de pruebas (temporal) */}
             <div className="col-md-3 mb-3" >
               <div className="d-grid">
-                {/* Botón para registro manual de pagos (solo para pruebas) */ }
+                {/* Botón para registro manual de pagos (solo para pruebas) */}
                 <button
                   className="btn btn-danger fw-bold"
-                  onClick={() => registerPaymentTest()}
+                  onClick={() => registerPaymentTest(true)}
                 >
                   <FontAwesomeIcon icon={faCogs} className="me-2" />
                   Registro manual de pagos (prueba)
@@ -407,7 +437,7 @@ const ListPolicies = memo(() => {
                   <FontAwesomeIcon icon={faBroom} className="me-2" />
                   Limpiar filtros
                 </button>
-              
+
               </div>
             </div>
           </div>
