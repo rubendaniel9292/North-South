@@ -40,6 +40,8 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
         ];
   const { form, setForm } = UserForm({ periods: initialPeriods });
   console.log("polizas con periodos:", policy);
+  console.log("🔍 Periodos iniciales:", initialPeriods);
+  console.log("📅 Año de inicio de póliza:", getInitialYear(policy));
 
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -179,7 +181,19 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
 
       if (atLeastOneSuccess) {
         await fetchPeriods();
-        onPolicyUpdated();
+        
+        // ✅ Recargar la póliza completa desde el servidor con sus valores actualizados
+        try {
+          const updatedPolicyResponse = await http.get(`policy/get-policy-id/${policy.id}`);
+          
+          if (updatedPolicyResponse.data.status === "success") {
+            // Notificar al componente padre con la póliza actualizada
+            onPolicyUpdated(updatedPolicyResponse.data.policyById);
+          }
+        } catch (error) {
+          console.error("Error recargando póliza después de actualizar valores:", error);
+        }
+        
         setTimeout(() => {
           alerts(
             "¡Actualizado!",
@@ -226,12 +240,12 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
     return groups;
   }, [form.periods]);
   
-  // Inicializar grupo seleccionado (último grupo por defecto)
+  // Inicializar grupo seleccionado (primer grupo por defecto para mostrar el periodo inicial)
   useEffect(() => {
     const groups = groupPeriodsByYears();
     if (groups.length > 0) {
-      // Seleccionar el último grupo (más reciente) por defecto
-      setSelectedGroupRange(groups[groups.length - 1].range);
+      // Seleccionar el primer grupo (que incluye el periodo inicial) por defecto
+      setSelectedGroupRange(groups[0].range);
     }
   }, [groupPeriodsByYears]);
   

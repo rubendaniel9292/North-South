@@ -312,8 +312,20 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             "success"
           );
 
-          // Llamar a la función de callback para propagar el cambio
-          onPolicyUpdated(request.data.policyUpdate);
+          // ✅ Recargar la póliza completa desde el servidor con sus datos actualizados
+          try {
+            const updatedPolicyResponse = await http.get(`policy/get-policy-id/${policy.id}`);
+            
+            if (updatedPolicyResponse.data.status === "success") {
+              // Llamar a la función de callback para propagar el cambio con datos frescos
+              onPolicyUpdated(updatedPolicyResponse.data.policyById);
+            }
+          } catch (error) {
+            console.error("Error recargando póliza después de actualizar:", error);
+            // Fallback: usar los datos del response original
+            onPolicyUpdated(request.data.policyUpdate);
+          }
+          
           setTimeout(() => {
             onClose();
           }, 500);

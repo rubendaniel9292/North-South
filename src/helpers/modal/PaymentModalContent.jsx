@@ -6,7 +6,7 @@ import { faRectangleXmark } from "@fortawesome/free-solid-svg-icons";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-const PaymentModalContent = ({ policy, onClose }) => {
+const PaymentModalContent = ({ policy, onClose, onPolicyUpdated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataValid, setIsDataValid] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState([]);
@@ -199,10 +199,25 @@ const PaymentModalContent = ({ policy, onClose }) => {
           "success"
         );
 
+        // ✅ Recargar la póliza completa desde el servidor con sus pagos actualizados
+        if (onPolicyUpdated) {
+          try {
+            const updatedPolicyResponse = await http.get(`policy/get-policy-id/${policy.id}`);
+            
+            if (updatedPolicyResponse.data.status === "success") {
+              // Notificar al componente padre con la póliza actualizada
+              onPolicyUpdated(updatedPolicyResponse.data.policyById);
+            }
+          } catch (error) {
+            console.error("Error recargando póliza después de actualizar pago:", error);
+          }
+        }
+
         document.querySelector("#user-form").reset();
         setTimeout(() => {
           onClose();
         }, 500);
+        
         // Verificar si se han completado todos los pagos
         if (
           form.pending_value <= 0 &&
@@ -440,6 +455,7 @@ const PaymentModalContent = ({ policy, onClose }) => {
 };
 
 PaymentModalContent.propTypes = {
+  onPolicyUpdated: PropTypes.func,
   policy: PropTypes.shape({
     id: PropTypes.number.isRequired,
     numberPolicy: PropTypes.number.isRequired,

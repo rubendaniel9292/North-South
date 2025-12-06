@@ -11,14 +11,10 @@ import useAuth from "../../hooks/useAuth";
 // ✅ Importar iconos de FontAwesome
 import {
   faSearch,
-  faFilter,
   faInfoCircle,
   faBroom,
   faCogs,
-  faFlask,
   faWrench,
-  faTrash,
-  faVial,
   faBuilding,
   faUserTie,
   faList,
@@ -26,7 +22,6 @@ import {
   faAdjust,
   faEye,
   faEdit,
-  faSync,
   faRedo,
   faFileContract,
   faUser,
@@ -46,19 +41,7 @@ const POLICY_STATUS = {
   TO_COMPLETE: "4"
 };
 
-// ✅ Función utilitaria para mergear datos anidados
-const mergeNestedData = (existing, updates) => ({
-  ...existing,
-  ...updates,
-  customer: updates.customer || existing.customer,
-  company: updates.company || existing.company,
-  policyType: updates.policyType || existing.policyType,
-  policyStatus: updates.policyStatus || existing.policyStatus,
-  paymentMethod: updates.paymentMethod || existing.paymentMethod,
-  paymentFrequency: updates.paymentFrequency || existing.paymentFrequency,
-  payments: updates.payments || existing.payments,
-  renewals: updates.renewals || existing.renewals,
-});
+
 
 const ListPolicies = memo(() => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
@@ -162,11 +145,14 @@ const ListPolicies = memo(() => {
         alerts("Pago registrado", response.data.message, "success");
         console.log("Pagos creados:", response.data.data.createdPayments);
 
-        await getAllPolicies();
+        // ✅ Recargar todas las pólizas desde el servidor con los pagos actualizados
+        const policiesResponse = await http.get("/policy/get-all-policy-optimized");
 
-        setTimeout(async () => {
-          await getAllPolicies();
-        }, 2000);
+        if (policiesResponse.data.status === "success") {
+          // Forzar actualización completa del estado con nuevas referencias
+          setPolicies(policiesResponse.data.allPolicy);
+          console.log("✅ Todas las pólizas actualizadas desde el servidor");
+        }
       } else {
         alerts("Error", response.data.message, "error");
       }
@@ -174,7 +160,7 @@ const ListPolicies = memo(() => {
       alerts("Error", "No se pudo ejecutar la consulta", "error");
       console.error("Error registering payment:", error);
     }
-  }, [getAllPolicies]);
+  }, []);
 
   // Abrir modal y obtener la póliza seleccionada
   const openModal = () => {
@@ -228,20 +214,36 @@ const ListPolicies = memo(() => {
 
     console.log("🔄 Póliza actualizada recibida:", policyUpdated);
     console.log("- ID:", policyUpdated.id);
-    console.log("- Nuevo estado:", policyUpdated.policyStatus);
+    console.log("- Pagos recibidos:", policyUpdated.payments?.length);
 
-    // Actualizar inmediatamente la póliza en el estado local
+    // Extraer solo el último pago si existe
+    const freshPolicy = { ...policyUpdated };
+    if (freshPolicy.payments && freshPolicy.payments.length > 0) {
+      const lastPayment = freshPolicy.payments.reduce(
+        (latest, payment) =>
+          parseInt(payment.number_payment || 0) > parseInt(latest.number_payment || 0)
+            ? payment
+            : latest,
+        freshPolicy.payments[0]
+      );
+      freshPolicy.payments = [lastPayment]; // Solo mantener el último pago
+
+      console.log("📥 Último pago extraído:", {
+        number_payment: lastPayment.number_payment,
+        pending_value: lastPayment.pending_value
+      });
+    }
+
+    // Actualizar inmediatamente la póliza en el estado local con datos frescos
     setPolicies((prevPolicies) => {
       const updatedPolicies = prevPolicies.map((p) => {
         if (p.id === policyUpdated.id) {
-          const merged = mergeNestedData(p, policyUpdated);
           console.log("✅ Póliza actualizada localmente:", {
-            id: merged.id,
-            numberPolicy: merged.numberPolicy,
-            oldStatus: p.policyStatus,
-            newStatus: merged.policyStatus
+            id: freshPolicy.id,
+            numberPolicy: freshPolicy.numberPolicy,
+            lastPaymentPending: freshPolicy.payments?.[0]?.pending_value
           });
-          return merged;
+          return freshPolicy;
         }
         return p;
       });
@@ -252,16 +254,10 @@ const ListPolicies = memo(() => {
 
     // También actualizamos la póliza seleccionada si es necesario
     if (policy && policy.id === policyUpdated.id) {
-      setPolicy(prevPolicy => mergeNestedData(prevPolicy, policyUpdated));
+      setPolicy(freshPolicy);
       console.log("🎯 Póliza seleccionada también actualizada");
     }
-
-    // Forzar recarga desde servidor como respaldo (reducido el tiempo)
-    setTimeout(async () => {
-      console.log("🔄 Recargando pólizas desde servidor...");
-      await getAllPolicies();
-    }, 300); // ✅ Reducido de 500ms a 300ms
-  }, [policy, getAllPolicies]);
+  }, [policy]);
 
   // ✅ función para limpiar filtros
   const clearFilters = () => {
@@ -288,14 +284,14 @@ const ListPolicies = memo(() => {
   // ✅ Filtrado combinado mejorado con comparaciones estrictas y debugging
   const filteredPolicy = useMemo(() => {
     let result = searchedPolicies;
-
-    console.log("🔍 Aplicando filtros:");
-    console.log("- Pólizas base:", searchedPolicies.length);
-    console.log("- statusFilter:", statusFilter, typeof statusFilter);
-    console.log("- companyFilter:", companyFilter, typeof companyFilter);
-    console.log("- advisorFilter:", advisorFilter, typeof advisorFilter);
-    console.log("- typesFilter:", typesFilter, typeof typesFilter);
-
+    /*
+        console.log("🔍 Aplicando filtros:");
+        console.log("- Pólizas base:", searchedPolicies.length);
+        console.log("- statusFilter:", statusFilter, typeof statusFilter);
+        console.log("- companyFilter:", companyFilter, typeof companyFilter);
+        console.log("- advisorFilter:", advisorFilter, typeof advisorFilter);
+        console.log("- typesFilter:", typesFilter, typeof typesFilter);
+    */
     // Aplicar filtro por estado si está seleccionado
     if (statusFilter) {
       const beforeCount = result.length;
@@ -690,26 +686,26 @@ const ListPolicies = memo(() => {
                             Actualizar
                           </button>
 
-                          {/*Identifica correctamente el último pago : 
-                      Usando reduce() para encontrar el pago con el número más alto, independientemente del orden en el array.*/}
+                          {/* ✅ Verifica que el ÚLTIMO pago tenga pending_value = 0 */}
                           <button
                             className="btn btn-secondary text-white fw-bold my-1 w-100"
                             onClick={() => getPolicyById(policy.id, "renewal")}
                             aria-label={`Renovar póliza ${policy.numberPolicy}`}
                             title="Renovar póliza para el siguiente período"
-                            disabled={
-                              !policy.payments?.length ||
-                              parseFloat(
-                                policy.payments.reduce(
-                                  (latest, payment) =>
-                                    parseInt(payment.number_payment) >
-                                      parseInt(latest.number_payment)
-                                      ? payment
-                                      : latest,
-                                  policy.payments[0]
-                                ).pending_value
-                              ) > 0
-                            }
+                            disabled={(() => {
+                              if (!policy.payments?.length) return true;
+
+                              const lastPayment = policy.payments.reduce(
+                                (latest, payment) =>
+                                  parseInt(payment.number_payment || 0) > parseInt(latest.number_payment || 0)
+                                    ? payment
+                                    : latest,
+                                policy.payments[0]
+                              );
+
+                              const pendingValue = parseFloat(lastPayment.pending_value ?? lastPayment.pendingValue ?? 0);
+                              return pendingValue > 0;
+                            })()}
                           >
                             <FontAwesomeIcon icon={faRedo} className="me-2" />
                             Renovar póliza

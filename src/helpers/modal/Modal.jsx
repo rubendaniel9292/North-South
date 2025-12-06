@@ -48,7 +48,8 @@ export default function Modal({
         return (
           <PaymentModalContent
             onClose={onClose}
-            policy={policy} //onPaymentUpdate={onPaymentUpdate}
+            policy={policy}
+            onPolicyUpdated={onPolicyUpdated}
           />
         );
       case "info":
