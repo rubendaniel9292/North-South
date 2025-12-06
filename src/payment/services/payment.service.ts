@@ -25,6 +25,12 @@ export class PaymentService {
 
   private async invalidatePolicyRelatedCache(policy: PolicyEntity) {
     try {
+      // ✅ CRÍTICO: Incrementar versión del caché de políticas
+      const versionKey = 'policies_cache_version';
+      const newVersion = Date.now().toString();
+      await this.redisService.set(versionKey, newVersion, 86400); // 24 horas
+      console.log(`🔄 Cache version actualizada a: ${newVersion} (desde payment service)`);
+
       // Cachés básicos de la póliza
       await this.redisService.del(`policy:${policy.id}`);
       await this.redisService.del('policies');
@@ -34,6 +40,9 @@ export class PaymentService {
       await this.redisService.del(`policy:${policy.id}:renewals`);
       await this.redisService.del(`policy:${policy.id}:commissions`);
       await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
+
+      // ✅ NUEVO: Invalidar cache optimizado de pólizas
+      await this.redisService.del('GLOBAL_ALL_POLICIES_optimized');
 
       // Cachés por compañía (si existe)
       if (policy.company?.id) {

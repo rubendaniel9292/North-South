@@ -5,10 +5,14 @@ import { PaymentEntity } from '../payment/entity/payment.entity';
 import { PaymentDTO } from '@/payment/dto/payment.dto';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { DateHelper } from './date.helper';
+import { RedisModuleService } from '@/redis-module/services/redis-module.service';
 
 @Injectable()
 export class PaymentSchedulerService implements OnModuleInit {
-  constructor(private readonly paymentService: PaymentService) { }
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly redisService: RedisModuleService,
+  ) { }
 
   /**
    * Función optimizada para verificar si hay pagos pendientes sin cargar todos los pagos en memoria
@@ -162,6 +166,12 @@ export class PaymentSchedulerService implements OnModuleInit {
       // Resumen consolidado solo si se procesó algo
       if (totalProcessed > 0) {
         console.log(`✅ Verificación diaria por lotes completada: ${totalProcessed} pólizas verificadas, ${paymentsCreated} pagos creados`);
+        
+        // ⭐ CRÍTICO: Invalidar caché para que frontend vea los cambios sin reiniciar
+        if (paymentsCreated > 0) {
+          await this.invalidatePolicyCaches();
+          console.log('🔄 Cachés de pólizas invalidados - Frontend verá los cambios inmediatamente');
+        }
       }
     } catch (error) {
       console.error('Error en la verificación diaria por lotes:', error);
@@ -306,6 +316,12 @@ export class PaymentSchedulerService implements OnModuleInit {
 
       // Resumen consolidado final
       console.log(`🎉 Procesamiento por lotes completado: ${totalProcessed} pólizas procesadas, ${paymentsCreated} pagos creados, ${skippedPolicies} pólizas omitidas (canceladas/culminadas)`);
+
+      // ⭐ CRÍTICO: Invalidar caché para que frontend vea los cambios sin reiniciar
+      if (paymentsCreated > 0) {
+        await this.invalidatePolicyCaches();
+        console.log('🔄 Cachés de pólizas invalidados - Frontend verá los cambios inmediatamente');
+      }
 
     } catch (error) {
       console.error('Error en el procesamiento por lotes:', error);
@@ -781,6 +797,13 @@ export class PaymentSchedulerService implements OnModuleInit {
   async manualProcessPayments(createFuturePayments: boolean = false) {
     console.log(`Iniciando procesamiento manual de pagos por lotes... ${createFuturePayments ? '(INCLUYENDO SIGUIENTE PAGO FUTURO)' : '(SOLO HASTA HOY)'}`);
     try {
+      // ✅ CRÍTICO: Invalidar caché ANTES de procesar para evitar race condition
+      await this.invalidatePolicyCaches();
+      console.log('✅ Caché invalidado ANTES de procesar pagos manuales');
+      
+      // ⏱️ Esperar para asegurar que la invalidación se propague en Redis
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Cuando createFuturePayments es true, obtener TODAS las pólizas (no solo con pending_value > 0)
       // Cuando es false, solo las que tienen pending_value > 0
       const totalPolicies = createFuturePayments
@@ -796,72 +819,134 @@ export class PaymentSchedulerService implements OnModuleInit {
         };
       }
 
-      // Usar lotes para el procesamiento manual también
-      const batchSize = this.getBatchSize(totalPolicies);
-      const totalBatches = Math.ceil(totalPolicies / batchSize);
-
-      console.log(`📊 Procesamiento manual: ${totalPolicies} registros, lotes de ${batchSize}, total de lotes: ${totalBatches}`);
+      console.log(`📊 Procesamiento manual: ${totalPolicies} pólizas a verificar`);
 
       const createdPayments = [];
       const processedPolicies = new Set<number>();
-      let currentBatch = 1;
 
-      // Procesar por lotes
-      for (let offset = 0; offset < totalPolicies; offset += batchSize) {
-        console.log(`🔄 Procesando lote manual ${currentBatch}/${totalBatches} (registros ${offset + 1}-${Math.min(offset + batchSize, totalPolicies)})`);
-
-        // Obtener el lote actual - DIFERENTE según el modo
-        const batchPayments = createFuturePayments
-          ? await this.paymentService.getPaymentsPaginated(batchSize, offset) // TODOS los pagos
-          : await this.paymentService.getPaymentsWithPendingValuePaginated(batchSize, offset); // Solo con pending_value > 0
-
-        if (batchPayments.length === 0) {
-          console.log(`✅ Lote ${currentBatch} vacío, finalizando procesamiento manual`);
-          break;
-        }
-
-        // Procesar cada pago del lote
-        for (const payment of batchPayments) {
+      if (createFuturePayments) {
+        // MODO FUTURO: Procesar pólizas directamente por ID
+        // Obtener las primeras N pólizas activas
+        for (let policyId = 1; policyId <= totalPolicies; policyId++) {
           try {
-            if (processedPolicies.has(payment.policy_id)) continue;
+            const policy = await this.paymentService.getPolicyWithPayments(policyId);
 
-            const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+            if (!policy || !policy.id) continue; // Póliza no existe
+            if (processedPolicies.has(policy.id)) continue;
             if (!policy.renewals) policy.renewals = [];
 
             if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
-              processedPolicies.add(payment.policy_id);
+              processedPolicies.add(policy.id);
               continue;
             }
 
-            // 🔧 NUEVO: Si createFuturePayments es true, crear el SIGUIENTE pago (incluso si es futuro)
-            if (createFuturePayments) {
-              // Obtener el último pago de la póliza
-              const allPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
-              const lastPayment = allPolicyPayments.sort((a, b) => b.number_payment - a.number_payment)[0];
-              const basePayment = lastPayment || payment;
+            // Obtener el último pago de la póliza (si existe)
+            const allPolicyPayments = policy.payments || [];
+            const lastPayment = allPolicyPayments.sort((a, b) => b.number_payment - a.number_payment)[0];
 
-              // Calcular la siguiente fecha de pago
-              const nextPaymentDate = this.calculateNextPaymentDate(basePayment, policy);
+            if (!lastPayment) {
+              // Póliza sin pagos: crear el primer pago
+              console.log(`📝 Póliza ${policy.numberPolicy || policy.id}: Sin pagos, creando primer pago`);
 
-              if (nextPaymentDate) {
-                const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+              const firstPaymentDate = DateHelper.normalizeDateForComparison(new Date(policy.startDate));
+              const valueToPay = Number(policy.policyValue) / Number(policy.numberOfPayments);
+              const remainingPayments = Number(policy.numberOfPayments) - 1;
+              const pendingValue = remainingPayments * valueToPay;
 
-                const newPayment = await this.createOverduePayment(
-                  basePayment,
-                  policy,
-                  nextPaymentDateNorm,
-                  'Pago futuro generado manualmente para verificación',
-                  true // skipPendingValueCheck = true para permitir crear desde pagos con pending_value = 0
-                );
+              const newPayment = await this.paymentService.createPayment({
+                policy_id: policy.id,
+                number_payment: 1,
+                value: valueToPay,
+                pending_value: Number(pendingValue.toFixed(2)),
+                credit: 0,
+                balance: valueToPay,
+                total: 0,
+                status_payment_id: 1,
+                observations: 'Primer pago generado manualmente',
+                createdAt: firstPaymentDate,
+              });
 
-                if (newPayment) {
-                  createdPayments.push(newPayment);
-                  console.log(`✓ Póliza ${policy.numberPolicy || policy.id}: Pago #${newPayment.number_payment} creado para ${nextPaymentDateNorm.toISOString().split('T')[0]} (valor: $${newPayment.value}, pendiente: $${newPayment.pending_value})`);
-                } else {
-                  console.warn(`⚠️ No se pudo crear el pago futuro para póliza ${policy.numberPolicy || policy.id}`);
-                }
+              if (newPayment) {
+                createdPayments.push(newPayment);
+                console.log(`✓ Póliza ${policy.numberPolicy || policy.id}: Pago #1 creado`);
               }
-            } else {
+
+              processedPolicies.add(policy.id);
+              continue;
+            }
+
+            const basePayment = lastPayment;
+
+            // ⚠️ VALIDACIÓN CRÍTICA: Verificar si el siguiente pago excede los ciclos disponibles
+            // O si el último pago ya tiene pending_value = 0 (ciclo completo)
+            const totalPaymentsPerCycle = Number(policy.numberOfPayments);
+            const totalRenewals = policy.renewals?.length || 0;
+            const totalCyclesAvailable = 1 + totalRenewals; // Ciclo inicial + renovaciones
+            const maxPaymentNumber = totalCyclesAvailable * totalPaymentsPerCycle;
+            const nextPaymentNumber = basePayment.number_payment + 1;
+
+            // Bloquear si excede ciclos O si el último pago ya está completo (pending_value = 0)
+            if (nextPaymentNumber > maxPaymentNumber || basePayment.pending_value <= 0) {
+              console.log(`⚠️ Póliza ${policy.numberPolicy || policy.id}: No se puede crear pago #${nextPaymentNumber}. Razón: ${basePayment.pending_value <= 0 ? 'pending_value=0 (ciclo completo)' : `Excede ciclos (${totalCyclesAvailable} ciclos = ${maxPaymentNumber} pagos máx)`}. Se requiere renovación.`);
+              processedPolicies.add(policy.id);
+              continue;
+            }
+
+            // Calcular la siguiente fecha de pago
+            const nextPaymentDate = this.calculateNextPaymentDate(basePayment, policy);
+
+            if (nextPaymentDate) {
+              const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
+
+              const newPayment = await this.createOverduePayment(
+                basePayment,
+                policy,
+                nextPaymentDateNorm,
+                'Pago futuro generado manualmente para verificación',
+                true // skipPendingValueCheck = true para permitir crear desde pagos con pending_value = 0
+              );
+
+              if (newPayment) {
+                createdPayments.push(newPayment);
+                console.log(`✓ Póliza ${policy.numberPolicy || policy.id}: Pago #${newPayment.number_payment} creado para ${nextPaymentDateNorm.toISOString().split('T')[0]} (valor: $${newPayment.value}, pendiente: $${newPayment.pending_value})`);
+              }
+            }
+
+            processedPolicies.add(policy.id);
+          } catch (error) {
+            // Póliza no existe o error, continuar con la siguiente
+            continue;
+          }
+        }
+      } else {
+        // MODO NORMAL: Usar paginación por pagos (comportamiento original)
+        const batchSize = this.getBatchSize(totalPolicies);
+        const totalBatches = Math.ceil(totalPolicies / batchSize);
+        let currentBatch = 1;
+
+        for (let offset = 0; offset < totalPolicies; offset += batchSize) {
+          console.log(`🔄 Procesando lote manual ${currentBatch}/${totalBatches} (registros ${offset + 1}-${Math.min(offset + batchSize, totalPolicies)})`);
+
+          const batchPayments = await this.paymentService.getPaymentsWithPendingValuePaginated(batchSize, offset);
+
+          if (batchPayments.length === 0) {
+            console.log(`✅ Lote ${currentBatch} vacío, finalizando procesamiento manual`);
+            break;
+          }
+
+          // Procesar cada pago del lote
+          for (const payment of batchPayments) {
+            try {
+              if (processedPolicies.has(payment.policy_id)) continue;
+
+              const policy = await this.paymentService.getPolicyWithPayments(payment.policy_id);
+              if (!policy.renewals) policy.renewals = [];
+
+              if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+                processedPolicies.add(policy.id);
+                continue;
+              }
+
               // Comportamiento original: solo crear el siguiente pago si es hoy o anterior
               const nextPaymentDate = this.calculateNextPaymentDate(payment, policy);
               const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
@@ -874,31 +959,37 @@ export class PaymentSchedulerService implements OnModuleInit {
                   createdPayments.push(newPayment);
                 }
               }
+
+              processedPolicies.add(payment.policy_id);
+            } catch (error) {
+              console.error(`Error procesando pago manual ${payment.id}:`, error);
             }
-
-            processedPolicies.add(payment.policy_id);
-          } catch (error) {
-            console.error(`Error procesando pago manual ${payment.id}:`, error);
           }
-        }
 
-        // Progreso del lote
-        console.log(`✅ Lote manual ${currentBatch} completado`);
-        currentBatch++;
+          // Progreso del lote
+          console.log(`✅ Lote manual ${currentBatch} completado`);
+          currentBatch++;
 
-        // Pequeña pausa entre lotes para no sobrecargar
-        if (currentBatch <= totalBatches) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Pequeña pausa entre lotes para no sobrecargar
+          if (currentBatch <= totalBatches) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         }
       }
 
       console.log(`🎉 Procesamiento manual por lotes completado: ${processedPolicies.size} pólizas procesadas, ${createdPayments.length} pagos creados`);
 
+      // ✅ Invalidar caché NUEVAMENTE al final (doble invalidación para garantizar)
+      await this.invalidatePolicyCaches();
+      console.log('✅ Caché invalidado DESPUÉS del procesamiento manual');
+      
+      // ⏱️ Esperar para asegurar propagación antes de devolver control
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       return {
         message: `Procesamiento manual completado: ${createdPayments.length} pagos creados ${createFuturePayments ? '(incluyendo siguiente pago futuro)' : '(solo hasta hoy)'}`,
         createdPayments,
         totalProcessed: processedPolicies.size,
-        totalBatches,
         includedFuturePayments: createFuturePayments
       };
     } catch (error) {
@@ -938,6 +1029,34 @@ export class PaymentSchedulerService implements OnModuleInit {
     } catch (error) {
       console.error('Error en el procesamiento manual:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Invalida todos los cachés relacionados con pólizas después de crear pagos automáticamente
+   * Esto asegura que el frontend vea los cambios inmediatamente sin reiniciar el sistema
+   */
+  private async invalidatePolicyCaches(): Promise<void> {
+    try {
+      // 🔄 Incrementar versión del caché (CRÍTICO para sistema de versionado)
+      const versionKey = 'policies_cache_version';
+      const newVersion = Date.now().toString();
+      await this.redisService.set(versionKey, newVersion, 86400);
+      console.log(`🔄 Cache version actualizada a: ${newVersion} (desde scheduler)`);
+
+      // Cachés globales de pólizas (incluye el optimizado que usa el frontend)
+      await this.redisService.del('GLOBAL_ALL_POLICIES');
+      await this.redisService.del('GLOBAL_ALL_POLICIES_optimized'); // ⭐ CRÍTICO para el frontend
+      await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
+      
+      // Cachés de pagos
+      await this.redisService.del('payments');
+      await this.redisService.del('paymentsByStatus:general');
+      
+      console.log('✅ Cachés críticos invalidados: GLOBAL_ALL_POLICIES_optimized, payments');
+    } catch (error) {
+      console.warn('⚠️ Advertencia: No se pudieron invalidar algunos cachés:', error.message);
+      // No lanzar error para no interrumpir el procesamiento
     }
   }
 }

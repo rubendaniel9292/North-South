@@ -363,6 +363,12 @@ export class PolicyService extends ValidateEntity {
   // Invalidar cachés relacionados con pólizas
   private async invalidateCaches(advisorId?: number, policyId?: number): Promise<void> {
     try {
+      // ✅ CRÍTICO: Incrementar versión del caché para invalidar todas las variantes
+      const versionKey = 'policies_cache_version';
+      const newVersion = Date.now().toString();
+      await this.redisService.set(versionKey, newVersion, 86400); // 24 horas
+      console.log(`🔄 Cache version actualizada a: ${newVersion}`);
+
       // Cachés globales
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES + '_optimized'); // ⭐ AGREGAR CACHÉ OPTIMIZADO
@@ -408,10 +414,10 @@ export class PolicyService extends ValidateEntity {
     try {
       const cacheKey = CacheKeys.GLOBAL_ALL_POLICIES;
       const cachedData = await this.redisService.get(cacheKey);
-      
+
       const cacheOptimizedKey = CacheKeys.GLOBAL_ALL_POLICIES + '_optimized';
       const cachedOptimizedData = await this.redisService.get(cacheOptimizedKey);
-      
+
       // Si hay búsqueda, también verificar esas claves
       let searchCacheStatus = null;
       if (search) {
@@ -423,7 +429,7 @@ export class PolicyService extends ValidateEntity {
           searchCachedDataLength: searchCachedData ? JSON.parse(searchCachedData).length : 0
         };
       }
-      
+
       return {
         cacheKey,
         hasCachedData: !!cachedData,
@@ -486,7 +492,7 @@ export class PolicyService extends ValidateEntity {
       );
 
       await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
-      
+
       return newPolicy;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -595,7 +601,7 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
-      
+
       // Solo guardar en caché si NO hay búsqueda específica
       if (!search) {
         await this.redisService.set(
@@ -604,7 +610,7 @@ export class PolicyService extends ValidateEntity {
           32400
         ); // TTL de 9 horas
       }
-      
+
       //console.log(policies)
       return policies;
     } catch (error) {
@@ -612,18 +618,27 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //2B: Método OPTIMIZADO para consultar todas las políticas SIN payments (EVITA MEMORY LEAK)
+  //2B: Método OPTIMIZADO para consultar todas las políticas CON solo el último pago (EVITA MEMORY LEAK)
   public getAllPoliciesOptimized = async (search?: string): Promise<PolicyEntity[]> => {
     try {
-      // Cache específico para versión optimizada
-      const cacheKey = search ? `policies_optimized:${search}` : CacheKeys.GLOBAL_ALL_POLICIES + '_optimized';
+      // 🔄 Sistema de versionado de caché (elimina race conditions)
+      const versionKey = 'policies_cache_version';
+      const cacheVersion = await this.redisService.get(versionKey) || Date.now().toString();
+      
+      // Clave de caché versionada
+      const baseCacheKey = search ? `policies_optimized:${search}` : `${CacheKeys.GLOBAL_ALL_POLICIES}_optimized`;
+      const cacheKey = `${baseCacheKey}:v${cacheVersion}`;
+      
+      console.log(`🔍 Buscando caché con versión: ${cacheVersion}`);
 
-      if (!search) {
-        const cachedPolicies = await this.redisService.get(cacheKey);
-        if (cachedPolicies) {
-          return JSON.parse(cachedPolicies);
-        }
+      // Verificar caché primero
+      const cachedData = await this.redisService.get(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Cache hit - Retornando ${JSON.parse(cachedData).length} pólizas (v${cacheVersion})`);
+        return JSON.parse(cachedData);
       }
+
+      console.log(`❌ Cache miss - Consultando BD`);
 
       // Crea un array de condiciones de búsqueda
       const whereConditions: any[] = [];
@@ -644,7 +659,7 @@ export class PolicyService extends ValidateEntity {
           'paymentFrequency',
           'company',
           'customer',
-          'advisor',  
+          'advisor',
 
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
@@ -667,7 +682,7 @@ export class PolicyService extends ValidateEntity {
             firstName: true,
             secondName: true,
             surname: true,
-            secondSurname: true,  
+            secondSurname: true,
           },
 
         },
@@ -680,13 +695,35 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // Solo cache si no hay búsqueda específica
+      // ✅ CRÍTICO: Cargar solo el último pago de cada póliza (por NÚMERO, no por fecha)
+      for (const policy of policies) {
+        // Obtener el último pago (el de mayor número de pago)
+        const lastPayment = await this.paymentRepository.findOne({
+          where: { policy_id: policy.id },
+          order: { 
+            number_payment: 'DESC'  // ⭐ PRIORIDAD: Siempre el número más alto
+          },
+          select: ['id', 'number_payment', 'pending_value', 'value', 'status_payment_id', 'createdAt']
+        });
+        console.log(`Buscando último pago para póliza ${policy.numberPolicy} (ID: ${policy.id})`);
+
+        // Agregar el último pago al array payments (solo si existe)
+        if (lastPayment) {
+          policy.payments = [lastPayment];
+          console.log(`📊 Póliza ${policy.numberPolicy}: Último pago #${lastPayment.number_payment} (${new Date(lastPayment.createdAt).toISOString().split('T')[0]}), pending_value = ${lastPayment.pending_value}`);
+        } else {
+          policy.payments = [];
+        }
+      }
+
+      // Cachear con clave versionada (solo si no hay búsqueda)
       if (!search) {
         await this.redisService.set(
           cacheKey,
           JSON.stringify(policies),
-          14400 // TTL de 4 horas
+          3600 // TTL de 1 hora
         );
+        console.log(`✅ Políticas cacheadas con versión ${cacheVersion} (TTL: 1h)`);
       }
 
       return policies;
@@ -1111,8 +1148,8 @@ export class PolicyService extends ValidateEntity {
       updateData.endDate = endDate;
 
       // 🔧 NUEVO: Detectar si la startDate cambió para ajustar fechas de pagos
-      const startDateChanged = updateData.startDate && 
-        DateHelper.normalizeDateForComparison(oldStartDate).getTime() !== 
+      const startDateChanged = updateData.startDate &&
+        DateHelper.normalizeDateForComparison(oldStartDate).getTime() !==
         DateHelper.normalizeDateForComparison(startDate).getTime();
 
       // Respetar el estado "Cancelado" enviado desde el frontend
@@ -1137,7 +1174,7 @@ export class PolicyService extends ValidateEntity {
           oldAdvisorId,
           updateData.advisor_id
         );
-        
+
         console.log(`✅ Eliminación completada:`, deleteResult);
         console.log(`💰 Dinero liberado: $${deleteResult.totalDeleted} disponible para el nuevo asesor`);
         console.log(`📋 Log de auditoría:`, deleteResult.auditLog.join(' | '));
@@ -1179,12 +1216,11 @@ export class PolicyService extends ValidateEntity {
       );
 
       await this.invalidateCaches(policy.advisor_id, id);
+      
+      // ✅ NO volver a cachear inmediatamente - dejar que la próxima consulta lo cachee con datos frescos
+      // Esto evita inconsistencias cuando updatedPolicy se llama desde createRenevalAndUpdate
+      
       await new Promise(resolve => setTimeout(resolve, 100));
-      await this.redisService.set(
-        `policy:${id}`,
-        JSON.stringify(policyUpdate),
-        32400,
-      );
 
       // Agregar información del ajuste de fechas en la respuesta si ocurrió
       if (dateAdjustmentResult) {
@@ -1287,9 +1323,15 @@ export class PolicyService extends ValidateEntity {
       // Invalidar cachés específicos y globales
       await this.invalidateCaches(policy.advisor_id, policy.id);
 
-      // ✅ INVALIDAR ESPECÍFICAMENTE EL CACHE DE PAYMENTS
+      // ✅ INVALIDAR TODOS LOS CACHÉS DE PÓLIZAS (para que frontend vea cambios inmediatamente)
       await this.redisService.del('payments');
-      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES)
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES + '_optimized');
+      await this.redisService.del('paymentsByStatus:general');
+      
+      // ✅ CRÍTICO: Invalidar caché de póliza individual (con renewals)
+      await this.redisService.del(`policy:${policy.id}`);
+      await this.redisService.del(`policy:${policy.id}:renewals`);
 
       // Pequeña pausa para asegurar que la invalidación se complete
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -1427,10 +1469,6 @@ export class PolicyService extends ValidateEntity {
 
       // 3. Calcular el PERIODO ANUAL basado en la fecha de inicio de la póliza
       const policyStartDate = new Date(policy.startDate);
-      const startMonth = policyStartDate.getMonth();
-      const startDay = policyStartDate.getDate();
-
-      // Calcular cuántos años han pasado desde el inicio de la póliza hasta el año objetivo
       const policyStartYear = policyStartDate.getFullYear();
       const yearsDifference = year - policyStartYear;
 
@@ -1446,30 +1484,37 @@ export class PolicyService extends ValidateEntity {
 
       console.log(`📅 Periodo anual ${year}: ${periodStartDate.toISOString().split('T')[0]} → ${periodEndDate.toISOString().split('T')[0]}`);
 
-      // 4. Obtener todos los pagos del periodo especificado
-      const paymentsOfYear = await this.paymentRepository
-        .createQueryBuilder('payment')
-        .where('payment.policy_id = :policy_id', { policy_id })
-        .andWhere('payment.createdAt >= :periodStartDate', { periodStartDate })
-        .andWhere('payment.createdAt <= :periodEndDate', { periodEndDate })
-        .orderBy('payment.number_payment', 'ASC')
-        .getMany();
+      // 4. Obtener todos los pagos del periodo especificado usando TypeORM
+      const paymentsOfYear = await this.paymentRepository.find({
+        where: {
+          policy_id: policy_id,
+        },
+        order: {
+          number_payment: 'ASC',
+        },
+      });
 
-      if (paymentsOfYear.length === 0) {
-        console.log(`⚠️ No se encontraron pagos para el periodo anual ${year} (${periodStartDate.toISOString().split('T')[0]} - ${periodEndDate.toISOString().split('T')[0]})`);
+      // Filtrar pagos dentro del rango de fechas
+      const filteredPayments = paymentsOfYear.filter(payment => {
+        const paymentDate = new Date(payment.createdAt);
+        return paymentDate >= periodStartDate && paymentDate <= periodEndDate;
+      });
+
+      if (filteredPayments.length === 0) {
+        console.log(`⚠️ No se encontraron pagos para el periodo anual ${year}`);
         return {
           updatedPayments: 0,
           message: `No hay pagos para recalcular en el periodo anual ${year}`,
         };
       }
 
-      console.log(`📋 Encontrados ${paymentsOfYear.length} pagos para recalcular en el periodo`);
+      console.log(`📋 Encontrados ${filteredPayments.length} pagos para recalcular en el periodo`);
 
       // 5. Recalcular valores y pending_value para cada pago
       let updatedCount = 0;
       let accumulatedValue = 0;
 
-      for (const payment of paymentsOfYear) {
+      for (const payment of filteredPayments) {
         const oldValue = Number(payment.value);
         const oldPending = Number(payment.pending_value);
         const oldBalance = Number(payment.balance || 0);
@@ -1483,17 +1528,14 @@ export class PolicyService extends ValidateEntity {
         payment.pending_value = newPendingValue > 0 ? newPendingValue : 0;
 
         // Recalcular balance considerando abonos previos
-        // balance = value - credit - total
         const credit = Number(payment.credit || 0);
         const total = Number(payment.total || 0);
         const newBalance = newValuePerPayment - credit - total;
-        
-        // Solo actualizar balance si el pago NO está completamente pagado (status_payment_id != 2)
-        // Si está pagado (status=2), balance debería ser 0
+
+        // Solo actualizar balance si el pago NO está completamente pagado
         if (payment.status_payment_id === 2) {
           payment.balance = 0;
         } else {
-          // Para pagos pendientes o atrasados, recalcular balance
           payment.balance = newBalance > 0 ? newBalance : 0;
         }
 
@@ -1552,7 +1594,7 @@ export class PolicyService extends ValidateEntity {
         isUpdate = true;
         oldValue = Number(period.policyValue);
         const newValue = Number(data.policyValue);
-        
+
         period.policyValue = data.policyValue;
         period.agencyPercentage = data.agencyPercentage;
         period.advisorPercentage = data.advisorPercentage;
@@ -1730,18 +1772,18 @@ export class PolicyService extends ValidateEntity {
       // 9. INVALIDAR CACHÉS RELACIONADOS (fuera de la transacción)
       try {
         await this.invalidateCaches(policy.advisor_id, policyId);
-        
+
         // Cachés adicionales específicos de la póliza eliminada
         await this.redisService.del(`policy:${policyId}`);
         await this.redisService.del(`policy:${policyId}:periods`);
         await this.redisService.del(`policy:${policyId}:renewals`);
         await this.redisService.del(`policy:${policyId}:commissions`);
-        
+
         // Cachés globales
         await this.redisService.del('policies');
         await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
         await this.redisService.del('payments');
-        
+
         console.log('✓ Cachés invalidados correctamente');
       } catch (cacheError) {
         console.warn('⚠️ Warning: Error al invalidar cachés:', cacheError.message);
@@ -1845,13 +1887,13 @@ export class PolicyService extends ValidateEntity {
       // 4. Contar registros antes de eliminar
       const oldPaymentsCount = policy.payments?.length || 0;
       const oldRenewalsCount = policy.renewals?.length || 0;
-      
+
       console.log(`📊 Registros actuales: ${oldPaymentsCount} pagos, ${oldRenewalsCount} renovaciones`);
 
       // 5. Verificar si hay pagos PAGADOS (status=2)
       const paidPayments = policy.payments?.filter(p => p.status_payment_id === 2) || [];
       let warningMessage: string | undefined;
-      
+
       if (paidPayments.length > 0) {
         warningMessage = `⚠️ ADVERTENCIA: Se eliminarán ${paidPayments.length} pagos que ya estaban PAGADOS. Esto puede afectar reportes históricos.`;
         console.log(warningMessage);
@@ -1859,10 +1901,10 @@ export class PolicyService extends ValidateEntity {
 
       // 6. ELIMINAR todos los pagos y renovaciones existentes
       console.log('🗑️ Eliminando pagos y renovaciones existentes...');
-      
+
       await queryRunner.manager.delete(PaymentEntity, { policy_id: policyId });
       console.log(`  ✓ ${oldPaymentsCount} pagos eliminados`);
-      
+
       await queryRunner.manager.delete(RenewalEntity, { policy_id: policyId });
       console.log(`  ✓ ${oldRenewalsCount} renovaciones eliminadas`);
 
@@ -1872,13 +1914,13 @@ export class PolicyService extends ValidateEntity {
 
       // 8. REGENERAR pagos y renovaciones con la nueva fecha
       console.log('🔄 Regenerando con nueva fecha...');
-      
+
       const today = new Date();
       const paymentFrequency = Number(policy.payment_frequency_id);
-      
+
       // Regenerar pagos iniciales (hasta hoy o primera renovación)
       await this.generatePaymentsUsingService(policy, normalizedNewStart, today, paymentFrequency);
-      
+
       // Regenerar renovaciones y sus pagos (solo hasta hoy)
       await this.handleRenewals(policy, normalizedNewStart, today);
 
