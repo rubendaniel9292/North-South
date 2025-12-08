@@ -695,43 +695,66 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // ✅ OPTIMIZACIÓN: Cargar todos los últimos pagos en UNA SOLA consulta
+      // ⚠️ TEMPORALMENTE DESACTIVADO: Carga de pagos (para pruebas de performance)
+      console.log(`⏭️ Carga de pagos DESACTIVADA - Retornando ${policies.length} pólizas sin pagos`);
+      policies.forEach(policy => {
+        policy.payments = [];
+      });
+
+      /* DESACTIVADO TEMPORALMENTE
+      // ✅ OPTIMIZACIÓN: Cargar últimos pagos por lotes (evita timeout en producción)
       const policyIds = policies.map(p => p.id);
       
       console.log(`🔍 Iniciando carga de últimos pagos para ${policyIds.length} pólizas...`);
       const startTime = Date.now();
 
       try {
-        // Subconsulta para obtener el último número de pago de cada póliza
-        const lastPayments = await this.paymentRepository
-          .createQueryBuilder('payment')
-          .select([
-            'payment.id',
-            'payment.policy_id',
-            'payment.number_payment',
-            'payment.pending_value',
-            'payment.value',
-            'payment.status_payment_id',
-            'payment.createdAt'
-          ])
-          .where('payment.policy_id IN (:...policyIds)', { policyIds })
-          .andWhere((qb) => {
-            const subQuery = qb
-              .subQuery()
-              .select('MAX(p2.number_payment)')
-              .from('payment_record', 'p2')
-              .where('p2.policy_id = payment.policy_id')
-              .getQuery();
-            return `payment.number_payment = ${subQuery}`;
-          })
-          .getMany();
+        const BATCH_SIZE = 200; // Procesar en lotes de 200 pólizas
+        const allLastPayments: PaymentEntity[] = [];
+        
+        // Dividir en lotes
+        for (let i = 0; i < policyIds.length; i += BATCH_SIZE) {
+          const batchIds = policyIds.slice(i, i + BATCH_SIZE);
+          console.log(`📦 Procesando lote ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(policyIds.length / BATCH_SIZE)} (${batchIds.length} pólizas)`);
+          
+          const batchStartTime = Date.now();
+          
+          // Subconsulta para obtener el último número de pago de cada póliza del lote
+          const batchPayments = await this.paymentRepository
+            .createQueryBuilder('payment')
+            .select([
+              'payment.id',
+              'payment.policy_id',
+              'payment.number_payment',
+              'payment.pending_value',
+              'payment.value',
+              'payment.status_payment_id',
+              'payment.createdAt'
+            ])
+            .where('payment.policy_id IN (:...batchIds)', { batchIds })
+            .andWhere((qb) => {
+              const subQuery = qb
+                .subQuery()
+                .select('MAX(p2.number_payment)')
+                .from('payment_record', 'p2')
+                .where('p2.policy_id = payment.policy_id')
+                .getQuery();
+              return `payment.number_payment = ${subQuery}`;
+            })
+            .getMany();
+
+          allLastPayments.push(...batchPayments);
+          
+          const batchEndTime = Date.now();
+          console.log(`   ✓ Lote completado en ${batchEndTime - batchStartTime}ms (${batchPayments.length} pagos)`);
+        }
 
         const endTime = Date.now();
-        console.log(`✅ Pagos cargados en ${endTime - startTime}ms`);
+        console.log(`✅ TOTAL: Pagos cargados en ${endTime - startTime}ms`);
 
         // Mapear pagos a sus respectivas pólizas
         const paymentsByPolicy = new Map();
-        lastPayments.forEach(payment => {
+        allLastPayments.forEach(payment => {
           paymentsByPolicy.set(payment.policy_id, payment);
         });
 
@@ -741,7 +764,7 @@ export class PolicyService extends ValidateEntity {
           policy.payments = lastPayment ? [lastPayment] : [];
         });
 
-        console.log(`📊 Cargados ${lastPayments.length} últimos pagos para ${policies.length} pólizas en ${endTime - startTime}ms`);
+        console.log(`📊 Cargados ${allLastPayments.length} últimos pagos para ${policies.length} pólizas en ${endTime - startTime}ms`);
       } catch (paymentError) {
         console.error('❌ ERROR al cargar pagos:', paymentError.message);
         console.error('Stack:', paymentError.stack);
@@ -751,6 +774,7 @@ export class PolicyService extends ValidateEntity {
         });
         console.warn('⚠️ Continuando sin pagos debido al error');
       }
+      FIN CÓDIGO DESACTIVADO */
 
       // Cachear con clave versionada (solo si no hay búsqueda)
       if (!search) {
