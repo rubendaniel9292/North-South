@@ -695,62 +695,86 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // ⚠️ TEMPORALMENTE DESACTIVADO: Carga de pagos (para pruebas de performance)
-      console.log(`⏭️ Carga de pagos DESACTIVADA - Retornando ${policies.length} pólizas sin pagos`);
-      policies.forEach(policy => {
-        policy.payments = [];
-      });
-
-      /* DESACTIVADO TEMPORALMENTE
-      // ✅ OPTIMIZACIÓN: Cargar últimos pagos por lotes (evita timeout en producción)
+      // ✅ OPTIMIZACIÓN AGRESIVA: Cargar últimos pagos con lotes pequeños y timeouts
       const policyIds = policies.map(p => p.id);
       
-      console.log(`🔍 Iniciando carga de últimos pagos para ${policyIds.length} pólizas...`);
+      console.log(`🔍 Iniciando carga OPTIMIZADA de últimos pagos para ${policyIds.length} pólizas...`);
       const startTime = Date.now();
 
       try {
-        const BATCH_SIZE = 200; // Procesar en lotes de 200 pólizas
+        const BATCH_SIZE = 100; // ⚡ Reducido a 100 para evitar timeouts
+        const MAX_BATCH_TIME = 5000; // ⏱️ Máximo 5 segundos por lote
         const allLastPayments: PaymentEntity[] = [];
+        let failedBatches = 0;
         
-        // Dividir en lotes
+        // Dividir en lotes pequeños
+        const totalBatches = Math.ceil(policyIds.length / BATCH_SIZE);
+        
         for (let i = 0; i < policyIds.length; i += BATCH_SIZE) {
           const batchIds = policyIds.slice(i, i + BATCH_SIZE);
-          console.log(`📦 Procesando lote ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(policyIds.length / BATCH_SIZE)} (${batchIds.length} pólizas)`);
+          const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+          
+          console.log(`📦 Lote ${batchNumber}/${totalBatches} (${batchIds.length} pólizas)`);
           
           const batchStartTime = Date.now();
           
-          // Subconsulta para obtener el último número de pago de cada póliza del lote
-          const batchPayments = await this.paymentRepository
-            .createQueryBuilder('payment')
-            .select([
-              'payment.id',
-              'payment.policy_id',
-              'payment.number_payment',
-              'payment.pending_value',
-              'payment.value',
-              'payment.status_payment_id',
-              'payment.createdAt'
-            ])
-            .where('payment.policy_id IN (:...batchIds)', { batchIds })
-            .andWhere((qb) => {
-              const subQuery = qb
-                .subQuery()
-                .select('MAX(p2.number_payment)')
-                .from('payment_record', 'p2')
-                .where('p2.policy_id = payment.policy_id')
-                .getQuery();
-              return `payment.number_payment = ${subQuery}`;
-            })
-            .getMany();
+          try {
+            // Usar Promise.race para timeout por lote
+            const batchPaymentsPromise = this.paymentRepository
+              .createQueryBuilder('payment')
+              .select([
+                'payment.id',
+                'payment.policy_id',
+                'payment.number_payment',
+                'payment.pending_value',
+                'payment.value',
+                'payment.status_payment_id',
+                'payment.createdAt'
+              ])
+              .where('payment.policy_id IN (:...batchIds)', { batchIds })
+              .andWhere((qb) => {
+                const subQuery = qb
+                  .subQuery()
+                  .select('MAX(p2.number_payment)')
+                  .from('payment_record', 'p2')
+                  .where('p2.policy_id = payment.policy_id')
+                  .getQuery();
+                return `payment.number_payment = ${subQuery}`;
+              })
+              .getMany();
 
-          allLastPayments.push(...batchPayments);
-          
-          const batchEndTime = Date.now();
-          console.log(`   ✓ Lote completado en ${batchEndTime - batchStartTime}ms (${batchPayments.length} pagos)`);
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Batch timeout')), MAX_BATCH_TIME)
+            );
+
+            const batchPayments = await Promise.race([batchPaymentsPromise, timeoutPromise]);
+            
+            allLastPayments.push(...batchPayments);
+            
+            const batchEndTime = Date.now();
+            const batchTime = batchEndTime - batchStartTime;
+            console.log(`   ✓ Lote ${batchNumber} completado en ${batchTime}ms (${batchPayments.length} pagos)`);
+            
+            // Pequeña pausa entre lotes para no saturar la BD
+            if (i + BATCH_SIZE < policyIds.length) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+          } catch (batchError) {
+            failedBatches++;
+            console.error(`   ❌ Error en lote ${batchNumber}:`, batchError.message);
+            // Continuar con el siguiente lote sin detener todo
+          }
         }
 
         const endTime = Date.now();
-        console.log(`✅ TOTAL: Pagos cargados en ${endTime - startTime}ms`);
+        const totalTime = endTime - startTime;
+        
+        if (failedBatches > 0) {
+          console.warn(`⚠️ ${failedBatches}/${totalBatches} lotes fallaron - Continuando con pagos parciales`);
+        }
+        
+        console.log(`✅ TOTAL: ${allLastPayments.length} pagos cargados en ${totalTime}ms`);
 
         // Mapear pagos a sus respectivas pólizas
         const paymentsByPolicy = new Map();
@@ -758,23 +782,23 @@ export class PolicyService extends ValidateEntity {
           paymentsByPolicy.set(payment.policy_id, payment);
         });
 
-        // Asignar el último pago a cada póliza
+        // Asignar el último pago a cada póliza (o array vacío si no hay pago)
         policies.forEach(policy => {
           const lastPayment = paymentsByPolicy.get(policy.id);
           policy.payments = lastPayment ? [lastPayment] : [];
         });
 
-        console.log(`📊 Cargados ${allLastPayments.length} últimos pagos para ${policies.length} pólizas en ${endTime - startTime}ms`);
+        console.log(`📊 Resultado: ${allLastPayments.length} pagos asignados a ${policies.length} pólizas`);
+        
       } catch (paymentError) {
-        console.error('❌ ERROR al cargar pagos:', paymentError.message);
+        console.error('❌ ERROR CRÍTICO al cargar pagos:', paymentError.message);
         console.error('Stack:', paymentError.stack);
-        // Si falla la carga de pagos, continuar sin ellos (mejor que fallar todo)
+        // Fallback: continuar sin pagos si todo falla
         policies.forEach(policy => {
           policy.payments = [];
         });
-        console.warn('⚠️ Continuando sin pagos debido al error');
+        console.warn('⚠️ Continuando SIN PAGOS debido a error crítico');
       }
-      FIN CÓDIGO DESACTIVADO */
 
       // Cachear con clave versionada (solo si no hay búsqueda)
       if (!search) {
@@ -794,7 +818,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //2C: Método PAGINADO para obtener políticas (MÁXIMO CONTROL DE MEMORIA)
+  //2C: Método PAGINADO para obtener polizas (MÁXIMO CONTROL DE MEMORIA)
   public getAllPoliciesPaginated = async (
     page: number = 1,
     limit: number = 50,
