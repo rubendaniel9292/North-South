@@ -80,32 +80,42 @@ export class AdvisorService extends ValidateEntity {
           { secondName: searchCondition },
         );
       }
-      const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find({
-        where: whereConditions.length ? whereConditions : undefined,
-        order: {
-          id: 'DESC',
-        },
-        relations: [
-          //'commissionRefunds',
-          //'commissions',
-          'policies',
-          //'policies.periods',
-          //'policies.commissionRefunds',
-        ],
-        select: {
-          'policies': { id: true, numberPolicy: true } // Solo traer el ID de las polizas para contar
-        }
-      });
-      // Solo guardar en caché si no hubo búsqueda
+      console.log('🔍 Consultando asesores desde BD...');
+      const startTime = Date.now();
 
-      if (!search) {
-        await this.redisService.set(
-          'allAdvisors',
-          JSON.stringify(allAdvisors),
-          32400,
-        ); // TTL de 9 horas
+      try {
+        const allAdvisors: AdvisorEntity[] = await this.advisdorRepository.find({
+          where: whereConditions.length ? whereConditions : undefined,
+          order: {
+            id: 'DESC',
+          },
+          relations: [
+            'policies', // Solo cargar policies básicas, sin relaciones anidadas
+          ],
+          select: {
+            'policies': { id: true, numberPolicy: true } // Solo ID y número para contar
+          }
+        });
+
+        const endTime = Date.now();
+        console.log(`✅ Asesores cargados en ${endTime - startTime}ms (${allAdvisors.length} registros)`);
+
+        // Solo guardar en caché si no hubo búsqueda
+        if (!search) {
+          await this.redisService.set(
+            'allAdvisors',
+            JSON.stringify(allAdvisors),
+            32400,
+          ); // TTL de 9 horas
+          console.log(`💾 Asesores cacheados (TTL: 9h)`);
+        }
+
+        return allAdvisors;
+      } catch (dbError) {
+        console.error('❌ ERROR al consultar asesores:', dbError.message);
+        console.error('Stack:', dbError.stack);
+        throw ErrorManager.createSignatureError(`Error al consultar asesores: ${dbError.message}`);
       }
-      return allAdvisors;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
