@@ -1104,6 +1104,11 @@ export class PolicyService extends ValidateEntity {
           message: 'No se encontró resultados',
         });
       }
+
+      // ✅ VALIDACIÓN AUTOMÁTICA: Verificar y crear periodos faltantes
+      await this.validateAndCreateMissingPeriods(id);
+
+      console.log("POLIZA OBTENIDA DESDE EL SERVICIO DE POLIZA: ", policyId);
       return policyId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -1644,7 +1649,75 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
-  //15: Método para obtener el periodo anual de una póliza, con caché
+  //15: Método para validar y crear periodos faltantes de una póliza
+  private async validateAndCreateMissingPeriods(policy_id: number): Promise<{
+    created: number;
+    missingYears: number[];
+  }> {
+    try {
+      // 1. Obtener la póliza
+      const policy = await this.policyRepository.findOne({
+        where: { id: policy_id },
+        select: ['id', 'startDate', 'endDate', 'policyValue', 'agencyPercentage', 'advisorPercentage', 'policyFee']
+      });
+
+      if (!policy) {
+        return { created: 0, missingYears: [] };
+      }
+
+      // 2. Calcular todos los años que deberían tener periodo
+      const startYear = new Date(policy.startDate).getFullYear();
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      
+      // Los periodos deben existir desde startYear hasta el año actual (inclusive)
+      const expectedYears: number[] = [];
+      for (let year = startYear; year <= currentYear; year++) {
+        expectedYears.push(year);
+      }
+
+      // 3. Obtener periodos existentes
+      const existingPeriods = await this.policyPeriodDataRepository.find({
+        where: { policy_id: policy_id },
+        select: ['year']
+      });
+
+      const existingYears = existingPeriods.map(p => p.year);
+
+      // 4. Identificar años faltantes
+      const missingYears = expectedYears.filter(year => !existingYears.includes(year));
+
+      if (missingYears.length === 0) {
+        return { created: 0, missingYears: [] };
+      }
+
+      console.log(`🔍 Póliza ${policy_id}: Detectados ${missingYears.length} periodos faltantes: ${missingYears.join(', ')}`);
+
+      // 5. Crear periodos faltantes
+      let createdCount = 0;
+      for (const year of missingYears) {
+        const periodData: PolicyPeriodDataDTO = {
+          policy_id: policy.id,
+          year: year,
+          policyValue: policy.policyValue,
+          agencyPercentage: policy.agencyPercentage,
+          advisorPercentage: policy.advisorPercentage,
+          policyFee: policy.policyFee,
+        };
+
+        await this.createOrUpdatePeriodForPolicy(policy.id, year, periodData);
+        createdCount++;
+        console.log(`✅ Creado periodo para año ${year} - Póliza ${policy_id}`);
+      }
+
+      return { created: createdCount, missingYears };
+    } catch (error) {
+      console.error(`❌ Error al validar periodos de póliza ${policy_id}:`, error.message);
+      return { created: 0, missingYears: [] };
+    }
+  }
+
+  //16: Método para obtener el periodo anual de una póliza, con caché y validación automática
   public async getPolicyPeriods(policy_id: number): Promise<PolicyPeriodDataEntity[]> {
     try {
       if (!policy_id) {
@@ -1653,6 +1726,9 @@ export class PolicyService extends ValidateEntity {
           message: 'El ID de póliza es obligatorio.',
         });
       }
+
+      // ✅ VALIDAR Y CREAR PERIODOS FALTANTES ANTES DE CONSULTAR
+      await this.validateAndCreateMissingPeriods(policy_id);
 
       const cacheKey = `policy:${policy_id}:periods`;
       const cachedPeriods = await this.redisService.get(cacheKey);
@@ -1670,6 +1746,72 @@ export class PolicyService extends ValidateEntity {
 
       return policyPeriods;
     } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  //17: Método para reparar periodos faltantes de TODAS las pólizas (útil para producción)
+  public async repairAllMissingPeriods(): Promise<{
+    totalPolicies: number;
+    policiesWithMissingPeriods: number;
+    totalPeriodsCreated: number;
+    details: Array<{ policyId: number; numberPolicy: string; created: number; years: number[] }>;
+  }> {
+    try {
+      console.log('🔧 Iniciando reparación masiva de periodos faltantes...');
+
+      // 1. Obtener todas las pólizas (solo datos básicos)
+      const allPolicies = await this.policyRepository.find({
+        select: ['id', 'numberPolicy', 'startDate', 'endDate'],
+        order: { id: 'ASC' }
+      });
+
+      console.log(`📊 Total de pólizas a revisar: ${allPolicies.length}`);
+
+      let totalPeriodsCreated = 0;
+      let policiesWithMissingPeriods = 0;
+      const details: Array<{ policyId: number; numberPolicy: string; created: number; years: number[] }> = [];
+
+      // 2. Procesar cada póliza
+      for (const policy of allPolicies) {
+        const result = await this.validateAndCreateMissingPeriods(policy.id);
+        
+        if (result.created > 0) {
+          policiesWithMissingPeriods++;
+          totalPeriodsCreated += result.created;
+          details.push({
+            policyId: policy.id,
+            numberPolicy: policy.numberPolicy,
+            created: result.created,
+            years: result.missingYears
+          });
+        }
+
+        // Pequeña pausa cada 50 pólizas para no saturar la BD
+        if (allPolicies.indexOf(policy) % 50 === 0 && allPolicies.indexOf(policy) > 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(`⏳ Procesadas ${allPolicies.indexOf(policy)}/${allPolicies.length} pólizas...`);
+        }
+      }
+
+      // 3. Invalidar cachés globales
+      await this.invalidateCaches();
+
+      const summary = {
+        totalPolicies: allPolicies.length,
+        policiesWithMissingPeriods,
+        totalPeriodsCreated,
+        details
+      };
+
+      console.log('✅ Reparación completada:');
+      console.log(`   - Total pólizas revisadas: ${summary.totalPolicies}`);
+      console.log(`   - Pólizas con periodos faltantes: ${summary.policiesWithMissingPeriods}`);
+      console.log(`   - Total periodos creados: ${summary.totalPeriodsCreated}`);
+
+      return summary;
+    } catch (error) {
+      console.error('❌ Error en reparación masiva:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }

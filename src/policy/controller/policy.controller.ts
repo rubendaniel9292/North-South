@@ -238,5 +238,37 @@ export class PolicyController {
       deletedRecords: result.deletedRecords,
     };
   }
+
+  /**
+   * 🔧 Endpoint para REPARAR PERIODOS FALTANTES de TODAS las pólizas
+   * ⚠️ OPERACIÓN MASIVA - Solo para administradores
+   * Útil para:
+   * - Corregir pólizas creadas antes de implementar el sistema de periodos
+   * - Sincronizar periodos después de migraciones
+   * - Reparar inconsistencias en producción
+   * 
+   * Proceso:
+   * 1. Revisa todas las pólizas del sistema
+   * 2. Detecta periodos faltantes (desde startDate hasta año actual)
+   * 3. Crea los periodos con valores actuales de la póliza
+   * 4. Invalida cachés para reflejar cambios
+   */
+  @Roles('ADMIN')  // ⚠️ SOLO ADMIN puede ejecutar reparaciones masivas
+  @Post('repair-all-missing-periods')
+  async repairAllMissingPeriods() {
+    console.log('🔧 Iniciando reparación masiva de periodos desde endpoint...');
+    const result = await this.policyService.repairAllMissingPeriods();
+    
+    return {
+      status: 'success',
+      message: 'Reparación de periodos completada exitosamente',
+      summary: {
+        totalPoliciesReviewed: result.totalPolicies,
+        policiesWithMissingPeriods: result.policiesWithMissingPeriods,
+        totalPeriodsCreated: result.totalPeriodsCreated,
+      },
+      details: result.details,
+    };
+  }
 }
 
