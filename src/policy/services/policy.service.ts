@@ -698,43 +698,59 @@ export class PolicyService extends ValidateEntity {
       // ✅ OPTIMIZACIÓN: Cargar todos los últimos pagos en UNA SOLA consulta
       const policyIds = policies.map(p => p.id);
       
-      // Subconsulta para obtener el último número de pago de cada póliza
-      const lastPayments = await this.paymentRepository
-        .createQueryBuilder('payment')
-        .select([
-          'payment.id',
-          'payment.policy_id',
-          'payment.number_payment',
-          'payment.pending_value',
-          'payment.value',
-          'payment.status_payment_id',
-          'payment.createdAt'
-        ])
-        .where('payment.policy_id IN (:...policyIds)', { policyIds })
-        .andWhere((qb) => {
-          const subQuery = qb
-            .subQuery()
-            .select('MAX(p2.number_payment)')
-            .from('payment_record', 'p2')
-            .where('p2.policy_id = payment.policy_id')
-            .getQuery();
-          return `payment.number_payment = ${subQuery}`;
-        })
-        .getMany();
+      console.log(`🔍 Iniciando carga de últimos pagos para ${policyIds.length} pólizas...`);
+      const startTime = Date.now();
 
-      // Mapear pagos a sus respectivas pólizas
-      const paymentsByPolicy = new Map();
-      lastPayments.forEach(payment => {
-        paymentsByPolicy.set(payment.policy_id, payment);
-      });
+      try {
+        // Subconsulta para obtener el último número de pago de cada póliza
+        const lastPayments = await this.paymentRepository
+          .createQueryBuilder('payment')
+          .select([
+            'payment.id',
+            'payment.policy_id',
+            'payment.number_payment',
+            'payment.pending_value',
+            'payment.value',
+            'payment.status_payment_id',
+            'payment.createdAt'
+          ])
+          .where('payment.policy_id IN (:...policyIds)', { policyIds })
+          .andWhere((qb) => {
+            const subQuery = qb
+              .subQuery()
+              .select('MAX(p2.number_payment)')
+              .from('payment_record', 'p2')
+              .where('p2.policy_id = payment.policy_id')
+              .getQuery();
+            return `payment.number_payment = ${subQuery}`;
+          })
+          .getMany();
 
-      // Asignar el último pago a cada póliza
-      policies.forEach(policy => {
-        const lastPayment = paymentsByPolicy.get(policy.id);
-        policy.payments = lastPayment ? [lastPayment] : [];
-      });
+        const endTime = Date.now();
+        console.log(`✅ Pagos cargados en ${endTime - startTime}ms`);
 
-      console.log(`📊 Cargados ${lastPayments.length} últimos pagos para ${policies.length} pólizas en una consulta`);
+        // Mapear pagos a sus respectivas pólizas
+        const paymentsByPolicy = new Map();
+        lastPayments.forEach(payment => {
+          paymentsByPolicy.set(payment.policy_id, payment);
+        });
+
+        // Asignar el último pago a cada póliza
+        policies.forEach(policy => {
+          const lastPayment = paymentsByPolicy.get(policy.id);
+          policy.payments = lastPayment ? [lastPayment] : [];
+        });
+
+        console.log(`📊 Cargados ${lastPayments.length} últimos pagos para ${policies.length} pólizas en ${endTime - startTime}ms`);
+      } catch (paymentError) {
+        console.error('❌ ERROR al cargar pagos:', paymentError.message);
+        console.error('Stack:', paymentError.stack);
+        // Si falla la carga de pagos, continuar sin ellos (mejor que fallar todo)
+        policies.forEach(policy => {
+          policy.payments = [];
+        });
+        console.warn('⚠️ Continuando sin pagos debido al error');
+      }
 
       // Cachear con clave versionada (solo si no hay búsqueda)
       if (!search) {
@@ -743,12 +759,14 @@ export class PolicyService extends ValidateEntity {
           JSON.stringify(policies),
           3600 // TTL de 1 hora
         );
-        console.log(`✅ Políticas cacheadas con versión ${cacheVersion} (TTL: 1h)`);
+        console.log(`✅ Polizas cacheadas con versión ${cacheVersion} (TTL: 1h)`);
       }
 
       return policies;
     } catch (error) {
-      throw ErrorManager.createSignatureError(error.message);
+      console.error('❌ ERROR CRÍTICO en getAllPoliciesOptimized:', error.message);
+      console.error('Stack completo:', error.stack);
+      throw ErrorManager.createSignatureError(`Error al obtener pólizas optimizadas: ${error.message}`);
     }
   };
 
