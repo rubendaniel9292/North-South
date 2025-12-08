@@ -58,6 +58,7 @@ const ListPolicies = memo(() => {
   const [companyFilter, setCompanyFilter] = useState("");
   const [advisorFilter, setAdvisorFilter] = useState("");
   const [typesFilter, setTypesFilter] = useState("");
+  const [isRepairingPeriods, setIsRepairingPeriods] = useState(false); // Estado para reparación masiva
   const itemsPerPage = 5; // Número de elementos por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
@@ -100,6 +101,55 @@ const ListPolicies = memo(() => {
       console.error("Error fetching póilzas:", error);
     }
   }, []);
+
+  // 🔧 Función para reparar periodos faltantes (SOLO ADMIN)
+  const repairMissingPeriods = useCallback(async () => {
+    if (auth?.role !== 'ADMIN') {
+      alerts('Acceso Denegado', 'Solo los administradores pueden ejecutar esta operación', 'error');
+      return;
+    }
+
+    const confirmResult = await alerts(
+      'Confirmar Reparación Masiva',
+      '⚠️ Esta operación revisará TODAS las pólizas del sistema y creará los periodos faltantes. ¿Desea continuar?',
+      'warning',
+      true
+    );
+
+    if (!confirmResult.isConfirmed) return;
+
+    setIsRepairingPeriods(true);
+    try {
+      const response = await http.post('policy/repair-all-missing-periods');
+      
+      if (response.data.status === 'success') {
+        const { summary } = response.data;
+        
+        await alerts(
+          'Reparación Completada',
+          `✅ Reparación exitosa:\n
+          📋 Pólizas revisadas: ${summary.totalPoliciesReviewed}
+          🔧 Pólizas con periodos faltantes: ${summary.policiesWithMissingPeriods}
+          ➕ Periodos creados: ${summary.totalPeriodsCreated}`,
+          'success'
+        );
+
+        // Recargar todas las pólizas para reflejar los cambios
+        await getAllPolicies();
+      } else {
+        alerts('Error', response.data.message || 'No se pudo completar la reparación', 'error');
+      }
+    } catch (error) {
+      console.error('Error reparando periodos:', error);
+      alerts(
+        'Error',
+        error.response?.data?.message || 'Error al reparar periodos faltantes',
+        'error'
+      );
+    } finally {
+      setIsRepairingPeriods(false);
+    }
+  }, [auth, getAllPolicies]);
 
   //metodo de prueba de registro de pago de poliza
   /*
@@ -411,9 +461,24 @@ const ListPolicies = memo(() => {
               </div>
             </div>
 
-            {/* Botón de pruebas (temporal) */}
+            {/* Botones de acción */}
             <div className="col-md-3 mb-3" >
-              <div className="d-grid">
+              <div className="d-grid gap-2">
+                {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
+                {auth?.role === 'ADMIN' && (
+                  <button
+                    className="btn btn-warning fw-bold"
+                    onClick={repairMissingPeriods}
+                    disabled={isRepairingPeriods}
+                  >
+                    <FontAwesomeIcon 
+                      icon={isRepairingPeriods ? faCogs : faWrench} 
+                      className={`me-2 ${isRepairingPeriods ? 'fa-spin' : ''}`}
+                    />
+                    {isRepairingPeriods ? 'Reparando...' : 'Reparar Periodos'}
+                  </button>
+                )}
+
                 {/* Botón para registro manual de pagos (solo para pruebas) */}
                 <button
                   className="btn btn-danger fw-bold"
@@ -422,12 +487,13 @@ const ListPolicies = memo(() => {
                   <FontAwesomeIcon icon={faCogs} className="me-2" />
                   Registro manual de pagos (prueba)
                 </button>
+
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
                 </small>
 
                 <button
-                  className="btn btn-secondary w-100 mb-2"
+                  className="btn btn-secondary w-100"
                   onClick={clearFilters}
                 >
                   <FontAwesomeIcon icon={faBroom} className="me-2" />

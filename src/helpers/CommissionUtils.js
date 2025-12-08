@@ -413,6 +413,90 @@ export const distributeAdvance = (policies, advanceAmount) => {
   });
 };
 
+// Calcula la comisión PROYECTADA total (si se completaran todos los periodos con todos sus pagos)
+export const calculateProjectedTotalCommission = (policy) => {
+  if (!policy || !Array.isArray(policy.periods) || policy.periods.length === 0) {
+    return 0;
+  }
+
+  // ✅ VERIFICAR SI TIENE COMISIÓN POR RENOVACIÓN
+  const hasRenewalCommission = policy.renewalCommission === true || 
+                                policy.renewalCommission === 1 ||
+                                policy.renewalCommission === "true";
+
+  // Si es anualizada
+  if (policy.isCommissionAnnualized === true) {
+    // Si NO tiene comisión por renovación, solo proyectar el primer periodo
+    if (!hasRenewalCommission && policy.periods.length > 0) {
+      const firstPeriod = policy.periods.reduce((min, curr) => 
+        curr.year < min.year ? curr : min, policy.periods[0]
+      );
+      const policyValue = Number(firstPeriod.policyValue ?? 0);
+      const policyFee = Number(firstPeriod.policyFee ?? 0);
+      const advisorPercentage = Number(firstPeriod.advisorPercentage ?? 0);
+      return ((policyValue - policyFee) * advisorPercentage) / 100;
+    }
+
+    // Si tiene renovación, sumar todos los periodos
+    let total = 0;
+    for (const period of policy.periods) {
+      const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+      const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+      const advisorPercentage = Number(
+        period.advisorPercentage ?? period.advisor_percentage ?? 0
+      );
+
+      if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
+        continue;
+      }
+
+      const periodCommission = ((policyValue - policyFee) * advisorPercentage) / 100;
+
+      if (!isNaN(periodCommission) && isFinite(periodCommission)) {
+        total += periodCommission;
+      }
+    }
+    return total;
+  }
+
+  // Para pólizas NORMALES (no anualizadas)
+  // Si NO tiene comisión por renovación, solo proyectar el primer periodo (12 pagos)
+  if (!hasRenewalCommission && policy.periods.length > 0) {
+    const firstPeriod = policy.periods.reduce((min, curr) => 
+      curr.year < min.year ? curr : min, policy.periods[0]
+    );
+    const policyValue = Number(firstPeriod.policyValue ?? 0);
+    const policyFee = Number(firstPeriod.policyFee ?? 0);
+    const advisorPercentage = Number(firstPeriod.advisorPercentage ?? 0);
+    
+    // Comisión anual completa del primer periodo
+    return ((policyValue - policyFee) * advisorPercentage) / 100;
+  }
+
+  // Si tiene renovación: proyectar TODOS los periodos (12 pagos cada uno)
+  let total = 0;
+  for (const period of policy.periods) {
+    const policyValue = Number(period.policyValue ?? period.policy_value ?? 0);
+    const policyFee = Number(period.policyFee ?? period.policy_fee ?? 0);
+    const advisorPercentage = Number(
+      period.advisorPercentage ?? period.advisor_percentage ?? 0
+    );
+
+    if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
+      continue;
+    }
+
+    // Comisión anual del periodo (equivalente a 12 pagos completos)
+    const periodTotal = ((policyValue - policyFee) * advisorPercentage) / 100;
+
+    if (!isNaN(periodTotal) && isFinite(periodTotal)) {
+      total += periodTotal;
+    }
+  }
+
+  return total;
+};
+
 // Función de debugging para entender los cálculos
 export const debugPolicyCommissions = (policy) => {
   console.log("=== DEBUG POLICY COMMISSIONS ===");
@@ -679,8 +763,12 @@ export const getPolicyFields = (policy) => {
     commissionInFavorAdjusted = Math.max(commissionFirstPeriod - paid - validRefundsAmount, 0);
     commissionTotalAdjusted = commissionFirstPeriod;
   }
+  // Calcular comisión proyectada total
+  const projectedTotal = calculateProjectedTotalCommission(policy);
+  
   return {
     commissionTotal: Number((commissionTotalAdjusted || 0).toFixed(2)),
+    projectedTotal: Number((projectedTotal || 0).toFixed(2)),
     released: Number(validReleased.toFixed(2)),
     paid: Number(paid.toFixed(2)),
     appliedHistoricalAdvance: Number(validAppliedHistoricalAdvance.toFixed(2)),
@@ -734,9 +822,16 @@ export const getTotals = (policies, advanceValue = 0, operationType = "") => {
     }
   }
 
+  // Calcular total proyectado sumando todas las pólizas
+  const projectedTotal = policies.reduce((sum, policy) => {
+    const projected = calculateProjectedTotalCommission(policy);
+    return sum + (isNaN(projected) || !isFinite(projected) ? 0 : projected);
+  }, 0);
+
   // Redondear todos los totales a 2 decimales y validar
   return {
     commissionTotal: Number((totals.commissionTotal || 0).toFixed(2)),
+    projectedTotal: Number((projectedTotal || 0).toFixed(2)),
     released: Number((totals.released || 0).toFixed(2)),
     paid: Number((totals.paid || 0).toFixed(2)),
     appliedHistoricalAdvance: Number((totals.appliedHistoricalAdvance || 0).toFixed(2)),

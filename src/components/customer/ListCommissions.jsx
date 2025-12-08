@@ -21,7 +21,7 @@ import {
   faCheck,
   faMinus,
   faPlus,
-  faSpinner // NUEVO: Para indicador de carga
+  faSpinner
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getTotals, getPolicyFields, getReleasedCommissionsLastPeriod } from "../../helpers/CommissionUtils";
@@ -423,28 +423,52 @@ const ListCommissions = () => {
           </div>
         </div>
 
-        {/* --- Tarjetas de totales  --- */}
-        <div className="row justify-content-center mb-2 mt-4">
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
-            <div className="card border-0 shadow-sm text-center w-100">
+        {/* --- Tarjetas de totales en grilla 3x2 --- */}
+        <div className="row mb-2 mt-4 g-3">
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
+              <div className="card-body">
+                <FontAwesomeIcon
+                  icon={faDollarSign}
+                  size="lg"
+                  className="mb-2 text-info"
+                />
+                <div className="fw-bold text-muted">Com. Proyectada</div>
+                <div className="fs-5 fw-bold text-info">
+                  $
+                  {totals.projectedTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
+                <small className="text-muted">(Total esperado)</small>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
               <div className="card-body">
                 <FontAwesomeIcon
                   icon={faDollarSign}
                   size="lg"
                   className="mb-2 text-primary"
                 />
-                <div className="fw-bold text-muted">Com. Totales</div>
+                <div className="fw-bold text-muted">Com. Generadas</div>
                 <div className="fs-5 fw-bold text-primary">
                   $
                   {totals.commissionTotal.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                   })}
                 </div>
+                {totals.projectedTotal > 0 && (
+                  <small className="text-muted">
+                    ({((totals.commissionTotal / totals.projectedTotal) * 100).toFixed(1)}% completado)
+                  </small>
+                )}
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
-            <div className="card border-0 shadow-sm text-center w-100">
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
               <div className="card-body">
                 <FontAwesomeIcon
                   icon={faDollarSign}
@@ -461,8 +485,8 @@ const ListCommissions = () => {
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
-            <div className="card border-0 shadow-sm text-center w-100">
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
               <div className="card-body">
                 <FontAwesomeIcon
                   icon={faDollarSign}
@@ -479,8 +503,8 @@ const ListCommissions = () => {
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
-            <div className="card border-0 shadow-sm text-center w-100">
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
               <div className="card-body">
                 <FontAwesomeIcon
                   icon={faDollarSign}
@@ -497,8 +521,8 @@ const ListCommissions = () => {
               </div>
             </div>
           </div>
-          <div className="col-12 col-sm-6 col-md-4 col-lg-2 mb-2 d-flex align-items-stretch mx-4">
-            <div className="card border-0 shadow-sm text-center w-100">
+          <div className="col-12 col-sm-6 col-md-4">
+            <div className="card border-0 shadow-sm text-center h-100">
               <div className="card-body">
                 <FontAwesomeIcon
                   icon={faDollarSign}
@@ -573,7 +597,9 @@ const ListCommissions = () => {
                         </th>
                         <th>
                           <FontAwesomeIcon icon={faSackDollar} className="me-2" />
-                          Com. Totales
+                          Com. Generadas
+                          <br />
+                          <small className="text-muted fw-normal">(Pagos creados)</small>
                         </th>
                         <th>
                           <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
@@ -717,12 +743,19 @@ const ListCommissions = () => {
                                 </td> */}
 
                                 <td className="fw-bold text-primary">
-                                  $
-                                  {
-                                    isNaN(policyFiltered.commissionTotal) || !isFinite(policyFiltered.commissionTotal)
-                                      ? "0.00"
-                                      : Number(policyFiltered.commissionTotal).toFixed(2)
-                                  }
+                                  <div>
+                                    $
+                                    {
+                                      isNaN(policyFiltered.commissionTotal) || !isFinite(policyFiltered.commissionTotal)
+                                        ? "0.00"
+                                        : Number(policyFiltered.commissionTotal).toFixed(2)
+                                    }
+                                  </div>
+                                  {policyFiltered.projectedTotal > 0 && policyFiltered.projectedTotal !== policyFiltered.commissionTotal && (
+                                    <small className="text-muted">
+                                      de ${Number(policyFiltered.projectedTotal).toFixed(2)}
+                                    </small>
+                                  )}
                                 </td>
                                 <td className="fw-bold text-info">
                                   <div>
