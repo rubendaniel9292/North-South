@@ -89,11 +89,13 @@ const Home = () => {
   const getAllPolicies = useCallback(async () => {
     try {
       //const response = await http.get("policy/get-all-policy"); //RELACION `payments`, `renewals` (MUY LENTO Y ERROR DE MEMORY LEAK)
-      const response = await http.get("/policy/get-all-policy-optimized"); //SIN RELACIION  `payments`, `renewals`
+      //const response = await http.get("/policy/get-all-policy-optimized"); //SIN RELACIION  `payments`, `renewals`
+      const response = await http.get("/policy/count-all-policies");
       if (response.data.status === "success") {
-        console.log("TODAS LAS PÓLIZAS EN HOME: ", response.data.allPolicy);
-        setAllPolicies(response.data.allPolicy);
+        console.log("TODAS LAS PÓLIZAS EN HOME: ", response.data);
+        setAllPolicies(response.data.total);
         setPolicy(true);
+
       } else {
         setPolicy(false);
         console.error("Error fetching polizas:", response.message);
@@ -371,7 +373,7 @@ const Home = () => {
                       <h5 className="mb-3 text-dark fw-bold">Total de Pólizas
                         Contratadas
                       </h5>
-                                            <h5 className="mb-3 text-dark fw-bold">Pólizas Activas</h5>
+                      <h5 className="mb-3 text-dark fw-bold">Pólizas Activas</h5>
                       <p className="fs-5 fw-bold mb-2 text-muted">
                         📋 Sin registro
                       </p>
@@ -402,7 +404,7 @@ const Home = () => {
                         className="fs-1 fw-bold mb-2"
                         style={{ color: "#198754" }}
                       >
-                        {allPolicies.length}
+                        {allPolicies}
                       </p>
                       <span className="text-muted fs-6">
                         <FontAwesomeIcon icon={faCheckCircle} className="me-1" />
