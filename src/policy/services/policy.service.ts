@@ -624,11 +624,11 @@ export class PolicyService extends ValidateEntity {
       // 🔄 Sistema de versionado de caché (elimina race conditions)
       const versionKey = 'policies_cache_version';
       const cacheVersion = await this.redisService.get(versionKey) || Date.now().toString();
-      
+
       // Clave de caché versionada
       const baseCacheKey = search ? `policies_optimized:${search}` : `${CacheKeys.GLOBAL_ALL_POLICIES}_optimized`;
       const cacheKey = `${baseCacheKey}:v${cacheVersion}`;
-      
+
       console.log(`🔍 Buscando caché con versión: ${cacheVersion}`);
 
       // Verificar caché primero
@@ -659,11 +659,16 @@ export class PolicyService extends ValidateEntity {
           'paymentFrequency',
           'company',
           'customer',
-          'advisor',
+
 
           // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
+          numberPolicy: true,
+          id: true,
+          startDate: true,
+          endDate: true,
+          coverageAmount: true,
 
           company: {
             id: true,
@@ -677,13 +682,7 @@ export class PolicyService extends ValidateEntity {
             surname: true,
             secondSurname: true,
           },
-          advisor: {
-            id: true,
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
+
 
         },
       });
@@ -697,7 +696,7 @@ export class PolicyService extends ValidateEntity {
 
       // ✅ OPTIMIZACIÓN AGRESIVA: Cargar últimos pagos con lotes pequeños y timeouts
       const policyIds = policies.map(p => p.id);
-      
+
       console.log(`🔍 Iniciando carga OPTIMIZADA de últimos pagos para ${policyIds.length} pólizas...`);
       const startTime = Date.now();
 
@@ -706,18 +705,18 @@ export class PolicyService extends ValidateEntity {
         const MAX_BATCH_TIME = 5000; // ⏱️ Máximo 5 segundos por lote
         const allLastPayments: PaymentEntity[] = [];
         let failedBatches = 0;
-        
+
         // Dividir en lotes pequeños
         const totalBatches = Math.ceil(policyIds.length / BATCH_SIZE);
-        
+
         for (let i = 0; i < policyIds.length; i += BATCH_SIZE) {
           const batchIds = policyIds.slice(i, i + BATCH_SIZE);
           const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-          
+
           console.log(`📦 Lote ${batchNumber}/${totalBatches} (${batchIds.length} pólizas)`);
-          
+
           const batchStartTime = Date.now();
-          
+
           try {
             // Usar Promise.race para timeout por lote
             const batchPaymentsPromise = this.paymentRepository
@@ -728,7 +727,6 @@ export class PolicyService extends ValidateEntity {
                 'payment.number_payment',
                 'payment.pending_value',
                 'payment.value',
-                'payment.status_payment_id',
                 'payment.createdAt'
               ])
               .where('payment.policy_id IN (:...batchIds)', { batchIds })
@@ -748,18 +746,18 @@ export class PolicyService extends ValidateEntity {
             );
 
             const batchPayments = await Promise.race([batchPaymentsPromise, timeoutPromise]);
-            
+
             allLastPayments.push(...batchPayments);
-            
+
             const batchEndTime = Date.now();
             const batchTime = batchEndTime - batchStartTime;
             console.log(`   ✓ Lote ${batchNumber} completado en ${batchTime}ms (${batchPayments.length} pagos)`);
-            
+
             // Pequeña pausa entre lotes para no saturar la BD
             if (i + BATCH_SIZE < policyIds.length) {
               await new Promise(resolve => setTimeout(resolve, 100));
             }
-            
+
           } catch (batchError) {
             failedBatches++;
             console.error(`   ❌ Error en lote ${batchNumber}:`, batchError.message);
@@ -769,11 +767,11 @@ export class PolicyService extends ValidateEntity {
 
         const endTime = Date.now();
         const totalTime = endTime - startTime;
-        
+
         if (failedBatches > 0) {
           console.warn(`⚠️ ${failedBatches}/${totalBatches} lotes fallaron - Continuando con pagos parciales`);
         }
-        
+
         console.log(`✅ TOTAL: ${allLastPayments.length} pagos cargados en ${totalTime}ms`);
 
         // Mapear pagos a sus respectivas pólizas
@@ -789,7 +787,7 @@ export class PolicyService extends ValidateEntity {
         });
 
         console.log(`📊 Resultado: ${allLastPayments.length} pagos asignados a ${policies.length} pólizas`);
-        
+
       } catch (paymentError) {
         console.error('❌ ERROR CRÍTICO al cargar pagos:', paymentError.message);
         console.error('Stack:', paymentError.stack);
@@ -910,6 +908,35 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+
+  //2D: Método SÚPER LIGERO solo para contar pólizas (para el contador del frontend)
+  public countAllPolicies = async (): Promise<number> => {
+    try {
+      // Cachear el conteo por 5 minutos (se actualiza frecuentemente)
+      const cacheKey = 'policies_count';
+      const cachedCount = await this.redisService.get(cacheKey);
+      
+      if (cachedCount) {
+        console.log(`✅ Count cache hit: ${cachedCount} pólizas`);
+        return parseInt(cachedCount, 10);
+      }
+
+      console.log('❌ Count cache miss - Consultando BD');
+      
+      // Solo COUNT(*), sin relaciones ni datos
+      const count = await this.policyRepository.count();
+      
+      // Cachear por 5 minutos (300 segundos)
+      await this.redisService.set(cacheKey, count.toString(), 300);
+      
+      console.log(`📊 Total pólizas: ${count}`);
+      return count;
+    } catch (error) {
+      console.error('❌ Error al contar pólizas:', error.message);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
   //3:metodo para consultas todas las polizas en base al estado
   public getAllPoliciesStatus = async (): Promise<PolicyEntity[]> => {
     try {
@@ -1307,10 +1334,10 @@ export class PolicyService extends ValidateEntity {
       );
 
       await this.invalidateCaches(policy.advisor_id, id);
-      
+
       // ✅ NO volver a cachear inmediatamente - dejar que la próxima consulta lo cachee con datos frescos
       // Esto evita inconsistencias cuando updatedPolicy se llama desde createRenevalAndUpdate
-      
+
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Agregar información del ajuste de fechas en la respuesta si ocurrió
@@ -1419,7 +1446,7 @@ export class PolicyService extends ValidateEntity {
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES);
       await this.redisService.del(CacheKeys.GLOBAL_ALL_POLICIES + '_optimized');
       await this.redisService.del('paymentsByStatus:general');
-      
+
       // ✅ CRÍTICO: Invalidar caché de póliza individual (con renewals)
       await this.redisService.del(`policy:${policy.id}`);
       await this.redisService.del(`policy:${policy.id}:renewals`);
@@ -1735,7 +1762,7 @@ export class PolicyService extends ValidateEntity {
       const startYear = new Date(policy.startDate).getFullYear();
       const today = new Date();
       const currentYear = today.getFullYear();
-      
+
       // Los periodos deben existir desde startYear hasta el año actual (inclusive)
       const expectedYears: number[] = [];
       for (let year = startYear; year <= currentYear; year++) {
@@ -1841,7 +1868,7 @@ export class PolicyService extends ValidateEntity {
       // 2. Procesar cada póliza
       for (const policy of allPolicies) {
         const result = await this.validateAndCreateMissingPeriods(policy.id);
-        
+
         if (result.created > 0) {
           policiesWithMissingPeriods++;
           totalPeriodsCreated += result.created;

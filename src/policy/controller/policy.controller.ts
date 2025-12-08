@@ -41,6 +41,18 @@ export class PolicyController {
     }
   }
 
+  // 🔢 ENDPOINT SÚPER LIGERO: Solo contar pólizas (para contador del frontend)
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
+  @Get('count-all-policies')
+  public async countAllPolicies() {
+    const count = await this.policyService.countAllPolicies();
+    return {
+      status: 'success',
+      total: count,
+      message: 'Conteo rápido sin cargar datos'
+    };
+  }
+
   // ⚡ ENDPOINT OPTIMIZADO: Listar políticas SIN payments (evita memory leak)
   @Roles('ADMIN', 'BASIC','ELOPDP')
   @Get('get-all-policy-optimized')
