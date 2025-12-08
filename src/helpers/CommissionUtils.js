@@ -861,9 +861,31 @@ export const calculateAdvisorAndAgencyPayments = (
 export const calculateReleasedCommissions = (policy) => {
   if (!policy) return 0;
 
-  // PÓLIZA ANUALIZADA: Usar cálculo por períodos (sin cambios)
+  // PÓLIZA ANUALIZADA
   if (policy.isCommissionAnnualized === true) {
+    // ✅ Verificar si tiene comisión por renovación
+    const hasRenewalCommission = policy.renewalCommission === true || 
+                                  policy.renewalCommission === 1 ||
+                                  policy.renewalCommission === "true";
+
     if (policy.periods && Array.isArray(policy.periods)) {
+      // Si NO tiene comisión por renovación, solo contar el primer periodo
+      if (!hasRenewalCommission && policy.periods.length > 0) {
+        const firstPeriod = policy.periods.reduce((min, curr) => 
+          curr.year < min.year ? curr : min, policy.periods[0]
+        );
+        const policyValue = Number(firstPeriod.policyValue || 0);
+        const policyFee = Number(firstPeriod.policyFee || 0);
+        const advisorPercentage = Number(firstPeriod.advisorPercentage || 0);
+        
+        if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
+          return 0;
+        }
+        
+        return ((policyValue - policyFee) * advisorPercentage) / 100;
+      }
+
+      // Si tiene renovación, sumar TODOS los periodos
       let total = 0;
       for (const period of policy.periods) {
         const policyValue = Number(period.policyValue || 0);
@@ -879,7 +901,11 @@ export const calculateReleasedCommissions = (policy) => {
       }
       return total;
     }
-    const periods = 1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0);
+    
+    // Fallback
+    const periods = hasRenewalCommission 
+      ? (1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0))
+      : 1; // Solo primer periodo si no tiene renovación
     const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
     if (isNaN(paymentsToAdvisor) || isNaN(periods)) {
       return 0;

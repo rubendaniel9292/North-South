@@ -18,7 +18,7 @@ import alerts from "../../helpers/Alerts";
 import { saveSelectedPolicies } from "../../helpers/localStorageUtils";
 import {
   calculateTotalAdvisorCommissionsGenerated,
-  calculateReleasedCommissionsGenerated,
+  calculateReleasedCommissions,
   getAdvisorTotalAdvances,
   applyHistoricalAdvance,
   distributeAdvance,
@@ -149,7 +149,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
             // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
             const policiesWithBalance = loadedPolicies.filter((policy) => {
-              const released = calculateReleasedCommissionsGenerated(policy);
+              const released = calculateReleasedCommissions(policy);
               const total = calculateTotalAdvisorCommissionsGenerated(policy);
               const paid = Array.isArray(policy.commissions)
                 ? policy.commissions.reduce(
@@ -227,7 +227,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
             // Filtrar solo pólizas con comisiones a favor > 0.01
             const policiesWithBalance = loadedPolicies.filter((policy) => {
-              const released = calculateReleasedCommissionsGenerated(policy);
+              const released = calculateReleasedCommissions(policy);
               const total = calculateTotalAdvisorCommissionsGenerated(policy);
               const paid = Array.isArray(policy.commissions)
                 ? policy.commissions.reduce(
@@ -241,6 +241,9 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               return balance > 0.01;
             });
 
+            console.log('✅ Pólizas filtradas con saldo:', policiesWithBalance.length);
+            console.log('📋 Pólizas:', policiesWithBalance.map(p => p.numberPolicy));
+            
             setSelectedPolicies(policiesWithBalance);
           } else {
             setSelectedPolicies([]);
@@ -308,7 +311,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           
           // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
           const policiesWithBalance = policies.filter((policy) => {
-            const released = calculateReleasedCommissionsGenerated(policy);
+            const released = calculateReleasedCommissions(policy);
             const total = calculateTotalAdvisorCommissionsGenerated(policy);
             const paid = Array.isArray(policy.commissions)
               ? policy.commissions.reduce(
