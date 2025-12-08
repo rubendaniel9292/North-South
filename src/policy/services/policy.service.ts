@@ -695,26 +695,46 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // ✅ CRÍTICO: Cargar solo el último pago de cada póliza (por NÚMERO, no por fecha)
-      for (const policy of policies) {
-        // Obtener el último pago (el de mayor número de pago)
-        const lastPayment = await this.paymentRepository.findOne({
-          where: { policy_id: policy.id },
-          order: { 
-            number_payment: 'DESC'  // ⭐ PRIORIDAD: Siempre el número más alto
-          },
-          select: ['id', 'number_payment', 'pending_value', 'value', 'status_payment_id', 'createdAt']
-        });
-        console.log(`Buscando último pago para póliza ${policy.numberPolicy} (ID: ${policy.id})`);
+      // ✅ OPTIMIZACIÓN: Cargar todos los últimos pagos en UNA SOLA consulta
+      const policyIds = policies.map(p => p.id);
+      
+      // Subconsulta para obtener el último número de pago de cada póliza
+      const lastPayments = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .select([
+          'payment.id',
+          'payment.policy_id',
+          'payment.number_payment',
+          'payment.pending_value',
+          'payment.value',
+          'payment.status_payment_id',
+          'payment.createdAt'
+        ])
+        .where('payment.policy_id IN (:...policyIds)', { policyIds })
+        .andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('MAX(p2.number_payment)')
+            .from('payment_record', 'p2')
+            .where('p2.policy_id = payment.policy_id')
+            .getQuery();
+          return `payment.number_payment = ${subQuery}`;
+        })
+        .getMany();
 
-        // Agregar el último pago al array payments (solo si existe)
-        if (lastPayment) {
-          policy.payments = [lastPayment];
-          console.log(`📊 Póliza ${policy.numberPolicy}: Último pago #${lastPayment.number_payment} (${new Date(lastPayment.createdAt).toISOString().split('T')[0]}), pending_value = ${lastPayment.pending_value}`);
-        } else {
-          policy.payments = [];
-        }
-      }
+      // Mapear pagos a sus respectivas pólizas
+      const paymentsByPolicy = new Map();
+      lastPayments.forEach(payment => {
+        paymentsByPolicy.set(payment.policy_id, payment);
+      });
+
+      // Asignar el último pago a cada póliza
+      policies.forEach(policy => {
+        const lastPayment = paymentsByPolicy.get(policy.id);
+        policy.payments = lastPayment ? [lastPayment] : [];
+      });
+
+      console.log(`📊 Cargados ${lastPayments.length} últimos pagos para ${policies.length} pólizas en una consulta`);
 
       // Cachear con clave versionada (solo si no hay búsqueda)
       if (!search) {
