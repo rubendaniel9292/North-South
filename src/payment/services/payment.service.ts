@@ -670,33 +670,7 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   }
-  //8: 
-
-  /**
-   * Calcula la próxima fecha de pago basada en la frecuencia de pago
-   * (Versión standalone - no depende de PaymentSchedulerService)
-   */
-  private calculateNextPaymentDate(lastPaymentDate: Date, paymentFrequencyId: number): Date {
-    const nextDate = new Date(lastPaymentDate);
-
-    switch (paymentFrequencyId) {
-      case 1: // Mensual
-      case 5: // Otro pago (Mensual)
-        nextDate.setMonth(nextDate.getMonth() + 1);
-        break;
-      case 2: // Trimestral
-        nextDate.setMonth(nextDate.getMonth() + 3);
-        break;
-      case 3: // Semestral
-        nextDate.setMonth(nextDate.getMonth() + 6);
-        break;
-      case 4: // Anual
-        nextDate.setFullYear(nextDate.getFullYear() + 1);
-        break;
-    }
-
-    return nextDate;
-  }
+  //8:  
 
   /**
    * Crea el SIGUIENTE pago adelantado para una póliza específica

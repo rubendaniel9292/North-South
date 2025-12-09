@@ -41,9 +41,9 @@ export class PaymentSchedulerService implements OnModuleInit {
 
   async onModuleInit() {
     console.log('✅ Inicializando módulo y verificando pagos pendientes...');
-    console.log('ℹ️ Omitiendo verificación de pagos pendientes en onModuleInit para optimización');
-    return; // Deshabilitado temporalmente para evitar largos tiempos de inicio
-    /*
+    //console.log('ℹ️ Omitiendo verificación de pagos pendientes en onModuleInit para optimización');
+    //return; // Deshabilitado temporalmente para evitar largos tiempos de inicio
+
     try {
       // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
       const hasPendingPayments = await this.checkIfPendingPaymentsExist();
@@ -56,7 +56,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       }
     } catch (error) {
       console.error('❌ Error al verificar pagos al inicializar el módulo:', error);
-    }*/
+    }
   }
 
   // Cron: Todos los días a las 12:00 AM (medianoche) hora Ecuador (GMT-5 = 05:00 UTC)
