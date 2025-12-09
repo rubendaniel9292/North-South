@@ -1263,11 +1263,29 @@ export class PolicyService extends ValidateEntity {
         }
       }
 
-      // --- NUEVO: Actualizar periodo anual ---
-      const currentYear = new Date().getFullYear();
+      // --- NUEVO: Actualizar periodo anual (ÚLTIMO PERIODO, no año actual) ---
+      // Obtener todos los periodos de la póliza para encontrar el más reciente
+      const existingPeriods = await this.policyPeriodDataRepository.find({
+        where: { policy_id: id },
+        order: { year: 'DESC' }
+      });
+
+      // Determinar qué año actualizar:
+      // 1. Si hay periodos, actualizar el ÚLTIMO (más reciente)
+      // 2. Si no hay periodos, usar el año de inicio de la póliza
+      let yearToUpdate: number;
+      
+      if (existingPeriods.length > 0) {
+        yearToUpdate = existingPeriods[0].year; // Último periodo (más reciente)
+        console.log(`📅 Actualizando ÚLTIMO periodo existente: ${yearToUpdate}`);
+      } else {
+        yearToUpdate = new Date(policyUpdate.startDate).getFullYear();
+        console.log(`📅 No hay periodos, creando periodo inicial: ${yearToUpdate}`);
+      }
+
       const updatePeriodData: PolicyPeriodDataDTO = {
         policy_id: id,
-        year: currentYear,
+        year: yearToUpdate,
         policyValue: policyUpdate.policyValue,
         agencyPercentage: policyUpdate.agencyPercentage,
         advisorPercentage: policyUpdate.advisorPercentage,
@@ -1275,7 +1293,7 @@ export class PolicyService extends ValidateEntity {
       };
       await this.createOrUpdatePeriodForPolicy(
         id,
-        currentYear,
+        yearToUpdate,
         updatePeriodData
       );
 
