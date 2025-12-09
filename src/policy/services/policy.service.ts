@@ -618,7 +618,7 @@ export class PolicyService extends ValidateEntity {
     }
   };
 
-  //2B: Método OPTIMIZADO para consultar todas las políticas CON solo el último pago (EVITA MEMORY LEAK)
+  //2B: Método OPTIMIZADO para consultar todas las políticas CON solo el último pago (SIN SUBCONSULTAS)
   public getAllPoliciesOptimized = async (search?: string): Promise<PolicyEntity[]> => {
     try {
       // 🔄 Sistema de versionado de caché (elimina race conditions)
@@ -648,20 +648,18 @@ export class PolicyService extends ValidateEntity {
         whereConditions.push({ numberPolicy: searchCondition });
       }
 
-      // VERSIÓN OPTIMIZADA: NO cargar 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds'
+      // 1️⃣ Cargar pólizas SIN pagos
       const policies: PolicyEntity[] = await this.policyRepository.find({
         order: {
           id: 'DESC',
         },
+        where: whereConditions.length > 0 ? whereConditions : undefined,
         relations: [
           'policyType',
           'policyStatus',
           'paymentFrequency',
           'company',
           'customer',
-
-
-          // SIN 'payments', 'payments.paymentStatus', 'renewals', 'commissionRefunds', 'periods'
         ],
         select: {
           numberPolicy: true,
@@ -669,12 +667,10 @@ export class PolicyService extends ValidateEntity {
           startDate: true,
           endDate: true,
           coverageAmount: true,
-
           company: {
             id: true,
             companyName: true,
           },
-
           customer: {
             id: true,
             firstName: true,
@@ -682,8 +678,6 @@ export class PolicyService extends ValidateEntity {
             surname: true,
             secondSurname: true,
           },
-
-
         },
       });
 
@@ -694,108 +688,60 @@ export class PolicyService extends ValidateEntity {
         });
       }
 
-      // ✅ OPTIMIZACIÓN AGRESIVA: Cargar últimos pagos con lotes pequeños y timeouts
       const policyIds = policies.map(p => p.id);
+      console.log(`📋 ${policies.length} pólizas cargadas`);
 
-      console.log(`🔍 Iniciando carga OPTIMIZADA de últimos pagos para ${policyIds.length} pólizas...`);
+      // 2️⃣ Cargar TODOS los pagos de esas pólizas (query simple, sin subconsulta)
+      console.log(`💳 Cargando pagos para ${policyIds.length} pólizas...`);
       const startTime = Date.now();
 
       try {
-        const BATCH_SIZE = 100; // ⚡ Reducido a 100 para evitar timeouts
-        const MAX_BATCH_TIME = 5000; // ⏱️ Máximo 5 segundos por lote
-        const allLastPayments: PaymentEntity[] = [];
-        let failedBatches = 0;
-
-        // Dividir en lotes pequeños
-        const totalBatches = Math.ceil(policyIds.length / BATCH_SIZE);
-
-        for (let i = 0; i < policyIds.length; i += BATCH_SIZE) {
-          const batchIds = policyIds.slice(i, i + BATCH_SIZE);
-          const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-
-          console.log(`📦 Lote ${batchNumber}/${totalBatches} (${batchIds.length} pólizas)`);
-
-          const batchStartTime = Date.now();
-
-          try {
-            // Usar Promise.race para timeout por lote
-            const batchPaymentsPromise = this.paymentRepository
-              .createQueryBuilder('payment')
-              .select([
-                'payment.id',
-                'payment.policy_id',
-                'payment.number_payment',
-                'payment.pending_value',
-                'payment.value',
-                'payment.createdAt'
-              ])
-              .where('payment.policy_id IN (:...batchIds)', { batchIds })
-              .andWhere((qb) => {
-                const subQuery = qb
-                  .subQuery()
-                  .select('MAX(p2.number_payment)')
-                  .from('payment_record', 'p2')
-                  .where('p2.policy_id = payment.policy_id')
-                  .getQuery();
-                return `payment.number_payment = ${subQuery}`;
-              })
-              .getMany();
-
-            const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Batch timeout')), MAX_BATCH_TIME)
-            );
-
-            const batchPayments = await Promise.race([batchPaymentsPromise, timeoutPromise]);
-
-            allLastPayments.push(...batchPayments);
-
-            const batchEndTime = Date.now();
-            const batchTime = batchEndTime - batchStartTime;
-            console.log(`   ✓ Lote ${batchNumber} completado en ${batchTime}ms (${batchPayments.length} pagos)`);
-
-            // Pequeña pausa entre lotes para no saturar la BD
-            if (i + BATCH_SIZE < policyIds.length) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-          } catch (batchError) {
-            failedBatches++;
-            console.error(`   ❌ Error en lote ${batchNumber}:`, batchError.message);
-            // Continuar con el siguiente lote sin detener todo
-          }
-        }
+        // Query SIMPLE: solo WHERE policy_id IN (...)
+        const allPayments = await this.paymentRepository
+          .createQueryBuilder('payment')
+          .select([
+            'payment.id',
+            'payment.policy_id',
+            'payment.number_payment',
+            'payment.pending_value',
+            'payment.value',
+            'payment.createdAt'
+          ])
+          .where('payment.policy_id IN (:...policyIds)', { policyIds })
+          .orderBy('payment.policy_id', 'ASC')
+          .addOrderBy('payment.number_payment', 'DESC')
+          .getMany();
 
         const endTime = Date.now();
-        const totalTime = endTime - startTime;
+        console.log(`✅ ${allPayments.length} pagos cargados en ${endTime - startTime}ms`);
 
-        if (failedBatches > 0) {
-          console.warn(`⚠️ ${failedBatches}/${totalBatches} lotes fallaron - Continuando con pagos parciales`);
-        }
-
-        console.log(`✅ TOTAL: ${allLastPayments.length} pagos cargados en ${totalTime}ms`);
-
-        // Mapear pagos a sus respectivas pólizas
-        const paymentsByPolicy = new Map();
-        allLastPayments.forEach(payment => {
-          paymentsByPolicy.set(payment.policy_id, payment);
+        // 3️⃣ En memoria: seleccionar solo el último pago de cada póliza
+        const lastPaymentsByPolicy = new Map<number, PaymentEntity>();
+        
+        allPayments.forEach(payment => {
+          const existingPayment = lastPaymentsByPolicy.get(payment.policy_id);
+          
+          // Si no hay pago para esta póliza, o este tiene número mayor, guardarlo
+          if (!existingPayment || payment.number_payment > existingPayment.number_payment) {
+            lastPaymentsByPolicy.set(payment.policy_id, payment);
+          }
         });
 
-        // Asignar el último pago a cada póliza (o array vacío si no hay pago)
+        console.log(`📊 ${lastPaymentsByPolicy.size} últimos pagos seleccionados en memoria`);
+
+        // 4️⃣ Asignar el último pago a cada póliza
         policies.forEach(policy => {
-          const lastPayment = paymentsByPolicy.get(policy.id);
+          const lastPayment = lastPaymentsByPolicy.get(policy.id);
           policy.payments = lastPayment ? [lastPayment] : [];
         });
 
-        console.log(`📊 Resultado: ${allLastPayments.length} pagos asignados a ${policies.length} pólizas`);
-
       } catch (paymentError) {
-        console.error('❌ ERROR CRÍTICO al cargar pagos:', paymentError.message);
-        console.error('Stack:', paymentError.stack);
-        // Fallback: continuar sin pagos si todo falla
+        console.error('❌ ERROR al cargar pagos:', paymentError.message);
+        // Fallback: continuar sin pagos
         policies.forEach(policy => {
           policy.payments = [];
         });
-        console.warn('⚠️ Continuando SIN PAGOS debido a error crítico');
+        console.warn('⚠️ Continuando SIN PAGOS debido a error');
       }
 
       // Cachear con clave versionada (solo si no hay búsqueda)
@@ -805,7 +751,7 @@ export class PolicyService extends ValidateEntity {
           JSON.stringify(policies),
           3600 // TTL de 1 hora
         );
-        console.log(`✅ Polizas cacheadas con versión ${cacheVersion} (TTL: 1h)`);
+        console.log(`✅ Pólizas cacheadas con versión ${cacheVersion} (TTL: 1h)`);
       }
 
       return policies;
