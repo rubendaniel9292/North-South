@@ -38,12 +38,14 @@ export class PaymentSchedulerService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // ⚠️ TEMPORALMENTE DESACTIVADO: Procesamiento automático de pagos al reiniciar
-    console.log('⏭️ Procesamiento automático de pagos DESACTIVADO temporalmente');
-    console.log('ℹ️  Los pagos NO se procesarán automáticamente al reiniciar el servidor');
+    // ⏭️ DESACTIVADO: Procesamiento automático tras reinicio del servidor
+    // Razón: El cron diario a medianoche es suficiente para procesar pagos
+    // Escenario: Solo sería necesario si el servidor está apagado más de 24 horas (poco probable)
+    console.log('⏭️ Procesamiento automático tras reinicio DESACTIVADO');
+    console.log('ℹ️  Los pagos se procesarán automáticamente a medianoche (cron activo)');
     return;
 
-    /* DESACTIVADO TEMPORALMENTE
+    /* CÓDIGO DESACTIVADO - Descomentar solo si es necesario procesar tras reinicios
     console.log('Inicializando módulo y verificando pagos pendientes...');
     try {
       // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
@@ -58,22 +60,16 @@ export class PaymentSchedulerService implements OnModuleInit {
     } catch (error) {
       console.error('Error al verificar pagos al inicializar el módulo:', error);
     }
-    FIN CÓDIGO DESACTIVADO */
+    */
   }
 
-  // ⚠️ TEMPORALMENTE DESACTIVADO: Cron diario de procesamiento de pagos
-  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
-    console.log('⏭️ Cron de pagos DESACTIVADO - No se ejecutará a medianoche');
-    return;
-
-    /* DESACTIVADO TEMPORALMENTE
     try {
       await this.verifyAndProcessPaymentsBatched();
     } catch (error) {
       console.error('Error al verificar y procesar pagos en el cron job:', error);
     }
-    FIN CÓDIGO DESACTIVADO */
   }
 
   // Versión por lotes para el cron diario
