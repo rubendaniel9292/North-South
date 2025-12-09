@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PaymentService } from '../payment/services/payment.service';
 import { PaymentEntity } from '../payment/entity/payment.entity';
@@ -6,10 +6,12 @@ import { PaymentDTO } from '@/payment/dto/payment.dto';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { DateHelper } from './date.helper';
 import { RedisModuleService } from '@/redis-module/services/redis-module.service';
+import { ErrorManager } from './error.manager';
 
 @Injectable()
 export class PaymentSchedulerService implements OnModuleInit {
   constructor(
+    @Inject(forwardRef(() => PaymentService))
     private readonly paymentService: PaymentService,
     private readonly redisService: RedisModuleService,
   ) { }
@@ -45,8 +47,9 @@ export class PaymentSchedulerService implements OnModuleInit {
     console.log('ℹ️  Los pagos se procesarán automáticamente a medianoche (cron activo)');
     return;
 
-    /* CÓDIGO DESACTIVADO - Descomentar solo si es necesario procesar tras reinicios
-    console.log('Inicializando módulo y verificando pagos pendientes...');
+    //CÓDIGO DESACTIVADO - Descomentar solo si es necesario procesar tras reinicios
+    //console.log('Inicializando módulo y verificando pagos pendientes...');
+    /*
     try {
       // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
       const hasPendingPayments = await this.checkIfPendingPaymentsExist();
@@ -57,10 +60,13 @@ export class PaymentSchedulerService implements OnModuleInit {
       } else {
         console.log('No hay pagos pendientes que procesar. Módulo inicializado correctamente.');
       }
+      
     } catch (error) {
       console.error('Error al verificar pagos al inicializar el módulo:', error);
-    }
-    */
+}
+      */
+
+
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -175,7 +181,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       // Resumen consolidado solo si se procesó algo
       if (totalProcessed > 0) {
         console.log(`✅ Verificación diaria por lotes completada: ${totalProcessed} pólizas verificadas, ${paymentsCreated} pagos creados`);
-        
+
         // ⭐ CRÍTICO: Invalidar caché para que frontend vea los cambios sin reiniciar
         if (paymentsCreated > 0) {
           await this.invalidatePolicyCaches();
@@ -694,107 +700,6 @@ export class PaymentSchedulerService implements OnModuleInit {
     return new Date(lastRenewal.createdAt);
   }
 
-  /**
-   * Crea TODOS los pagos faltantes del ciclo actual (incluyendo futuros)
-   * Útil para verificar cálculos de valores después de renovaciones
-   * 
-   * @param payment - Pago base para calcular los siguientes
-   * @param policy - Póliza con toda la información necesaria
-   * @returns Array de pagos creados
-   */
-  private async createAllCyclePayments(payment: PaymentEntity, policy: PolicyEntity): Promise<PaymentEntity[]> {
-    const createdPayments: PaymentEntity[] = [];
-
-    try {
-      // Determinar cuántos pagos debe tener el ciclo actual
-      const totalPaymentsInCycle = Number(policy.numberOfPayments);
-
-      // Obtener todos los pagos actuales de la póliza
-      const allPolicyPayments = policy.payments.filter(p => p.policy_id === payment.policy_id);
-
-      // Determinar en qué ciclo estamos (basado en renovaciones)
-      const isRenewed = this.isPolicyRenewed(policy);
-      let currentCycleNumber = 1;
-      let cycleStartDate = new Date(policy.startDate);
-
-      if (isRenewed && policy.renewals && policy.renewals.length > 0) {
-        // Ordenar renovaciones por fecha
-        const sortedRenewals = [...policy.renewals].sort((a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-
-        // Encontrar en qué ciclo estamos
-        currentCycleNumber = sortedRenewals.length + 1;
-
-        // La fecha de inicio del ciclo actual es la última renovación
-        const lastRenewal = sortedRenewals[sortedRenewals.length - 1];
-        cycleStartDate = new Date(lastRenewal.createdAt);
-      }
-
-      // Filtrar pagos del ciclo actual
-      const paymentsInCurrentCycle = allPolicyPayments.filter(p => {
-        const paymentDate = DateHelper.normalizeDateForComparison(p.createdAt);
-        return paymentDate >= DateHelper.normalizeDateForComparison(cycleStartDate);
-      });
-
-      // Calcular cuántos pagos faltan por crear en este ciclo
-      const paymentsToCreate = totalPaymentsInCycle - paymentsInCurrentCycle.length;
-
-      if (paymentsToCreate <= 0) {
-        console.log(`✓ Póliza ${policy.numberPolicy || policy.id}: Ciclo ${currentCycleNumber} completo (${paymentsInCurrentCycle.length}/${totalPaymentsInCycle} pagos)`);
-        return createdPayments;
-      }
-
-      console.log(`🔄 Póliza ${policy.numberPolicy || policy.id}: Creando ${paymentsToCreate} pagos futuros para ciclo ${currentCycleNumber}`);
-
-      // Obtener el último pago del ciclo actual como base
-      const lastPaymentInCycle = paymentsInCurrentCycle.sort((a, b) =>
-        b.number_payment - a.number_payment
-      )[0];
-
-      let currentPayment = lastPaymentInCycle || payment;
-
-      // Crear todos los pagos faltantes
-      for (let i = 0; i < paymentsToCreate; i++) {
-        const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
-
-        if (!nextPaymentDate) {
-          console.warn(`⚠️ No se pudo calcular la siguiente fecha de pago para póliza ${policy.id}`);
-          break;
-        }
-
-        const nextPaymentDateNorm = DateHelper.normalizeDateForComparison(nextPaymentDate);
-
-        // Crear el pago (incluso si es futuro)
-        const createdPayment = await this.createOverduePayment(
-          currentPayment,
-          policy,
-          nextPaymentDateNorm,
-          'Pago futuro generado manualmente para verificación'
-        );
-
-        if (createdPayment) {
-          createdPayments.push(createdPayment);
-          // Actualizar el pago actual para calcular el siguiente
-          currentPayment = createdPayment;
-          // Actualizar la póliza con el nuevo pago
-          policy.payments.push(createdPayment);
-
-          console.log(`  ✓ Pago #${createdPayment.number_payment} creado para ${nextPaymentDateNorm.toISOString().split('T')[0]} (valor: $${createdPayment.value}, pendiente: $${createdPayment.pending_value})`);
-        } else {
-          // Si no se pudo crear el pago, detener el bucle
-          break;
-        }
-      }
-
-      console.log(`✅ Póliza ${policy.numberPolicy || policy.id}: ${createdPayments.length} pagos futuros creados`);
-
-    } catch (error) {
-      console.error(`Error al crear pagos del ciclo completo para póliza ${policy.id}:`, error);
-    }
-
-    return createdPayments;
-  }
 
   /**
    * Manual para pruebas (VERSIÓN OPTIMIZADA POR LOTES)
@@ -809,7 +714,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       // ✅ CRÍTICO: Invalidar caché ANTES de procesar para evitar race condition
       await this.invalidatePolicyCaches();
       console.log('✅ Caché invalidado ANTES de procesar pagos manuales');
-      
+
       // ⏱️ Esperar para asegurar que la invalidación se propague en Redis
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -991,7 +896,7 @@ export class PaymentSchedulerService implements OnModuleInit {
       // ✅ Invalidar caché NUEVAMENTE al final (doble invalidación para garantizar)
       await this.invalidatePolicyCaches();
       console.log('✅ Caché invalidado DESPUÉS del procesamiento manual');
-      
+
       // ⏱️ Esperar para asegurar propagación antes de devolver control
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -1057,15 +962,16 @@ export class PaymentSchedulerService implements OnModuleInit {
       await this.redisService.del('GLOBAL_ALL_POLICIES');
       await this.redisService.del('GLOBAL_ALL_POLICIES_optimized'); // ⭐ CRÍTICO para el frontend
       await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
-      
+
       // Cachés de pagos
       await this.redisService.del('payments');
       await this.redisService.del('paymentsByStatus:general');
-      
+
       console.log('✅ Cachés críticos invalidados: GLOBAL_ALL_POLICIES_optimized, payments');
     } catch (error) {
       console.warn('⚠️ Advertencia: No se pudieron invalidar algunos cachés:', error.message);
       // No lanzar error para no interrumpir el procesamiento
     }
   }
+
 }

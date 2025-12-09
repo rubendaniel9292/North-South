@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Body, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
@@ -667,6 +667,143 @@ export class PaymentService {
       }
       return policy;
     } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+  //8: 
+
+  /**
+   * Calcula la próxima fecha de pago basada en la frecuencia de pago
+   * (Versión standalone - no depende de PaymentSchedulerService)
+   */
+  private calculateNextPaymentDate(lastPaymentDate: Date, paymentFrequencyId: number): Date {
+    const nextDate = new Date(lastPaymentDate);
+
+    switch (paymentFrequencyId) {
+      case 1: // Mensual
+      case 5: // Otro pago (Mensual)
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        break;
+      case 2: // Trimestral
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        break;
+      case 3: // Semestral
+        nextDate.setMonth(nextDate.getMonth() + 6);
+        break;
+      case 4: // Anual
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
+    }
+
+    return nextDate;
+  }
+
+  /**
+   * Crea el SIGUIENTE pago adelantado para una póliza específica
+   * Recibe TODOS los datos calculados desde el frontend, incluyendo:
+   * - createdAt: Fecha tentativa de cobro (calculada según frecuencia)
+   * - observations: Incluye la fecha de HOY cuando se generó el adelanto
+   */
+  async createAdvancePaymentForPolicy(newPaymentData: {
+    policy_id: number;
+    number_payment: number;
+    value: number;
+    pending_value: number;
+    credit: number | string;
+    balance: number;
+    total: number;
+    status_payment_id: number;
+    year: number;
+    createdAt: string | Date; // ✅ Fecha tentativa de cobro (viene del frontend)
+    observations: string; // ✅ Incluye fecha de HOY: "Pago adelantado generado el DD/MM/YYYY"
+  }): Promise<PaymentEntity> {
+    console.log(`💰 Procesando pago adelantado para póliza ${newPaymentData.policy_id}...`);
+
+    try {
+      // 1. Validar que la póliza existe
+      const policy = await this.policyRepository.findOne({
+        where: { id: newPaymentData.policy_id },
+        relations: ['payments']
+      });
+
+      if (!policy) {
+        throw ErrorManager.createSignatureError('Póliza no encontrada');
+      }
+
+      // 2. Validar que no esté cancelada o culminada
+      if (policy.policy_status_id === 2 || policy.policy_status_id === 3) {
+        throw ErrorManager.createSignatureError(
+          `Póliza ${policy.policy_status_id === 2 ? 'cancelada' : 'culminada'}`
+        );
+      }
+
+      // 3. Validar que no exista ya un pago con ese número
+      const existingPayment = policy.payments?.find(
+        p => p.number_payment === newPaymentData.number_payment
+      );
+
+      if (existingPayment) {
+        throw ErrorManager.createSignatureError(
+          `Ya existe un pago con número ${newPaymentData.number_payment}`
+        );
+      }
+
+      // 4. Obtener el último pago para calcular correctamente el pending_value
+      const lastPayment = policy.payments && policy.payments.length > 0
+        ? policy.payments.reduce((prev, current) =>
+          (prev.number_payment > current.number_payment) ? prev : current
+        )
+        : null;
+
+      if (!lastPayment) {
+        throw ErrorManager.createSignatureError(
+          'No se encontró ningún pago previo. Debe existir al menos un pago para crear adelantos.'
+        );
+      }
+
+      // 5. Calcular el nuevo pending_value: pending_value anterior - valor del nuevo pago
+      const newPendingValue = Math.max(0, lastPayment.pending_value - newPaymentData.value);
+
+      console.log(`💰 Último pago #${lastPayment.number_payment}:`);
+      console.log(`   - Saldo pendiente anterior: ${lastPayment.pending_value}`);
+      console.log(`   - Valor del nuevo pago: ${newPaymentData.value}`);
+      console.log(`   - Nuevo saldo pendiente: ${newPendingValue}`);
+
+      // 6. Normalizar la fecha tentativa de cobro (viene del frontend)
+      const tentativePaymentDate = DateHelper.normalizeDateForDB(new Date(newPaymentData.createdAt));
+
+      console.log(`📅 Fecha tentativa de cobro (createdAt): ${tentativePaymentDate.toLocaleDateString('es-EC')}`);
+      console.log(`📝 Observaciones (fecha de HOY): ${newPaymentData.observations}`);
+
+      // 7. Convertir credit de string a number si es necesario
+      const creditValue = typeof newPaymentData.credit === 'string' 
+        ? parseFloat(newPaymentData.credit) 
+        : newPaymentData.credit || 0;
+
+      // 8. Crear el pago adelantado con pending_value CORREGIDO
+      const newAdvancedPayment = await this.paymentRepository.save({
+        policy_id: newPaymentData.policy_id,
+        number_payment: newPaymentData.number_payment,
+        value: newPaymentData.value,
+        pending_value: newPendingValue, // ✅ CORREGIDO: pending_value anterior - value
+        credit: creditValue,
+        balance: newPaymentData.balance,
+        total: newPaymentData.total,
+        status_payment_id: newPaymentData.status_payment_id,
+        observations: newPaymentData.observations, // ✅ "Pago adelantado generado el 08/12/2025"
+        createdAt: tentativePaymentDate, // ✅ Fecha tentativa de cobro
+      });
+
+      console.log(`✅ Pago adelantado #${newAdvancedPayment.number_payment} creado exitosamente`);
+      console.log(`   - Fecha tentativa de cobro: ${tentativePaymentDate.toLocaleDateString('es-EC')}`);
+      console.log(`   - Observaciones: ${newAdvancedPayment.observations}`);
+
+      // 7. Invalidar caché
+      await this.invalidatePolicyRelatedCache(policy);
+
+      return newAdvancedPayment;
+    } catch (error) {
+      console.error('❌ Error al crear pago adelantado:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }

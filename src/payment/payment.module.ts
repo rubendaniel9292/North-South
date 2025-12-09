@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpCustomService } from 'src/providers/http/http.service';
 import { UserModule } from '@/user/user.module';
@@ -11,6 +11,7 @@ import { PaymentStatusEntity } from './entity/payment.status.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentSchedulerService } from '@/helpers/registerPayment';
 import { PolicyModule } from '@/policy/policy.module';
+import { RedisModuleModule } from '@/redis-module/redis-module.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -22,10 +23,15 @@ import { PolicyModule } from '@/policy/policy.module';
     ProvidersModule,
     UserModule,
     PolicyModule,
+    RedisModuleModule,
 
   ],
-  providers: [PaymentService, HttpCustomService, PaymentSchedulerService],
-  exports: [PaymentService, TypeOrmModule],
+  providers: [
+    PaymentService, 
+    HttpCustomService, 
+    PaymentSchedulerService
+  ],
+  exports: [PaymentService, PaymentSchedulerService, TypeOrmModule],
   controllers: [PaymentController],
 })
 export class PaymentModule { }

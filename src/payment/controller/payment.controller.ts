@@ -16,7 +16,7 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/decorators';
 import { PaymentService } from '../services/payment.service';
-import { PaymentDTO } from '../dto/payment.dto';
+import { PaymentDTO, CreateAdvancePaymentDTO } from '../dto/payment.dto';
 import { PaymentSchedulerService } from '@/helpers/registerPayment';
 import { PaymentEntity } from '../entity/payment.entity';
 
@@ -165,4 +165,19 @@ export class PaymentController {
     }
   }
 
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
+  @Post('create-advance-payment')
+  public async createAdvancePayment(
+    @Body()  newPaymentData: CreateAdvancePaymentDTO
+  ) {
+    const newAdvancedPayment = await this.paymentService.createAdvancePaymentForPolicy(
+      newPaymentData
+    );
+    if (newAdvancedPayment) {
+      return {
+        status: 'success',
+        newAdvancedPayment,
+      };
+    }
+  }
 }

@@ -53,3 +53,47 @@ export class PaymentDTO implements IPayment {
   @IsDate()
   updatedAt?: Date;
 }
+export class CreateAdvancePaymentDTO {
+  @IsNotEmpty()
+  @IsInt()
+  policy_id: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  number_payment: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  value: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  pending_value: number;
+
+  @IsNotEmpty()
+  @IsString()
+  credit: string; // Frontend envía como string "0.00"
+
+  @IsNotEmpty()
+  @IsNumber()
+  balance: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  total: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  status_payment_id: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  year: number;
+
+  @IsString()
+  @IsNotEmpty()
+  observations: string;
+
+  @IsNotEmpty()
+  createdAt: string | Date; // ✅ Fecha tentativa de cobro (ISO string del frontend)
+}
