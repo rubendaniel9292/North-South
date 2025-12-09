@@ -32,7 +32,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import alerts from "../../helpers/Alerts";
 import useAuth from "../../hooks/useAuth";
-const ListPolicyModal = ({ policy, onClose }) => {
+const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [reportLoading, setReportLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState({});
   const [advancedPaymentLoading, setAdvancedPaymentLoading] = useState(false);
@@ -134,10 +134,18 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
         setTimeout(() => {
           // Actualizar el estado local de la póliza con los pagos actualizados
-          setLocalPolicy((prevPolicy) => ({
-            ...prevPolicy,
+          const updatedPolicy = {
+            ...localPolicy,
             payments: updatedPayments,
-          }));
+          };
+          
+          setLocalPolicy(updatedPolicy);
+          
+          // ✅ Notificar al componente padre para actualizar el botón de renovación
+          if (onPolicyUpdated) {
+            onPolicyUpdated(updatedPolicy);
+          }
+          
           alerts(
             "Actualización exitosa",
             "Pago actualizado correctamente",
@@ -180,8 +188,19 @@ const ListPolicyModal = ({ policy, onClose }) => {
         localPolicy.payments[0]
       );
 
+      // ✅ VALIDACIÓN FRONTEND: Verificar si el ciclo está completo
+      if (lastPayment.pending_value <= 0) {
+        alerts(
+          "Ciclo completado",
+          `No se puede crear pago adelantado. El ciclo actual ya está completo (saldo pendiente = ${lastPayment.pending_value}). Debe renovar la póliza primero.`,
+          "warning"
+        );
+        return;
+      }
+
       // Calcular la fecha del nuevo pago según la frecuencia
-      const lastDate = new Date(lastPayment.createdAt);
+      //const lastDate = new Date(lastPayment.createdAt);
+      const lastDate = dayjs(lastPayment.createdAt);
       //let nextPaymentDate = new Date(lastDate);
 
       // ✅ Usar ID en lugar de nombre para mayor confiabilidad
@@ -221,9 +240,9 @@ const ListPolicyModal = ({ policy, onClose }) => {
         number_payment: lastPayment.number_payment + 1,
         value: parseFloat(lastPayment.value),
         pending_value: newPendingValue, // ✅ CORREGIDO: Se reduce
-        credit: 0.00,
+        credit: "0.00",
         balance: parseFloat(lastPayment.value),
-        total: 0.00, // ✅ CORREGIDO: Debe ser 0 si no hay abonos
+        total: "0.00", // ✅ CORREGIDO: Debe ser 0 si no hay abonos
         status_payment_id: 1, // Pendiente
         year: nextPaymentDate.year(),
         createdAt: nextPaymentDate.toISOString(), // ✅ Fecha tentativa de cobro
@@ -239,22 +258,28 @@ const ListPolicyModal = ({ policy, onClose }) => {
       if (response.data.status === "success") {
         // Agregar el nuevo pago al estado local
         const newPayment = {
-          id: response.data.data.id,
+          id: response.data.data,
           ...newPaymentData,
           createdAt: nextPaymentDate.toISOString(), // ✅ Fecha calculada del próximo pago
           updatedAt: today.toISOString(), // ✅ Fecha de HOY (cuando se creó)
           paymentStatus: {
             id: 1,
-            statusNamePayment: "Pendiente"
+            statusNamePayment: "ATRASADO"
           }
         };
 
-        setLocalPolicy((prevPolicy) => ({
-          ...prevPolicy,
-          payments: [...prevPolicy.payments, newPayment].sort(
-            (a, b) => a.number_payment - b.number_payment
-          )
-        }));
+        const updatedPolicy = {
+          ...localPolicy,
+          payments: [newPayment, ...localPolicy.payments]
+        };
+        
+        setLocalPolicy(updatedPolicy);
+        
+        // ✅ Notificar al componente padre
+        if (onPolicyUpdated) {
+          onPolicyUpdated(updatedPolicy);
+        }
+        
         setTimeout(() => {
           alerts(
             "Pago adelantado registrado",
@@ -273,11 +298,24 @@ const ListPolicyModal = ({ policy, onClose }) => {
       }
     } catch (error) {
       console.error("Error registrando pago adelantado:", error);
-      alerts(
-        "Error",
-        "Error al registrar el pago adelantado. " + (error.response?.data?.message || error.message),
-        "error"
-      );
+      
+      // ✅ Extraer mensaje del backend
+      const errorMessage = error.response?.data?.message || error.message;
+      
+      // ✅ Verificar si es el error de ciclo completo
+      if (errorMessage.includes("pending_value") && errorMessage.includes("0")) {
+        alerts(
+          "Ciclo completado",
+          errorMessage,
+          "warning"
+        );
+      } else {
+        alerts(
+          "Error",
+          "Error al registrar el pago adelantado. " + errorMessage,
+          "error"
+        );
+      }
     } finally {
       setAdvancedPaymentLoading(false);
     }
@@ -1072,6 +1110,7 @@ ListPolicyModal.propTypes = {
   }).isRequired,
 
   onClose: PropTypes.func.isRequired,
+  onPolicyUpdated: PropTypes.func,
 };
 
 export default ListPolicyModal;

@@ -56,7 +56,8 @@ export default function Modal({
         return (
           <ListPolicyModal
             onClose={onClose}
-            policy={policy} //onPaymentUpdate={onPaymentUpdate}
+            policy={policy}
+            onPolicyUpdated={onPolicyUpdated}
           />
         );
       case "renewal":
