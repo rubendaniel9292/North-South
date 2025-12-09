@@ -25,6 +25,12 @@ import {
 import { useLocation } from "react-router-dom";
 
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
+import {
+  handleCardAccountByEvent,
+  handleCardAccountById as handleCardAccountByIdHelper,
+  addClassSafely as addClassSafelyHelper,
+} from "../../helpers/PolicyFormHelpers";
+
 const CreatePolicy = () => {
   const option = "Escoja una opción";
   const [showCardModal, setShowCardModal] = useState(false);
@@ -167,37 +173,18 @@ const CreatePolicy = () => {
     [changed]
   );
 
-  //filtro de tarjeta por clienes
+  //filtro de tarjeta por clientes
   const handleCard_Accunt = useCallback(
     (e) => {
-      const selectedCustomerId = e.target.value;
-      const selectedCustomer = customers.find(
-        (customer) => customer.id === selectedCustomerId
+      handleCardAccountByEvent(
+        e,
+        customers,
+        cards,
+        accounts,
+        setFilteredCard,
+        setFilteredAccount,
+        changed
       );
-
-      if (selectedCustomer) {
-        const customerCiRuc = selectedCustomer.ci_ruc;
-
-        if (cards && cards.length > 0) {
-          const filteredCards = cards.filter(
-            (card) => card.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredCard(filteredCards);
-        } else {
-          setFilteredCard([]);
-        }
-
-        if (accounts && accounts.length > 0) {
-          const filteredAccount = accounts.filter(
-            (account) => account.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredAccount(filteredAccount);
-        } else {
-          setFilteredAccount([]);
-        }
-      }
-
-      changed(e);
     },
     [customers, cards, accounts, changed]
   );
@@ -220,8 +207,7 @@ const CreatePolicy = () => {
     [isEditable, changed, handleCard_Accunt]
   );
   const addClassSafely = (id, className) => {
-    const element = document.getElementById(id);
-    if (element) element.classList.add(className);
+    addClassSafelyHelper(id, className);
   };
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado/*
   const calculateAdvisorPayment = useCallback(() => {
@@ -321,30 +307,14 @@ const CreatePolicy = () => {
 
   const handleCard_AccuntById = useCallback(
     (customerId) => {
-      const selectedCustomer = customers.find(
-        (customer) => customer.id === customerId
+      handleCardAccountByIdHelper(
+        customerId,
+        customers,
+        cards,
+        accounts,
+        setFilteredCard,
+        setFilteredAccount
       );
-      if (selectedCustomer) {
-        const customerCiRuc = selectedCustomer.ci_ruc;
-
-        if (cards && cards.length > 0) {
-          const filteredCards = cards.filter(
-            (card) => card.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredCard(filteredCards);
-        } else {
-          setFilteredCard([]);
-        }
-
-        if (accounts && accounts.length > 0) {
-          const filteredAccount = accounts.filter(
-            (account) => account.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredAccount(filteredAccount);
-        } else {
-          setFilteredAccount([]);
-        }
-      }
     },
     [customers, cards, accounts]
   );

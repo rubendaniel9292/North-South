@@ -3,7 +3,7 @@ import UserForm from "../../hooks/UserForm";
 import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { 
+import {
   faRectangleXmark,
   faFloppyDisk,
   faBarcode,
@@ -28,23 +28,18 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
+import {
+  handleCardAccountByEvent,
+  handleCardAccountById,
+  getFrequencyIdFromPayments,
+  addClassSafely as addClassSafelyHelper,
+} from "../../helpers/PolicyFormHelpers";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   //pbeneres valor, % y derecho de poliza
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
   if (!policy) return null;
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Mapeo inverso: de número de pagos a ID de frecuencia
-  const getFrequencyIdFromPayments = (numberOfPayments) => {
-    const paymentsToFrequencyMap = {
-      12: 1, // 12 pagos = Mensual (ID 1)
-      4: 2,  // 4 pagos = Trimestral (ID 2)
-      2: 3,  // 2 pagos = Semestral (ID 3)
-      1: 4,  // 1 pago = Anual (ID 4)
-    };
-    return paymentsToFrequencyMap[numberOfPayments] || policy.payment?.paymentFrequency.id || 1;
-  };
 
   const { form, changed } = UserForm({
     numberPolicy: policy.numberPolicy,
@@ -94,37 +89,18 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const option = "Escoja una opción";
   //const [selectedCustomer, setSelectedCustomer] = useState(option);
 
-  //filtro de tarjeta por clienes
+  //filtro de tarjeta por clientes
   const handleCard_Accunt = useCallback(
     (e) => {
-      const selectedCustomerId = e.target.value;
-      const selectedCustomer = customers.find(
-        (customer) => customer.id === selectedCustomerId
+      handleCardAccountByEvent(
+        e,
+        customers,
+        cards,
+        accounts,
+        setFilteredCard,
+        setFilteredAccount,
+        changed
       );
-
-      if (selectedCustomer) {
-        const customerCiRuc = selectedCustomer.ci_ruc;
-
-        if (cards && cards.length > 0) {
-          const filteredCards = cards.filter(
-            (card) => card.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredCard(filteredCards);
-        } else {
-          setFilteredCard([]);
-        }
-
-        if (accounts && accounts.length > 0) {
-          const filteredAccount = accounts.filter(
-            (account) => account.customer.ci_ruc === customerCiRuc
-          );
-          setFilteredAccount(filteredAccount);
-        } else {
-          setFilteredAccount([]);
-        }
-      }
-
-      changed(e);
     },
     [customers, cards, accounts, changed]
   );
@@ -143,9 +119,23 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     [handleCard_Accunt, changed]
   );
 
+  // ✅ Función para filtrar tarjetas/cuentas por ID de cliente (sin evento)
+  const handleCard_AccuntById = useCallback(
+    (customerId) => {
+      handleCardAccountById(
+        customerId,
+        customers,
+        cards,
+        accounts,
+        setFilteredCard,
+        setFilteredAccount
+      );
+    },
+    [customers, cards, accounts]
+  );
+
   const addClassSafely = useCallback((id, className) => {
-    const element = document.getElementById(id);
-    if (element) element.classList.add(className);
+    addClassSafelyHelper(id, className);
   }, []);
 
   // Calcula el pago al asesor con usecallback,  evita la recreación innecesaria de la función en cada renderizado
@@ -288,6 +278,14 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ✅ Cargar tarjetas y cuentas del cliente actual al abrir el modal
+  useEffect(() => {
+    if (policy?.customer?.id && customers.length > 0 && (cards.length > 0 || accounts.length > 0)) {
+      handleCard_AccuntById(policy.customer.id);
+    }
+  }, [policy?.customer?.id, customers, cards, accounts, handleCard_AccuntById]);
+
   useEffect(() => {
     calculateAdvisorPayment();
   }, [form.policyValue, form.advisorPercentage, calculateAdvisorPayment]);
@@ -315,7 +313,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
           // ✅ Recargar la póliza completa desde el servidor con sus datos actualizados
           try {
             const updatedPolicyResponse = await http.get(`policy/get-policy-id/${policy.id}`);
-            
+
             if (updatedPolicyResponse.data.status === "success") {
               // Llamar a la función de callback para propagar el cambio con datos frescos
               onPolicyUpdated(updatedPolicyResponse.data.policyById);
@@ -325,7 +323,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             // Fallback: usar los datos del response original
             onPolicyUpdated(request.data.policyUpdate);
           }
-          
+
           setTimeout(() => {
             onClose();
           }, 500);
@@ -372,7 +370,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Número de póliza
                   </label>
                   <input
-                    
+
                     required
                     type="text"
                     className="form-control"
@@ -389,7 +387,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Tipo
                   </label>
                   <select
-                    
+
                     className="form-select"
                     id="policy_type_id"
                     name="policy_type_id"
@@ -531,7 +529,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                   </select>
                 </div>
                 <div className="mb-3 col-3">
-                                    <label htmlFor="policy_status_id" className="form-label">
+                  <label htmlFor="policy_status_id" className="form-label">
                     <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
                     Estado de Póliza
                   </label>
