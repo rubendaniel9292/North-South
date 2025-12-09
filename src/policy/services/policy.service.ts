@@ -1147,7 +1147,7 @@ export class PolicyService extends ValidateEntity {
       // ✅ VALIDACIÓN AUTOMÁTICA: Verificar y crear periodos faltantes
       await this.validateAndCreateMissingPeriods(id);
 
-      console.log("POLIZA OBTENIDA DESDE EL SERVICIO DE POLIZA: ", policyId);
+      //console.log("POLIZA OBTENIDA DESDE EL SERVICIO DE POLIZA: ", policyId);
       return policyId;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

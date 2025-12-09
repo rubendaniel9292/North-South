@@ -761,6 +761,13 @@ export class PaymentService {
         );
       }
 
+      // ✅ VALIDACIÓN CRÍTICA: No crear pago si el pending_value es 0 (ciclo completo)
+      if (lastPayment.pending_value <= 0) {
+        throw ErrorManager.createSignatureError(
+          `No se puede crear pago adelantado. El ciclo actual ya está completo (pending_value = ${lastPayment.pending_value}). Debe renovar la póliza primero.`
+        );
+      }
+
       // 5. Calcular el nuevo pending_value: pending_value anterior - valor del nuevo pago
       const newPendingValue = Math.max(0, lastPayment.pending_value - newPaymentData.value);
 
@@ -800,7 +807,7 @@ export class PaymentService {
 
       // 7. Invalidar caché
       await this.invalidatePolicyRelatedCache(policy);
-
+      console.log(newAdvancedPayment)
       return newAdvancedPayment;
     } catch (error) {
       console.error('❌ Error al crear pago adelantado:', error.message);

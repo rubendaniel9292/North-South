@@ -40,37 +40,29 @@ export class PaymentSchedulerService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // ⏭️ DESACTIVADO: Procesamiento automático tras reinicio del servidor
-    // Razón: El cron diario a medianoche es suficiente para procesar pagos
-    // Escenario: Solo sería necesario si el servidor está apagado más de 24 horas (poco probable)
-    console.log('⏭️ Procesamiento automático tras reinicio DESACTIVADO');
-    console.log('ℹ️  Los pagos se procesarán automáticamente a medianoche (cron activo)');
-    return;
-
-    //CÓDIGO DESACTIVADO - Descomentar solo si es necesario procesar tras reinicios
-    //console.log('Inicializando módulo y verificando pagos pendientes...');
+    console.log('✅ Inicializando módulo y verificando pagos pendientes...');
+    console.log('ℹ️ Omitiendo verificación de pagos pendientes en onModuleInit para optimización');
+    return; // Deshabilitado temporalmente para evitar largos tiempos de inicio
     /*
     try {
       // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
       const hasPendingPayments = await this.checkIfPendingPaymentsExist();
 
       if (hasPendingPayments) {
-        console.log('Se encontraron pagos pendientes que deben procesarse. Procesando...');
+        console.log('⚠️  Se encontraron pagos pendientes. Procesando...');
         await this.processOverduePaymentsBatched();
       } else {
-        console.log('No hay pagos pendientes que procesar. Módulo inicializado correctamente.');
+        console.log('✓ No hay pagos pendientes. Módulo inicializado correctamente.');
       }
-      
     } catch (error) {
-      console.error('Error al verificar pagos al inicializar el módulo:', error);
-}
-      */
-
-
+      console.error('❌ Error al verificar pagos al inicializar el módulo:', error);
+    }*/
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  // Cron: Todos los días a las 12:00 AM (medianoche) hora Ecuador (GMT-5 = 05:00 UTC)
+  @Cron('0 5 * * *') // 05:00 UTC = 00:00 (medianoche) Ecuador
   async handleCron() {
+    console.log(`🕐 Cron ejecutándose: ${new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil' })} (Ecuador)`);
     try {
       await this.verifyAndProcessPaymentsBatched();
     } catch (error) {
