@@ -35,6 +35,7 @@ import useAuth from "../../hooks/useAuth";
 const ListPolicyModal = ({ policy, onClose }) => {
   const [reportLoading, setReportLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState({});
+  const [advancedPaymentLoading, setAdvancedPaymentLoading] = useState(false);
   const [localPolicy, setLocalPolicy] = useState(policy);
   const { auth } = useAuth();
   if (!localPolicy) return null;
@@ -168,6 +169,120 @@ const ListPolicyModal = ({ policy, onClose }) => {
       setPaymentLoading((prev) => ({ ...prev, [payment.id]: false }));
     }
   };
+
+  // Función para registrar pago adelantado
+  const handleRegisterAdvancedPayment = async () => {
+    setAdvancedPaymentLoading(true);
+    try {
+      // Obtener el último pago registrado (mayor number_payment)
+      const lastPayment = localPolicy.payments.reduce((max, p) =>
+        p.number_payment > max.number_payment ? p : max,
+        localPolicy.payments[0]
+      );
+
+      // Calcular la fecha del nuevo pago según la frecuencia
+      const lastDate = new Date(lastPayment.createdAt);
+      //let nextPaymentDate = new Date(lastDate);
+
+      // ✅ Usar ID en lugar de nombre para mayor confiabilidad
+      const frequencyId = Number(localPolicy.paymentFrequency?.id);
+
+      // ✅ CORRECTO: Usar dayjs para sumar 1 mes correctamente
+
+
+      let nextPaymentDate;
+
+      switch (frequencyId) {
+        case 1: // Mensual
+          nextPaymentDate = lastDate.add(1, 'month');
+          break;
+        case 2: // Trimestral
+          nextPaymentDate = lastDate.add(3, 'month');
+          break;
+        case 3: // Semestral
+          nextPaymentDate = lastDate.add(6, 'month');
+          break;
+        case 4: // Anual
+          nextPaymentDate = lastDate.add(1, 'year');
+          break;
+      }
+
+
+      // ✅ Fecha actual para las observaciones
+      const today = new Date();
+      const todayFormatted = dayjs(today).format('DD/MM/YYYY');
+      const nextPaymentFormatted = dayjs(nextPaymentDate).format('DD/MM/YYYY');
+      // Calcular el nuevo pending_value correctamente
+      const newPendingValue = Math.max(0, lastPayment.pending_value - lastPayment.value);
+
+      // Crear el nuevo pago adelantado
+      const newPaymentData = {
+        policy_id: Number(localPolicy.id),
+        number_payment: lastPayment.number_payment + 1,
+        value: parseFloat(lastPayment.value),
+        pending_value: newPendingValue, // ✅ CORREGIDO: Se reduce
+        credit: 0.00,
+        balance: parseFloat(lastPayment.value),
+        total: 0.00, // ✅ CORREGIDO: Debe ser 0 si no hay abonos
+        status_payment_id: 1, // Pendiente
+        year: nextPaymentDate.year(),
+        createdAt: nextPaymentDate.toISOString(), // ✅ Fecha tentativa de cobro
+        observations: `Pago adelantado generado el ${todayFormatted}`, // ✅ Fecha de HOY
+      };
+
+      console.log("📤 Enviando pago adelantado:", newPaymentData);
+      console.log(`   - Fecha de cobro (createdAt): ${nextPaymentFormatted}`);
+      console.log(`   - Fecha de registro (observations): ${todayFormatted}`);
+
+      const response = await http.post('payment/create-advance-payment', newPaymentData);
+
+      if (response.data.status === "success") {
+        // Agregar el nuevo pago al estado local
+        const newPayment = {
+          id: response.data.data.id,
+          ...newPaymentData,
+          createdAt: nextPaymentDate.toISOString(), // ✅ Fecha calculada del próximo pago
+          updatedAt: today.toISOString(), // ✅ Fecha de HOY (cuando se creó)
+          paymentStatus: {
+            id: 1,
+            statusNamePayment: "Pendiente"
+          }
+        };
+
+        setLocalPolicy((prevPolicy) => ({
+          ...prevPolicy,
+          payments: [...prevPolicy.payments, newPayment].sort(
+            (a, b) => a.number_payment - b.number_payment
+          )
+        }));
+        setTimeout(() => {
+          alerts(
+            "Pago adelantado registrado",
+            `Se ha creado el pago #${newPayment.number_payment} con fecha de pago fija: ${dayjs(nextPaymentDate).format('DD/MM/YYYY')}`,
+            "success"
+          );
+        }, 500);
+
+
+      } else {
+        alerts(
+          "Error",
+          "No se pudo registrar el pago adelantado",
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error registrando pago adelantado:", error);
+      alerts(
+        "Error",
+        "Error al registrar el pago adelantado. " + (error.response?.data?.message || error.message),
+        "error"
+      );
+    } finally {
+      setAdvancedPaymentLoading(false);
+    }
+  };
+
   // Badge Bootstrap helper
   const Badge = ({ text, color = "secondary" }) => (
     <span className={`badge rounded-pill fw-bold fs-6 bg-${color} fw-semibold`}>
@@ -188,22 +303,24 @@ const ListPolicyModal = ({ policy, onClose }) => {
 
     const lastDate = new Date(lastPayment.createdAt);
 
-    // Suma el intervalo según la frecuencia
-    switch (policy.paymentFrequency?.frequencyName) {
-      case "Mensual":
+    // ✅ Suma el intervalo según la frecuencia (usando ID)
+    const frequencyId = Number(policy.paymentFrequency?.id);
+
+    switch (frequencyId) {
+      case 1: // Mensual
         lastDate.setMonth(lastDate.getMonth() + 1);
         break;
-      case "Trimestral":
+      case 2: // Trimestral
         lastDate.setMonth(lastDate.getMonth() + 3);
         break;
-      case "Semestral":
+      case 3: // Semestral
         lastDate.setMonth(lastDate.getMonth() + 6);
         break;
-      case "Anual":
+      case 4: // Anual
         lastDate.setFullYear(lastDate.getFullYear() + 1);
         break;
-      default:
-        lastDate.setMonth(lastDate.getMonth() + 1); // Por defecto mensual
+      default: // Por defecto mensual
+        lastDate.setMonth(lastDate.getMonth() + 1);
     }
 
     return lastDate.toLocaleDateString();
@@ -240,7 +357,7 @@ const ListPolicyModal = ({ policy, onClose }) => {
               Información completa de la póliza {policy.numberPolicy}
             </h3>
           </div>
-          
+
           <div className="mb-3">
             <p className="fs-5 fw-semibold">
               <FontAwesomeIcon icon={faUser} className="me-2" />
@@ -431,16 +548,44 @@ const ListPolicyModal = ({ policy, onClose }) => {
             </tbody>
           </table>
 
-          <div className="d-flex  justify-content-center align-items-center conten-title rounded mb-2 mt-2">
+          <div className="d-flex justify-content-between align-items-center conten-title rounded mb-2 mt-2 px-3">
             <h3 className="text-white">
               <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Historial de pagos:
             </h3>
 
-            <span className="badge  fs-5">
-              <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
-              Próxima fecha tentativa de cobro: {getNextPaymentDate(policy)}
-            </span>
+            <div className="d-flex align-items-center gap-3">
+              <span className="badge fs-5">
+                <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
+                Próxima fecha tentativa de cobro: {getNextPaymentDate(policy)}
+              </span>
+
+              {auth?.role !== "ELOPDP" && (
+                <button
+                  type="button"
+                  onClick={handleRegisterAdvancedPayment}
+                  disabled={advancedPaymentLoading}
+                  className="btn btn-warning fw-bold text-dark"
+                >
+                  {advancedPaymentLoading ? (
+                    <>
+                      <div
+                        className="spinner-border spinner-border-sm text-dark me-2"
+                        role="status"
+                      >
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      <span>Registrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" beat />
+                      REGISTRAR PAGO ADELANTADO
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <table className="table table-striped">
             <thead>

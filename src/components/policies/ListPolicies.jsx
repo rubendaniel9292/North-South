@@ -121,10 +121,10 @@ const ListPolicies = memo(() => {
     setIsRepairingPeriods(true);
     try {
       const response = await http.post('policy/repair-all-missing-periods');
-      
+
       if (response.data.status === 'success') {
         const { summary } = response.data;
-        
+
         await alerts(
           'Reparación Completada',
           `✅ Reparación exitosa:\n
@@ -152,35 +152,7 @@ const ListPolicies = memo(() => {
   }, [auth, getAllPolicies]);
 
   //metodo de prueba de registro de pago de poliza
-  /*
 
-  const registerPaymentTest = useCallback(async () => {
-    try {
-      const response = await http.post(`payment/manual-process-payments`);
-      console.log("respuesta de la peticion: ", response.data);
-
-      if (response.data.status === "success") {
-        alerts("Pago registrado", response.data.message, "success");
-
-        console.log("Pagos creados:", response.data.data.createdPayments); // Mostrar detalles
-
-        // ✅ Actualizar inmediatamente y forzar recarga desde servidor
-        await getAllPolicies();
-
-        // Programar otra actualización después de un breve retraso
-        // para asegurarse de que los datos del servidor estén actualizados
-        setTimeout(async () => {
-          await getAllPolicies();
-        }, 2000);
-      } else {
-        alerts("Error", response.data.message, "error");
-      }
-    } catch (error) {
-      alerts("Error", "No se pudo ejecutar la consulta", "error");
-      console.error("Error registering payment:", error);
-    }
-  }, [getAllPolicies]);
-  */
   const registerPaymentTest = useCallback(async (createFuture = false) => {
     try {
       // Agregar el query parameter si createFuture es true
@@ -465,21 +437,21 @@ const ListPolicies = memo(() => {
             <div className="col-md-3 mb-3" >
               <div className="d-grid gap-2">
                 {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
-                {auth?.role === 'ADMIN' && (
+                { /*uth?.role === 'ADMIN' && (
                   <button
                     className="btn btn-warning fw-bold"
                     onClick={repairMissingPeriods}
                     disabled={isRepairingPeriods}
                   >
-                    <FontAwesomeIcon 
-                      icon={isRepairingPeriods ? faCogs : faWrench} 
+                    <FontAwesomeIcon
+                      icon={isRepairingPeriods ? faCogs : faWrench}
                       className={`me-2 ${isRepairingPeriods ? 'fa-spin' : ''}`}
                     />
                     {isRepairingPeriods ? 'Reparando...' : 'Reparar Periodos'}
                   </button>
-                )}
+                )*/}
 
-                {/* Botón para registro manual de pagos (solo para pruebas) */}
+                {/* Botón para registro manual de pagos (solo para pruebas)
                 <button
                   className="btn btn-danger fw-bold"
                   onClick={() => registerPaymentTest(true)}
@@ -487,7 +459,7 @@ const ListPolicies = memo(() => {
                   <FontAwesomeIcon icon={faCogs} className="me-2" />
                   Registro manual de pagos (prueba)
                 </button>
-
+ */}
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
                 </small>
