@@ -242,12 +242,20 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
   
   // Inicializar grupo seleccionado (primer grupo por defecto para mostrar el periodo inicial)
   useEffect(() => {
-    const groups = groupPeriodsByYears();
-    if (groups.length > 0) {
-      // Seleccionar el primer grupo (que incluye el periodo inicial) por defecto
-      setSelectedGroupRange(groups[0].range);
+    // ✅ Solo ejecutar UNA VEZ al montar el componente
+    if (form.periods.length > 0 && selectedGroupRange === null) {
+      const sortedPeriods = [...form.periods].sort((a, b) => Number(a.year) - Number(b.year));
+      
+      if (sortedPeriods.length <= 4) {
+        setSelectedGroupRange('all');
+      } else {
+        const startYear = sortedPeriods[0].year;
+        const endYear = sortedPeriods[Math.min(3, sortedPeriods.length - 1)].year;
+        setSelectedGroupRange(`${startYear}-${endYear}`);
+      }
     }
-  }, [groupPeriodsByYears]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Array vacío: solo se ejecuta al montar
   
   // Seleccionar un grupo (solo uno a la vez)
   const selectGroup = (range) => {
@@ -370,12 +378,16 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
               <div className="row" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                 {groupPeriodsByYears()
                   .filter(group => group.range === selectedGroupRange)
-                  .map((group) => (
+                  .map((group) => {
+                    // ✅ Crear mapa de índices una sola vez por grupo
+                    const yearToIndex = new Map(
+                      form.periods.map((p, idx) => [p.year, idx])
+                    );
+                    
+                    return (
                     <div key={group.range} className="col-12">
                       {group.periods.map((row) => {
-                        const realIdx = form.periods.findIndex(
-                          (p) => p.year === row.year
-                        );
+                        const realIdx = yearToIndex.get(row.year);
 
                         return (
                           <div key={row.year} className="mb-3">
@@ -536,7 +548,8 @@ const EditPolicyValuesModal = ({ policy, onClose, onPolicyUpdated }) => {
                         );
                       })}
                     </div>
-                  ))}
+                    );
+                  })}
               </div>
             </form>
           </div>
@@ -596,7 +609,7 @@ EditPolicyValuesModal.propTypes = {
     customer: PropTypes.object,
   }).isRequired,
   onClose: PropTypes.func.isRequired,
-  onUpdated: PropTypes.func.isRequired,
+  onPolicyUpdated: PropTypes.func.isRequired,
 };
 
 export default EditPolicyValuesModal;
