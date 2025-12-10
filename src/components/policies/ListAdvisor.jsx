@@ -31,7 +31,7 @@ const ListAdvisor = () => {
   const [modalType, setModalType] = useState(""); // Estado para controlar el tipo de modal
   const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar modal
   const { auth } = useAuth();
-  const itemsPerPage = 5; // Número de asesor por página
+  const itemsPerPage = 9; // Número de asesor por página
 
   dayjs.locale("es");
   const openModal = () => {
