@@ -59,7 +59,7 @@ const ListPolicies = memo(() => {
   const [advisorFilter, setAdvisorFilter] = useState("");
   const [typesFilter, setTypesFilter] = useState("");
   const [isRepairingPeriods, setIsRepairingPeriods] = useState(false); // Estado para reparación masiva
-  const itemsPerPage = 5; // Número de elementos por página
+  const itemsPerPage = 7; // Número de elementos por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
