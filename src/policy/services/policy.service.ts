@@ -2118,14 +2118,18 @@ export class PolicyService extends ValidateEntity {
         console.log(warningMessage);
       }
 
-      // 6. ELIMINAR todos los pagos y renovaciones existentes
-      console.log('🗑️ Eliminando pagos y renovaciones existentes...');
+      // 6. ELIMINAR todos los pagos, renovaciones Y PERIODOS existentes
+      console.log('🗑️ Eliminando pagos, renovaciones y periodos existentes...');
 
       await queryRunner.manager.delete(PaymentEntity, { policy_id: policyId });
       console.log(`  ✓ ${oldPaymentsCount} pagos eliminados`);
 
       await queryRunner.manager.delete(RenewalEntity, { policy_id: policyId });
       console.log(`  ✓ ${oldRenewalsCount} renovaciones eliminadas`);
+
+      // 🔥 CRÍTICO: Eliminar PERIODOS para regenerarlos correctamente
+      const deletedPeriods = await queryRunner.manager.delete(PolicyPeriodDataEntity, { policy_id: policyId });
+      console.log(`  ✓ ${deletedPeriods.affected || 0} periodos eliminados`);
 
       // 7. COMMIT de la eliminación
       await queryRunner.commitTransaction();
@@ -2137,10 +2141,23 @@ export class PolicyService extends ValidateEntity {
       const today = new Date();
       const paymentFrequency = Number(policy.payment_frequency_id);
 
+      // 🔥 CRÍTICO: Crear periodo inicial ANTES de generar pagos
+      const initialYear = normalizedNewStart.getFullYear();
+      const initialPeriodData: PolicyPeriodDataDTO = {
+        policy_id: policyId,
+        year: initialYear,
+        policyValue: policy.policyValue,
+        agencyPercentage: policy.agencyPercentage,
+        advisorPercentage: policy.advisorPercentage,
+        policyFee: policy.policyFee,
+      };
+      await this.createOrUpdatePeriodForPolicy(policyId, initialYear, initialPeriodData);
+      console.log(`  ✓ Periodo inicial creado para año ${initialYear}`);
+
       // Regenerar pagos iniciales (hasta hoy o primera renovación)
       await this.generatePaymentsUsingService(policy, normalizedNewStart, today, paymentFrequency);
 
-      // Regenerar renovaciones y sus pagos (solo hasta hoy)
+      // Regenerar renovaciones y sus pagos (solo hasta hoy) - estas crean sus propios periodos
       await this.handleRenewals(policy, normalizedNewStart, today);
 
       // 9. Contar nuevos registros
