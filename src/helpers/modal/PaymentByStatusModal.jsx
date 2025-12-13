@@ -14,10 +14,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
-import generateReport from "../GenerateReportPDF";
+import { pdf } from "@react-pdf/renderer";
+import PaymentsPDFDocument from "../PaymentsPDFDocument";
 import http from "../../helpers/Http";
 import usePagination from "../../hooks/usePagination";
 import useAuth from "../../hooks/useAuth";
+import Swal from "sweetalert2";
 const PaymentByStatusModal = ({ payments, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
@@ -84,15 +86,51 @@ const PaymentByStatusModal = ({ payments, onClose }) => {
     fetchFilteredPayments();
   }, [selectedCompanyId, payments]);
 
-  const handleGenerateReport = (e) => {
+  const handleGenerateReport = async (e) => {
     e.preventDefault();
+    
+    if (filteredPayments.length === 0) {
+      Swal.fire({
+        title: "Sin datos",
+        text: "No hay pagos para generar el reporte",
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
 
-    generateReport(
-      { type: "payment", data: filteredPayments },
-      "generate-report-pdf/download",
-      "payment-report.pdf",
-      setIsLoading
-    );
+    setIsLoading(true);
+
+    try {
+      // Generar el PDF
+      const blob = await pdf(<PaymentsPDFDocument payments={filteredPayments} />).toBlob();
+      
+      // Crear enlace de descarga
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `pagos-atrasados-${dayjs().format("YYYY-MM-DD")}.pdf`;
+      link.click();
+      
+      // Limpiar URL
+      URL.revokeObjectURL(link.href);
+
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Reporte generado correctamente",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo generar el reporte PDF",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle name query change

@@ -885,27 +885,38 @@ export const calculateReleasedCommissions = (policy) => {
         return ((policyValue - policyFee) * advisorPercentage) / 100;
       }
 
-      // Si tiene renovación, sumar TODOS los periodos
+      // ✅ Si tiene renovación, sumar TODOS los periodos (simplificado y sin filtros extras)
       let total = 0;
+      
+      // DEBUG: Imprimir cuántos periodos hay
+      console.log(`📊 Póliza ${policy.numberPolicy || policy.id}: ${policy.periods.length} periodos`);
+      
       for (const period of policy.periods) {
         const policyValue = Number(period.policyValue || 0);
         const policyFee = Number(period.policyFee || 0);
         const advisorPercentage = Number(period.advisorPercentage || 0);
-        if (isNaN(policyValue) || isNaN(policyFee) || isNaN(advisorPercentage)) {
-          continue;
-        }
+        
         const periodCommission = ((policyValue - policyFee) * advisorPercentage) / 100;
+        
+        // DEBUG: Imprimir cada periodo
+        console.log(`  Periodo año ${period.year}: $${periodCommission.toFixed(2)} (Valor: $${policyValue}, Fee: $${policyFee}, %: ${advisorPercentage})`);
+        
+        // Solo validar que sea un número válido
         if (!isNaN(periodCommission) && isFinite(periodCommission)) {
           total += periodCommission;
+        } else {
+          console.warn(`  ⚠️ Periodo año ${period.year} tiene valores inválidos, se omite`);
         }
       }
+      
+      console.log(`  💰 Total calculado: $${total.toFixed(2)}`);
       return total;
     }
     
     // Fallback
     const periods = hasRenewalCommission 
       ? (1 + (Array.isArray(policy.renewals) ? policy.renewals.length : 0))
-      : 1; // Solo primer periodo si no tiene renovación
+      : 1;
     const paymentsToAdvisor = Number(policy.paymentsToAdvisor || 0);
     if (isNaN(paymentsToAdvisor) || isNaN(periods)) {
       return 0;

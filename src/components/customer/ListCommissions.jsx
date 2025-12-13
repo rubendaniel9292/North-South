@@ -4,6 +4,9 @@ import React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import http from "../../helpers/Http";
+import { pdf } from "@react-pdf/renderer";
+import CommissionsPDFDocument from "../../helpers/CommissionsPDFDocument";
+import Swal from "sweetalert2";
 import {
   faFile,
   faSearch,
@@ -257,6 +260,74 @@ const ListCommissions = () => {
   // --- Totales globales usando los helpers ---
   const totals = useMemo(() => getTotals(filteredPolicies), [filteredPolicies]);
 
+  // --- Función para generar PDF ---
+  const handleGenerateReport = async () => {
+    if (filteredPoliciesWithFields.length === 0) {
+      Swal.fire({
+        title: "Sin datos",
+        text: "No hay pólizas para generar el reporte",
+        icon: "warning",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const customerName = customerFromNav
+        ? [
+            customerFromNav.firstName,
+            customerFromNav.secondName,
+            customerFromNav.surname,
+            customerFromNav.secondSurname,
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : null;
+
+      // Generar el PDF
+      const blob = await pdf(
+        <CommissionsPDFDocument
+          advisor={advisor}
+          policies={filteredPoliciesWithFields}
+          totals={totals}
+          customerName={customerName}
+        />
+      ).toBlob();
+
+      // Crear enlace de descarga
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      const advisorName = [advisor.firstName, advisor.surname]
+        .filter(Boolean)
+        .join("-")
+        .replace(/\s+/g, "-");
+      link.download = `comisiones-${advisorName}-${dayjs().format("YYYY-MM-DD")}.pdf`;
+      link.click();
+
+      // Limpiar URL
+      URL.revokeObjectURL(link.href);
+
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Reporte generado correctamente",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo generar el reporte PDF",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // --- Anticipos generales sin póliza asignada ---
   const anticiposSinPoliza = useMemo(
     () =>
@@ -414,7 +485,11 @@ const ListCommissions = () => {
               </div>
 
               <div className="col-12 col-md-3 d-flex align-items-end">
-                <button className="btn btn-success w-100" disabled={isLoading}>
+                <button
+                  className="btn btn-success w-100"
+                  disabled={isLoading || filteredPoliciesWithFields.length === 0}
+                  onClick={handleGenerateReport}
+                >
                   <FontAwesomeIcon icon={faFile} className="me-2" />
                   Generar reporte PDF
                 </button>

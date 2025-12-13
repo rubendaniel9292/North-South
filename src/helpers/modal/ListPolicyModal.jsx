@@ -4,7 +4,8 @@ import http from "../../helpers/Http";
 import "dayjs/locale/es";
 
 import { useState, useMemo } from "react";
-import generateReport from "../GenerateReportPDF";
+import { pdf } from "@react-pdf/renderer";
+import PolicyPDFDocument from "../PolicyPDFDocument";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFloppyDisk,
@@ -40,16 +41,39 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const { auth } = useAuth();
   if (!localPolicy) return null;
   const itemsPerPage = 3; // Número de items por página
-  //metodo para generacion de reporte
-  const handleGenerateReport = (e) => {
+  
+  // Método para generar reporte PDF con @react-pdf/renderer
+  const handleGenerateReport = async (e) => {
     e.preventDefault();
-    console.log("Generating report with policy data:", localPolicy);
-    generateReport(
-      { type: "policy", data: localPolicy }, // Para reporte de póliza
-      "generate-report-pdf/download",
-      "policy-report.pdf",
-      setReportLoading
-    );
+    setReportLoading(true);
+    
+    try {
+      console.log("Generando PDF con datos de póliza:", localPolicy);
+      
+      // Generar el documento PDF
+      const blob = await pdf(<PolicyPDFDocument policy={localPolicy} />).toBlob();
+      
+      // Crear un enlace de descarga
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `poliza-${localPolicy.numberPolicy}-${dayjs().format("YYYY-MM-DD")}.pdf`;
+      
+      // Simular clic para descargar
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alerts("Éxito", "Reporte PDF generado correctamente", "success");
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      alerts("Error", "No se pudo generar el reporte PDF", "error");
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   // Usar el hook personalizado para la paginación de pagos
@@ -383,8 +407,8 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     return ((baseValue * lastPeriod.advisorPercentage) / 100).toFixed(2);
   }, [lastPeriod.policyValue, lastPeriod.policyFee, lastPeriod.advisorPercentage]);
 
-  console.log("periods:", policy.periods);
-  console.log("lastPeriod:", lastPeriod);
+  //console.log("periods:", policy.periods);
+  //console.log("lastPeriod:", lastPeriod);
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto ">
