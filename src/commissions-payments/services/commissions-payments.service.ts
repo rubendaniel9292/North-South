@@ -38,47 +38,7 @@ export class CommissionsPaymentsService {
         private readonly redisService: RedisModuleService,
     ) { }
 
-    /*
-     * MÉTODO HELPER: Carga payments de manera inteligente para una policy específica
-     * Evita cargar todos los payments a la vez, solo los necesarios
-     */
-    /*
-    private async loadPaymentsForPolicy(policyId: number): Promise<any[]> {
-        try {
-            // Crear clave de caché específica para los payments de esta policy
-            const cacheKey = `policy_payments:${policyId}`;
-
-            // Intentar obtener del caché primero
-            const cachedPayments = await this.redisService.get(cacheKey);
-            if (cachedPayments) {
-                return JSON.parse(cachedPayments);
-            }
-
-            // Si no está en caché, cargar desde DB con filtro específico (MÉTODO SIMPLE)
-            const policy = await this.policyRepository.findOne({
-                where: { id: policyId },
-                relations: ['payments'],
-                select: {
-                    id: true,
-                    payments: {
-                        id: true,
-                        value: true,
-                        status_payment_id: true
-                    }
-                }
-            });
-
-            const paymentData = policy?.payments || [];
-
-            // Guardar en caché por 30 minutos
-            await this.redisService.set(cacheKey, JSON.stringify(paymentData), 1800);
-
-            return paymentData;
-        } catch (error) {
-            console.error(`Error cargando payments para policy ${policyId}:`, error);
-            return [];
-        }
-    }
+ 
     /*
     * Private utility: Reparto FIFO de anticipos generales entre pólizas con saldo pendiente
     * Orquesta todo el proceso de registro de comisiones

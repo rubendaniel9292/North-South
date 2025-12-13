@@ -46,28 +46,7 @@ export class AdvisorController {
       };
     }
   }
-  /*
-  @Roles('ADMIN', 'BASIC', 'ELOPDP')
-  @Get('get-advisor-optimized-simple/:id')
-  public async getAdvisorSimple(
-    @Param('id') id: number,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    console.log(`Cargando asesor ${id} (simple) - Página: ${page}, Límite: ${limit}`);
-    
-    const result = await this.advisorService.getAdvisorByIdOptimizedSimple(
-      Number(id),
-      page ? Number(page) : 1,
-      limit ? Number(limit) : 10
-    );
 
-    return {
-      status: 'success',
-      advisorById: result.advisor,
-      pagination: result.pagination,
-    };
-  }*/
 
   @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-advisor-optimized/:id')
