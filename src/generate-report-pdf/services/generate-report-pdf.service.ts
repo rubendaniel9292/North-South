@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ErrorManager } from '@/helpers/error.manager';
-import * as puppeteer from 'puppeteer';
+//import * as puppeteer from 'puppeteer';
 
 @Injectable()
 export class GenerateReportPdfService {
-
+/*
+SERVIICE DEPRECADO - EL FRONTEND SE ECARGA DE GENERAR EL PDF
   private readonly logger = new Logger(GenerateReportPdfService.name);
 
   async generatePdf(html: string): Promise<Buffer> {
@@ -126,4 +127,5 @@ export class GenerateReportPdfService {
       }
     }
   }
+    */
 }

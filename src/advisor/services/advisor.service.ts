@@ -170,6 +170,7 @@ export class AdvisorService extends ValidateEntity {
   };
 
   //3.1: Método OPTIMIZADO VERSION ORIGINAL - Solo paginación sin filtros
+  /*
   public getAdvisorByIdOptimizedSimple = async (
     id: number,
     page: number = 1,
@@ -274,6 +275,7 @@ export class AdvisorService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
+  */
 
   //3.2: Método ULTRA OPTIMIZADO - Paginación con filtros dinámicos (versión con filtros)
   public getAdvisorByIdOptimized = async (
@@ -370,14 +372,14 @@ export class AdvisorService extends ValidateEntity {
 
       // 6. Cargar payments MÍNIMOS de forma controlada (igual que en el método simple)
       const paymentRepository = this.advisdorRepository.manager.getRepository(PaymentEntity);
-      
+
       for (const policy of policies) {
         const payments = await paymentRepository.find({
           where: { policy_id: policy.id },
           select: ['id', 'number_payment', 'value', 'status_payment_id', 'total', 'pending_value'],
           order: { number_payment: 'ASC' }
         });
-        
+
         policy.payments = payments;
       }
 

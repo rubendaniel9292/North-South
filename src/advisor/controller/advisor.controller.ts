@@ -46,6 +46,7 @@ export class AdvisorController {
       };
     }
   }
+  /*
   @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-advisor-optimized-simple/:id')
   public async getAdvisorSimple(
@@ -66,7 +67,7 @@ export class AdvisorController {
       advisorById: result.advisor,
       pagination: result.pagination,
     };
-  }
+  }*/
 
   @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-advisor-optimized/:id')

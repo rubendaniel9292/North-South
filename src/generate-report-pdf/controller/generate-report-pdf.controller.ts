@@ -16,7 +16,7 @@ export class GenerateReportPdfController {
     private readonly pdfService: GenerateReportPdfService,
     private readonly reportFactory: ReportFactory
   ) {}
-
+/*
   @Roles('ADMIN', 'BASIC')
   @Post('download')
   public async downloadPdf(
@@ -44,10 +44,10 @@ export class GenerateReportPdfController {
       const html = this.reportFactory.generateHtml(type, data);
       
       this.logger.debug(`Generando PDF para reporte tipo: ${type}`);
-      const pdfBuffer = await this.pdfService.generatePdf(html);
+      //const pdfBuffer = await this.pdfService.generatePdf(html);
 
       const responseTime = Date.now() - startTime;
-      const sizeKB = Math.round(pdfBuffer.length / 1024);
+      //const sizeKB = Math.round(pdfBuffer.length / 1024);
       
       const filename = `${type}-report-${new Date().toISOString().split('T')[0]}.pdf`;
       
@@ -117,4 +117,5 @@ export class GenerateReportPdfController {
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
   }
+  */
 }
