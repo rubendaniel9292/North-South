@@ -40,7 +40,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [localPolicy, setLocalPolicy] = useState(policy);
   const { auth } = useAuth();
   if (!localPolicy) return null;
-  const itemsPerPage = 3; // Número de items por página
+  const itemsPerPage = 5; // Número de items por página
   
   // Método para generar reporte PDF con @react-pdf/renderer
   const handleGenerateReport = async (e) => {
