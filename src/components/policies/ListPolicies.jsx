@@ -437,7 +437,7 @@ const ListPolicies = memo(() => {
             <div className="col-md-3 mb-3" >
               <div className="d-grid gap-2">
                 {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
-                { /*uth?.role === 'ADMIN' && (
+                {auth?.role === 'ADMIN' && (
                   <button
                     className="btn btn-warning fw-bold"
                     onClick={repairMissingPeriods}
@@ -449,7 +449,7 @@ const ListPolicies = memo(() => {
                     />
                     {isRepairingPeriods ? 'Reparando...' : 'Reparar Periodos'}
                   </button>
-                )*/}
+                )}
 
                 {/* Botón para registro manual de pagos (solo para pruebas)
                 <button
