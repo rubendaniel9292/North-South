@@ -1745,8 +1745,9 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
-  //15: Método para validar y crear períodos faltantes basándose en ANIVERSARIOS de póliza
-  // 🔥 CON TRANSACCIÓN EXPLÍCITA para garantizar atomicidad
+  //15: Método para validar y crear períodos faltantes - LÓGICA HÍBRIDA
+  // 🔥 Basado en ANIVERSARIOS TRANSCURRIDOS + RENOVACIONES REGISTRADAS
+  // CON TRANSACCIÓN EXPLÍCITA para garantizar atomicidad
   private async validateAndCreateMissingPeriods(policy_id: number): Promise<{
     created: number;
     missingPeriods: number[];
@@ -1758,9 +1759,10 @@ export class PolicyService extends ValidateEntity {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Obtener la póliza (incluyendo advisor_id para cache)
+      // 1. Obtener la póliza (incluyendo advisor_id y renovaciones para cache)
       const policy = await queryRunner.manager.findOne(PolicyEntity, {
         where: { id: policy_id },
+        relations: ['renewals'],
         select: ['id', 'startDate', 'endDate', 'policyValue', 'agencyPercentage', 'advisorPercentage', 'policyFee', 'advisor_id']
       });
 
@@ -1769,44 +1771,69 @@ export class PolicyService extends ValidateEntity {
         return { created: 0, missingPeriods: [], deleted: 0, extraPeriods: [] };
       }
 
-      // 2. Calcular todos los PERÍODOS (basados en aniversarios, devuelve años calendario)
+      // 2. ENFOQUE 1: Calcular períodos por ANIVERSARIOS TRANSCURRIDOS hasta hoy
       const normalizedStart = new Date(policy.startDate);
       const today = new Date();
 
-      // Calcular cuántos períodos deben existir hasta hoy
       const monthsDiff = (today.getFullYear() - normalizedStart.getFullYear()) * 12 +
                          (today.getMonth() - normalizedStart.getMonth());
       const dayDiff = today.getDate() - normalizedStart.getDate();
 
-      // Ajustar si el día aún no ha llegado en el mes actual
       const adjustedMonths = dayDiff < 0 ? monthsDiff - 1 : monthsDiff;
-      
-      // Los períodos van desde el año inicial hasta el año actual (devuelve AÑOS, no números)
-      const periodsElapsed = Math.floor(adjustedMonths / 12);
+      const periodsElapsedByAnniversary = Math.floor(adjustedMonths / 12);
+
+      // 3. ENFOQUE 2: Calcular períodos por RENOVACIONES QUE YA OCURRIERON
+      // Solo contar renovaciones con createdAt <= hoy
+      const completedRenewals = policy.renewals?.filter(r => {
+        const renewalDate = new Date(r.createdAt);
+        return renewalDate <= today;
+      }) || [];
+      const completedRenewalsCount = completedRenewals.length;
+      const periodsExpectedByRenewals = 1 + completedRenewalsCount;
+
+      // 4. 🔥 HÍBRIDA: Tomar el MÁXIMO de ambos enfoques
+      // Si el aniversario transcurrió, debe existir período aunque no haya renovación
+      // Si hay renovaciones futuras, deben tener períodos aunque aún no se cumpla aniversario
+      const maxPeriodsExpected = Math.max(
+        periodsElapsedByAnniversary + 1,  // +1 porque periodsElapsed 0 = 1 período
+        periodsExpectedByRenewals
+      );
+
+      console.log(`📊 Póliza ${policy_id}:`);
+      console.log(`   - Por aniversarios: ${periodsElapsedByAnniversary + 1} períodos (hasta hoy)`);
+      console.log(`   - Por renovaciones COMPLETADAS: ${periodsExpectedByRenewals} períodos (${completedRenewalsCount} renovaciones ocurridas)`);
+      console.log(`   - Máximo esperado: ${maxPeriodsExpected} períodos`);
+
+      // 5. Construir lista de años esperados basándose en el máximo
       const expectedPeriods: number[] = [];
-      for (let i = 0; i <= periodsElapsed; i++) {
+      for (let i = 0; i < maxPeriodsExpected; i++) {
         expectedPeriods.push(normalizedStart.getFullYear() + i);
       }
 
-      // 3. Obtener períodos existentes (dentro de la transacción)
+      console.log(`📅 Períodos esperados: [${expectedPeriods.join(', ')}]`);
+
+      // 6. Obtener períodos existentes (dentro de la transacción)
       const existingPeriods = await queryRunner.manager.find(PolicyPeriodDataEntity, {
         where: { policy_id: policy_id },
         select: ['year']
       });
 
       const existingPeriodYears = existingPeriods.map(p => p.year);
+      console.log(`📋 Períodos existentes: [${existingPeriodYears.join(', ')}]`);
 
-      // 4. Identificar períodos faltantes
+      // 7. Identificar períodos faltantes
       const missingPeriods = expectedPeriods.filter(year => !existingPeriodYears.includes(year));
 
-      // 5. 🔥 NUEVO: Identificar períodos "de más" (futuros que no corresponden)
-      // Solo eliminar años >= 2000 que sean mayores al último año esperado
+      // 8. 🔥 NUEVO: Identificar períodos "de más" (HUÉRFANOS sin justificación)
+      // Solo eliminar años >= 2000 que superen el máximo esperado
       const maxExpectedYear = Math.max(...expectedPeriods);
       const extraPeriods = existingPeriodYears.filter(year => 
         year >= 2000 && year > maxExpectedYear
       );
 
-      // 6. Crear períodos faltantes
+      console.log(`Faltantes: [${missingPeriods.join(', ')}] | Existentes: [${existingPeriodYears.join(', ')}]`);
+
+      // 9. Crear SOLO períodos faltantes
       let createdCount = 0;
       let shouldInvalidateCache = false;
 
@@ -1829,35 +1856,61 @@ export class PolicyService extends ValidateEntity {
         }
       }
 
-      // 7. 🔥 NUEVO: Eliminar períodos de más
+      // 10. 🔥 INTELIGENTE: Detectar y eliminar SOLO períodos huérfanos PASADOS
+      // Un período huérfano = existe pero NO tiene renovación ocurrida que lo justifique
       let deletedCount = 0;
-      if (extraPeriods.length > 0) {
-        console.log(`🗑️ Póliza ${policy_id}: Detectados ${extraPeriods.length} periodos futuros innecesarios: ${extraPeriods.join(', ')}`);
+      const orphanPeriods: number[] = [];
+
+      for (const periodYear of existingPeriodYears) {
+        // ❌ NUNCA eliminar años >= 2000 que sean del año actual o futuros
+        if (periodYear >= today.getFullYear()) {
+          console.log(`ℹ️ Período ${periodYear}: Es actual o futuro, se deja intacto`);
+          continue;
+        }
+
+        // ✅ Solo evaluar períodos pasados (year < currentYear)
+        // Verificar si hay una renovación ocurrida que justifique este período
+        const hasJustifyingRenewal = completedRenewals.some(renewal => {
+          const renewalPeriodYear = this.calculatePolicyPeriodNumber(policy.startDate, renewal.createdAt);
+          return renewalPeriodYear === periodYear;
+        });
+
+        // Si es un período pasado SIN renovación que lo justifique, es huérfano
+        if (!hasJustifyingRenewal && periodYear < today.getFullYear()) {
+          orphanPeriods.push(periodYear);
+        }
+      }
+
+      // Eliminar períodos huérfanos pasados
+      if (orphanPeriods.length > 0) {
+        console.log(`🗑️ Póliza ${policy_id}: Detectados ${orphanPeriods.length} periodos huérfanos (sin renovación que los justifique): ${orphanPeriods.join(', ')}`);
         shouldInvalidateCache = true;
         
-        for (const extraYear of extraPeriods) {
+        for (const orphanYear of orphanPeriods) {
           const deleteResult = await queryRunner.manager.delete(PolicyPeriodDataEntity, {
             policy_id: policy_id,
-            year: extraYear
+            year: orphanYear
           });
           
           if (deleteResult.affected && deleteResult.affected > 0) {
             deletedCount++;
-            console.log(`🗑️ Eliminado periodo futuro ${extraYear} - Póliza ${policy_id}`);
+            console.log(`🗑️ Eliminado periodo huérfano ${orphanYear} - Póliza ${policy_id}`);
           }
         }
+      } else if (existingPeriodYears.length > 0) {
+        console.log(`✅ Póliza ${policy_id}: Todos los períodos existentes están justificados`);
       }
 
-      // 8. COMMIT de la transacción
+      // 11. COMMIT de la transacción
       await queryRunner.commitTransaction();
       console.log(`✅ Transacción completada para póliza ${policy_id}`);
 
-      // 9. 🔥 CRÍTICO: Invalidar cache de esta póliza DESPUÉS del commit (si hubo cambios)
+      // 12. 🔥 CRÍTICO: Invalidar cache de esta póliza DESPUÉS del commit (si hubo cambios)
       if (shouldInvalidateCache) {
         await this.invalidateCaches(policy.advisor_id, policy_id);
       }
 
-      return { created: createdCount, missingPeriods, deleted: deletedCount, extraPeriods };
+      return { created: createdCount, missingPeriods, deleted: deletedCount, extraPeriods: orphanPeriods };
 
     } catch (error) {
       // ROLLBACK en caso de error
