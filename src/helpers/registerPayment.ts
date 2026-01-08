@@ -44,20 +44,21 @@ export class PaymentSchedulerService implements OnModuleInit {
     console.log('ℹ️ Omitiendo verificación de pagos pendientes en onModuleInit para optimización');
     return; // Deshabilitado temporalmente para evitar largos tiempos de inicio
     /*
-        try {
-          // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
-          const hasPendingPayments = await this.checkIfPendingPaymentsExist();
-    
-          if (hasPendingPayments) {
-            console.log('⚠️  Se encontraron pagos pendientes. Procesando...');
-            await this.processOverduePaymentsBatched();
-          } else {
-            console.log('✓ No hay pagos pendientes. Módulo inicializado correctamente.');
-          }
-        } catch (error) {
-          console.error('❌ Error al verificar pagos al inicializar el módulo:', error);
-        }
-          */
+    try {
+      // OPTIMIZACIÓN: Usar función que no carga todos los pagos en memoria
+      const hasPendingPayments = await this.checkIfPendingPaymentsExist();
+
+      if (hasPendingPayments) {
+        console.log('⚠️  Se encontraron pagos pendientes. Procesando...');
+        await this.processOverduePaymentsBatched();
+      } else {
+        console.log('✓ No hay pagos pendientes. Módulo inicializado correctamente.');
+      }
+    } catch (error) {
+      console.error('❌ Error al verificar pagos al inicializar el módulo:', error);
+    }
+      */
+
   }
 
   // Cron: Todos los días a las 12:00 AM (medianoche) hora Ecuador (GMT-5 = 05:00 UTC)

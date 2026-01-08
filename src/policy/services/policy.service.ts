@@ -3,7 +3,7 @@ import { ValidateEntity } from '@/helpers/validations';
 import { Injectable } from '@nestjs/common';
 import { PolicyEntity } from '../entities/policy.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Like, Repository, DataSource } from 'typeorm';
 import { ErrorManager } from '@/helpers/error.manager';
 import { PolicyDTO } from '../dto/policy.dto';
 import { PolicyStatusService } from '@/helpers/policy.status';
@@ -27,6 +27,7 @@ import { PaymentEntity } from '@/payment/entity/payment.entity';
 @Injectable()
 export class PolicyService extends ValidateEntity {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly policyStatusService: PolicyStatusService,
@@ -236,6 +237,43 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
+  /**
+   * 🔄 Método auxiliar para calcular el AÑO DEL PERÍODO basándose en aniversarios de póliza
+   * 
+   * Un período = 12 meses desde la fecha de inicio
+   * Devuelve el AÑO CALENDARIO del inicio de ese período, no el número de período
+   * 
+   * Ejemplos:
+   * - startDate: 25/02/2023, referenceDate: 25/02/2023 → year = 2023
+   * - startDate: 25/02/2023, referenceDate: 25/02/2024 → year = 2024
+   * - startDate: 25/02/2023, referenceDate: 25/02/2025 → year = 2025
+   * 
+   * @param startDate - Fecha de inicio de la póliza
+   * @param referenceDate - Fecha a usar para calcular el período (puede ser fecha de renovación o fecha actual)
+   * @returns Año del período (2023, 2024, 2025, etc.)
+   */
+  private calculatePolicyPeriodNumber(startDate: Date, referenceDate: Date): number {
+    const normalizedStart = new Date(startDate);
+    const normalizedRef = new Date(referenceDate);
+    
+    // Calcular diferencia en meses
+    let months = (normalizedRef.getFullYear() - normalizedStart.getFullYear()) * 12;
+    months += normalizedRef.getMonth() - normalizedStart.getMonth();
+    
+    // Si el día aún no ha llegado en el mes de referencia, restar 1 mes
+    if (normalizedRef.getDate() < normalizedStart.getDate()) {
+      months--;
+    }
+    
+    // Calcular cuántos períodos completos (de 12 meses) han pasado
+    const periodsElapsed = Math.floor(months / 12);
+    
+    // El año del período = año de inicio + períodos transcurridos
+    const periodYear = normalizedStart.getFullYear() + periodsElapsed;
+    
+    return periodYear;
+  }
+
   // Manejar renovaciones automáticas
   private async handleRenewals(policy: PolicyEntity, startDate: Date, today: Date): Promise<void> {
     const yearsDifference = today.getFullYear() - startDate.getFullYear();
@@ -275,11 +313,11 @@ export class PolicyService extends ValidateEntity {
       // 1. Crear la renovación
       const renewal = await this.policyRenevalMethod.save(renewalData);
 
-      // 1.1 Crear el periodo anual para la renovación
-      const renewalYear = new Date(renewalData.createdAt).getFullYear();
+      // 1.1 Crear el período basándose en ANIVERSARIOS de póliza (no en años calendario)
+      const renewalPeriodNumber = this.calculatePolicyPeriodNumber(policy.startDate, renewalData.createdAt);
       const renewalPeriodData: PolicyPeriodDataDTO = {
         policy_id: policy.id,
-        year: renewalYear,
+        year: renewalPeriodNumber,  // Usar número de período, no año calendario
         policyValue: policy.policyValue,
         agencyPercentage: policy.agencyPercentage,
         advisorPercentage: policy.advisorPercentage,
@@ -287,10 +325,10 @@ export class PolicyService extends ValidateEntity {
       };
       await this.createOrUpdatePeriodForPolicy(
         policy.id,
-        renewalYear,
+        renewalPeriodNumber,
         renewalPeriodData
       );
-      console.log('Creando periodo de renovación (auto)', { policyId: policy.id, renewalYear });
+      console.log('Creando periodo de renovación (aniversario)', { policyId: policy.id, periodNumber: renewalPeriodNumber, renewalDate: renewalData.createdAt });
 
       // 2. Obtener la póliza actualizada con todos sus pagos
       const updatedPolicy = await this.findPolicyById(policy.id);
@@ -475,11 +513,11 @@ export class PolicyService extends ValidateEntity {
       // Crear renovaciones automáticas
       await this.handleRenewals(newPolicy, startDate, today);
 
-      // Crear o actualizar el periodo anual inicial en la tabla de periodos
-      const year = new Date(newPolicy.startDate).getFullYear();
+      // Crear el período inicial basándose en ANIVERSARIOS de póliza (no en años calendario)
+      const initialPeriodNumber = this.calculatePolicyPeriodNumber(newPolicy.startDate, today);
       const initialPeriodData: PolicyPeriodDataDTO = {
         policy_id: newPolicy.id,
-        year,
+        year: initialPeriodNumber,  // Usar número de período, no año calendario
         policyValue: newPolicy.policyValue,
         agencyPercentage: newPolicy.agencyPercentage,
         advisorPercentage: newPolicy.advisorPercentage,
@@ -487,9 +525,10 @@ export class PolicyService extends ValidateEntity {
       };
       await this.createOrUpdatePeriodForPolicy(
         newPolicy.id,
-        year,
+        initialPeriodNumber,
         initialPeriodData
       );
+      console.log('Creando periodo inicial (aniversario)', { policyId: newPolicy.id, periodNumber: initialPeriodNumber });
 
       await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
 
@@ -1706,71 +1745,130 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
-  //15: Método para validar y crear periodos faltantes de una póliza
+  //15: Método para validar y crear períodos faltantes basándose en ANIVERSARIOS de póliza
+  // 🔥 CON TRANSACCIÓN EXPLÍCITA para garantizar atomicidad
   private async validateAndCreateMissingPeriods(policy_id: number): Promise<{
     created: number;
-    missingYears: number[];
+    missingPeriods: number[];
+    deleted: number;
+    extraPeriods: number[];
   }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      // 1. Obtener la póliza
-      const policy = await this.policyRepository.findOne({
+      // 1. Obtener la póliza (incluyendo advisor_id para cache)
+      const policy = await queryRunner.manager.findOne(PolicyEntity, {
         where: { id: policy_id },
-        select: ['id', 'startDate', 'endDate', 'policyValue', 'agencyPercentage', 'advisorPercentage', 'policyFee']
+        select: ['id', 'startDate', 'endDate', 'policyValue', 'agencyPercentage', 'advisorPercentage', 'policyFee', 'advisor_id']
       });
 
       if (!policy) {
-        return { created: 0, missingYears: [] };
+        await queryRunner.rollbackTransaction();
+        return { created: 0, missingPeriods: [], deleted: 0, extraPeriods: [] };
       }
 
-      // 2. Calcular todos los años que deberían tener periodo
-      const startYear = new Date(policy.startDate).getFullYear();
+      // 2. Calcular todos los PERÍODOS (basados en aniversarios, devuelve años calendario)
+      const normalizedStart = new Date(policy.startDate);
       const today = new Date();
-      const currentYear = today.getFullYear();
 
-      // Los periodos deben existir desde startYear hasta el año actual (inclusive)
-      const expectedYears: number[] = [];
-      for (let year = startYear; year <= currentYear; year++) {
-        expectedYears.push(year);
+      // Calcular cuántos períodos deben existir hasta hoy
+      const monthsDiff = (today.getFullYear() - normalizedStart.getFullYear()) * 12 +
+                         (today.getMonth() - normalizedStart.getMonth());
+      const dayDiff = today.getDate() - normalizedStart.getDate();
+
+      // Ajustar si el día aún no ha llegado en el mes actual
+      const adjustedMonths = dayDiff < 0 ? monthsDiff - 1 : monthsDiff;
+      
+      // Los períodos van desde el año inicial hasta el año actual (devuelve AÑOS, no números)
+      const periodsElapsed = Math.floor(adjustedMonths / 12);
+      const expectedPeriods: number[] = [];
+      for (let i = 0; i <= periodsElapsed; i++) {
+        expectedPeriods.push(normalizedStart.getFullYear() + i);
       }
 
-      // 3. Obtener periodos existentes
-      const existingPeriods = await this.policyPeriodDataRepository.find({
+      // 3. Obtener períodos existentes (dentro de la transacción)
+      const existingPeriods = await queryRunner.manager.find(PolicyPeriodDataEntity, {
         where: { policy_id: policy_id },
         select: ['year']
       });
 
-      const existingYears = existingPeriods.map(p => p.year);
+      const existingPeriodYears = existingPeriods.map(p => p.year);
 
-      // 4. Identificar años faltantes
-      const missingYears = expectedYears.filter(year => !existingYears.includes(year));
+      // 4. Identificar períodos faltantes
+      const missingPeriods = expectedPeriods.filter(year => !existingPeriodYears.includes(year));
 
-      if (missingYears.length === 0) {
-        return { created: 0, missingYears: [] };
-      }
+      // 5. 🔥 NUEVO: Identificar períodos "de más" (futuros que no corresponden)
+      // Solo eliminar años >= 2000 que sean mayores al último año esperado
+      const maxExpectedYear = Math.max(...expectedPeriods);
+      const extraPeriods = existingPeriodYears.filter(year => 
+        year >= 2000 && year > maxExpectedYear
+      );
 
-      console.log(`🔍 Póliza ${policy_id}: Detectados ${missingYears.length} periodos faltantes: ${missingYears.join(', ')}`);
-
-      // 5. Crear periodos faltantes
+      // 6. Crear períodos faltantes
       let createdCount = 0;
-      for (const year of missingYears) {
-        const periodData: PolicyPeriodDataDTO = {
-          policy_id: policy.id,
-          year: year,
-          policyValue: policy.policyValue,
-          agencyPercentage: policy.agencyPercentage,
-          advisorPercentage: policy.advisorPercentage,
-          policyFee: policy.policyFee,
-        };
+      let shouldInvalidateCache = false;
 
-        await this.createOrUpdatePeriodForPolicy(policy.id, year, periodData);
-        createdCount++;
-        console.log(`✅ Creado periodo para año ${year} - Póliza ${policy_id}`);
+      if (missingPeriods.length > 0) {
+        console.log(`🔍 Póliza ${policy_id}: Detectados ${missingPeriods.length} periodos faltantes: ${missingPeriods.join(', ')}`);
+        shouldInvalidateCache = true;
+        
+        for (const periodYear of missingPeriods) {
+          const periodData = new PolicyPeriodDataEntity();
+          periodData.policy_id = policy.id;
+          periodData.year = periodYear;
+          periodData.policyValue = policy.policyValue;
+          periodData.agencyPercentage = policy.agencyPercentage;
+          periodData.advisorPercentage = policy.advisorPercentage;
+          periodData.policyFee = policy.policyFee;
+
+          await queryRunner.manager.save(periodData);
+          createdCount++;
+          console.log(`✅ Creado periodo para año ${periodYear} - Póliza ${policy_id}`);
+        }
       }
 
-      return { created: createdCount, missingYears };
+      // 7. 🔥 NUEVO: Eliminar períodos de más
+      let deletedCount = 0;
+      if (extraPeriods.length > 0) {
+        console.log(`🗑️ Póliza ${policy_id}: Detectados ${extraPeriods.length} periodos futuros innecesarios: ${extraPeriods.join(', ')}`);
+        shouldInvalidateCache = true;
+        
+        for (const extraYear of extraPeriods) {
+          const deleteResult = await queryRunner.manager.delete(PolicyPeriodDataEntity, {
+            policy_id: policy_id,
+            year: extraYear
+          });
+          
+          if (deleteResult.affected && deleteResult.affected > 0) {
+            deletedCount++;
+            console.log(`🗑️ Eliminado periodo futuro ${extraYear} - Póliza ${policy_id}`);
+          }
+        }
+      }
+
+      // 8. COMMIT de la transacción
+      await queryRunner.commitTransaction();
+      console.log(`✅ Transacción completada para póliza ${policy_id}`);
+
+      // 9. 🔥 CRÍTICO: Invalidar cache de esta póliza DESPUÉS del commit (si hubo cambios)
+      if (shouldInvalidateCache) {
+        await this.invalidateCaches(policy.advisor_id, policy_id);
+      }
+
+      return { created: createdCount, missingPeriods, deleted: deletedCount, extraPeriods };
+
     } catch (error) {
+      // ROLLBACK en caso de error
+      await queryRunner.rollbackTransaction();
       console.error(`❌ Error al validar periodos de póliza ${policy_id}:`, error.message);
-      return { created: 0, missingYears: [] };
+      console.error(`   Transacción revertida - Sin cambios en BD`);
+      return { created: 0, missingPeriods: [], deleted: 0, extraPeriods: [] };
+
+    } finally {
+      // Liberar el query runner
+      await queryRunner.release();
     }
   }
 
@@ -1812,10 +1910,13 @@ export class PolicyService extends ValidateEntity {
     totalPolicies: number;
     policiesWithMissingPeriods: number;
     totalPeriodsCreated: number;
-    details: Array<{ policyId: number; numberPolicy: string; created: number; years: number[] }>;
+    totalPeriodsDeleted: number;
+    periodsWithMixedData: Array<{ policyId: number; numberPolicy: string; oldPeriods: number[]; newPeriods: number[] }>;
+    details: Array<{ policyId: number; numberPolicy: string; created: number; deleted: number; periodNumbers: number[]; extraPeriods: number[] }>;
   }> {
     try {
-      console.log('🔧 Iniciando reparación masiva de periodos faltantes...');
+      console.log('🔧 Iniciando reparación masiva de periodos...');
+      console.log('📌 Estrategia: Crear períodos FALTANTES + Eliminar períodos FUTUROS innecesarios');
 
       // 1. Obtener todas las pólizas (solo datos básicos)
       const allPolicies = await this.policyRepository.find({
@@ -1826,21 +1927,56 @@ export class PolicyService extends ValidateEntity {
       console.log(`📊 Total de pólizas a revisar: ${allPolicies.length}`);
 
       let totalPeriodsCreated = 0;
+      let totalPeriodsDeleted = 0;
       let policiesWithMissingPeriods = 0;
-      const details: Array<{ policyId: number; numberPolicy: string; created: number; years: number[] }> = [];
+      const details: Array<{ policyId: number; numberPolicy: string; created: number; deleted: number; periodNumbers: number[]; extraPeriods: number[] }> = [];
+      const periodsWithMixedData: Array<{ policyId: number; numberPolicy: string; oldPeriods: number[]; newPeriods: number[] }> = [];
 
       // 2. Procesar cada póliza
       for (const policy of allPolicies) {
+        // 🔍 Obtener períodos ANTES de la reparación
+        const periodsBefore = await this.policyPeriodDataRepository.find({
+          where: { policy_id: policy.id },
+          select: ['year']
+        });
+        const oldPeriodYears = periodsBefore.map(p => p.year);
+
+        // ✅ Crear períodos FALTANTES y eliminar períodos FUTUROS
         const result = await this.validateAndCreateMissingPeriods(policy.id);
 
-        if (result.created > 0) {
+        if (result.created > 0 || result.deleted > 0) {
           policiesWithMissingPeriods++;
           totalPeriodsCreated += result.created;
+          totalPeriodsDeleted += result.deleted;
+
+          // 🔍 Obtener períodos DESPUÉS de la reparación
+          const periodsAfter = await this.policyPeriodDataRepository.find({
+            where: { policy_id: policy.id },
+            select: ['year']
+          });
+          const newPeriodYears = periodsAfter.map(p => p.year);
+
+          // 📊 Detectar si hay mezcla de períodos antiguos (< 2000) y nuevos (>= 2000)
+          const oldStylePeriods = newPeriodYears.filter(y => y < 2000);
+          const newStylePeriods = newPeriodYears.filter(y => y >= 2000);
+
+          if (oldStylePeriods.length > 0 && newStylePeriods.length > 0) {
+            periodsWithMixedData.push({
+              policyId: policy.id,
+              numberPolicy: policy.numberPolicy,
+              oldPeriods: oldStylePeriods,
+              newPeriods: newStylePeriods
+            });
+            console.log(`  ⚠️ Póliza ${policy.numberPolicy}: Mezcla de períodos antiguos ${oldStylePeriods} y nuevos ${newStylePeriods}`);
+          }
+
           details.push({
             policyId: policy.id,
             numberPolicy: policy.numberPolicy,
             created: result.created,
-            years: result.missingYears
+            deleted: result.deleted,
+            periodNumbers: result.missingPeriods,
+            extraPeriods: result.extraPeriods
           });
         }
 
@@ -1851,20 +1987,41 @@ export class PolicyService extends ValidateEntity {
         }
       }
 
-      // 3. Invalidar cachés globales
-      await this.invalidateCaches();
+      // 3. 🔥 Invalidar cachés GLOBALES al final (cada póliza ya invalidó su propia cache)
+      // Esto asegura que cachés globales como "allPolicies", "payments", etc. se actualicen
+      try {
+        const versionKey = 'policies_cache_version';
+        const newVersion = Date.now().toString();
+        await this.redisService.set(versionKey, newVersion, 86400);
+        await this.redisService.del('customers');
+        await this.redisService.del('allAdvisors');
+        console.log('✅ Cachés globales invalidados');
+      } catch (cacheError) {
+        console.warn('⚠️ Warning: Error al invalidar cachés globales:', cacheError.message);
+      }
 
       const summary = {
         totalPolicies: allPolicies.length,
         policiesWithMissingPeriods,
         totalPeriodsCreated,
+        totalPeriodsDeleted,
+        periodsWithMixedData,
         details
       };
 
       console.log('✅ Reparación completada:');
       console.log(`   - Total pólizas revisadas: ${summary.totalPolicies}`);
-      console.log(`   - Pólizas con periodos faltantes: ${summary.policiesWithMissingPeriods}`);
-      console.log(`   - Total periodos creados: ${summary.totalPeriodsCreated}`);
+      console.log(`   - Pólizas reparadas: ${summary.policiesWithMissingPeriods}`);
+      console.log(`   - Períodos CREADOS: ${summary.totalPeriodsCreated}`);
+      console.log(`   - Períodos ELIMINADOS (futuros innecesarios): ${summary.totalPeriodsDeleted}`);
+      console.log(`   - Pólizas con datos mixtos (requieren revisión): ${summary.periodsWithMixedData.length}`);
+      
+      if (periodsWithMixedData.length > 0) {
+        console.log('\n⚠️ PÓLIZAS CON MEZCLA DE PERIODOS (revisar manualmente):');
+        periodsWithMixedData.forEach(p => {
+          console.log(`   - Póliza ${p.numberPolicy} (ID: ${p.policyId}): Antiguos ${p.oldPeriods.join(',')} | Nuevos ${p.newPeriods.join(',')}`);
+        });
+      }
 
       return summary;
     } catch (error) {
@@ -1886,6 +2043,25 @@ export class PolicyService extends ValidateEntity {
    * Usa transacción para garantizar atomicidad (todo o nada)
    * Invalida cachés relacionados
    */
+  /**
+   * 16: Método para ELIMINAR una póliza COMPLETAMENTE
+   * 
+   * ✅ APROVECHA LAS CASCADAS configuradas en la entidad PolicyEntity:
+   * - payments (OneToMany con CASCADE)
+   * - renewals (OneToMany con CASCADE)
+   * - commissions (OneToMany con CASCADE)
+   * - commissionRefunds (OneToMany con CASCADE)
+   * - periods (OneToMany con CASCADE)
+   * 
+   * Características:
+   * - Usa transacción para garantizar atomicidad
+   * - TypeORM se encarga de eliminar todas las relaciones en cascada
+   * - Invalida todos los cachés relacionados
+   * - Retorna contadores de registros eliminados
+   * 
+   * @param policyId - ID de la póliza a eliminar
+   * @returns Resultado de la eliminación con contadores
+   */
   public async deletePolicyComplete(policyId: number): Promise<{
     success: boolean;
     message: string;
@@ -1898,16 +2074,23 @@ export class PolicyService extends ValidateEntity {
       policy: boolean;
     };
   }> {
-    // Iniciar un query runner para manejar la transacción manualmente
     const queryRunner = this.policyRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Verificar que la póliza existe y obtener información
+      // 1. Cargar la póliza CON todas sus relaciones en cascada
       const policy = await queryRunner.manager.findOne(PolicyEntity, {
         where: { id: policyId },
-        relations: ['company', 'advisor', 'customer'],
+        relations: [
+          'advisor',
+          'customer',
+          'payments',
+          'renewals',
+          'commissions',
+          'commissionRefunds',
+          'periods',
+        ],
       });
 
       if (!policy) {
@@ -1924,71 +2107,35 @@ export class PolicyService extends ValidateEntity {
       console.log(`Asesor: ${policy.advisor?.firstName || 'N/A'} ${policy.advisor?.surname || ''}`);
       console.log('==========================================');
 
-      // Contadores para el resultado
+      // Contar registros relacionados ANTES de eliminar
       const deletedRecords = {
-        commissionRefunds: 0,
-        commissionsPayments: 0,
-        payments: 0,
-        periods: 0,
-        renewals: 0,
+        commissionRefunds: policy.commissionRefunds?.length || 0,
+        commissionsPayments: policy.commissions?.length || 0,
+        payments: policy.payments?.length || 0,
+        periods: policy.periods?.length || 0,
+        renewals: policy.renewals?.length || 0,
         policy: false,
       };
 
-      // 2. ELIMINAR COMMISSION REFUNDS
-      const refundsResult = await queryRunner.manager.delete(
-        CommissionRefundsEntity,
-        { policy_id: policyId }
-      );
-      deletedRecords.commissionRefunds = refundsResult.affected || 0;
-      console.log(`✓ Commission Refunds eliminados: ${deletedRecords.commissionRefunds}`);
+      console.log(`📊 Registros a eliminar:`);
+      console.log(`   ✓ Commission Refunds: ${deletedRecords.commissionRefunds}`);
+      console.log(`   ✓ Commissions Payments: ${deletedRecords.commissionsPayments}`);
+      console.log(`   ✓ Payments: ${deletedRecords.payments}`);
+      console.log(`   ✓ Periods: ${deletedRecords.periods}`);
+      console.log(`   ✓ Renewals: ${deletedRecords.renewals}`);
 
-      // 3. ELIMINAR COMMISSIONS PAYMENTS
-      const commissionsResult = await queryRunner.manager.delete(
-        CommissionsPaymentsEntity,
-        { policy_id: policyId }
-      );
-      deletedRecords.commissionsPayments = commissionsResult.affected || 0;
-      console.log(`✓ Commissions Payments eliminados: ${deletedRecords.commissionsPayments}`);
-
-      // 4. ELIMINAR PAYMENTS (payment_record)
-      const paymentsResult = await queryRunner.manager.delete(
-        PaymentEntity,
-        { policy_id: policyId }
-      );
-      deletedRecords.payments = paymentsResult.affected || 0;
-      console.log(`✓ Pagos eliminados: ${deletedRecords.payments}`);
-
-      // 5. ELIMINAR POLICY PERIODS (policy_period_data)
-      const periodsResult = await queryRunner.manager.delete(
-        PolicyPeriodDataEntity,
-        { policy_id: policyId }
-      );
-      deletedRecords.periods = periodsResult.affected || 0;
-      console.log(`✓ Períodos eliminados: ${deletedRecords.periods}`);
-
-      // 6. ELIMINAR RENEWALS
-      const renewalsResult = await queryRunner.manager.delete(
-        RenewalEntity,
-        { policy_id: policyId }
-      );
-      deletedRecords.renewals = renewalsResult.affected || 0;
-      console.log(`✓ Renovaciones eliminadas: ${deletedRecords.renewals}`);
-
-      // 7. FINALMENTE, ELIMINAR LA PÓLIZA
-      const policyResult = await queryRunner.manager.delete(
-        PolicyEntity,
-        { id: policyId }
-      );
-      deletedRecords.policy = (policyResult.affected || 0) > 0;
+      // 2. ELIMINAR la póliza (TypeORM elimina automáticamente las relaciones en cascada)
+      await queryRunner.manager.remove(PolicyEntity, policy);
+      deletedRecords.policy = true;
       console.log(`✓ Póliza eliminada: ${policy.numberPolicy}`);
 
-      // 8. COMMIT de la transacción
+      // 3. COMMIT de la transacción
       await queryRunner.commitTransaction();
       console.log('==========================================');
       console.log('✅ ELIMINACIÓN COMPLETADA EXITOSAMENTE');
       console.log('==========================================');
 
-      // 9. INVALIDAR CACHÉS RELACIONADOS (fuera de la transacción)
+      // 4. INVALIDAR CACHÉS RELACIONADOS (fuera de la transacción)
       try {
         await this.invalidateCaches(policy.advisor_id, policyId);
 
