@@ -792,3 +792,52 @@ JOIN
     policy_status ps ON p.policy_status_id = ps.id -- Relación con el estado de la póliza
 JOIN
     payment_frequency pf ON p.payment_frequency_id = pf.id; -- Relación con la frecuencia de pago
+
+SELECT * FROM policy WHERE id = 1003;
+--VER LOS PERIODOS DE UNA POLIZA EN ESPECIFICO--
+SELECT ppd.*, p.number_policy
+FROM policy_period_data ppd
+JOIN policy p ON ppd.policy_id = p.id
+WHERE ppd.policy_id = 1005
+
+-- Verificar que todas las pólizas tienen periodo inicial
+SELECT p.id, p.number_policy, 
+       EXTRACT(YEAR FROM p.start_date) as expected_year,
+       MIN(ppd.year) as first_period_year
+FROM policy p
+LEFT JOIN policy_period_data ppd ON ppd.policy_id = p.id
+GROUP BY p.id
+HAVING MIN(ppd.year) != EXTRACT(YEAR FROM p.start_date)
+   OR COUNT(ppd.id) = 0;
+
+
+--ELIMINAR UNA POLIZA--
+SELECT * FROM policy WHERE id = 4;
+DELETE FROM policy WHERE id = 4;
+
+SELECT * FROM policy_period_data WHERE policy_id = 1 ORDER BY year;
+
+
+-- Ver todos los pagos de una renovación específica
+SELECT 
+  number_payment,
+  value,
+  pending_value,
+  created_at,
+  observations
+FROM payment_record
+WHERE policy_id = 4
+  AND observations LIKE '%renovación N° 2%'
+ORDER BY number_payment ASC;
+
+-- Ver todos los pagos de una poliza
+SELECT 
+  number_payment,
+  value,
+  pending_value,
+  created_at,
+  observations
+FROM payment_record
+WHERE policy_id = 4
+ 
+ORDER BY number_payment ASC;

@@ -1426,7 +1426,7 @@ export class PolicyService extends ValidateEntity {
       body.createdAt = createdAt;
 
       // 3. ACTUALIZAR la póliza con los nuevos valores recibidos del frontend
-      await this.updatedPolicy(policy.id, {
+      const updateData: Partial<PolicyEntity> = {
         coverageAmount: body.coverageAmount,
         policyValue: body.policyValue,
         policyFee: body.policyFee,
@@ -1434,54 +1434,63 @@ export class PolicyService extends ValidateEntity {
         advisorPercentage: body.advisorPercentage,
         paymentsToAgency: body.paymentsToAgency,
         paymentsToAdvisor: body.paymentsToAdvisor,
-      });
-      /*
-      policy.coverageAmount = body.coverageAmount;
-      policy.policyValue = body.policyValue;
-      policy.agencyPercentage = body.agencyPercentage;
-      policy.advisorPercentage = body.advisorPercentage;
-      policy.paymentsToAgency = body.paymentsToAgency;
-      policy.paymentsToAdvisor = body.paymentsToAdvisor;
-      policy.policyFee = body.policyFee;
-      */
-      //await this.policyRepository.save(policy);
+      };
+
+      // 🔥 NUEVO: Actualizar frecuencia de pago si se proporciona
+      if (body.payment_frequency_id !== undefined) {
+        updateData.payment_frequency_id = body.payment_frequency_id;
+        console.log(`🔄 Cambiando frecuencia de pago: ${policy.payment_frequency_id} → ${body.payment_frequency_id}`);
+      }
+
+      // 🔥 NUEVO: Actualizar numberOfPayments si se proporciona (necesario para frecuencia personalizada)
+      if (body.numberOfPayments !== undefined) {
+        updateData.numberOfPayments = body.numberOfPayments;
+        console.log(`🔄 Actualizando número de pagos personalizados: ${body.numberOfPayments}`);
+      }
+
+      await this.updatedPolicy(policy.id, updateData);
+
       // 4. Registrar la renovación
       const newRenewal = await this.policyRenevalMethod.save(body);
+
+      // 🔥 NUEVO: Recargar póliza para obtener valores actualizados (incluyendo nueva frecuencia)
+      const updatedPolicy = await this.findPolicyById(policy.id);
 
       // 5. Crear o actualizar el periodo anual usando los NUEVOS valores de la póliza
       const renewalYear = new Date(body.createdAt).getFullYear();
       console.log('Creando periodo de renovación: ', {
-        policyId: policy.id,
+        policyId: updatedPolicy.id,
         renewalYear,
-        bodyCreatedAt: body.createdAt
+        bodyCreatedAt: body.createdAt,
+        paymentFrequency: updatedPolicy.payment_frequency_id
       });
       const renewalUpdatePeriodData: PolicyPeriodDataDTO = {
-        policy_id: policy.id,
+        policy_id: updatedPolicy.id,
         year: renewalYear,
-        policyValue: policy.policyValue,
-        agencyPercentage: policy.agencyPercentage,
-        advisorPercentage: policy.advisorPercentage,
-        policyFee: policy.policyFee,
+        policyValue: updatedPolicy.policyValue,
+        agencyPercentage: updatedPolicy.agencyPercentage,
+        advisorPercentage: updatedPolicy.advisorPercentage,
+        policyFee: updatedPolicy.policyFee,
       };
       await this.createOrUpdatePeriodForPolicy(
-        policy.id,
+        updatedPolicy.id,
         renewalYear,
         renewalUpdatePeriodData
       );
 
       // Verificar si es la primera renovación y generar pagos faltantes del ciclo 1
       if (body.renewalNumber === 1) {
-        await this.generateMissingPaymentsBeforeRenewal(policy, new Date(policy.startDate), new Date(body.createdAt));
+        await this.generateMissingPaymentsBeforeRenewal(updatedPolicy, new Date(updatedPolicy.startDate), new Date(body.createdAt));
       }
       // Si es una renovación posterior, generar pagos entre la renovación anterior y esta
       else if (body.renewalNumber > 1) {
-        const previousRenewalDate = new Date(policy.startDate);
+        const previousRenewalDate = new Date(updatedPolicy.startDate);
         previousRenewalDate.setFullYear(previousRenewalDate.getFullYear() + (body.renewalNumber - 1));
-        await this.generateMissingPaymentsBeforeRenewal(policy, previousRenewalDate, new Date(body.createdAt));
+        await this.generateMissingPaymentsBeforeRenewal(updatedPolicy, previousRenewalDate, new Date(body.createdAt));
       }
 
       // Crear automáticamente el primer pago para el nuevo período
-      await this.createFirstPaymentAfterRenewal(policy, newRenewal);
+      await this.createFirstPaymentAfterRenewal(updatedPolicy, newRenewal);
 
       // Invalidar cachés específicos y globales
       await this.invalidateCaches(policy.advisor_id, policy.id);
@@ -1505,8 +1514,13 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //11: Método para crear el primer pago después de una renovación
+  //11: Método para crear pagos después de una renovación (desde fecha de renovación hasta hoy)
   private async createFirstPaymentAfterRenewal(policy: PolicyEntity, renewal: RenewalEntity): Promise<void> {
+    const today = new Date();
+    const renewalDate = DateHelper.normalizeDateForComparison(new Date(renewal.createdAt));
+
+    console.log(`📅 Generando pagos de renovación desde ${renewalDate.toISOString().split('T')[0]} hasta ${today.toISOString().split('T')[0]}`);
+
     // Obtener todos los pagos existentes de la póliza
     const existingPolicy = await this.findPolicyById(policy.id);
     const existingPayments = existingPolicy.payments || [];
@@ -1516,30 +1530,49 @@ export class PolicyService extends ValidateEntity {
       ? Math.max(...existingPayments.map(p => p.number_payment))
       : 0;
 
-    // El siguiente número de pago es el máximo + 1
-    const nextPaymentNumber = maxPaymentNumber + 1;
-
-    // Calcular el valor a pagar según la frecuencia
+    // Calcular valores según la frecuencia
     const policyValue = Number(policy.policyValue);
     const paymentFrequency = Number(policy.payment_frequency_id);
     const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
+    const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, policy.numberOfPayments);
 
-    // Crear el nuevo pago
-    const newPayment: PaymentDTO = {
-      policy_id: policy.id,
-      number_payment: nextPaymentNumber,
-      value: valueToPay,
-      pending_value: policyValue - valueToPay,
-      status_payment_id: 1, // 1: Pendiente
-      credit: 0,
-      balance: valueToPay,
-      total: 0,
-      observations: `Pago generado por renovación N° ${renewal.renewalNumber}`,
-      createdAt: renewal.createdAt
-    };
+    let currentDate = new Date(renewalDate);
+    let nextPaymentNumber = maxPaymentNumber + 1;
+    let paymentsCreated = 0;
 
-    // Registrar el pago utilizando el servicio de pagos
-    await this.paymentService.createPayment(newPayment);
+    // 🔥 NUEVO: Generar TODOS los pagos desde la fecha de renovación hasta hoy
+    // Esto maneja renovaciones tardías correctamente
+    while (currentDate <= today && paymentsCreated < paymentsPerCycle) {
+      // Calcular pending_value acumulado
+      const accumulatedValue = valueToPay * (paymentsCreated + 1);
+      const pendingValue = policyValue - accumulatedValue;
+
+      const newPayment: PaymentDTO = {
+        policy_id: policy.id,
+        number_payment: nextPaymentNumber,
+        value: valueToPay,
+        pending_value: pendingValue > 0 ? pendingValue : 0,
+        status_payment_id: 1, // 1: Pendiente
+        credit: 0,
+        balance: valueToPay,
+        total: 0,
+        observations: paymentsCreated === 0
+          ? `Pago generado por renovación N° ${renewal.renewalNumber}`
+          : `Pago del ciclo de renovación N° ${renewal.renewalNumber}`,
+        createdAt: DateHelper.normalizeDateForComparison(new Date(currentDate))
+      };
+
+      console.log(`  ✓ Creando pago #${nextPaymentNumber} para fecha ${currentDate.toISOString().split('T')[0]} - Valor: $${valueToPay}`);
+      await this.paymentService.createPayment(newPayment);
+
+      paymentsCreated++;
+      nextPaymentNumber++;
+
+      // Avanzar la fecha según la frecuencia de pago
+      currentDate = this.advanceDate(currentDate, paymentFrequency, policy, renewalDate, paymentsPerCycle);
+    }
+
+    console.log(`✅ ${paymentsCreated} pago(s) generado(s) para renovación N° ${renewal.renewalNumber}`);
   }
 
   // 12: Método para generar pagos faltantes entre dos fechas

@@ -51,4 +51,11 @@ export class PolicyRenewalDTO {
   @IsOptional()
   @IsNumber()
   policyFee?: number;
+
+  @IsOptional()
+  @IsInt()
+  payment_frequency_id?: number;
+  @IsOptional()
+  @IsInt()
+  numberOfPayments?: number;
 }
