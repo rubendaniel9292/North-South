@@ -41,32 +41,32 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const { auth } = useAuth();
   if (!localPolicy) return null;
   const itemsPerPage = 5; // Número de items por página
-  
+
   // Método para generar reporte PDF con @react-pdf/renderer
   const handleGenerateReport = async (e) => {
     e.preventDefault();
     setReportLoading(true);
-    
+
     try {
       console.log("Generando PDF con datos de póliza:", localPolicy);
-      
+
       // Generar el documento PDF
       const blob = await pdf(<PolicyPDFDocument policy={localPolicy} />).toBlob();
-      
+
       // Crear un enlace de descarga
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `poliza-${localPolicy.numberPolicy}-${dayjs().format("YYYY-MM-DD")}.pdf`;
-      
+
       // Simular clic para descargar
       document.body.appendChild(link);
       link.click();
-      
+
       // Limpiar
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       alerts("Éxito", "Reporte PDF generado correctamente", "success");
     } catch (error) {
       console.error("Error generando PDF:", error);
@@ -162,14 +162,14 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             ...localPolicy,
             payments: updatedPayments,
           };
-          
+
           setLocalPolicy(updatedPolicy);
-          
+
           // ✅ Notificar al componente padre para actualizar el botón de renovación
           if (onPolicyUpdated) {
             onPolicyUpdated(updatedPolicy);
           }
-          
+
           alerts(
             "Actualización exitosa",
             "Pago actualizado correctamente",
@@ -296,14 +296,14 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
           ...localPolicy,
           payments: [newPayment, ...localPolicy.payments]
         };
-        
+
         setLocalPolicy(updatedPolicy);
-        
+
         // ✅ Notificar al componente padre
         if (onPolicyUpdated) {
           onPolicyUpdated(updatedPolicy);
         }
-        
+
         setTimeout(() => {
           alerts(
             "Pago adelantado registrado",
@@ -322,10 +322,10 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       }
     } catch (error) {
       console.error("Error registrando pago adelantado:", error);
-      
+
       // ✅ Extraer mensaje del backend
       const errorMessage = error.response?.data?.message || error.message;
-      
+
       // ✅ Verificar si es el error de ciclo completo
       if (errorMessage.includes("pending_value") && errorMessage.includes("0")) {
         alerts(
@@ -389,11 +389,21 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   };
 
   // obtener último periodo registrado (por año mayor):
-  const lastPeriod = useMemo(
+
+  /*const lastPeriod = useMemo(
     () => policy.periods.reduce((a, b) => (a.year > b.year ? a : b)),
     [policy.periods]
   );
+*/
+  
+  const lastPeriod = useMemo(() => {
+    if (!policy.periods || policy.periods.length === 0) {
+      return null;
+    }
+    return policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+  }, [policy.periods]);
 
+  console.log("lastPeriod:", lastPeriod);
   // Memoizar cálculos de comisiones
   const agencyCommission = useMemo(() => {
     const baseValue = lastPeriod.policyValue - lastPeriod.policyFee;

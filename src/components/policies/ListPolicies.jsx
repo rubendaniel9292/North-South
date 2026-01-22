@@ -64,13 +64,13 @@ const ListPolicies = memo(() => {
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
       const response = await http.get(`policy/get-policy-id/${policyId}`);
-      console.log("poliza por id obtenida: ", response.data);
+     
       if (response.data.status === "success") {
         console.log("poliza obtenida: ", response.data.policyById);
         setPolicy(response.data.policyById);
         setModalType(type);
         openModal(policyId);
-        console.log("respuesta de la peticion: ", response.data.policyById);
+        
       } else {
         alerts(
           "Error",

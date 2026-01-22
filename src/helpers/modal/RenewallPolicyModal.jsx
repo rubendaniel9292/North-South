@@ -17,6 +17,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { calculateAdvisorAndAgencyPayments } from "../../helpers/CommissionUtils";
+import { getFrequencyIdFromPayments } from "../../helpers/PolicyFormHelpers";
 
 const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
@@ -29,6 +30,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [formError, setFormError] = useState("");
   const [isDataValid, setIsDataValid] = useState(true);
   const [minRenewalDate, setMinRenewalDate] = useState("");
+  const [frequency, setFrequency] = useState([]);
+  const [selectedFrequencyId, setSelectedFrequencyId] = useState(0);
 
   const { form, changed, setForm } = UserForm({
     policy_id: policy.id,
@@ -39,6 +42,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     policyFee: lastPeriod.policyFee,
     paymentsToAgency: policy.paymentsToAgency || 0,
     paymentsToAdvisor: policy.paymentsToAdvisor || 0,
+    payment_frequency_id: getFrequencyIdFromPayments(policy.numberOfPayments),
+    numberOfPayments: policy.numberOfPayments || 0,
   });
 
 
@@ -47,6 +52,39 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     if (element) element.classList.add(className);
   }, []);
 
+  const handleFrequencyChange = useCallback(
+    (e) => {
+      const selectedFrequencyId = Number(e.target.value);
+      console.log(
+        "selectedFrequencyId:",
+        selectedFrequencyId && typeof selectedFrequencyId
+      );
+
+      const frequencyMap = {
+        1: 12, // Mensual
+        2: 4, // Trimestral
+        3: 2, // Semestral
+        4: 1, // Anual (default)
+        5: "", // otro
+      };
+
+      const calculatedPayments = frequencyMap[selectedFrequencyId];
+
+      changed([
+        {
+          name: "payment_frequency_id",
+          value: selectedFrequencyId,
+        },
+        {
+          name: "numberOfPayments",
+          value: calculatedPayments,
+        },
+      ]);
+
+      setSelectedFrequencyId(selectedFrequencyId);
+    },
+    [changed]
+  );
 
   const calculateAdvisorPayment = useCallback(() => {
     const { paymentsToAgency, paymentsToAdvisor } =
@@ -112,6 +150,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
         advisorPercentage: form.advisorPercentage,
         paymentsToAgency: form.paymentsToAgency,
         paymentsToAdvisor: form.paymentsToAdvisor,
+        payment_frequency_id: form.payment_frequency_id,
+        numberOfPayments: form.numberOfPayments,
       };
 
       const renewalRequest = await http.post(
@@ -165,6 +205,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     form.advisorPercentage,
     form.paymentsToAgency,
     form.paymentsToAdvisor,
+    form.payment_frequency_id,
+    form.numberOfPayments,
     policy.id,
     onPolicyUpdated,
     onClose,
@@ -269,6 +311,20 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       }));
     }
   }, [policy, setForm, lastPeriod]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const frecuencyResponse = await http.get("policy/get-frecuency");
+      setFrequency(frecuencyResponse.data.allFrecuency);
+    } catch (error) {
+      console.error("Error fetching frequency data:", error);
+      alerts("Error", "Error fetching frequency data.", "error");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (!policy) {
@@ -445,6 +501,42 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                       return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
                     })()}
                   </small>
+                </div>
+
+                <div className="mb-3 col-2">
+                  <label htmlFor="payment_frequency_id" className="form-label">
+                    <FontAwesomeIcon icon={faSync} className="me-2" />
+                    Frecuencia de pago
+                  </label>
+                  <select
+                    className="form-select"
+                    id="payment_frequency_id"
+                    name="payment_frequency_id"
+                    onChange={handleFrequencyChange}
+                    value={form.payment_frequency_id || 0} // Establece el valor predeterminado
+                  >
+                    <option value={0} disabled>Escoja una opción</option>
+                    {frequency.map((freq) => (
+                      <option key={freq.id} value={freq.id}>
+                        {freq.frequencyName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-3 col-2">
+                  <label htmlFor="numberOfPayments" className="form-label">
+                    <FontAwesomeIcon icon={faHashtag} className="me-2" />
+                    Número de Pagos
+                  </label>
+                  <input
+                    readOnly
+                    type="number"
+                    className="form-control"
+                    id="numberOfPayments"
+                    name="numberOfPayments"
+                    value={form.numberOfPayments || 0}
+                  />
                 </div>
 
                 <div className="mb-3 col-2">
