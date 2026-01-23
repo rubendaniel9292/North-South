@@ -742,7 +742,7 @@ const ListPolicies = memo(() => {
                               );
 
                               const pendingValue = parseFloat(lastPayment.pending_value ?? lastPayment.pendingValue ?? 0);
-                              return pendingValue > 0;
+                              return pendingValue > 0.10;
                             })()}
                           >
                             <FontAwesomeIcon icon={faRedo} className="me-2" />
