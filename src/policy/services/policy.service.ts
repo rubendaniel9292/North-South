@@ -89,6 +89,9 @@ export class PolicyService extends ValidateEntity {
   private advanceDate(currentDate: Date, paymentFrequency: number, policy?: PolicyEntity, startDate?: Date, paymentsPerCycle?: number): Date {
     const newDate = new Date(currentDate);
 
+    // 🔥 CRÍTICO: Preservar el día original de la fecha de inicio para evitar drift
+    const originalDay = startDate ? startDate.getDate() : currentDate.getDate();
+
     switch (paymentFrequency) {
       case 1: // Mensual
         newDate.setMonth(newDate.getMonth() + 1);
@@ -107,8 +110,21 @@ export class PolicyService extends ValidateEntity {
           const daysBetween = Math.floor((policy.endDate.getTime() - startDate.getTime()) / paymentsPerCycle);
           newDate.setDate(newDate.getDate() + daysBetween);
         }
-        break;
+        // No ajustar día para frecuencia personalizada
+        return newDate;
     }
+
+    // 🔥 NUEVO: Restaurar el día original para evitar drift de fechas
+    // Obtener el último día del mes destino para manejar casos edge (ej: 31 de enero → 28 de febrero)
+    const lastDayOfMonth = new Date(
+      newDate.getFullYear(),
+      newDate.getMonth() + 1,
+      0
+    ).getDate();
+
+    // Usar el menor entre el día original y el último día del mes
+    const dayToSet = Math.min(originalDay, lastDayOfMonth);
+    newDate.setDate(dayToSet);
 
     return newDate;
   }
