@@ -1,9 +1,10 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PolicyStatusEntity } from '@/policy/entities/policy_status.entity';
 import { Cron } from '@nestjs/schedule';
+import { PolicyService } from '@/policy/services/policy.service';
 @Injectable()
 export class PolicyStatusService implements OnModuleInit {
   constructor(
@@ -11,6 +12,8 @@ export class PolicyStatusService implements OnModuleInit {
     private readonly policyRepository: Repository<PolicyEntity>,
     @InjectRepository(PolicyStatusEntity)
     private readonly policyStatusRepository: Repository<PolicyStatusEntity>,
+    @Inject(forwardRef(() => PolicyService))
+    private readonly policyService: PolicyService,
   ) { }
 
   //1: Método para determinar el estado de la poliza basado en la fecha de culminacion
@@ -141,30 +144,47 @@ export class PolicyStatusService implements OnModuleInit {
     let totalProcessed = 0;
     let statusUpdated = 0;
     let cancelledSkipped = 0;
-    
+    let cleanedUp = 0;
+
     for (const policy of policies) {
       totalProcessed++;
-      
+
       // Ignorar pólizas canceladas (id: 2)
       if (policy.policy_status_id == 2) {
         cancelledSkipped++;
         continue;
       }
-      
+
+      const oldStatusId = policy.policy_status_id;
       const newStatus = await this.determinePolicyStatus(policy);
-      
+
       // Solo actualizar si el estado ha cambiado
-      if (policy.policy_status_id !== newStatus.id) {
+      if (oldStatusId !== newStatus.id) {
         await this.policyRepository.update(policy.id, {
           policy_status_id: newStatus.id,
         });
         statusUpdated++;
+
+        // Si cambió a Culminada (3), limpiar datos posteriores
+        if (newStatus.id === 3) {
+          try {
+            // Recargar la póliza con el nuevo estado
+            const updatedPolicy = await this.policyRepository.findOne({ where: { id: policy.id } });
+            if (updatedPolicy) {
+              await this.policyService.validateAndCleanupPayments(updatedPolicy);
+              cleanedUp++;
+              console.log(`   🧹 Póliza ${policy.id} culminada - datos limpiados`);
+            }
+          } catch (error) {
+            console.error(`   ❌ Error limpiando póliza ${policy.id}:`, error.message);
+          }
+        }
       }
     }
-    
+
     // Log consolidado solo si hay cambios importantes
     if (statusUpdated > 0 || totalProcessed > 0) {
-      console.log(`✅ Estados de pólizas actualizados: ${totalProcessed} procesadas, ${statusUpdated} actualizadas, ${cancelledSkipped} canceladas omitidas`);
+      console.log(`✅ Estados de pólizas actualizados: ${totalProcessed} procesadas, ${statusUpdated} actualizadas, ${cleanedUp} limpiadas, ${cancelledSkipped} canceladas omitidas`);
     }
   }
 

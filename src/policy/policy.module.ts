@@ -23,6 +23,7 @@ import { PolicyPeriodDataEntity } from './entities/policy_period_data.entity';
 import { CommissionsPaymentsService } from '@/commissions-payments/services/commissions-payments.service';
 import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
 import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
+import { PolicyConsistencyHelper } from './helpers/policy-consistency.helper';
 
 @Module({
   imports: [
@@ -53,8 +54,9 @@ import { CommissionRefundsEntity } from '@/commissions-payments/entities/Commiss
     PolicyStatusService,
     GenerateReportPdfService,
     CommissionsPaymentsService,
+    PolicyConsistencyHelper,
   ],
   controllers: [PolicyController],
   exports: [PolicyService, TypeOrmModule, PolicyStatusService, CommissionsPaymentsService],
 })
-export class PolicyModule {}
+export class PolicyModule { }

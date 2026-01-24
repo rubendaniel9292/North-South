@@ -23,6 +23,7 @@ import { PolicyPeriodDataEntity } from '../entities/policy_period_data.entity';
 import { CommissionsPaymentsService } from '@/commissions-payments/services/commissions-payments.service';
 import { CommissionsPaymentsEntity } from '@/commissions-payments/entities/CommissionsPayments.entity';
 import { CommissionRefundsEntity } from '@/commissions-payments/entities/CommissionRefunds.entity';
+import { PolicyConsistencyHelper } from '../helpers/policy-consistency.helper';
 import { PaymentEntity } from '@/payment/entity/payment.entity';
 @Injectable()
 export class PolicyService extends ValidateEntity {
@@ -57,6 +58,8 @@ export class PolicyService extends ValidateEntity {
 
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+
+    private readonly policyConsistencyHelper: PolicyConsistencyHelper,
   ) {
     // Pasar el repositorio al constructor de la clase base
     super(policyRepository);
@@ -545,6 +548,20 @@ export class PolicyService extends ValidateEntity {
         initialPeriodData
       );
       console.log('Creando periodo inicial (aniversario)', { policyId: newPolicy.id, periodNumber: initialPeriodNumber });
+
+      // Asegurar consistencia completa para pólizas con fechas pasadas
+      // Esto creará automáticamente renovaciones, períodos y pagos faltantes
+      const reloadedPolicy = await this.findPolicyById(newPolicy.id);
+      const result = await this.policyConsistencyHelper.ensureConsistency(
+        reloadedPolicy,
+        this.advanceDate.bind(this),
+        this.getPaymentsPerCycle.bind(this),
+        this.calculatePaymentValue.bind(this)
+      );
+
+      if (result.renewalsCreated > 0 || result.periodsCreated > 0 || result.paymentsCreated > 0) {
+        console.log(`✅ Consistencia asegurada para nueva póliza ${newPolicy.id} - Renovaciones: ${result.renewalsCreated}, Períodos: ${result.periodsCreated}, Pagos: ${result.paymentsCreated}`);
+      }
 
       await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
 
@@ -1394,6 +1411,9 @@ export class PolicyService extends ValidateEntity {
         updatePeriodData
       );
 
+      // 🔥 Validar y limpiar pagos según estado y fechas
+      await this.validateAndCleanupPayments(policyUpdate);
+
       await this.invalidateCaches(policy.advisor_id, id);
 
       // ✅ NO volver a cachear inmediatamente - dejar que la próxima consulta lo cachee con datos frescos
@@ -1589,6 +1609,134 @@ export class PolicyService extends ValidateEntity {
     }
 
     console.log(`✅ ${paymentsCreated} pago(s) generado(s) para renovación N° ${renewal.renewalNumber}`);
+  }
+
+  /**
+   * Valida y limpia/genera pagos según el estado de la póliza
+   * - Cancelada/Culminada: Elimina pagos pendientes posteriores a endDate
+   * - Activa: Genera pagos faltantes hasta hoy si endDate es futuro
+   */
+  public async validateAndCleanupPayments(policy: PolicyEntity): Promise<void> {
+    console.log(`🚀 [validateAndCleanupPayments] INICIANDO para póliza ${policy.id}`);
+    const today = new Date();
+    const endDate = DateHelper.normalizeDateForComparison(new Date(policy.endDate));
+    console.log(`   Hoy: ${today.toISOString().split('T')[0]}, endDate: ${endDate.toISOString().split('T')[0]}`);
+
+    console.log(`🔍 Validando pagos de póliza ${policy.id} - Estado: ${policy.policy_status_id}`);
+    console.log(`   Fecha de fin: ${endDate.toISOString().split('T')[0]}`);
+
+    // CASO 1: Póliza Cancelada (2) o Culminada (5) - Eliminar pagos, renovaciones y períodos posteriores
+    if (policy.policy_status_id == 2 || policy.policy_status_id == 5) {
+      console.log(`⚠️ Póliza cancelada/culminada - Limpiando datos posteriores a ${endDate.toISOString().split('T')[0]}`);
+
+      let deletedPayments = 0;
+      let deletedRenewals = 0;
+      let deletedPeriods = 0;
+
+      // 1️⃣ Eliminar pagos pendientes >= endDate (posteriores o iguales)
+      const paymentsToDelete = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .where('payment.policy_id = :policyId', { policyId: policy.id })
+        .andWhere('payment.createdAt >= :endDate', { endDate })
+        .andWhere('payment.status_payment_id = :status', { status: 1 }) // Solo pendientes
+        .getMany();
+
+      if (paymentsToDelete.length > 0) {
+        console.log(`🗑️ Eliminando ${paymentsToDelete.length} pagos >= fecha de fin`);
+
+        for (const payment of paymentsToDelete) {
+          await this.paymentRepository.remove(payment);
+          deletedPayments++;
+          console.log(`  ✓ Eliminado pago #${payment.number_payment} (${new Date(payment.createdAt).toISOString().split('T')[0]})`);
+        }
+      } else {
+        console.log(`✅ No hay pagos >= fecha de fin`);
+      }
+
+      // 2️⃣ Eliminar renovaciones >= endDate (posteriores o iguales)
+      const renewalsToDelete = await this.policyRenevalMethod
+        .createQueryBuilder('renewal')
+        .where('renewal.policy_id = :policyId', { policyId: policy.id })
+        .andWhere('renewal.createdAt >= :endDate', { endDate })
+        .getMany();
+
+      if (renewalsToDelete.length > 0) {
+        console.log(`🗑️ Eliminando ${renewalsToDelete.length} renovaciones >= fecha de fin`);
+
+        for (const renewal of renewalsToDelete) {
+          await this.policyRenevalMethod.remove(renewal);
+          deletedRenewals++;
+          console.log(`  ✓ Eliminada renovación #${renewal.renewalNumber} (${new Date(renewal.createdAt).toISOString().split('T')[0]})`);
+        }
+      } else {
+        console.log(`✅ No hay renovaciones >= fecha de fin`);
+      }
+
+      // 3️⃣ Eliminar períodos según lógica de aniversario
+      const startDate = DateHelper.normalizeDateForComparison(new Date(policy.startDate));
+      const endYear = endDate.getFullYear();
+
+      // Verificar si endDate es antes del aniversario en su año
+      const anniversaryInEndYear = new Date(startDate);
+      anniversaryInEndYear.setFullYear(endYear);
+      const isBeforeAnniversary = endDate < anniversaryInEndYear;
+
+      // Si endDate es antes del aniversario, eliminar también el período de ese año
+      const yearThreshold = isBeforeAnniversary ? endYear : endYear + 1;
+
+      console.log(`   Aniversario en año ${endYear}: ${anniversaryInEndYear.toISOString().split('T')[0]}`);
+      console.log(`   ¿EndDate antes del aniversario? ${isBeforeAnniversary ? 'Sí' : 'No'} → Eliminar períodos >= ${yearThreshold}`);
+
+      const periodsToDelete = await this.policyPeriodDataRepository
+        .createQueryBuilder('period')
+        .where('period.policy_id = :policyId', { policyId: policy.id })
+        .andWhere('period.year >= :yearThreshold', { yearThreshold })
+        .getMany();
+
+      if (periodsToDelete.length > 0) {
+        console.log(`🗑️ Eliminando ${periodsToDelete.length} períodos >= año ${yearThreshold}`);
+
+        for (const period of periodsToDelete) {
+          await this.policyPeriodDataRepository.remove(period);
+          deletedPeriods++;
+          console.log(`  ✓ Eliminado período ${period.year}`);
+        }
+      } else {
+        console.log(`✅ No hay períodos >= año ${yearThreshold}`);
+      }
+
+      console.log(`✅ [validateAndCleanupPayments] CASO 1 completado:`);
+      console.log(`   - Pagos eliminados: ${deletedPayments}`);
+      console.log(`   - Renovaciones eliminadas: ${deletedRenewals}`);
+      console.log(`   - Períodos eliminados: ${deletedPeriods}`);
+      return;
+    }
+
+    // CASO 2: Póliza Activa (1) - Asegurar consistencia completa
+    console.log(`🔍 Evaluando CASO 2...`);
+    if (policy.policy_status_id == 1 && endDate > today) {
+      console.log(`📅 Póliza activa - Asegurando consistencia completa (renovaciones + períodos + pagos)`);
+
+      // Usar el helper para asegurar consistencia
+      const result = await this.policyConsistencyHelper.ensureConsistency(
+        policy,
+        this.advanceDate.bind(this),
+        this.getPaymentsPerCycle.bind(this),
+        this.calculatePaymentValue.bind(this)
+      );
+
+      // Si se crearon renovaciones, períodos o pagos, invalidar caché
+      if (result.renewalsCreated > 0 || result.periodsCreated > 0 || result.paymentsCreated > 0) {
+        console.log(`🔄 Invalidando caché debido a cambios en la póliza`);
+        await this.invalidateCaches(policy.advisor_id, policy.id);
+      }
+
+      console.log(`✅ Consistencia asegurada - Renovaciones: ${result.renewalsCreated}, Períodos: ${result.periodsCreated}, Pagos: ${result.paymentsCreated}`);
+    } else {
+      console.log(`⚠️ CASO 2 no se ejecutó - Estado: ${policy.policy_status_id}, endDate > today: ${endDate > today}`);
+    }
+
+    console.log(`✅ [validateAndCleanupPayments] FINALIZADO`);
   }
 
   // 12: Método para generar pagos faltantes entre dos fechas
@@ -1924,11 +2072,14 @@ export class PolicyService extends ValidateEntity {
 
       console.log(`Faltantes: [${missingPeriods.join(', ')}] | Existentes: [${existingPeriodYears.join(', ')}]`);
 
-      // 9. Crear SOLO períodos faltantes
+      // 9. Crear SOLO períodos faltantes (EXCEPTO si la póliza está cancelada o culminada)
       let createdCount = 0;
       let shouldInvalidateCache = false;
 
-      if (missingPeriods.length > 0) {
+      // 🔥 NO crear períodos automáticamente si la póliza está cancelada (2) o culminada (5)
+      const isCancelledOrCompleted = policy.policy_status_id == 2 || policy.policy_status_id == 5;
+
+      if (missingPeriods.length > 0 && !isCancelledOrCompleted) {
         console.log(`🔍 Póliza ${policy_id}: Detectados ${missingPeriods.length} periodos faltantes: ${missingPeriods.join(', ')}`);
         shouldInvalidateCache = true;
 
@@ -1945,6 +2096,8 @@ export class PolicyService extends ValidateEntity {
           createdCount++;
           console.log(`✅ Creado periodo para año ${periodYear} - Póliza ${policy_id}`);
         }
+      } else if (missingPeriods.length > 0 && isCancelledOrCompleted) {
+        console.log(`⚠️ Póliza ${policy_id} está cancelada/culminada - NO se crean períodos faltantes: ${missingPeriods.join(', ')}`);
       }
 
       // 10. 🔥 INTELIGENTE: Detectar y eliminar SOLO períodos huérfanos PASADOS
