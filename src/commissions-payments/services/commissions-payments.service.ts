@@ -38,7 +38,7 @@ export class CommissionsPaymentsService {
         private readonly redisService: RedisModuleService,
     ) { }
 
- 
+
     /*
     * Private utility: Reparto FIFO de anticipos generales entre pólizas con saldo pendiente
     * Orquesta todo el proceso de registro de comisiones
@@ -223,8 +223,25 @@ export class CommissionsPaymentsService {
 
             // --- Limpiar cachés relacionados ---
             await this.redisService.del(CacheKeys.GLOBAL_COMMISSIONS);
+            await this.redisService.del(`${CacheKeys.GLOBAL_COMMISSIONS}:${body.advisor_id}`);
             await this.redisService.del(`advisor:${body.advisor_id}`);
+            await this.redisService.del(`advisor:${body.advisor_id}:basic`);
+            await this.redisService.del(`advisor:${body.advisor_id}:commissions`);
             await this.redisService.del('allAdvisors');
+
+            // Limpiar cachés adicionales
+            await this.redisService.del('commissions');
+            await this.redisService.del('commissionsPayments');
+            await this.redisService.del('allCommissions');
+
+            // Limpiar cachés de pólizas afectadas
+            for (const policyInput of validPolicies) {
+                if (policyInput.policy_id) {
+                    await this.redisService.del(`policy:${policyInput.policy_id}`);
+                    await this.redisService.del(`policy:${policyInput.policy_id}:commissions`);
+                }
+            }
+
             await this.liquidateAdvancesIfNeeded(body.advisor_id);
 
             return {
@@ -306,11 +323,22 @@ export class CommissionsPaymentsService {
 
             // Invalidar también cualquier caché específica del asesor (REACTIVADO)
             await this.redisService.del(`advisor:${normalizedBody.advisor_id}`);
+            await this.redisService.del(`advisor:${normalizedBody.advisor_id}:basic`);
+            await this.redisService.del(`advisor:${normalizedBody.advisor_id}:commissions`);
+            await this.redisService.del(`advisor:${normalizedBody.advisor_id}:PROTECTED`);
             await this.redisService.del('allAdvisors');
+            await this.redisService.del('advisors');
+
+            // 🔥 NUEVO: Limpiar cachés adicionales para anticipos generales
+            await this.redisService.del('commissions');
+            await this.redisService.del('commissionsPayments');
+            await this.redisService.del('allCommissions');
 
             // Limpiar caché de payments de la policy si aplica
             if (normalizedBody.policy_id) {
                 await this.redisService.del(`policy_payments:${normalizedBody.policy_id}`);
+                await this.redisService.del(`policy:${normalizedBody.policy_id}`);
+                await this.redisService.del(`policy:${normalizedBody.policy_id}:commissions`);
             }
             const commissionsPayments = await this.commissionsPayments.save(normalizedBody);
 
