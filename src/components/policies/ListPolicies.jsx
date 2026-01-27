@@ -29,7 +29,7 @@ import {
   faDollarSign,
   faCheckCircle,
   faMoneyBillWave,
-  faBarcode
+  faBarcode,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -38,10 +38,8 @@ const POLICY_STATUS = {
   ACTIVE: "1",
   CANCELLED: "2",
   COMPLETED: "3",
-  TO_COMPLETE: "4"
+  TO_COMPLETE: "4",
 };
-
-
 
 const ListPolicies = memo(() => {
   const [policy, setPolicy] = useState({}); // Estado para una póliza específica
@@ -64,18 +62,17 @@ const ListPolicies = memo(() => {
   const getPolicyById = useCallback(async (policyId, type) => {
     try {
       const response = await http.get(`policy/get-policy-id/${policyId}`);
-     
+
       if (response.data.status === "success") {
         console.log("poliza obtenida: ", response.data.policyById);
         setPolicy(response.data.policyById);
         setModalType(type);
         openModal(policyId);
-        
       } else {
         alerts(
           "Error",
           "No existe póliza registrada con id " + policyId,
-          "error"
+          "error",
         );
         console.error("Error fetching polizas:", response.message);
       }
@@ -104,47 +101,55 @@ const ListPolicies = memo(() => {
 
   // 🔧 Función para reparar periodos faltantes (SOLO ADMIN)
   const repairMissingPeriods = useCallback(async () => {
-    if (auth?.role !== 'ADMIN') {
-      alerts('Acceso Denegado', 'Solo los administradores pueden ejecutar esta operación', 'error');
+    if (auth?.role !== "ADMIN") {
+      alerts(
+        "Acceso Denegado",
+        "Solo los administradores pueden ejecutar esta operación",
+        "error",
+      );
       return;
     }
 
     const confirmResult = await alerts(
-      'Confirmar Reparación Masiva',
-      '⚠️ Esta operación revisará TODAS las pólizas del sistema y creará los periodos faltantes. ¿Desea continuar?',
-      'warning',
-      true
+      "Confirmar Reparación Masiva",
+      "⚠️ Esta operación revisará TODAS las pólizas del sistema y creará los periodos faltantes. ¿Desea continuar?",
+      "warning",
+      true,
     );
 
     if (!confirmResult.isConfirmed) return;
 
     setIsRepairingPeriods(true);
     try {
-      const response = await http.post('policy/repair-all-missing-periods');
+      const response = await http.post("policy/repair-all-missing-periods");
 
-      if (response.data.status === 'success') {
+      if (response.data.status === "success") {
         const { summary } = response.data;
 
         await alerts(
-          'Reparación Completada',
+          "Reparación Completada",
           `✅ Reparación exitosa:\n
           📋 Pólizas revisadas: ${summary.totalPoliciesReviewed}
           🔧 Pólizas con periodos faltantes: ${summary.policiesWithMissingPeriods}
           ➕ Periodos creados: ${summary.totalPeriodsCreated}`,
-          'success'
+          "success",
         );
 
         // Recargar todas las pólizas para reflejar los cambios
         await getAllPolicies();
       } else {
-        alerts('Error', response.data.message || 'No se pudo completar la reparación', 'error');
+        alerts(
+          "Error",
+          response.data.message || "No se pudo completar la reparación",
+          "error",
+        );
       }
     } catch (error) {
-      console.error('Error reparando periodos:', error);
+      console.error("Error reparando periodos:", error);
       alerts(
-        'Error',
-        error.response?.data?.message || 'Error al reparar periodos faltantes',
-        'error'
+        "Error",
+        error.response?.data?.message || "Error al reparar periodos faltantes",
+        "error",
       );
     } finally {
       setIsRepairingPeriods(false);
@@ -168,7 +173,9 @@ const ListPolicies = memo(() => {
         console.log("Pagos creados:", response.data.data.createdPayments);
 
         // ✅ Recargar todas las pólizas desde el servidor con los pagos actualizados
-        const policiesResponse = await http.get("/policy/get-all-policy-optimized");
+        const policiesResponse = await http.get(
+          "/policy/get-all-policy-optimized",
+        );
 
         if (policiesResponse.data.status === "success") {
           // Forzar actualización completa del estado con nuevas referencias
@@ -202,15 +209,12 @@ const ListPolicies = memo(() => {
   const fetchData = useCallback(async () => {
     try {
       // ✅ Cargar solo los datos que realmente se utilizan
-      const [
-        typeResponse,
-        companyResponse,
-        advisorResponse,
-      ] = await Promise.all([
-        http.get("policy/get-types"),
-        http.get("company/get-all-company"),
-        http.get("advisor/get-all-advisor"),
-      ]);
+      const [typeResponse, companyResponse, advisorResponse] =
+        await Promise.all([
+          http.get("policy/get-types"),
+          http.get("company/get-all-company"),
+          http.get("advisor/get-all-advisor"),
+        ]);
 
       setType(typeResponse.data?.allTypePolicy);
       setCompanies(companyResponse.data?.allCompanies);
@@ -220,7 +224,7 @@ const ListPolicies = memo(() => {
       alerts(
         "Error",
         "Error cargando datos principales. Algunos endpoints pueden no estar disponibles.",
-        "error"
+        "error",
       );
     }
   }, []); // ✅ Sin dependencias - solo se ejecuta una vez
@@ -231,55 +235,62 @@ const ListPolicies = memo(() => {
   }, [fetchData]); // ✅ fetchData como dependencia
 
   // ✅ Actualizar el estado de las pólizas usando función utilitaria
-  const handlePolicyUpdated = useCallback((policyUpdated) => {
-    if (!policyUpdated) return;
+  const handlePolicyUpdated = useCallback(
+    (policyUpdated) => {
+      if (!policyUpdated) return;
 
-    console.log("🔄 Póliza actualizada recibida:", policyUpdated);
-    console.log("- ID:", policyUpdated.id);
-    console.log("- Pagos recibidos:", policyUpdated.payments?.length);
+      console.log("🔄 Póliza actualizada recibida:", policyUpdated);
+      console.log("- ID:", policyUpdated.id);
+      console.log("- Pagos recibidos:", policyUpdated.payments?.length);
 
-    // Extraer solo el último pago si existe
-    const freshPolicy = { ...policyUpdated };
-    if (freshPolicy.payments && freshPolicy.payments.length > 0) {
-      const lastPayment = freshPolicy.payments.reduce(
-        (latest, payment) =>
-          parseInt(payment.number_payment || 0) > parseInt(latest.number_payment || 0)
-            ? payment
-            : latest,
-        freshPolicy.payments[0]
-      );
-      freshPolicy.payments = [lastPayment]; // Solo mantener el último pago
+      // Extraer solo el último pago si existe
+      const freshPolicy = { ...policyUpdated };
+      if (freshPolicy.payments && freshPolicy.payments.length > 0) {
+        const lastPayment = freshPolicy.payments.reduce(
+          (latest, payment) =>
+            parseInt(payment.number_payment || 0) >
+            parseInt(latest.number_payment || 0)
+              ? payment
+              : latest,
+          freshPolicy.payments[0],
+        );
+        freshPolicy.payments = [lastPayment]; // Solo mantener el último pago
 
-      console.log("📥 Último pago extraído:", {
-        number_payment: lastPayment.number_payment,
-        pending_value: lastPayment.pending_value
+        console.log("📥 Último pago extraído:", {
+          number_payment: lastPayment.number_payment,
+          pending_value: lastPayment.pending_value,
+        });
+      }
+
+      // Actualizar inmediatamente la póliza en el estado local con datos frescos
+      setPolicies((prevPolicies) => {
+        const updatedPolicies = prevPolicies.map((p) => {
+          if (p.id === policyUpdated.id) {
+            console.log("✅ Póliza actualizada localmente:", {
+              id: freshPolicy.id,
+              numberPolicy: freshPolicy.numberPolicy,
+              lastPaymentPending: freshPolicy.payments?.[0]?.pending_value,
+            });
+            return freshPolicy;
+          }
+          return p;
+        });
+
+        console.log(
+          "📊 Total pólizas después de actualización:",
+          updatedPolicies.length,
+        );
+        return updatedPolicies;
       });
-    }
 
-    // Actualizar inmediatamente la póliza en el estado local con datos frescos
-    setPolicies((prevPolicies) => {
-      const updatedPolicies = prevPolicies.map((p) => {
-        if (p.id === policyUpdated.id) {
-          console.log("✅ Póliza actualizada localmente:", {
-            id: freshPolicy.id,
-            numberPolicy: freshPolicy.numberPolicy,
-            lastPaymentPending: freshPolicy.payments?.[0]?.pending_value
-          });
-          return freshPolicy;
-        }
-        return p;
-      });
-
-      console.log("📊 Total pólizas después de actualización:", updatedPolicies.length);
-      return updatedPolicies;
-    });
-
-    // También actualizamos la póliza seleccionada si es necesario
-    if (policy && policy.id === policyUpdated.id) {
-      setPolicy(freshPolicy);
-      console.log("🎯 Póliza seleccionada también actualizada");
-    }
-  }, [policy]);
+      // También actualizamos la póliza seleccionada si es necesario
+      if (policy && policy.id === policyUpdated.id) {
+        setPolicy(freshPolicy);
+        console.log("🎯 Póliza seleccionada también actualizada");
+      }
+    },
+    [policy],
+  );
 
   // ✅ función para limpiar filtros
   const clearFilters = () => {
@@ -324,7 +335,9 @@ const ListPolicies = memo(() => {
         const matches = String(policyStatusId) === String(filterValue);
 
         if (!matches) {
-          console.log(`❌ Póliza ${policy.numberPolicy}: statusId=${policyStatusId} (${typeof policyStatusId}) !== filter=${filterValue} (${typeof filterValue})`);
+          console.log(
+            `❌ Póliza ${policy.numberPolicy}: statusId=${policyStatusId} (${typeof policyStatusId}) !== filter=${filterValue} (${typeof filterValue})`,
+          );
         }
 
         return matches;
@@ -339,7 +352,9 @@ const ListPolicies = memo(() => {
         const companyId = policy.company?.id;
         return String(companyId) === String(companyFilter);
       });
-      console.log(`- Después filtro compañía: ${beforeCount} → ${result.length}`);
+      console.log(
+        `- Después filtro compañía: ${beforeCount} → ${result.length}`,
+      );
     }
 
     // Aplicar filtro por asesor si está seleccionado
@@ -390,7 +405,6 @@ const ListPolicies = memo(() => {
 
   // Función para obtener la fecha del próximo pago pendiente
 
-
   return (
     <>
       <section>
@@ -434,10 +448,10 @@ const ListPolicies = memo(() => {
             </div>
 
             {/* Botones de acción */}
-            <div className="col-md-3 mb-3" >
+            <div className="col-md-3 mb-3">
               <div className="d-grid gap-2">
                 {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
-                {auth?.role === 'ADMIN' && (
+                {auth?.role === "ADMIN" && (
                   <button
                     className="btn btn-warning fw-bold"
                     onClick={repairMissingPeriods}
@@ -445,9 +459,9 @@ const ListPolicies = memo(() => {
                   >
                     <FontAwesomeIcon
                       icon={isRepairingPeriods ? faCogs : faWrench}
-                      className={`me-2 ${isRepairingPeriods ? 'fa-spin' : ''}`}
+                      className={`me-2 ${isRepairingPeriods ? "fa-spin" : ""}`}
                     />
-                    {isRepairingPeriods ? 'Reparando...' : 'Reparar Periodos'}
+                    {isRepairingPeriods ? "Reparando..." : "Reparar Periodos"}
                   </button>
                 )}
 
@@ -471,7 +485,6 @@ const ListPolicies = memo(() => {
                   <FontAwesomeIcon icon={faBroom} className="me-2" />
                   Limpiar filtros
                 </button>
-
               </div>
             </div>
           </div>
@@ -544,8 +557,9 @@ const ListPolicies = memo(() => {
                         <option value="">Todos los asesores</option>
                         {advisor.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {`${item.firstName} ${item.secondName || ""} ${item.surname
-                              } ${item.secondSurname || ""}`.trim()}
+                            {`${item.firstName} ${item.secondName || ""} ${
+                              item.surname
+                            } ${item.secondSurname || ""}`.trim()}
                           </option>
                         ))}
                       </select>
@@ -641,20 +655,19 @@ const ListPolicies = memo(() => {
               ) : (
                 currentPolicies.map((policy, index) => (
                   <tr key={policy.id}>
-
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>{policy.numberPolicy}</td>
                     <td>
                       {policy.customer
-                        ? `${policy.customer.firstName || ''} ${policy.customer.secondName || ''}`.trim() || 'N/A'
-                        : 'Cliente no disponible'
-                      }
+                        ? `${policy.customer.firstName || ""} ${policy.customer.secondName || ""}`.trim() ||
+                          "N/A"
+                        : "Cliente no disponible"}
                     </td>
                     <td>
                       {policy.customer
-                        ? `${policy.customer.surname || ''} ${policy.customer.secondSurname || ''}`.trim() || 'N/A'
-                        : 'Cliente no disponible'
-                      }
+                        ? `${policy.customer.surname || ""} ${policy.customer.secondSurname || ""}`.trim() ||
+                          "N/A"
+                        : "Cliente no disponible"}
                     </td>
                     <td>{policy.company?.companyName}</td>
                     <td>{policy.policyType?.policyName}</td>
@@ -677,16 +690,19 @@ const ListPolicies = memo(() => {
                     <td>{policy.coverageAmount}</td>
                     <td>
                       <span
-                        className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.ACTIVE
-                          ? "bg-success text-white" // ✅ Activa - Verde
-                          : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
-                            ? "bg-danger text-white" // ✅ Cancelada - Rojo
-                            : policy.policyStatus?.id == POLICY_STATUS.COMPLETED
-                              ? "bg-secondary text-white" // ✅ Culminada - Gris
-                              : policy.policyStatus?.id == POLICY_STATUS.TO_COMPLETE
-                                ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
-                                : "bg-light text-dark" // ✅ Default - Claro
-                          }`}
+                        className={`badge fw-bold fs-6 ${
+                          policy.policyStatus?.id == POLICY_STATUS.ACTIVE
+                            ? "bg-success text-white" // ✅ Activa - Verde
+                            : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
+                              ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                              : policy.policyStatus?.id ==
+                                  POLICY_STATUS.COMPLETED
+                                ? "bg-secondary text-white" // ✅ Culminada - Gris
+                                : policy.policyStatus?.id ==
+                                    POLICY_STATUS.TO_COMPLETE
+                                  ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
+                                  : "bg-light text-dark" // ✅ Default - Claro
+                        }`}
                       >
                         {policy.policyStatus?.statusName}
                       </span>
@@ -716,7 +732,9 @@ const ListPolicies = memo(() => {
                         <>
                           <button
                             className="btn btn-success text-white fw-bold my-1 w-100"
-                            onClick={() => getPolicyById(policy.id, "updatePolicy")}
+                            onClick={() =>
+                              getPolicyById(policy.id, "updatePolicy")
+                            }
                             aria-label={`Actualizar póliza ${policy.numberPolicy}`}
                             title="Actualizar información de la póliza"
                           >
@@ -725,24 +743,39 @@ const ListPolicies = memo(() => {
                           </button>
 
                           {/* ✅ Verifica que el ÚLTIMO pago tenga pending_value = 0 */}
+
                           <button
                             className="btn btn-secondary text-white fw-bold my-1 w-100"
                             onClick={() => getPolicyById(policy.id, "renewal")}
                             aria-label={`Renovar póliza ${policy.numberPolicy}`}
                             title="Renovar póliza para el siguiente período"
                             disabled={(() => {
+                              // Verificar que la póliza esté activa
+                              if (
+                                policy.policyStatus?.id !== POLICY_STATUS.ACTIVE
+                              )
+                                return true;
+
                               if (!policy.payments?.length) return true;
 
                               const lastPayment = policy.payments.reduce(
                                 (latest, payment) =>
-                                  parseInt(payment.number_payment || 0) > parseInt(latest.number_payment || 0)
+                                  parseInt(payment.number_payment || 0) >
+                                  parseInt(latest.number_payment || 0)
                                     ? payment
                                     : latest,
-                                policy.payments[0]
+                                policy.payments[0],
                               );
 
-                              const pendingValue = parseFloat(lastPayment.pending_value ?? lastPayment.pendingValue ?? 0);
-                              return pendingValue > 0.10;
+                              // Capturar el saldo pendiente con múltiples variaciones de nombres de campo
+                              const pendingValue = parseFloat(
+                                lastPayment.pending_value ??
+                                  lastPayment.pendingValue ??
+                                  0,
+                              );
+
+                              // Habilitar si saldo pendiente es <= 0.10
+                              return pendingValue > 0.1;
                             })()}
                           >
                             <FontAwesomeIcon icon={faRedo} className="me-2" />
@@ -750,7 +783,6 @@ const ListPolicies = memo(() => {
                           </button>
                         </>
                       )}
-
                     </td>
                   </tr>
                 ))
@@ -773,8 +805,9 @@ const ListPolicies = memo(() => {
                 {pageNumbers.map((number) => (
                   <li
                     key={number}
-                    className={`page-item${currentPage === number ? " active" : ""
-                      }`}
+                    className={`page-item${
+                      currentPage === number ? " active" : ""
+                    }`}
                   >
                     <button
                       onClick={() => paginate(number)}
@@ -785,8 +818,9 @@ const ListPolicies = memo(() => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${currentPage === pageNumbers.length ? " disabled" : ""
-                    }`}
+                  className={`page-item${
+                    currentPage === pageNumbers.length ? " disabled" : ""
+                  }`}
                 >
                   <button
                     className="page-link"

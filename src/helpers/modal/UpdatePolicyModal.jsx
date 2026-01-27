@@ -36,10 +36,15 @@ import {
 } from "../../helpers/PolicyFormHelpers";
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   //pbeneres valor, % y derecho de poliza
-  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
   if (!policy) return null;
+  if (!policy.periods || policy.periods.length === 0) {
+    console.error("La póliza no tiene períodos definidos");
+    return null;
+  }
+  const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(policy.policyStatus.id === 2); // Asumiendo que 2 es CANCELADA
 
   const { form, changed } = UserForm({
     numberPolicy: policy.numberPolicy,
@@ -88,6 +93,35 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
   //const [selectedCustomer, setSelectedCustomer] = useState(option);
+
+  // Manejador para el cambio de estado de póliza
+  const handlePolicyStatusChange = useCallback(
+    (e) => {
+      const statusId = parseInt(e.target.value);
+      // Verificar si el estado seleccionado es CANCELADA (ID 2)
+      const isCancelledStatus = statusId === 2;
+      setIsCancelled(isCancelledStatus);
+
+      // Si es CANCELADA, agregar clase de validación al campo endDate
+      if (isCancelledStatus) {
+        const endDateElement = document.getElementById("endDate");
+        if (endDateElement) {
+          endDateElement.classList.add("is-invalid");
+          endDateElement.classList.remove("is-valid");
+        }
+      } else {
+        // Remover la clase de validación si no es CANCELADA
+        const endDateElement = document.getElementById("endDate");
+        if (endDateElement) {
+          endDateElement.classList.remove("is-invalid");
+          endDateElement.classList.add("is-valid");
+        }
+      }
+
+      changed(e);
+    },
+    [changed]
+  );
 
   //filtro de tarjeta por clientes
   const handleCard_Accunt = useCallback(
@@ -537,7 +571,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     className="form-select"
                     id="policy_status_id"
                     name="policy_status_id"
-                    onChange={changed}
+                    onChange={handlePolicyStatusChange}
                     value={form.policy_status_id}
                   >
                     {allStatusPolicy
@@ -814,7 +848,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Fecha de Finalización de la póliza
                   </label>
                   <input
-                    required
+                    required={isCancelled}
                     type="date"
                     className="form-control"
                     id="endDate"
@@ -822,6 +856,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     onChange={changed}
                     value={form.endDate}
                   />
+                  {isCancelled && (
+                    <div className="invalid-feedback">
+                      Por favor ingrese la fecha de finalización de esta póliza.
+                    </div>
+                  )}
                 </div>
                 <div className="mb-3 col-3">
                   <label htmlFor="paymentsToAgency" className="form-label">
@@ -833,8 +872,8 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     required
                     type="number"
                     className="form-control"
-                    id=" paymentsToAgency"
-                    name=" paymentsToAgency"
+                    id="paymentsToAgency"
+                    name="paymentsToAgency"
                     value={form.paymentsToAgency || 0}
                   />
                 </div>

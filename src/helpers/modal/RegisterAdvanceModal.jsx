@@ -445,7 +445,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   const option = "Escoja una opción";
 
-  // ✅ Convertir handleSubmit a useCallback - SIN TOCAR LA LÓGICA DE NEGOCIO
+  
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -559,7 +559,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       refreshAdvisor,
       onClose,
     ]
-  ); // ✅ Dependencias necesarias
+  ); 
 
   return (
     <>
