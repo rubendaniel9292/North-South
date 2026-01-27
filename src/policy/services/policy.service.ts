@@ -1447,34 +1447,39 @@ export class PolicyService extends ValidateEntity {
       );
 
       // 🔥 CRÍTICO: Verificar si la póliza DEBE estar culminada automáticamente
-      // Si endDate <= today Y NO está cancelada → Cambiar a Culminada (5)
+      // Si endDate <= today Y NO está cancelada → Cambiar a Culminada (3)
       const today = new Date();
       const normalizedEndDate = DateHelper.normalizeDateForComparison(endDate);
       const normalizedToday = DateHelper.normalizeDateForComparison(today);
 
       if (policyUpdate.policy_status_id !== 2 && normalizedEndDate <= normalizedToday) {
-        console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
-        console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 5 (Culminada)`);
+        try {
+          console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
+          console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 3 (Culminada)`);
 
-        // Actualizar status en BD
-        await this.policyRepository.update(
-          { id: policyUpdate.id },
-          { policy_status_id: 5 }
-        );
+          // Actualizar status en BD
+          await this.policyRepository.update(
+            { id: policyUpdate.id },
+            { policy_status_id: 3 }
+          );
 
-        // Actualizar también en el objeto local
-        policyUpdate.policy_status_id = 5;
+          // Actualizar también en el objeto local
+          policyUpdate.policy_status_id = 3;
 
-        // 🔥 Ejecutar limpieza de datos posteriores a endDate
-        // Cargar póliza con relaciones necesarias (sin usar findPolicyById para evitar efectos secundarios)
-        const reloadedPolicy = await this.policyRepository.findOne({
-          where: { id },
-          relations: ['payments', 'renewals', 'periods']
-        });
+          // 🔥 Ejecutar limpieza de datos posteriores a endDate
+          // Cargar póliza con relaciones necesarias (sin usar findPolicyById para evitar efectos secundarios)
+          const reloadedPolicy = await this.policyRepository.findOne({
+            where: { id },
+            relations: ['payments', 'renewals', 'periods']
+          });
 
-        if (reloadedPolicy) {
-          console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate`);
-          await this.validateAndCleanupPayments(reloadedPolicy);
+          if (reloadedPolicy) {
+            console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate`);
+            await this.validateAndCleanupPayments(reloadedPolicy);
+          }
+        } catch (cleanupError) {
+          console.error(`❌ Error al ejecutar limpieza automática: ${cleanupError.message}`);
+          // No lanzar el error para que la actualización continúe
         }
       }
 
@@ -1689,8 +1694,8 @@ export class PolicyService extends ValidateEntity {
     console.log(`🔍 Validando pagos de póliza ${policy.id} - Estado: ${policy.policy_status_id}`);
     console.log(`   Fecha de fin: ${endDate.toISOString().split('T')[0]}`);
 
-    // CASO 1: Póliza Cancelada (2) o Culminada (5) - Eliminar pagos, renovaciones y períodos posteriores
-    if (policy.policy_status_id == 2 || policy.policy_status_id == 5) {
+    // CASO 1: Póliza Cancelada (2) o Culminada (3) - Eliminar pagos, renovaciones y períodos posteriores
+    if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
       console.log(`⚠️ Póliza cancelada/culminada - Limpiando datos posteriores a ${endDate.toISOString().split('T')[0]}`);
 
       let deletedPayments = 0;
