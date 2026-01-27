@@ -174,7 +174,7 @@ export class PolicyService extends ValidateEntity {
 
 
   // Generar pagos utilizando el servicio de pagos
-  private async generatePaymentsUsingService(policy: PolicyEntity, startDate: Date, today: Date, paymentFrequency: number): Promise<void> {
+  private async generatePaymentsUsingService(policy: PolicyEntity, startDate: Date, limitDate: Date, paymentFrequency: number): Promise<void> {
     try {
       console.log(`Generando pagos iniciales para póliza ${policy.id} desde ${startDate.toISOString()} hasta la primera renovación`);
       const policyValue = Number(policy.policyValue);
@@ -185,7 +185,7 @@ export class PolicyService extends ValidateEntity {
       firstRenewalDate.setFullYear(startDate.getFullYear() + 1);
 
       // Si la fecha de renovación es mayor que hoy, usar hoy como límite
-      const endDate = firstRenewalDate <= today ? firstRenewalDate : today;
+      const endDate = firstRenewalDate <= limitDate ? firstRenewalDate : limitDate;
 
       // Obtener la póliza actualizada con todos sus pagos
       const updatedPolicy = await this.findPolicyById(policy.id);
@@ -294,16 +294,16 @@ export class PolicyService extends ValidateEntity {
   }
 
   // Manejar renovaciones automáticas
-  private async handleRenewals(policy: PolicyEntity, startDate: Date, today: Date): Promise<void> {
-    const yearsDifference = today.getFullYear() - startDate.getFullYear();
+  private async handleRenewals(policy: PolicyEntity, startDate: Date, limitDate: Date): Promise<void> {
+    const yearsDifference = limitDate.getFullYear() - startDate.getFullYear();
     if (yearsDifference > 0) {
       for (let i = 1; i <= yearsDifference; i++) {
         //const renewalDate = new Date(startDate);
         const renewalDate = new Date(startDate);
         renewalDate.setFullYear(startDate.getFullYear() + i);
 
-        // Solo crear renovaciones hasta la fecha actual
-        if (renewalDate <= today) {
+        // Solo crear renovaciones ANTES de limitDate (no en limitDate mismo)
+        if (renewalDate < limitDate) {
           // Normalizar la fecha de renovación
           const normalizedRenewalDate = DateHelper.normalizeDateForComparison(renewalDate);
 
@@ -316,7 +316,7 @@ export class PolicyService extends ValidateEntity {
           };
 
           // Crear la renovación y generar solo los pagos necesarios según la frecuencia
-          await this.createRenewalWithPayments(renewalData, policy, normalizedRenewalDate);
+          await this.createRenewalWithPayments(renewalData, policy, normalizedRenewalDate, limitDate);
         }
       }
     }
@@ -326,7 +326,8 @@ export class PolicyService extends ValidateEntity {
   private async createRenewalWithPayments(
     renewalData: PolicyRenewalDTO,
     policy: PolicyEntity,
-    renewalDate: Date
+    renewalDate: Date,
+    limitDate: Date  // NUEVO: límite de generación (endDate para culminadas, today para activas)
   ): Promise<void> {
     try {
       // 1. Crear la renovación
@@ -362,12 +363,11 @@ export class PolicyService extends ValidateEntity {
       const paymentFrequency = Number(policy.payment_frequency_id);
       const paymentsPerCycle = this.getPaymentsPerCycle(paymentFrequency, policy.numberOfPayments);
 
-      // 5. Generar solo los pagos necesarios para este ciclo (hasta la fecha actual)
+      // 5. Generar solo los pagos necesarios para este ciclo (hasta limitDate)
       const policyValue = Number(policy.policyValue);
       const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
       let nextPaymentNumber = maxPaymentNumber + 1;
       let currentDate = new Date(renewalDate);
-      const today = new Date();
 
       // Crear el primer pago (el de renovación)
       const firstPayment: PaymentDTO = {
@@ -386,13 +386,13 @@ export class PolicyService extends ValidateEntity {
       await this.paymentService.createPayment(firstPayment);
       nextPaymentNumber++;
 
-      // Generar los pagos restantes del ciclo (hasta la fecha actual)
-      for (let i = 1; i < paymentsPerCycle && currentDate <= today; i++) {
+      // Generar los pagos restantes del ciclo (hasta limitDate)
+      for (let i = 1; i < paymentsPerCycle && currentDate <= limitDate; i++) {
         // Avanzar la fecha según la frecuencia
         currentDate = this.advanceDate(currentDate, paymentFrequency, policy, renewalDate, paymentsPerCycle);
 
-        // Solo crear el pago si la fecha es menor o igual a hoy
-        if (currentDate <= today) {
+        // Solo crear el pago si la fecha es menor o igual a limitDate
+        if (currentDate <= limitDate) {
           const payment: PaymentDTO = {
             policy_id: policy.id,
             number_payment: nextPaymentNumber,
@@ -524,19 +524,35 @@ export class PolicyService extends ValidateEntity {
 
       // Validar el valor de la póliza
       this.validatePolicyValue(Number(newPolicy.policyValue));
-      // Calcular pagos y renovaciones
+
       const paymentFrequency = Number(newPolicy.payment_frequency_id);
       const today = new Date();
-      // Generar pagos utilizando el servicio de pagos (siempre generar al menos el primer pago)
-      await this.generatePaymentsUsingService(newPolicy, startDate, today, paymentFrequency);
-      // Crear renovaciones automáticas
-      await this.handleRenewals(newPolicy, startDate, today);
 
-      // Crear el período inicial basándose en ANIVERSARIOS de póliza (no en años calendario)
+      // 🔥 CRÍTICO: Detectar si la póliza está culminada desde el inicio
+      const normalizedEndDate = DateHelper.normalizeDateForComparison(endDate);
+      const normalizedToday = DateHelper.normalizeDateForComparison(today);
+      const isPolicyAlreadyExpired = normalizedEndDate <= normalizedToday;
+
+      if (isPolicyAlreadyExpired) {
+        console.log(`⚠️ [createPolicy] Póliza ${newPolicy.id} está CULMINADA desde el inicio`);
+        console.log(`   endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
+        console.log(`   Generando datos SOLO hasta endDate, NO hasta hoy`);
+      }
+
+      // Determinar límite de generación: endDate si está culminada, today si está activa
+      const generationLimit = isPolicyAlreadyExpired ? normalizedEndDate : today;
+
+      // Generar pagos hasta el límite correcto
+      await this.generatePaymentsUsingService(newPolicy, startDate, generationLimit, paymentFrequency);
+
+      // Crear renovaciones hasta el límite correcto
+      await this.handleRenewals(newPolicy, startDate, generationLimit);
+
+      // Crear el período inicial (usar 'today' para calcular el período correcto, no generationLimit)
       const initialPeriodNumber = this.calculatePolicyPeriodNumber(newPolicy.startDate, today);
       const initialPeriodData: PolicyPeriodDataDTO = {
         policy_id: newPolicy.id,
-        year: initialPeriodNumber,  // Usar número de período, no año calendario
+        year: initialPeriodNumber,
         policyValue: newPolicy.policyValue,
         agencyPercentage: newPolicy.agencyPercentage,
         advisorPercentage: newPolicy.advisorPercentage,
@@ -549,18 +565,37 @@ export class PolicyService extends ValidateEntity {
       );
       console.log('Creando periodo inicial (aniversario)', { policyId: newPolicy.id, periodNumber: initialPeriodNumber });
 
-      // Asegurar consistencia completa para pólizas con fechas pasadas
-      // Esto creará automáticamente renovaciones, períodos y pagos faltantes
-      const reloadedPolicy = await this.findPolicyById(newPolicy.id);
-      const result = await this.policyConsistencyHelper.ensureConsistency(
-        reloadedPolicy,
-        this.advanceDate.bind(this),
-        this.getPaymentsPerCycle.bind(this),
-        this.calculatePaymentValue.bind(this)
-      );
+      // 🔥 CRÍTICO: Solo ejecutar ensureConsistency si la póliza está ACTIVA
+      // Si está culminada, NO ejecutar (evita generar datos hasta hoy)
+      if (!isPolicyAlreadyExpired) {
+        console.log(`📅 Póliza activa - Asegurando consistencia hasta hoy`);
 
-      if (result.renewalsCreated > 0 || result.periodsCreated > 0 || result.paymentsCreated > 0) {
-        console.log(`✅ Consistencia asegurada para nueva póliza ${newPolicy.id} - Renovaciones: ${result.renewalsCreated}, Períodos: ${result.periodsCreated}, Pagos: ${result.paymentsCreated}`);
+        // Cargar póliza con todas las relaciones necesarias
+        const reloadedPolicy = await this.findPolicyById(newPolicy.id);
+        const result = await this.policyConsistencyHelper.ensureConsistency(
+          reloadedPolicy,
+          this.advanceDate.bind(this),
+          this.getPaymentsPerCycle.bind(this),
+          this.calculatePaymentValue.bind(this)
+        );
+
+        if (result.renewalsCreated > 0 || result.periodsCreated > 0 || result.paymentsCreated > 0) {
+          console.log(`✅ Consistencia asegurada para nueva póliza ${newPolicy.id} - Renovaciones: ${result.renewalsCreated}, Períodos: ${result.periodsCreated}, Pagos: ${result.paymentsCreated}`);
+        }
+      } else {
+        console.log(`⏭️ Póliza culminada - Saltando ensureConsistency (evita generar datos hasta hoy)`);
+
+        // 🔥 CRÍTICO: NO usar findPolicyById porque ejecuta validateAndCreateMissingPeriods
+        // Cargar manualmente la póliza con solo las relaciones necesarias
+        const reloadedPolicy = await this.policyRepository.findOne({
+          where: { id: newPolicy.id },
+          relations: ['payments', 'renewals', 'periods']
+        });
+
+        if (reloadedPolicy) {
+          console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate`);
+          await this.validateAndCleanupPayments(reloadedPolicy);
+        }
       }
 
       await this.invalidateCaches(newPolicy.advisor_id, newPolicy.id);
@@ -1411,8 +1446,37 @@ export class PolicyService extends ValidateEntity {
         updatePeriodData
       );
 
-      // 🔥 Validar y limpiar pagos según estado y fechas
-      await this.validateAndCleanupPayments(policyUpdate);
+      // 🔥 CRÍTICO: Verificar si la póliza DEBE estar culminada automáticamente
+      // Si endDate <= today Y NO está cancelada → Cambiar a Culminada (5)
+      const today = new Date();
+      const normalizedEndDate = DateHelper.normalizeDateForComparison(endDate);
+      const normalizedToday = DateHelper.normalizeDateForComparison(today);
+
+      if (policyUpdate.policy_status_id !== 2 && normalizedEndDate <= normalizedToday) {
+        console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
+        console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 5 (Culminada)`);
+
+        // Actualizar status en BD
+        await this.policyRepository.update(
+          { id: policyUpdate.id },
+          { policy_status_id: 5 }
+        );
+
+        // Actualizar también en el objeto local
+        policyUpdate.policy_status_id = 5;
+
+        // 🔥 Ejecutar limpieza de datos posteriores a endDate
+        // Cargar póliza con relaciones necesarias (sin usar findPolicyById para evitar efectos secundarios)
+        const reloadedPolicy = await this.policyRepository.findOne({
+          where: { id },
+          relations: ['payments', 'renewals', 'periods']
+        });
+
+        if (reloadedPolicy) {
+          console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate`);
+          await this.validateAndCleanupPayments(reloadedPolicy);
+        }
+      }
 
       await this.invalidateCaches(policy.advisor_id, id);
 
@@ -1633,12 +1697,12 @@ export class PolicyService extends ValidateEntity {
       let deletedRenewals = 0;
       let deletedPeriods = 0;
 
-      // 1️⃣ Eliminar pagos pendientes >= endDate (posteriores o iguales)
+      // 1️⃣ Eliminar TODOS los pagos >= endDate (posteriores o iguales), sin importar su estado
+      // Esto incluye pagos pendientes, atrasados, etc.
       const paymentsToDelete = await this.paymentRepository
         .createQueryBuilder('payment')
         .where('payment.policy_id = :policyId', { policyId: policy.id })
         .andWhere('payment.createdAt >= :endDate', { endDate })
-        .andWhere('payment.status_payment_id = :status', { status: 1 }) // Solo pendientes
         .getMany();
 
       if (paymentsToDelete.length > 0) {

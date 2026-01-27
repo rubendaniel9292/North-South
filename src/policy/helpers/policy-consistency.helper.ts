@@ -49,6 +49,13 @@ export class PolicyConsistencyHelper {
         const currentYear = today.getFullYear();
         const endYear = endDate.getFullYear();
 
+        // 🔥 CRÍTICO: No procesar pólizas canceladas (2) o culminadas (5)
+        // Estas deben manejarse solo con validateAndCleanupPayments
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 5) {
+            console.log(`⚠️ Póliza ${policy.id} está cancelada/culminada - No se ejecuta ensureConsistency`);
+            return { renewalsCreated: 0, periodsCreated: 0, paymentsCreated: 0 };
+        }
+
         // Verificar si ya pasó la fecha de aniversario en el año actual
         const anniversaryThisYear = new Date(startDate);
         anniversaryThisYear.setFullYear(currentYear);
@@ -126,6 +133,8 @@ export class PolicyConsistencyHelper {
             order: { renewalNumber: 'ASC' }
         });
 
+        // 🔧 CORREGIDO: renewalsNeeded = yearsElapsed, NO yearsElapsed + 1
+        // Si yearsElapsed = 2 → necesitas 2 renovaciones (años 2 y 3), no 3
         const renewalsNeeded = yearsElapsedUntilToday;
         const renewalsMissing = renewalsNeeded - existingRenewals.length;
 
@@ -316,14 +325,20 @@ export class PolicyConsistencyHelper {
         });
 
         const paymentFrequency = Number(policy.payment_frequency_id);
-        const paymentsPerCycle = getPaymentsPerCycleFn(paymentFrequency, policy.numberOfPayments);
 
         const existingPayments = await this.paymentRepository.find({
             where: { policy_id: policy.id },
             order: { number_payment: 'ASC' }
         });
 
+        // 🔧 CORREGIDO: Calcular nextPaymentNumber UNA SOLA VEZ al inicio
+        // Evita renumeraciones dentro del loop de períodos
+        const nextPaymentNumberStart = existingPayments.length > 0
+            ? Math.max(...existingPayments.map(p => p.number_payment)) + 1
+            : 1;
+
         let totalCreated = 0;
+        let nextPaymentNumberGlobal = nextPaymentNumberStart;
 
         for (const period of allPeriods) {
             const periodYear = period.year;
@@ -354,14 +369,17 @@ export class PolicyConsistencyHelper {
 
             console.log(`         Pagos existentes: ${periodPayments.length}`);
 
+            // 🔧 CORREGIDO: Recalcular paymentsPerCycle por período (puede variar entre períodos)
+            const paymentsPerCycle = getPaymentsPerCycleFn(paymentFrequency, policy.numberOfPayments);
+            const policyValue = Number(period.policyValue);
+            const valueToPay = calculatePaymentValueFn(policyValue, paymentFrequency, policy.numberOfPayments);
+
             let currentDate: Date;
             let nextPaymentNumber: number;
 
             if (periodPayments.length === 0) {
                 currentDate = new Date(periodStart);
-                nextPaymentNumber = existingPayments.length > 0
-                    ? Math.max(...existingPayments.map(p => p.number_payment)) + 1
-                    : 1;
+                nextPaymentNumber = nextPaymentNumberGlobal;  // 🔧 CORREGIDO: Usar contador global
             } else {
                 const lastPeriodPayment = periodPayments[periodPayments.length - 1];
                 const lastPaymentDate = new Date(lastPeriodPayment.createdAt);
@@ -374,9 +392,6 @@ export class PolicyConsistencyHelper {
                 currentDate = advanceDateFn(lastPaymentDate, paymentFrequency, policy, periodStart, paymentsPerCycle);
                 nextPaymentNumber = lastPeriodPayment.number_payment + 1;
             }
-
-            const policyValue = Number(period.policyValue);
-            const valueToPay = calculatePaymentValueFn(policyValue, paymentFrequency, policy.numberOfPayments);
 
             let paymentsInPeriod = periodPayments.length;
 
@@ -412,6 +427,7 @@ export class PolicyConsistencyHelper {
                 await this.paymentService.createPayment(newPayment);
                 existingPayments.push({ ...newPayment, id: `temp_${nextPaymentNumber}` } as any);
                 totalCreated++;
+                nextPaymentNumberGlobal++;  // 🔧 CORREGIDO: Incrementar contador global
                 console.log(`         ✓ Pago #${nextPaymentNumber} (${currentDate.toISOString().split('T')[0]})`);
 
                 currentDate = advanceDateFn(currentDate, paymentFrequency, policy, periodStart, paymentsPerCycle);
