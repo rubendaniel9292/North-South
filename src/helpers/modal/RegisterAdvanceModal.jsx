@@ -243,7 +243,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
             console.log('✅ Pólizas filtradas con saldo:', policiesWithBalance.length);
             console.log('📋 Pólizas:', policiesWithBalance.map(p => p.numberPolicy));
-            
+
             setSelectedPolicies(policiesWithBalance);
           } else {
             setSelectedPolicies([]);
@@ -445,7 +445,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
 
   const option = "Escoja una opción";
 
-  
+
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -559,28 +559,28 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
       refreshAdvisor,
       onClose,
     ]
-  ); 
+  );
 
   return (
     <>
       <div className="modal d-flex justify-content-center align-items-center mx-auto">
-        <article className="modal-content text-center px-5 py-5">
-          <div className="d-block conten-title-com rounded mb-3">
-            <h3 className="text-white fw-bold">
+        <article className="modal-content text-center px-4 py-4" style={{ maxWidth: '95vw' }}>
+          <div className="d-block conten-title-com rounded mb-3 py-2">
+            <h5 className="text-white fw-bold mb-0">
               <FontAwesomeIcon icon={faMoneyBillWave} className="me-2" />
               Registro de anticipo/comisión a: {advisorId.firstName}{" "}
               {advisorId.surname} {advisorId.secondSurname || ""}
-            </h3>
+            </h5>
           </div>
 
           {/*NUEVO: Filtros para COMISIÓN */}
           {operationType === "COMISION" && (
-            <div className="card mb-3 shadow-sm">
-              <div className="card-body">
-                <h5 className="card-title mb-3">
+            <div className="card mb-3 shadow-sm border-0" style={{ backgroundColor: '#f8f9fa' }}>
+              <div className="card-body py-3">
+                <h6 className="card-title mb-3 fw-bold text-dark">
                   <FontAwesomeIcon icon={faFileAlt} className="me-2" />
                   Filtrar pólizas a incluir
-                </h5>
+                </h6>
                 <div className="row g-3">
                   {/* Modo de filtro */}
                   <div className="col-md-4">
@@ -715,208 +715,211 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
           {operationType === "COMISION" && !isLoadingPolicies && distributedPolicies.length > 0 && (
             <>
               <div className="row pt-2">
-                <table className="table table-striped">
-                  {/* TODA LA TABLA SE MANTIENE IGUAL - NO TOCAR LA LÓGICA CRÍTICA */}
-                  <thead>
-                    <tr>
-                      <th>N° de póliza</th>
-                      <th>Compañía</th>
-                      <th>Cliente</th>
-                      <th>Frecuencia</th>
-                      <th>Pagos por periodo/año</th>
-                      <th>Comisión por renovación</th>
-                      <th>N° Com. A pagar</th>
-                      <th>Comisiones totales</th>
-                      <th>Comisiones liberadas</th>
-                      <th>Comisiones pagadas</th>
-                      <th>Anticipo aplicado</th>
-                      <th>Desc. (Si aplica)</th>
-                      <th>Saldo (después del registro)</th>
-                      <th>Comisiones a favor</th>
-                      <th>Quitar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {distributedPolicies.length === 0 ? (
+                <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <table className="table table-sm table-hover table-bordered mb-0" style={{ fontSize: '0.85rem' }}>
+                    {/* TODA LA TABLA SE MANTIENE IGUAL - NO TOCAR LA LÓGICA CRÍTICA */}
+                    <thead className="table-light sticky-top" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr>
-                        <td colSpan="15" className="text-center fw-bold">
-                          No hay comisiones disponibles por el momento.
-                        </td>
+                        <th className="text-center" style={{ minWidth: '100px' }}>N° de póliza</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Compañía</th>
+                        <th className="text-center" style={{ minWidth: '150px' }}>Cliente</th>
+                        <th className="text-center" style={{ minWidth: '100px' }}>Frecuencia</th>
+                        <th className="text-center" style={{ minWidth: '80px' }}>Pagos por periodo/año</th>
+                        <th className="text-center" style={{ minWidth: '80px' }}>Comisión por renovación</th>
+                        <th className="text-center" style={{ minWidth: '80px' }}>N° Com. A pagar</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Comisiones totales</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Comisiones liberadas</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Comisiones pagadas</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Anticipo aplicado</th>
+                        <th className="text-center" style={{ minWidth: '100px' }}>Desc. (Si aplica)</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Saldo (después del registro)</th>
+                        <th className="text-center" style={{ minWidth: '120px' }}>Comisiones a favor</th>
+                        <th className="text-center" style={{ minWidth: '80px' }}>Quitar</th>
                       </tr>
-                    ) : (
-                      distributedPolicies.map((policy) => {
-                        const afterBalance =
-                          policy.commissionInFavor -
-                          (policy.advanceApplied || 0);
+                    </thead>
+                    <tbody>
+                      {distributedPolicies.length === 0 ? (
+                        <tr>
+                          <td colSpan="15" className="text-center fw-bold">
+                            No hay comisiones disponibles por el momento.
+                          </td>
+                        </tr>
+                      ) : (
+                        distributedPolicies.map((policy) => {
+                          const afterBalance =
+                            policy.commissionInFavor -
+                            (policy.advanceApplied || 0);
 
-                        // Calcular pagos liberados (AL DÍA) y total de pagos
-                        const releasedPayments =
-                          policy.payments?.filter(
-                            (payment) =>
-                              payment.paymentStatus &&
-                              payment.paymentStatus.id == 2
-                          ).length || 0;
-                        const totalPayments = policy.payments?.length || 0;
+                          // Calcular pagos liberados (AL DÍA) y total de pagos
+                          const releasedPayments =
+                            policy.payments?.filter(
+                              (payment) =>
+                                payment.paymentStatus &&
+                                payment.paymentStatus.id == 2
+                            ).length || 0;
+                          const totalPayments = policy.payments?.length || 0;
 
-                        return (
-                          <tr key={policy.id}>
-                            <td className="fw-bold">{policy.numberPolicy}</td>
-                            <td className="fw-bold bs-tertiary-color">
-                              {policy.company.companyName}
-                            </td>
-                            <td className="fw-bold">
-                              {policy.customer?.firstName
-                                ? `${policy.customer.firstName} ${policy.customer.secondName || ''} ${policy.customer.surname} ${policy.customer.secondSurname || ''}`.trim()
-                                : "N/A"}
-                            </td>
-                            {/* Frecuencia */}
-                            <td>
-                              <Badge
-                                text={
-                                  policy.isCommissionAnnualized === false
-                                    ? "Normal"
-                                    : "Anualizada"
-                                }
-                                color={
-                                  policy.isCommissionAnnualized === false
-                                    ? "info"
-                                    : "secondary"
-                                }
-                              />
-                            </td>
-
-                            <td>
-                              {policy.isCommissionAnnualized === false
-                                ? policy.numberOfPaymentsAdvisor
-                                : 1}
-                            </td>
-                            {/* Comisión por renovación */}
-                            <td>
-                              <Badge
-                                text={
-                                  policy.renewalCommission === true
-                                    ? "SI"
-                                    : "NO"
-                                }
-                                color={
-                                  policy.renewalCommission === true
-                                    ? "dark"
-                                    : "danger"
-                                }
-                              />
-                            </td>
-                            <td>
-                              <Badge
-                                text={releasedPayments + "/" + totalPayments}
-                                color={
-                                  releasedPayments === totalPayments
-                                    ? "success"
-                                    : releasedPayments > 0
-                                      ? "warning text-dark"
+                          return (
+                            <tr key={policy.id}>
+                              <td className="fw-bold text-center align-middle">{policy.numberPolicy}</td>
+                              <td className="fw-bold bs-tertiary-color text-center align-middle">
+                                {policy.company.companyName}
+                              </td>
+                              <td className="fw-bold text-start align-middle" style={{ fontSize: '0.8rem' }}>
+                                {policy.customer?.firstName
+                                  ? `${policy.customer.firstName} ${policy.customer.secondName || ''} ${policy.customer.surname} ${policy.customer.secondSurname || ''}`.trim()
+                                  : "N/A"}
+                              </td>
+                              {/* Frecuencia */}
+                              <td className="text-center align-middle">
+                                <Badge
+                                  text={
+                                    policy.isCommissionAnnualized === false
+                                      ? "Normal"
+                                      : "Anualizada"
+                                  }
+                                  color={
+                                    policy.isCommissionAnnualized === false
+                                      ? "info"
                                       : "secondary"
-                                }
-                              />
-                            </td>
+                                  }
+                                />
+                              </td>
 
-                            <td className="fw-bold text-primary">
-                              ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
-                            </td>
+                              <td className="text-center align-middle fw-bold">
+                                {policy.isCommissionAnnualized === false
+                                  ? policy.numberOfPaymentsAdvisor
+                                  : 1}
+                              </td>
+                              {/* Comisión por renovación */}
+                              <td className="text-center align-middle">
+                                <Badge
+                                  text={
+                                    policy.renewalCommission === true
+                                      ? "SI"
+                                      : "NO"
+                                  }
+                                  color={
+                                    policy.renewalCommission === true
+                                      ? "dark"
+                                      : "danger"
+                                  }
+                                />
+                              </td>
+                              <td className="text-center align-middle">
+                                <Badge
+                                  text={releasedPayments + "/" + totalPayments}
+                                  color={
+                                    releasedPayments === totalPayments
+                                      ? "success"
+                                      : releasedPayments > 0
+                                        ? "warning text-dark"
+                                        : "secondary"
+                                  }
+                                />
+                              </td>
+
+                              <td className="fw-bold text-primary text-end align-middle">
+                                ${policy.commissionTotal?.toFixed(2) ?? "0.00"}
+                              </td>
 
 
-                            <td className="fw-bold text-warning">
-                              ${policy.released?.toFixed(2) ?? "0.00"}
-                            </td>
-                            <td className="fw-bold text-success">
-                              ${policy.paid?.toFixed(2) ?? "0.00"}
-                            </td>
-                            <td
-                              className="fw-bold "
-                              style={{ color: "#17a2b8" }}
-                            >
-                              $
-                              {policy.appliedHistoricalAdvance?.toFixed(2) ??
-                                "0.00"}
-                            </td>
-                            <td className="fw-bold text-danger">
-                              ${policy.refundsAmount?.toFixed(2) ?? "0.00"}
-                            </td>
-                            <td
-                              className={`fw-bold ${afterBalance <= 0 ? "text-danger" : "text-dark"
-                                }`}
-                            >
-                              ${afterBalance.toFixed(2)}
-                            </td>
-                            <td
-                              className="fw-bold"
-                              style={{ color: "#a259ff" }}
-                            >
-                              ${policy.commissionInFavor?.toFixed(2) ?? "0.00"}
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => removePolicy(policy.id)}
-                                title="Quitar póliza"
+                              <td className="fw-bold text-warning text-end align-middle">
+                                ${policy.released?.toFixed(2) ?? "0.00"}
+                              </td>
+                              <td className="fw-bold text-success text-end align-middle">
+                                ${policy.paid?.toFixed(2) ?? "0.00"}
+                              </td>
+                              <td
+                                className="fw-bold text-end align-middle"
+                                style={{ color: "#17a2b8" }}
                               >
-                                <FontAwesomeIcon icon={faRectangleXmark} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
+                                $
+                                {policy.appliedHistoricalAdvance?.toFixed(2) ??
+                                  "0.00"}
+                              </td>
+                              <td className="fw-bold text-danger text-end align-middle">
+                                ${policy.refundsAmount?.toFixed(2) ?? "0.00"}
+                              </td>
+                              <td
+                                className={`fw-bold text-end align-middle ${afterBalance <= 0 ? "text-danger" : "text-dark"
+                                  }`}
+                              >
+                                ${afterBalance.toFixed(2)}
+                              </td>
+                              <td
+                                className="fw-bold text-end align-middle"
+                                style={{ color: "#a259ff" }}
+                              >
+                                ${policy.commissionInFavor?.toFixed(2) ?? "0.00"}
+                              </td>
+                              <td className="text-center align-middle">
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => removePolicy(policy.id)}
+                                  title="Quitar póliza"
+                                >
+                                  <FontAwesomeIcon icon={faRectangleXmark} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
 
-                  <tfoot>
-                    <tr>
-                      <th colSpan="5">Totales</th>
-                      <th colSpan="1" className="text-end ">
-                        Total de anticipos:
-                      </th>
-                      <th
-                        className="text-white"
-                        style={{ backgroundColor: "#17a2b8" }}
-                      >
-                        ${advisorTotalAdvances.toFixed(2)}
-                      </th>
-                      <th className="bg-primary text-white">
-                        ${globalTotals.commissionTotal?.toFixed(2) ?? "0.00"}
-                      </th>
-                      <th className="bg-warning text-dark">
-                        ${globalTotals.released?.toFixed(2) ?? "0.00"}
-                      </th>
-                      <th className="bg-success text-white">
-                        ${globalTotals.paid?.toFixed(2) ?? "0.00"}
-                      </th>
-                      <th
-                        className="text-white"
-                        style={{ backgroundColor: "#17a2b8" }}
-                      >
-                        $
-                        {globalTotals.appliedHistoricalAdvance?.toFixed(2) ??
-                          "0.00"}
-                      </th>
-                      <th className="bg-danger text-white">
-                        ${globalTotals.refundsAmount?.toFixed(2) ?? "0.00"}
-                      </th>
-                      <th
-                        className={
-                          globalTotals.afterBalance <= 0
-                            ? "bg-danger fw-bold text-white"
-                            : "bg-secondary text-white fw-bold"
-                        }
-                      >
-                        ${globalTotals.afterBalance?.toFixed(2) ?? "0.00"}
-                      </th>
-                      <th
-                        className="fw-bold text-white"
-                        style={{ backgroundColor: "#a259ff" }}
-                      >
-                        ${globalTotals.commissionInFavor?.toFixed(2) ?? "0.00"}
-                      </th>
-                    </tr>
-                  </tfoot>
-                </table>
+                    <tfoot className="table-light" style={{ position: 'sticky', bottom: 0, zIndex: 10 }}>
+                      <tr className="fw-bold">
+                        <th colSpan="5" className="text-start align-middle">Totales</th>
+                        <th colSpan="1" className="text-end align-middle" style={{ fontSize: '0.8rem' }}>
+                          Total de anticipos:
+                        </th>
+                        <th
+                          className="text-white text-end align-middle"
+                          style={{ backgroundColor: "#17a2b8" }}
+                        >
+                          ${advisorTotalAdvances.toFixed(2)}
+                        </th>
+                        <th className="bg-primary text-white text-end align-middle">
+                          ${globalTotals.commissionTotal?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th className="bg-warning text-dark text-end align-middle">
+                          ${globalTotals.released?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th className="bg-success text-white text-end align-middle">
+                          ${globalTotals.paid?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th
+                          className="text-white text-end align-middle"
+                          style={{ backgroundColor: "#17a2b8" }}
+                        >
+                          $
+                          {globalTotals.appliedHistoricalAdvance?.toFixed(2) ??
+                            "0.00"}
+                        </th>
+                        <th className="bg-danger text-white text-end align-middle">
+                          ${globalTotals.refundsAmount?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th
+                          className={
+                            globalTotals.afterBalance <= 0
+                              ? "bg-danger fw-bold text-white text-end align-middle"
+                              : "bg-secondary text-white fw-bold text-end align-middle"
+                          }
+                        >
+                          ${globalTotals.afterBalance?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th
+                          className="fw-bold text-white text-end align-middle"
+                          style={{ backgroundColor: "#a259ff" }}
+                        >
+                          ${globalTotals.commissionInFavor?.toFixed(2) ?? "0.00"}
+                        </th>
+                        <th></th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
                 {/* (Opcional) Desglose visual */}
                 {advanceValue > 0 && (
                   <div className="alert alert-info mt-3">
@@ -957,15 +960,15 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               </div>
             </>
           )}
-          <div className="card-commision shadow-sm mb-4 ">
-            <div className="card-body">
+          <div className="card-commision shadow-sm mb-3 border-0">
+            <div className="card-body py-3">
               <form
                 onSubmit={handleSubmit}
                 id="user-form"
                 className="needs-validation was-validated"
                 noValidate
               >
-                <div className="row g-3">
+                <div className="row g-2">
                   <div className="col-12 col-md-4">
                     <label className="form-label fw-bold text-dark">
                       <FontAwesomeIcon icon={faTags} className="me-2" />
@@ -1085,8 +1088,8 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                     />
                   </div>
                 </div>
-                <div className="row mt-5">
-                  <div className="col-12 d-flex justify-content-center gap-3">
+                <div className="row mt-3">
+                  <div className="col-12 d-flex justify-content-center gap-2">
                     <button
                       type="submit"
                       disabled={isLoading}
