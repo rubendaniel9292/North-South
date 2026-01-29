@@ -204,6 +204,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   };
 
   // Función para registrar pago adelantado
+  /*
   const handleRegisterAdvancedPayment = async () => {
     setAdvancedPaymentLoading(true);
     try {
@@ -345,6 +346,163 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       setAdvancedPaymentLoading(false);
     }
   };
+  */
+  const handleRegisterAdvancedPayment = async () => {
+    setAdvancedPaymentLoading(true);
+    try {
+      // Obtener el último pago registrado (mayor number_payment)
+      const lastPayment = localPolicy.payments.reduce((max, p) =>
+        p.number_payment > max.number_payment ? p : max,
+        localPolicy.payments[0]
+      );
+
+      // ✅ VALIDACIÓN FRONTEND: Verificar si el ciclo está completo
+      if (lastPayment.pending_value <= 0) {
+        alerts(
+          "Ciclo completado",
+          `No se puede crear pago adelantado. El ciclo actual ya está completo (saldo pendiente = ${lastPayment.pending_value}). Debe renovar la póliza primero.`,
+          "warning"
+        );
+        return;
+      }
+
+      // 🔥 CORRECCIÓN: Usar la fecha de INICIO de la póliza como referencia
+      // Encontrar la última renovación para obtener la fecha base correcta
+      const lastRenewal = localPolicy.renewals?.length > 0
+        ? localPolicy.renewals.reduce((latest, r) => {
+          const date = new Date(r.createdAt);
+          return date > new Date(latest.createdAt) ? r : latest;
+        }, localPolicy.renewals[0])
+        : null;
+
+      // Fecha base: última renovación o fecha de inicio de la póliza
+      const baseDate = lastRenewal
+        ? dayjs(lastRenewal.createdAt)
+        : dayjs(localPolicy.startDate);
+
+      // Obtener el día original (aniversario)
+      const originalDay = baseDate.date();
+
+      // ✅ Usar ID en lugar de nombre para mayor confiabilidad
+      const frequencyId = Number(localPolicy.paymentFrequency?.id);
+
+      // Calcular cuántos períodos sumar desde la fecha base
+      const lastDate = dayjs(lastPayment.createdAt);
+      let nextPaymentDate;
+
+      switch (frequencyId) {
+        case 1: // Mensual
+          nextPaymentDate = lastDate.add(1, 'month');
+          break;
+        case 2: // Trimestral
+          nextPaymentDate = lastDate.add(3, 'month');
+          break;
+        case 3: // Semestral
+          nextPaymentDate = lastDate.add(6, 'month');
+          break;
+        case 4: // Anual
+          nextPaymentDate = lastDate.add(1, 'year');
+          break;
+      }
+
+      // 🔥 CRÍTICO: Restaurar el día original para evitar drift
+      // Obtener el último día del mes destino
+      const lastDayOfMonth = nextPaymentDate.endOf('month').date();
+
+      // Usar el menor entre el día original y el último día del mes
+      const dayToSet = Math.min(originalDay, lastDayOfMonth);
+      nextPaymentDate = nextPaymentDate.date(dayToSet);
+
+      // ✅ Fecha actual para las observaciones
+      const today = new Date();
+      const todayFormatted = dayjs(today).format('DD/MM/YYYY');
+      const nextPaymentFormatted = nextPaymentDate.format('DD/MM/YYYY');
+
+      // Calcular el nuevo pending_value correctamente
+      const newPendingValue = Math.max(0, lastPayment.pending_value - lastPayment.value);
+
+      // Crear el nuevo pago adelantado
+      const newPaymentData = {
+        policy_id: Number(localPolicy.id),
+        number_payment: lastPayment.number_payment + 1,
+        value: parseFloat(lastPayment.value),
+        pending_value: newPendingValue,
+        credit: "0.00",
+        balance: parseFloat(lastPayment.value),
+        total: "0.00",
+        status_payment_id: 1,
+        year: nextPaymentDate.year(),
+        createdAt: nextPaymentDate.toISOString(),
+        observations: `Pago adelantado generado el ${todayFormatted}`,
+      };
+
+      console.log("📤 Enviando pago adelantado:", newPaymentData);
+      console.log(`   - Día original (aniversario): ${originalDay}`);
+      console.log(`   - Fecha de cobro (createdAt): ${nextPaymentFormatted}`);
+      console.log(`   - Fecha de registro (observations): ${todayFormatted}`);
+
+      const response = await http.post('payment/create-advance-payment', newPaymentData);
+
+      if (response.data.status === "success") {
+        const newPayment = {
+          id: response.data.data,
+          ...newPaymentData,
+          createdAt: nextPaymentDate.toISOString(),
+          updatedAt: today.toISOString(),
+          paymentStatus: {
+            id: 1,
+            statusNamePayment: "ATRASADO"
+          }
+        };
+
+        const updatedPolicy = {
+          ...localPolicy,
+          payments: [newPayment, ...localPolicy.payments]
+        };
+
+        setLocalPolicy(updatedPolicy);
+
+        if (onPolicyUpdated) {
+          onPolicyUpdated(updatedPolicy);
+        }
+
+        setTimeout(() => {
+          alerts(
+            "Pago adelantado registrado",
+            `Se ha creado el pago #${newPayment.number_payment} con fecha de pago fija: ${nextPaymentDate.format('DD/MM/YYYY')}`,
+            "success"
+          );
+        }, 500);
+
+      } else {
+        alerts(
+          "Error",
+          "No se pudo registrar el pago adelantado",
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error registrando pago adelantado:", error);
+
+      const errorMessage = error.response?.data?.message || error.message;
+
+      if (errorMessage.includes("pending_value") && errorMessage.includes("0")) {
+        alerts(
+          "Ciclo completado",
+          errorMessage,
+          "warning"
+        );
+      } else {
+        alerts(
+          "Error",
+          "Error al registrar el pago adelantado. " + errorMessage,
+          "error"
+        );
+      }
+    } finally {
+      setAdvancedPaymentLoading(false);
+    }
+  };
 
   // Badge Bootstrap helper
   const Badge = ({ text, color = "secondary" }) => (
@@ -396,7 +554,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     [policy.periods]
   );
 */
-  
+
   const lastPeriod = useMemo(() => {
     if (!policy.periods || policy.periods.length === 0) {
       return null;
