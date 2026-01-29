@@ -29,7 +29,7 @@ export class PolicyController {
 
 
   //ENDPOINT ORIGINAL PARA OBTENER TODAS LAS POLIZAS 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-policy')
   public async allPolicy(@Query('search') search?: string) {
     const allPolicy = await this.policyService.getAllPolicies(search);
@@ -54,7 +54,7 @@ export class PolicyController {
   }
 
   // ⚡ ENDPOINT OPTIMIZADO: Listar políticas SIN payments (evita memory leak)
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-policy-optimized')
   public async allPolicyOptimized(@Query('search') search?: string) {
     const allPolicy = await this.policyService.getAllPoliciesOptimized(search);
@@ -68,7 +68,7 @@ export class PolicyController {
   }
 
   // 📄 ENDPOINT PAGINADO: Máximo control de memoria (recomendado)
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-policy-paginated')
   public async allPolicyPaginated(
     @Query('page') page: string = '1',
@@ -77,7 +77,7 @@ export class PolicyController {
   ) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;
-    
+
     const result = await this.policyService.getAllPoliciesPaginated(pageNum, limitNum, search);
     if (result) {
       return {
@@ -95,7 +95,7 @@ export class PolicyController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-policy-status')
   public async allPolicyStatus() {
     const policiesStatus = await this.policyService.getAllPoliciesStatus();
@@ -107,7 +107,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-types')
   public async allTypesPolicy() {
     const allTypePolicy = await this.policyService.getTypesPolicies();
@@ -118,7 +118,7 @@ export class PolicyController {
       };
     }
   }
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-frecuency')
   public async allFrecuency() {
     const allFrecuency = await this.policyService.getFrecuencyPolicies();
@@ -130,7 +130,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-payment-method')
   public async allPaymentMetohd() {
     const allPaymentMethod = await this.policyService.getPaymentMethod();
@@ -142,7 +142,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-policy-id/:id')
   public async policyID(@Param('id') id: number) {
     const policyById = await this.policyService.findPolicyById(id);
@@ -178,7 +178,7 @@ export class PolicyController {
 
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('get-all-satus-policy')
   public async allStatusPolicy() {
     const allStatusPolicy = await this.policyService.getPolicyStatus();
@@ -190,7 +190,7 @@ export class PolicyController {
     }
   }
 
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Put('update-values-by-year/:policy_id/:year')
   async updateValuesByYear(
     @Param('policy_id', ParseIntPipe) policy_id: number,
@@ -209,7 +209,7 @@ export class PolicyController {
   }
 
   // Endpoint para obtener todos los periodos de una póliza por ID
-  @Roles('ADMIN', 'BASIC','ELOPDP')
+  @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get(':policy_id/periods')
   async getPolicyPeriods(
     @Param('policy_id') policy_id: number,
@@ -243,7 +243,7 @@ export class PolicyController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     const result = await this.policyService.deletePolicyComplete(id);
-    
+
     return {
       status: result.success ? 'success' : 'error',
       message: result.message,
@@ -270,7 +270,7 @@ export class PolicyController {
   async repairAllMissingPeriods() {
     console.log('🔧 Iniciando reparación masiva de periodos desde endpoint...');
     const result = await this.policyService.repairAllMissingPeriods();
-    
+
     return {
       status: 'success',
       message: 'Reparación de periodos completada exitosamente',
@@ -280,6 +280,26 @@ export class PolicyController {
         totalPeriodsCreated: result.totalPeriodsCreated,
       },
       details: result.details,
+    };
+  }
+
+  /**
+   * 🔧 Endpoint para CORREGIR FECHAS de pagos de una póliza específica
+   * Útil para:
+   * - Corregir drift de fechas (ej: día 11 en lugar de día 10)
+   * - Eliminar pagos que exceden el ciclo anual
+   * - Sincronizar fechas después de cambios manuales
+   */
+  @Roles('ADMIN', 'BASIC')
+  @Post('fix-payment-dates/:id')
+  async fixPaymentDates(@Param('id', ParseIntPipe) id: number) {
+    console.log(`🔧 Corrigiendo fechas de pagos para póliza ${id}...`);
+    const result = await this.policyService.fixPaymentDates(id);
+
+    return {
+      status: 'success',
+      message: 'Corrección de fechas completada',
+      ...result,
     };
   }
 }
