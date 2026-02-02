@@ -224,32 +224,6 @@ export class PolicyController {
 
   }
 
-  /**
-   * Endpoint para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
-   * ⚠️ OPERACIÓN DESTRUCTIVA - Solo para administradores
-   * Elimina:
-   * - Commission Refunds
-   * - Commissions Payments
-   * - Payments (payment_record)
-   * - Policy Periods
-   * - Renewals
-   * - Policy
-   * 
-   * Usa transacción para garantizar atomicidad (todo o nada)
-   */
-  @Roles('ADMIN')  // ⚠️ SOLO ADMIN puede eliminar pólizas completas
-  @Delete('delete-policy-complete/:id')
-  async deletePolicyComplete(
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    const result = await this.policyService.deletePolicyComplete(id);
-
-    return {
-      status: result.success ? 'success' : 'error',
-      message: result.message,
-      deletedRecords: result.deletedRecords,
-    };
-  }
 
   /**
    * 🔧 Endpoint para REPARAR PERIODOS FALTANTES de TODAS las pólizas
@@ -302,5 +276,44 @@ export class PolicyController {
       ...result,
     };
   }
-}
 
+  /**
+   * 🔧 Endpoint OPCIONAL para CORREGIR FECHAS ADELANTADAS en TODOS los pagos
+   * Solo Admin
+   * 
+   * ⚠️ IMPORTANTE: La corrección automática YA ESTÁ ACTIVA en updatedPolicy
+   * Este endpoint es SOLO para reparación masiva de datos existentes (una sola vez)
+   * 
+   * Las correcciones automáticas ocurren en:
+   * - Cada renovación de póliza
+   * - Cada actualización manual de póliza
+   * - Resultado: Las fechas se corrigen automáticamente sin intervención
+   * 
+   * Usar SOLO si necesitas:
+   * - Reparar toda la BD de una vez (sin esperar actualizaciones naturales)
+   * - Ver un reporte de cuántas pólizas tienen el problema
+   * - Limpiar datos históricos inmediatamente
+   */
+  @Roles('ADMIN')
+  @Post('fix-all-advanced-payment-dates')
+  async fixAllAdvancedPaymentDates() {
+    console.log('🔧 Iniciando corrección masiva de fechas adelantadas desde endpoint...');
+    console.log('⚠️  NOTA: Este es un proceso OPCIONAL. updatedPolicy ya corrige automáticamente.');
+    const result = await this.policyService.fixAllAdvancedPaymentDates();
+
+    return {
+      status: 'success',
+      message: result.totalPaymentsCorrected > 0 
+        ? `Corrección completada. ${result.totalPaymentsCorrected} pagos corregidos. Las futuras correcciones serán automáticas.`
+        : 'No se encontraron pagos con fechas adelantadas. updatedPolicy mantiene todo sincronizado.',
+      summary: {
+        totalPoliciesReviewed: result.totalPolicies,
+        totalPaymentsCorrected: result.totalPaymentsCorrected,
+        policiesAlreadyCorrect: result.alreadyCorrectedByUpdates,
+        policiesWithCorrections: result.details.length,
+      },
+      details: result.details,
+      note: 'Las correcciones futuras se harán automáticamente en cada actualización/renovación'
+    };
+  }
+}

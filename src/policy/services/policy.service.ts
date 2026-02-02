@@ -1420,7 +1420,7 @@ export class PolicyService extends ValidateEntity {
                 `Pago #${payment.number_payment} (fecha: ${paymentDate.toISOString().split('T')[0]}, excede ciclo que termina ${cycleEnd.toISOString().split('T')[0]})`
               );
             }
-            // 🔥 NUEVO: Corregir el día si no coincide con el día de aniversario
+            // 🔥 MEJORADO: Corregir el día si no coincide con el día de aniversario o está adelantado
             else if (paymentDay !== anniversaryDay) {
               // Obtener el último día del mes del pago
               const lastDayOfMonth = new Date(
@@ -1432,21 +1432,35 @@ export class PolicyService extends ValidateEntity {
               // Usar el menor entre el día original y el último día del mes
               const correctedDay = Math.min(anniversaryDay, lastDayOfMonth);
 
+              // Calcular diferencia de días (si el pago está adelantado)
+              const dayDifference = paymentDay - correctedDay;
+
               if (paymentDay !== correctedDay) {
                 const oldDate = new Date(paymentDate);
-                paymentDate.setDate(correctedDay);
+                
+                // 🔥 CRÍTICO: Si el día está adelantado más de 1 día, es un error del normalizeDateForDB
+                // Restar los días de más
+                if (dayDifference > 1) {
+                  console.log(`⚠️ Pago #${payment.number_payment} está adelantado ${dayDifference} días (probable uso incorrecto de normalizeDateForDB)`);
+                  paymentDate.setDate(paymentDate.getDate() - dayDifference);
+                } else {
+                  // Corrección normal del día
+                  paymentDate.setDate(correctedDay);
+                }
 
                 console.log(`🔧 Corrigiendo día del pago #${payment.number_payment}:`);
                 console.log(`   Día esperado (aniversario): ${anniversaryDay}`);
                 console.log(`   Día actual: ${paymentDay}`);
+                console.log(`   Diferencia: ${dayDifference > 0 ? `+${dayDifference} días` : `${dayDifference} días`}`);
                 console.log(`   Fecha anterior: ${oldDate.toISOString().split('T')[0]}`);
                 console.log(`   Fecha corregida: ${paymentDate.toISOString().split('T')[0]}`);
 
-                payment.createdAt = DateHelper.normalizeDateForDB(paymentDate);
+                // 🔥 CRÍTICO: Usar normalizeDateForComparison para evitar sumar otro día
+                payment.createdAt = DateHelper.normalizeDateForComparison(paymentDate);
                 await this.paymentRepository.save(payment);
                 paymentsCorrected++;
                 correctedPaymentDetails.push(
-                  `Pago #${payment.number_payment} (${oldDate.toISOString().split('T')[0]} → ${paymentDate.toISOString().split('T')[0]})`
+                  `Pago #${payment.number_payment} (${oldDate.toISOString().split('T')[0]} → ${paymentDate.toISOString().split('T')[0]}, diferencia: ${dayDifference > 0 ? `+${dayDifference}d` : `${dayDifference}d`})`
                 );
               }
             }
@@ -1573,6 +1587,22 @@ export class PolicyService extends ValidateEntity {
         updatePeriodData
       );
 
+      // 🔥 CRÍTICO: Validar y crear períodos faltantes
+      try {
+        console.log(`📅 [updatedPolicy] Validando períodos faltantes para póliza ${id}`);
+        const periodValidation = await this.validateAndCreateMissingPeriods(id);
+        
+        if (periodValidation.created > 0) {
+          console.log(`✅ [updatedPolicy] ${periodValidation.created} períodos creados`);
+        }
+        if (periodValidation.deleted > 0) {
+          console.log(`🗑️ [updatedPolicy] ${periodValidation.deleted} períodos extras eliminados`);
+        }
+      } catch (periodValidationError) {
+        console.error(`❌ Error al validar períodos: ${periodValidationError.message}`);
+        // No lanzar el error para que la actualización continúe
+      }
+
       // 🔥 CRÍTICO: Verificar si la póliza DEBE estar culminada automáticamente
       // Si endDate <= today Y NO está cancelada → Cambiar a Culminada (3)
       const today = new Date();
@@ -1608,131 +1638,6 @@ export class PolicyService extends ValidateEntity {
           console.error(`❌ Error al ejecutar limpieza automática: ${cleanupError.message}`);
           // No lanzar el error para que la actualización continúe
         }
-      }
-
-      // 🔥 NUEVO: Validar y corregir fechas de pagos inconsistentes
-      // Detectar pagos cuyas fechas exceden el ciclo anual de la póliza
-      try {
-        console.log(`🔍 [updatedPolicy] Validando consistencia de fechas de pagos para póliza ${id}`);
-
-        // Cargar póliza con pagos y renovaciones
-        const policyWithPayments = await this.policyRepository.findOne({
-          where: { id },
-          relations: ['payments', 'renewals']
-        });
-
-        if (policyWithPayments && policyWithPayments.payments && policyWithPayments.payments.length > 0) {
-          const startDate = new Date(policyWithPayments.startDate);
-          const renewals = policyWithPayments.renewals || [];
-          const payments = policyWithPayments.payments;
-
-          // 🔥 CRÍTICO: Obtener el día de aniversario de la última renovación (o startDate si no hay renovaciones)
-          let anniversaryDay = startDate.getDate();
-
-          if (renewals.length > 0) {
-            const lastRenewal = renewals.reduce((latest, r) =>
-              new Date(r.createdAt) > new Date(latest.createdAt) ? r : latest
-            );
-            anniversaryDay = new Date(lastRenewal.createdAt).getDate();
-            console.log(`📅 Día de aniversario (última renovación): ${anniversaryDay}`);
-          } else {
-            console.log(`📅 Día de aniversario (fecha inicio): ${anniversaryDay}`);
-          }
-
-          let paymentsDeleted = 0;
-          let paymentsCorrected = 0;
-          const deletedPaymentDetails: string[] = [];
-          const correctedPaymentDetails: string[] = [];
-
-          // Para cada pago, verificar si su fecha excede el ciclo correspondiente
-          for (const payment of payments) {
-            const paymentDate = new Date(payment.createdAt);
-            const paymentDay = paymentDate.getDate();
-
-            // Determinar a qué ciclo pertenece el pago basándose en renovaciones
-            let cycleStart = new Date(startDate);
-            let cycleEnd = new Date(startDate);
-            cycleEnd.setFullYear(cycleStart.getFullYear() + 1);
-
-            // Buscar el ciclo correcto basándose en renovaciones
-            const sortedRenewals = [...renewals].sort((a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-
-            for (const renewal of sortedRenewals) {
-              const renewalDate = new Date(renewal.createdAt);
-              if (paymentDate >= renewalDate) {
-                cycleStart = new Date(renewalDate);
-                cycleEnd = new Date(renewalDate);
-                cycleEnd.setFullYear(cycleStart.getFullYear() + 1);
-              }
-            }
-
-            // Verificar si el pago excede el ciclo (está en o después del próximo aniversario)
-            if (paymentDate >= cycleEnd) {
-              console.log(`⚠️ Pago #${payment.number_payment} tiene fecha inconsistente:`);
-              console.log(`   Fecha del pago: ${paymentDate.toISOString().split('T')[0]}`);
-              console.log(`   Ciclo válido: ${cycleStart.toISOString().split('T')[0]} - ${cycleEnd.toISOString().split('T')[0]}`);
-              console.log(`   🗑️ Eliminando pago inconsistente...`);
-
-              await this.paymentRepository.remove(payment);
-              paymentsDeleted++;
-              deletedPaymentDetails.push(
-                `Pago #${payment.number_payment} (fecha: ${paymentDate.toISOString().split('T')[0]}, excede ciclo que termina ${cycleEnd.toISOString().split('T')[0]})`
-              );
-            }
-            // 🔥 NUEVO: Corregir el día si no coincide con el día de aniversario
-            else if (paymentDay !== anniversaryDay) {
-              // Obtener el último día del mes del pago
-              const lastDayOfMonth = new Date(
-                paymentDate.getFullYear(),
-                paymentDate.getMonth() + 1,
-                0
-              ).getDate();
-
-              // Usar el menor entre el día original y el último día del mes
-              const correctedDay = Math.min(anniversaryDay, lastDayOfMonth);
-
-              if (paymentDay !== correctedDay) {
-                const oldDate = new Date(paymentDate);
-                paymentDate.setDate(correctedDay);
-
-                console.log(`🔧 Corrigiendo día del pago #${payment.number_payment}:`);
-                console.log(`   Día esperado (aniversario): ${anniversaryDay}`);
-                console.log(`   Día actual: ${paymentDay}`);
-                console.log(`   Fecha anterior: ${oldDate.toISOString().split('T')[0]}`);
-                console.log(`   Fecha corregida: ${paymentDate.toISOString().split('T')[0]}`);
-
-                payment.createdAt = DateHelper.normalizeDateForDB(paymentDate);
-                await this.paymentRepository.save(payment);
-                paymentsCorrected++;
-                correctedPaymentDetails.push(
-                  `Pago #${payment.number_payment} (${oldDate.toISOString().split('T')[0]} → ${paymentDate.toISOString().split('T')[0]})`
-                );
-              }
-            }
-          }
-
-          if (paymentsDeleted > 0 || paymentsCorrected > 0) {
-            console.log(`✅ [updatedPolicy] Corrección de fechas completada:`);
-            if (paymentsDeleted > 0) {
-              console.log(`   - Pagos eliminados: ${paymentsDeleted}`);
-              deletedPaymentDetails.forEach(detail => console.log(`     • ${detail}`));
-            }
-            if (paymentsCorrected > 0) {
-              console.log(`   - Pagos corregidos: ${paymentsCorrected}`);
-              correctedPaymentDetails.forEach(detail => console.log(`     • ${detail}`));
-            }
-
-            // Invalidar cachés para reflejar los cambios
-            await this.invalidateCaches(policyWithPayments.advisor_id, id);
-          } else {
-            console.log(`✅ [updatedPolicy] No se encontraron pagos con fechas inconsistentes`);
-          }
-        }
-      } catch (dateValidationError) {
-        console.error(`❌ Error al validar fechas de pagos: ${dateValidationError.message}`);
-        // No lanzar el error para que la actualización continúe
       }
 
       await this.invalidateCaches(policy.advisor_id, id);
@@ -1835,36 +1740,35 @@ export class PolicyService extends ValidateEntity {
         renewalUpdatePeriodData
       );
 
-      // 🔥 NUEVO: Solo generar pagos faltantes si la renovación es TARDÍA
-      // (fecha de renovación < HOY)
-      const today = new Date();
-      const renewalDate = new Date(body.createdAt);
-      const normalizedToday = DateHelper.normalizeDateForComparison(today);
-      const normalizedRenewalDate = DateHelper.normalizeDateForComparison(renewalDate);
-
-      // Calcular días de diferencia
-      const daysDifference = Math.floor((normalizedToday.getTime() - normalizedRenewalDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (daysDifference > 7) { // Si la renovación tiene más de 7 días de atraso
-        console.log(`⚠️ Renovación tardía detectada (${daysDifference} días de atraso). Generando pagos faltantes...`);
-
-        // Verificar si es la primera renovación y generar pagos faltantes del ciclo 1
-        if (body.renewalNumber === 1) {
-          await this.generateMissingPaymentsBeforeRenewal(updatedPolicy, new Date(updatedPolicy.startDate), new Date(body.createdAt));
-        }
-        // Si es una renovación posterior, generar pagos entre la renovación anterior y esta
-        else if (body.renewalNumber > 1) {
-          const previousRenewalDate = new Date(updatedPolicy.startDate);
-          previousRenewalDate.setFullYear(previousRenewalDate.getFullYear() + (body.renewalNumber - 1));
-          await this.generateMissingPaymentsBeforeRenewal(updatedPolicy, previousRenewalDate, new Date(body.createdAt));
-        }
-      } else {
-        console.log(`✅ Renovación a tiempo. Solo se generará el primer pago de renovación.`);
-      }
-
-
-      // Crear automáticamente el primer pago para el nuevo período
+      // 6. Crear automáticamente el primer pago para el nuevo período
       await this.createFirstPaymentAfterRenewal(updatedPolicy, newRenewal);
+
+      // 7. 🔥 CRÍTICO: Ejecutar helper de consistencia para generar TODOS los pagos faltantes hasta hoy
+      console.log(`🔧 Ejecutando helper de consistencia para generar pagos faltantes hasta hoy...`);
+      
+      try {
+        const consistencyResult = await this.policyConsistencyHelper.ensureConsistency(
+          updatedPolicy,
+          this.advanceDate.bind(this),
+          this.getPaymentsPerCycle.bind(this),
+          this.calculatePaymentValue.bind(this)
+        );
+
+        console.log(`✅ Consistencia asegurada después de renovación:`, {
+          policyId: updatedPolicy.id,
+          renewalNumber: newRenewal.renewalNumber,
+          renovacionesCreadas: consistencyResult.renewalsCreated,
+          periodosCreados: consistencyResult.periodsCreated,
+          pagosCreados: consistencyResult.paymentsCreated
+        });
+
+        if (consistencyResult.paymentsCreated > 0) {
+          console.log(`💰 Se generaron ${consistencyResult.paymentsCreated} pagos faltantes hasta hoy`);
+        }
+      } catch (consistencyError) {
+        console.error(`❌ Error al ejecutar helper de consistencia: ${consistencyError.message}`);
+        // No lanzar error para que la renovación se complete
+      }
 
       // Invalidar cachés específicos y globales
       await this.invalidateCaches(policy.advisor_id, policy.id);
@@ -2064,64 +1968,18 @@ export class PolicyService extends ValidateEntity {
     console.log(`✅ [validateAndCleanupPayments] FINALIZADO`);
   }
 
-  // 12: Método para generar pagos faltantes entre dos fechas
+  // 12: MÉTODO OBSOLETO - Reemplazado por PolicyConsistencyHelper.ensureConsistency
+  // Se mantiene comentado para referencia histórica, pero NO se debe usar
+  // El helper de consistencia hace lo mismo pero de forma más robusta y completa
+  /*
   private async generateMissingPaymentsBeforeRenewal(policy: PolicyEntity, startDate: Date, endDate: Date): Promise<void> {
-    const policyValue = Number(policy.policyValue);
-    const paymentFrequency = Number(policy.payment_frequency_id);
-    const valueToPay = this.calculatePaymentValue(policyValue, paymentFrequency, policy.numberOfPayments);
-
-    // Obtener todos los pagos existentes de la póliza
-    const existingPolicy = await this.findPolicyById(policy.id);
-    const existingPayments = existingPolicy.payments || [];
-
-    // Encontrar el número más alto de pago existente
-    const maxPaymentNumber = existingPayments.length > 0
-      ? Math.max(...existingPayments.map(p => p.number_payment))
-      : 0;
-
-    // Iniciar con el siguiente número de pago
-    let paymentNumber = maxPaymentNumber + 1;
-
-    // Calcular cuántos pagos deberían existir en este período según la frecuencia
-    let currentDate = new Date(startDate);
-    let accumulated = 0;
-
-    while (currentDate < endDate) {
-      // Verificar si ya existe un pago en esta fecha
-      const existingPayment = existingPayments.find(p => {
-        const paymentDate = new Date(p.createdAt);
-        return paymentDate.getFullYear() === currentDate.getFullYear() &&
-          paymentDate.getMonth() === currentDate.getMonth() &&
-          paymentDate.getDate() === currentDate.getDate();
-      });
-
-      // Si no existe un pago para esta fecha, crearlo
-      if (!existingPayment) {
-        accumulated += valueToPay;
-        let pendingValue = policyValue - accumulated;
-        if (pendingValue < 0) pendingValue = 0;
-
-        const paymentData: PaymentDTO = {
-          policy_id: policy.id,
-          number_payment: paymentNumber,
-          value: valueToPay,
-          pending_value: pendingValue,
-          status_payment_id: 1, // 1: Pendiente
-          credit: 0,
-          balance: valueToPay,
-          total: 0,
-          observations: 'Pago generado retroactivamente',
-          createdAt: DateHelper.normalizeDateForDB(new Date(currentDate))
-        };
-
-        await this.paymentService.createPayment(paymentData);
-        paymentNumber++;
-      }
-      // Avanzar la fecha según la frecuencia de pago
-      currentDate = this.advanceDate(currentDate, paymentFrequency, policy, startDate, policy.numberOfPayments);
-
-    }
+    // ⚠️ OBSOLETO: Usar PolicyConsistencyHelper.ensureConsistency en su lugar
+    // Este método fue reemplazado porque:
+    // 1. El helper maneja renovaciones + períodos + pagos de forma atómica
+    // 2. Respeta mejor los ciclos anuales de la póliza
+    // 3. Evita duplicados y maneja frecuencias personalizadas correctamente
   }
+  */
 
   //13: Método auxiliar para recalcular valores de pagos cuando cambia el valor de la póliza en un año específico
   private async recalculatePaymentsForYear(
@@ -2282,6 +2140,7 @@ export class PolicyService extends ValidateEntity {
 
         period.policyValue = data.policyValue;
         period.agencyPercentage = data.agencyPercentage;
+        
         period.advisorPercentage = data.advisorPercentage;
         period.policyFee = data.policyFee;
         savedPeriod = await this.policyPeriodDataRepository.save(period);
@@ -2660,148 +2519,146 @@ export class PolicyService extends ValidateEntity {
     }
   }
 
+
   /**
-   * 16: Método para ELIMINAR UNA PÓLIZA COMPLETA con todas sus dependencias
-   * Orden de eliminación:
-   * 1. Commission Refunds
-   * 2. Commissions Payments
-   * 3. Payments (payment_record)
-   * 4. Policy Periods (policy_period_data)
-   * 5. Renewals
-   * 6. Policy
+   * 16B: Método OPCIONAL para CORREGIR FECHAS ADELANTADAS en todos los pagos
    * 
-   * Usa transacción para garantizar atomicidad (todo o nada)
-   * Invalida cachés relacionados
+   * ⚠️ NOTA: La corrección automática YA ESTÁ en updatedPolicy (se ejecuta siempre)
+   * Este método es SOLO para reparación masiva de datos existentes (una sola vez)
+   * 
+   * La corrección automática funciona así:
+   * 1. Cada vez que se actualiza una póliza → updatedPolicy corrige fechas
+   * 2. Cada vez que se renueva → createRenevalAndUpdate llama updatedPolicy
+   * 3. Resultado: Las fechas se auto-corrigen sin intervención manual
+   * 
+   * Usar este método SOLO si:
+   * - Necesitas reparar TODA la base de datos de una vez
+   * - Quieres ver un reporte de cuántas pólizas tienen el problema
+   * - No quieres esperar a que se actualicen naturalmente
+   * 
+   * @returns Estadísticas de corrección masiva
    */
-  /**
-   * 16: Método para ELIMINAR una póliza COMPLETAMENTE
-   * 
-   * ✅ APROVECHA LAS CASCADAS configuradas en la entidad PolicyEntity:
-   * - payments (OneToMany con CASCADE)
-   * - renewals (OneToMany con CASCADE)
-   * - commissions (OneToMany con CASCADE)
-   * - commissionRefunds (OneToMany con CASCADE)
-   * - periods (OneToMany con CASCADE)
-   * 
-   * Características:
-   * - Usa transacción para garantizar atomicidad
-   * - TypeORM se encarga de eliminar todas las relaciones en cascada
-   * - Invalida todos los cachés relacionados
-   * - Retorna contadores de registros eliminados
-   * 
-   * @param policyId - ID de la póliza a eliminar
-   * @returns Resultado de la eliminación con contadores
-   */
-  public async deletePolicyComplete(policyId: number): Promise<{
-    success: boolean;
-    message: string;
-    deletedRecords: {
-      commissionRefunds: number;
-      commissionsPayments: number;
-      payments: number;
-      periods: number;
-      renewals: number;
-      policy: boolean;
-    };
+  public async fixAllAdvancedPaymentDates(): Promise<{
+    totalPolicies: number;
+    totalPaymentsCorrected: number;
+    alreadyCorrectedByUpdates: number;
+    details: Array<{
+      policyId: number;
+      numberPolicy: string;
+      paymentsCorrected: number;
+      corrections: Array<{ paymentNumber: number; oldDate: string; newDate: string; dayDiff: number }>;
+    }>;
   }> {
-    const queryRunner = this.policyRepository.manager.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    console.log('🔧 Iniciando corrección masiva de fechas adelantadas en pagos...');
+    console.log('⚠️  NOTA: updatedPolicy ya corrige automáticamente. Este método es OPCIONAL.');
+    console.log('💡 TIP: Las pólizas se auto-corrigen al renovarse o actualizarse.');
 
     try {
-      // 1. Cargar la póliza CON todas sus relaciones en cascada
-      const policy = await queryRunner.manager.findOne(PolicyEntity, {
-        where: { id: policyId },
-        relations: [
-          'advisor',
-          'customer',
-          'payments',
-          'renewals',
-          'commissions',
-          'commissionRefunds',
-          'periods',
-        ],
+      // Obtener todas las pólizas con pagos y renovaciones
+      const allPolicies = await this.policyRepository.find({
+        relations: ['payments', 'renewals'],
+        order: { id: 'ASC' }
       });
 
-      if (!policy) {
-        throw new ErrorManager({
-          type: 'NOT_FOUND',
-          message: `No se encontró la póliza con ID ${policyId}`,
-        });
+      console.log(`📊 ${allPolicies.length} pólizas a revisar`);
+
+      let totalPaymentsCorrected = 0;
+      let alreadyCorrectedByUpdates = 0;
+      const details: Array<{
+        policyId: number;
+        numberPolicy: string;
+        paymentsCorrected: number;
+        corrections: Array<{ paymentNumber: number; oldDate: string; newDate: string; dayDiff: number }>;
+      }> = [];
+
+      for (const policy of allPolicies) {
+        if (!policy.payments || policy.payments.length === 0) continue;
+
+        const startDate = new Date(policy.startDate);
+        const renewals = policy.renewals || [];
+
+        // Determinar día de aniversario
+        let anniversaryDay = startDate.getDate();
+        if (renewals.length > 0) {
+          const lastRenewal = renewals.reduce((latest, r) =>
+            new Date(r.createdAt) > new Date(latest.createdAt) ? r : latest
+          );
+          anniversaryDay = new Date(lastRenewal.createdAt).getDate();
+        }
+
+        const corrections: Array<{ paymentNumber: number; oldDate: string; newDate: string; dayDiff: number }> = [];
+
+        for (const payment of policy.payments) {
+          const paymentDate = new Date(payment.createdAt);
+          const paymentDay = paymentDate.getDate();
+
+          // Obtener el último día del mes del pago
+          const lastDayOfMonth = new Date(
+            paymentDate.getFullYear(),
+            paymentDate.getMonth() + 1,
+            0
+          ).getDate();
+
+          const correctedDay = Math.min(anniversaryDay, lastDayOfMonth);
+          const dayDifference = paymentDay - correctedDay;
+
+          // Solo corregir si está adelantado más de 1 día
+          if (dayDifference > 1) {
+            const oldDate = new Date(paymentDate);
+            paymentDate.setDate(paymentDate.getDate() - dayDifference);
+
+            payment.createdAt = DateHelper.normalizeDateForComparison(paymentDate);
+            await this.paymentRepository.save(payment);
+
+            corrections.push({
+              paymentNumber: payment.number_payment,
+              oldDate: oldDate.toISOString().split('T')[0],
+              newDate: paymentDate.toISOString().split('T')[0],
+              dayDiff: dayDifference
+            });
+
+            totalPaymentsCorrected++;
+          }
+        }
+
+        if (corrections.length > 0) {
+          details.push({
+            policyId: policy.id,
+            numberPolicy: policy.numberPolicy,
+            paymentsCorrected: corrections.length,
+            corrections
+          });
+
+          console.log(`✅ Póliza ${policy.numberPolicy}: ${corrections.length} pagos corregidos`);
+        }
       }
 
-      console.log('==========================================');
-      console.log(`Eliminando póliza ID: ${policyId}`);
-      console.log(`Número de póliza: ${policy.numberPolicy}`);
-      console.log(`Cliente: ${policy.customer?.firstName || 'N/A'} ${policy.customer?.surname || ''}`);
-      console.log(`Asesor: ${policy.advisor?.firstName || 'N/A'} ${policy.advisor?.surname || ''}`);
-      console.log('==========================================');
+      alreadyCorrectedByUpdates = allPolicies.length - details.length;
 
-      // Contar registros relacionados ANTES de eliminar
-      const deletedRecords = {
-        commissionRefunds: policy.commissionRefunds?.length || 0,
-        commissionsPayments: policy.commissions?.length || 0,
-        payments: policy.payments?.length || 0,
-        periods: policy.periods?.length || 0,
-        renewals: policy.renewals?.length || 0,
-        policy: false,
-      };
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('✅ CORRECCIÓN MASIVA COMPLETADA');
+      console.log(`   - Pólizas revisadas: ${allPolicies.length}`);
+      console.log(`   - Pólizas con correcciones: ${details.length}`);
+      console.log(`   - Pólizas sin problemas: ${alreadyCorrectedByUpdates}`);
+      console.log(`   - Total pagos corregidos: ${totalPaymentsCorrected}`);
+      console.log('');
+      console.log('💡 Las correcciones futuras se harán automáticamente en updatedPolicy');
 
-      console.log(`📊 Registros a eliminar:`);
-      console.log(`   ✓ Commission Refunds: ${deletedRecords.commissionRefunds}`);
-      console.log(`   ✓ Commissions Payments: ${deletedRecords.commissionsPayments}`);
-      console.log(`   ✓ Payments: ${deletedRecords.payments}`);
-      console.log(`   ✓ Periods: ${deletedRecords.periods}`);
-      console.log(`   ✓ Renewals: ${deletedRecords.renewals}`);
-
-      // 2. ELIMINAR la póliza (TypeORM elimina automáticamente las relaciones en cascada)
-      await queryRunner.manager.remove(PolicyEntity, policy);
-      deletedRecords.policy = true;
-      console.log(`✓ Póliza eliminada: ${policy.numberPolicy}`);
-
-      // 3. COMMIT de la transacción
-      await queryRunner.commitTransaction();
-      console.log('==========================================');
-      console.log('✅ ELIMINACIÓN COMPLETADA EXITOSAMENTE');
-      console.log('==========================================');
-
-      // 4. INVALIDAR CACHÉS RELACIONADOS (fuera de la transacción)
-      try {
-        await this.invalidateCaches(policy.advisor_id, policyId);
-
-        // Cachés adicionales específicos de la póliza eliminada
-        await this.redisService.del(`policy:${policyId}`);
-        await this.redisService.del(`policy:${policyId}:periods`);
-        await this.redisService.del(`policy:${policyId}:renewals`);
-        await this.redisService.del(`policy:${policyId}:commissions`);
-
-        // Cachés globales
-        await this.redisService.del('policies');
-        await this.redisService.del('GLOBAL_ALL_POLICIES_BY_STATUS');
-        await this.redisService.del('payments');
-
-        console.log('✓ Cachés invalidados correctamente');
-      } catch (cacheError) {
-        console.warn('⚠️ Warning: Error al invalidar cachés:', cacheError.message);
-        // No fallar la operación si hay error en caché
+      // Invalidar cachés solo si hubo correcciones
+      if (totalPaymentsCorrected > 0) {
+        await this.invalidateCaches();
+        console.log('✅ Cachés invalidados');
       }
 
       return {
-        success: true,
-        message: `Póliza ${policy.numberPolicy} eliminada completamente`,
-        deletedRecords,
+        totalPolicies: allPolicies.length,
+        totalPaymentsCorrected,
+        alreadyCorrectedByUpdates,
+        details
       };
-
     } catch (error) {
-      // ROLLBACK en caso de error
-      await queryRunner.rollbackTransaction();
-      console.error('❌ ERROR: Transacción revertida', error.message);
-      throw ErrorManager.createSignatureError(
-        `Error al eliminar la póliza: ${error.message}`
-      );
-    } finally {
-      // Liberar el query runner
-      await queryRunner.release();
+      console.error('❌ Error en corrección masiva de fechas:', error.message);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 

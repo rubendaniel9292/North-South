@@ -812,7 +812,7 @@ HAVING MIN(ppd.year) != EXTRACT(YEAR FROM p.start_date)
 
 
 --ELIMINAR UNA POLIZA--
-SELECT * FROM policy WHERE id = 4;
+SELECT  FROM policy WHERE id = 4;
 DELETE FROM policy WHERE id = 4;
 
 SELECT * FROM policy_period_data WHERE policy_id = 1 ORDER BY year;

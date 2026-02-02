@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: user_north_south
       POSTGRES_PASSWORD: 2ugYRUJHGfh3
     volumes:
-      - north_south_pgdata:/var/lib/postgresql/data
+      - api-north-south_pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 5434:5432
@@ -22,7 +22,7 @@ services:
       - 6381:6379
     restart: always
     volumes:
-      - redisdata:/data
+      - api-north-south_redisdata:/data
     networks:
       - north_south_network
 
@@ -31,5 +31,5 @@ networks:
     driver: bridge
 
 volumes:
-  north_south_pgdata:
-  redisdata:
+  api-north-south_pgdata:
+  api-north-south_redisdata:

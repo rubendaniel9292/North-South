@@ -61,3 +61,6 @@ docker-compose.yml
 .codegpt
 # Snyk Security Extension - AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
+
+# Added by ggshield
+.cache_ggshield

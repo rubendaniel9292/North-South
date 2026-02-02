@@ -119,9 +119,9 @@ export class PaymentService {
 
       // Si no se proporciona una fecha de creación, usar la fecha actual normalizada
       if (!body.createdAt) {
-        body.createdAt = DateHelper.normalizeDateForDB(new Date());
+        body.createdAt = DateHelper.normalizeDateForComparison(new Date());
       } else {
-        // Si se proporciona una fecha, normalizarla
+        // Si se proporciona una fecha, normalizarla (sin sumar días)
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
       }
 
@@ -611,8 +611,8 @@ export class PaymentService {
         });
       }
 
-      // Actualizar timestamp
-      updateData.updatedAt = DateHelper.normalizeDateForDB(new Date());
+      // Actualizar timestamp (sin sumar +1 día)
+      updateData.updatedAt = DateHelper.normalizeDateForComparison(new Date());
 
       // Aplicar cambios
       Object.assign(payment, updateData);

@@ -615,6 +615,9 @@ export class PaymentSchedulerService implements OnModuleInit {
         total: 0,
         status_payment_id: 1,
         observations: observationText || 'Pago generado automáticamente según la fecha de pago',
+        // ✅ CRÍTICO: paymentDueDate ya viene normalizada desde calculateNextPaymentDate
+        // NO volver a normalizar aquí para evitar doble +1 día
+        // El servicio createPayment aplicará normalizeDateForComparison (sin sumar días)
         createdAt: paymentDueDate, // fecha de vencimiento, NO la actual
       };
 
