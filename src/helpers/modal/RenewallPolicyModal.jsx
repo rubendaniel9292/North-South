@@ -1,10 +1,10 @@
 import PropTypes from "prop-types";
 import UserForm from "../../hooks/UserForm";
-import { useEffect, useState, useCallback } from "react"; 
+import { useEffect, useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
-import { 
-  faRectangleXmark, 
+import {
+  faRectangleXmark,
   faFloppyDisk,
   faHashtag,
   faShield,
@@ -21,17 +21,16 @@ import { getFrequencyIdFromPayments } from "../../helpers/PolicyFormHelpers";
 
 const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
-  
+
   if (!policy) return null;
 
   console.log("poliza obtenida: ", policy);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [isDataValid, setIsDataValid] = useState(true);
   const [minRenewalDate, setMinRenewalDate] = useState("");
   const [frequency, setFrequency] = useState([]);
-  const [selectedFrequencyId, setSelectedFrequencyId] = useState(0);
 
   const { form, changed, setForm } = UserForm({
     policy_id: policy.id,
@@ -65,23 +64,32 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
         2: 4, // Trimestral
         3: 2, // Semestral
         4: 1, // Anual (default)
-        5: "", // otro
+        5: 0, // otro - permitir edición manual
       };
 
       const calculatedPayments = frequencyMap[selectedFrequencyId];
 
-      changed([
-        {
-          name: "payment_frequency_id",
-          value: selectedFrequencyId,
-        },
-        {
-          name: "numberOfPayments",
-          value: calculatedPayments,
-        },
-      ]);
-
-      setSelectedFrequencyId(selectedFrequencyId);
+      // Para "Otro" (5), solo actualizar la frecuencia pero mantener numberOfPayments editable
+      if (selectedFrequencyId === 5) {
+        changed({
+          target: {
+            name: "payment_frequency_id",
+            value: selectedFrequencyId,
+          },
+        });
+      } else {
+        // Para otras frecuencias, calcular automáticamente
+        changed([
+          {
+            name: "payment_frequency_id",
+            value: selectedFrequencyId,
+          },
+          {
+            name: "numberOfPayments",
+            value: calculatedPayments,
+          },
+        ]);
+      }
     },
     [changed]
   );
@@ -134,9 +142,9 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       addClassSafely("createdAt", "is-valid");
       setFormError("");
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const renewalData = {
         policy_id: policy.id,
@@ -168,12 +176,12 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
         // ✅ Recargar la póliza completa desde el servidor con sus pagos actualizados
         const updatedPolicyResponse = await http.get(`policy/get-policy-id/${policy.id}`);
-        
+
         if (updatedPolicyResponse.data.status === "success") {
           // Llamar a la función de callback con la póliza actualizada completa
           onPolicyUpdated(updatedPolicyResponse.data.policyById);
         }
-        
+
         setTimeout(() => {
           onClose();
         }, 500);
@@ -219,22 +227,22 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     if (policy && policy.renewals) {
       // Usar directamente la longitud del array + 1 para asegurar secuencia correcta
       const newRenewalNumber = policy.renewals.length + 1;
-      
+
       console.log("🔍 DEBUG - Calculando fecha de renovación:");
       console.log("- Total de pagos recibidos:", policy.payments?.length);
       console.log("- Pagos:", policy.payments);
       console.log("- Último periodo:", lastPeriod);
-      
+
       // Calcular la fecha mínima de renovación basándose en los pagos existentes
       let calculatedMinDate;
-      
+
       // Opción 1: Si hay pagos, buscar la fecha del último pago programado
       if (policy.payments && policy.payments.length > 0) {
         // Obtener todos los pagos y buscar el que tiene la fecha más reciente
-        const paymentsWithDates = policy.payments.filter(p => 
+        const paymentsWithDates = policy.payments.filter(p =>
           p.paymentDate || p.payment_date || p.fecha_pago_fija
         );
-        
+
         if (paymentsWithDates.length > 0) {
           // Encontrar el pago con la fecha más reciente
           const lastPaymentWithDate = paymentsWithDates.reduce((latest, current) => {
@@ -242,17 +250,17 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             const currentDate = new Date(current.paymentDate || current.payment_date || current.fecha_pago_fija);
             return currentDate > latestDate ? current : latest;
           });
-          
+
           const lastPaymentDate = new Date(
-            lastPaymentWithDate.paymentDate || 
-            lastPaymentWithDate.payment_date || 
+            lastPaymentWithDate.paymentDate ||
+            lastPaymentWithDate.payment_date ||
             lastPaymentWithDate.fecha_pago_fija
           );
-          
+
           // Calcular meses entre pagos según frecuencia
           const frequencyId = String(policy.paymentFrequency?.id || policy.payment_frequency_id);
           let monthsBetweenPayments = 3; // Trimestral por defecto
-          
+
           switch (frequencyId) {
             case "1": monthsBetweenPayments = 1; break;   // Mensual
             case "2": monthsBetweenPayments = 3; break;   // Trimestral
@@ -260,38 +268,38 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
             case "4": monthsBetweenPayments = 12; break;  // Anual
             case "5": monthsBetweenPayments = 3; break;   // Otro
           }
-          
+
           // La fecha mínima de renovación es el siguiente periodo después del último pago
           calculatedMinDate = new Date(lastPaymentDate);
           calculatedMinDate.setMonth(calculatedMinDate.getMonth() + monthsBetweenPayments);
         }
       }
-      
+
       // Opción 2: Basarse en el último periodo si no hay pagos con fechas
       if (!calculatedMinDate && lastPeriod) {
         // Año del último periodo + 1, usar la fecha de inicio como referencia
         const startDate = new Date(policy.startDate);
         calculatedMinDate = new Date(lastPeriod.year + 1, startDate.getMonth(), startDate.getDate());
       }
-      
+
       // Opción 3: Fallback - usar la fecha de inicio de la póliza + años transcurridos
       if (!calculatedMinDate) {
         const startDate = new Date(policy.startDate);
         const yearsElapsed = policy.renewals.length;
         calculatedMinDate = new Date(startDate.getFullYear() + yearsElapsed + 1, startDate.getMonth(), startDate.getDate());
       }
-      
+
       console.log("📅 Fecha mínima de renovación calculada:", calculatedMinDate);
-      
+
       // Formatear la fecha para el input date (YYYY-MM-DD) usando hora local
       const year = calculatedMinDate.getFullYear();
       const month = String(calculatedMinDate.getMonth() + 1).padStart(2, '0');
       const day = String(calculatedMinDate.getDate()).padStart(2, '0');
       const minDateString = `${year}-${month}-${day}`;
-      
+
       console.log("📅 Fecha formateada para input:", minDateString);
       setMinRenewalDate(minDateString);
-      
+
       setForm((prevForm) => ({
         ...prevForm,
         renewalNumber: newRenewalNumber,
@@ -303,7 +311,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       const nextYear = new Date(startDate.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
       const minDateString = nextYear.toISOString().split('T')[0];
       setMinRenewalDate(minDateString);
-      
+
       setForm((prevForm) => ({
         ...prevForm,
         renewalNumber: 1, // Valor por defecto si no hay renovaciones
@@ -339,10 +347,6 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.policyValue, form.policyFee, form.agencyPercentage, form.advisorPercentage]);
 
-  const lastRenewalYear =
-    policy.renewals?.[policy.renewals.length - 1]?.createdAt?.year ||
-    new Date(policy.startDate).getFullYear();
-
   if (!isDataValid) {
     return <div>Error: Datos de póliza o frecuencia de pago no válidos.</div>;
   }
@@ -357,7 +361,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
               Póliza seleccionada a renovar: {policy.numberPolicy} {/* ✅ Corregir "selecionada" */}
             </h3>
           </div>
-          
+
           <div className="justify-content-around mt-1">
             <form
               onSubmit={renewalAndUpdatePolicy}
@@ -477,7 +481,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 </div>
 
                 <div className="mb-3 col-2">
-                  <label htmlFor="createdAt" className="form-label"> 
+                  <label htmlFor="createdAt" className="form-label">
                     <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                     Fecha de renovación
                   </label>
@@ -530,13 +534,18 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Número de Pagos
                   </label>
                   <input
-                    readOnly
+                    readOnly={form.payment_frequency_id !== 5}
                     type="number"
                     className="form-control"
                     id="numberOfPayments"
                     name="numberOfPayments"
-                    value={form.numberOfPayments || 0}
+                    value={form.numberOfPayments || ""}
+                    onChange={changed}
+                    placeholder={form.payment_frequency_id === 5 ? "Ingrese número de pagos" : ""}
                   />
+                  {form.payment_frequency_id === 5 && (
+                    <small className="text-muted">Ingrese manualmente el número de pagos</small>
+                  )}
                 </div>
 
                 <div className="mb-3 col-2">
@@ -549,8 +558,8 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     required
                     type="number"
                     className="form-control"
-                    id="paymentsToAgency" 
-                    name="paymentsToAgency" 
+                    id="paymentsToAgency"
+                    name="paymentsToAgency"
                     value={form.paymentsToAgency || 0}
                   />
                 </div>

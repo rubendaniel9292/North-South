@@ -357,7 +357,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       );
 
       // ✅ VALIDACIÓN FRONTEND: Verificar si el ciclo está completo
-      if (lastPayment.pending_value <= 0) {
+      if (lastPayment.pending_value <= 0.10) {
         alerts(
           "Ciclo completado",
           `No se puede crear pago adelantado. El ciclo actual ya está completo (saldo pendiente = ${lastPayment.pending_value}). Debe renovar la póliza primero.`,
