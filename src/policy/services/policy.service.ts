@@ -1503,7 +1503,7 @@ export class PolicyService extends ValidateEntity {
 
       // 🔧 NUEVO: Detectar si la startDate cambió para ajustar fechas de pagos
       const startDateChanged = updateData.startDate &&
-        DateHelper.normalizeDateForComparison(oldStartDate).getTime() !==
+        DateHelper.normalizeDateForComparison(oldStartDate).getTime() !=
         DateHelper.normalizeDateForComparison(startDate).getTime();
 
       // Respetar el estado "Cancelado" enviado desde el frontend
@@ -1517,7 +1517,33 @@ export class PolicyService extends ValidateEntity {
       // 🔥 CRÍTICO: Detectar si se cambió a Cancelada o Culminada manualmente
       const oldStatus = policy.policy_status_id;
       const newStatus = updateData.policy_status_id || oldStatus;
-      const statusChangedToCancelledOrCompleted = (newStatus === 2 || newStatus === 3) && oldStatus !== newStatus;
+      const statusChangedToCancelledOrCompleted = (newStatus == 2 || newStatus == 3) && oldStatus != newStatus;
+
+      // 🆕 DETECTAR REACTIVACIÓN (de Cancelada/Culminada → Activa)
+      const wasInactive = oldStatus == 2 || oldStatus == 3;
+      const nowActive = newStatus == 1;
+      const policyReactivated = wasInactive && nowActive;
+
+      // 🆕 DETECTAR cambio en endDate (corrección de errores de registro)
+      const oldEndDate = policy.endDate ? DateHelper.normalizeDateForComparison(new Date(policy.endDate)) : null;
+      const newEndDate = updateData.endDate ? DateHelper.normalizeDateForComparison(new Date(updateData.endDate)) : oldEndDate;
+      const endDateExtended = oldEndDate && newEndDate && newEndDate.getTime() > oldEndDate.getTime();
+
+      // 🔍 DEBUG: Logging de detección
+      console.log(`\n🔍 ========== DEBUG updatedPolicy (ID: ${id}) ==========`);
+      console.log(`   📊 Estados:`);
+      console.log(`      - oldStatus: ${oldStatus} (${oldStatus == 1 ? 'Activa' : oldStatus == 2 ? 'Cancelada' : oldStatus == 3 ? 'Culminada' : 'Otro'})`);
+      console.log(`      - newStatus: ${newStatus} (${newStatus == 1 ? 'Activa' : newStatus == 2 ? 'Cancelada' : newStatus == 3 ? 'Culminada' : 'Otro'})`);
+      console.log(`   📅 Fechas:`);
+      console.log(`      - oldEndDate: ${oldEndDate ? oldEndDate.toISOString().split('T')[0] : 'null'}`);
+      console.log(`      - newEndDate: ${newEndDate ? newEndDate.toISOString().split('T')[0] : 'null'}`);
+      console.log(`   🚦 Condiciones:`);
+      console.log(`      - wasInactive: ${wasInactive}`);
+      console.log(`      - nowActive: ${nowActive}`);
+      console.log(`      - policyReactivated: ${policyReactivated}`);
+      console.log(`      - endDateExtended: ${endDateExtended}`);
+      console.log(`      - statusChangedToCancelledOrCompleted: ${statusChangedToCancelledOrCompleted}`);
+      console.log(`========================================\n`);
 
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(policy, updateData);
@@ -1525,7 +1551,7 @@ export class PolicyService extends ValidateEntity {
       // Si el asesor cambió, elimina/anula las comisiones del asesor anterior
       if (
         updateData.advisor_id &&
-        String(updateData.advisor_id) !== String(oldAdvisorId)
+        String(updateData.advisor_id) != String(oldAdvisorId)
       ) {
         console.log(`🔄 Detectado cambio de asesor: ${oldAdvisorId} → ${updateData.advisor_id}`);
         const deleteResult = await this.commissionsPaymentsService.revertCommissionsOnAdvisorChange(
@@ -1569,7 +1595,7 @@ export class PolicyService extends ValidateEntity {
         }
       }
       // 🔥 CASO 2: Auto-culminación por fecha
-      else if (policyUpdate.policy_status_id !== 2 && normalizedEndDate <= normalizedToday) {
+      else if (policyUpdate.policy_status_id != 2 && normalizedEndDate <= normalizedToday) {
         try {
           console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
           console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 3 (Culminada)`);
@@ -1595,6 +1621,66 @@ export class PolicyService extends ValidateEntity {
           }
         } catch (cleanupError) {
           console.error(`❌ Error al ejecutar limpieza automática: ${cleanupError.message}`);
+        }
+      }
+
+      // 🆕 CASO 3: endDate se extendió (corrección de error de registro: startDate = endDate)
+      // O REACTIVACIÓN (de Cancelada/Culminada → Activa)
+      // Regenerar pagos/renovaciones/períodos faltantes
+      console.log(`\n🧪 EVALUANDO CASO 3:`);
+      console.log(`   endDateExtended: ${endDateExtended}`);
+      console.log(`   policyReactivated: ${policyReactivated}`);
+      console.log(`   policyUpdate.policy_status_id: ${policyUpdate.policy_status_id} (tipo: ${typeof policyUpdate.policy_status_id})`);
+      console.log(`   Condición completa: ${(endDateExtended || policyReactivated) && policyUpdate.policy_status_id == 1}\n`);
+      
+      if ((endDateExtended || policyReactivated) && policyUpdate.policy_status_id == 1) {
+        console.log(`\n🎯 ========== ENTRANDO A CASO 3: REGENERACIÓN ==========\n`);
+        try {
+          if (endDateExtended) {
+            console.log(`🔄 [updatedPolicy] endDate extendido detectado:`);
+            console.log(`   Anterior: ${oldEndDate.toISOString().split('T')[0]}`);
+            console.log(`   Nuevo: ${newEndDate.toISOString().split('T')[0]}`);
+          }
+          
+          if (policyReactivated) {
+            console.log(`🔄 [updatedPolicy] REACTIVACIÓN detectada:`);
+            console.log(`   Estado anterior: ${oldStatus == 2 ? 'Cancelada' : 'Culminada'}`);
+            console.log(`   Estado nuevo: Activa (${policyUpdate.policy_status_id})`);
+          }
+          
+          console.log(`   Regenerando pagos/renovaciones/períodos faltantes...`);
+
+          // 🔥 CRÍTICO: Recargar con el estado YA ACTUALIZADO (acabamos de hacer save)
+          // Esto es importante porque ensureConsistency valida policy_status_id
+          const reloadedPolicy = await this.policyRepository.findOne({
+            where: { id },
+            relations: ['payments', 'renewals', 'periods', 'paymentFrequency']
+          });
+
+          if (!reloadedPolicy) {
+            console.error(`❌ No se pudo recargar la póliza ${id}`);
+            throw new Error('No se pudo recargar la póliza');
+          }
+
+          console.log(`   🔍 Póliza recargada - Estado actual en BD: ${reloadedPolicy.policy_status_id}`);
+          console.log(`   🔍 Pagos existentes: ${reloadedPolicy.payments?.length || 0}`);
+          console.log(`   🔍 Renovaciones existentes: ${reloadedPolicy.renewals?.length || 0}`);
+
+          // Usar ensureConsistency para generar todo lo faltante
+          const result = await this.policyConsistencyHelper.ensureConsistency(
+            reloadedPolicy,
+            this.advanceDate.bind(this),
+            this.getPaymentsPerCycle.bind(this),
+            this.calculatePaymentValue.bind(this)
+          );
+          
+          console.log(`✅ Consistencia restaurada:`);
+          console.log(`   - Renovaciones creadas: ${result.renewalsCreated}`);
+          console.log(`   - Períodos creados: ${result.periodsCreated}`);
+          console.log(`   - Pagos creados: ${result.paymentsCreated}`);
+        } catch (regenerationError) {
+          console.error(`❌ Error al regenerar datos: ${regenerationError.message}`);
+          console.error(`   Stack:`, regenerationError.stack);
         }
       }
 
@@ -1722,13 +1808,13 @@ export class PolicyService extends ValidateEntity {
       };
 
       // 🔥 NUEVO: Actualizar frecuencia de pago si se proporciona
-      if (body.payment_frequency_id !== undefined) {
+      if (body.payment_frequency_id != undefined) {
         updateData.payment_frequency_id = body.payment_frequency_id;
         console.log(`🔄 Cambiando frecuencia de pago: ${policy.payment_frequency_id} → ${body.payment_frequency_id}`);
       }
 
       // 🔥 NUEVO: Actualizar numberOfPayments si se proporciona (necesario para frecuencia personalizada)
-      if (body.numberOfPayments !== undefined) {
+      if (body.numberOfPayments != undefined) {
         updateData.numberOfPayments = body.numberOfPayments;
         console.log(`🔄 Actualizando número de pagos personalizados: ${body.numberOfPayments}`);
       }
@@ -1842,7 +1928,7 @@ export class PolicyService extends ValidateEntity {
 
     // Calcular pending_value para el primer pago
     // Si es el único pago del ciclo, pending_value = 0
-    const pendingValue = paymentsPerCycle === 1 ? 0 : policyValue - valueToPay;
+    const pendingValue = paymentsPerCycle == 1 ? 0 : policyValue - valueToPay;
 
     const newPayment: PaymentDTO = {
       policy_id: policy.id,

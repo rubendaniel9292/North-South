@@ -40,6 +40,7 @@ export class PolicyConsistencyHelper {
         calculatePaymentValueFn: (policyValue: number, frequency: number, numberOfPayments: number) => number
     ): Promise<{ renewalsCreated: number; periodsCreated: number; paymentsCreated: number }> {
         console.log(`🔧 [PolicyConsistencyHelper] Iniciando para póliza ${policy.id}`);
+        console.log(`   📊 Estado de póliza: ${policy.policy_status_id} (1=Activa, 2=Cancelada, 3=Culminada)`);
 
         const startDate = DateHelper.normalizeDateForComparison(new Date(policy.startDate));
         const endDate = DateHelper.normalizeDateForComparison(new Date(policy.endDate));
@@ -49,12 +50,14 @@ export class PolicyConsistencyHelper {
         const currentYear = today.getFullYear();
         const endYear = endDate.getFullYear();
 
-        // 🔥 CRÍTICO: No procesar pólizas canceladas (2) o culminadas (5)
+        // 🔥 CRÍTICO: No procesar pólizas canceladas (2) o culminadas (3)
         // Estas deben manejarse solo con validateAndCleanupPayments
-        if (policy.policy_status_id == 2 || policy.policy_status_id == 5) {
-            console.log(`⚠️ Póliza ${policy.id} está cancelada/culminada - No se ejecuta ensureConsistency`);
+        if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+            console.log(`⚠️ Póliza ${policy.id} está ${policy.policy_status_id == 2 ? 'CANCELADA' : 'CULMINADA'} - No se ejecuta ensureConsistency`);
             return { renewalsCreated: 0, periodsCreated: 0, paymentsCreated: 0 };
         }
+
+        console.log(`   ✅ Póliza ACTIVA - Continuando con ensureConsistency`);
 
         // Verificar si ya pasó la fecha de aniversario en el año actual
         const anniversaryThisYear = new Date(startDate);
@@ -75,7 +78,7 @@ export class PolicyConsistencyHelper {
         let paymentsCreated = 0;
 
         // Si es póliza de un solo año hasta hoy, no requiere renovaciones
-        if (yearsElapsedUntilToday === 0) {
+        if (yearsElapsedUntilToday == 0) {
             console.log(`   ✅ Póliza de un solo año hasta hoy - Solo verificando período inicial`);
 
             // Asegurar que existe el período inicial
@@ -190,7 +193,7 @@ export class PolicyConsistencyHelper {
 
         console.log(`   Períodos: ${existingPeriods.length} existentes, ${periodsNeeded.length} necesarios`);
 
-        if (periodsMissing.length === 0) {
+        if (periodsMissing.length == 0) {
             console.log(`   ✅ Períodos completos`);
             return 0;
         }
@@ -261,7 +264,7 @@ export class PolicyConsistencyHelper {
         let currentDate: Date;
         let nextPaymentNumber: number;
 
-        if (existingPayments.length === 0) {
+        if (existingPayments.length == 0) {
             currentDate = new Date(startDate);
             nextPaymentNumber = 1;
         } else {
@@ -279,7 +282,7 @@ export class PolicyConsistencyHelper {
             const totalPaidInPeriod = valueToPay * paymentsInPeriod;
             const pendingValue = policyValue - totalPaidInPeriod;
 
-            const observation = nextPaymentNumber === 1 ? 'Pago inicial de la póliza' : `Pago período ${startDate.getFullYear()}`;
+            const observation = nextPaymentNumber == 1 ? 'Pago inicial de la póliza' : `Pago período ${startDate.getFullYear()}`;
 
             const newPayment: PaymentDTO = {
                 policy_id: policy.id,
@@ -403,10 +406,10 @@ export class PolicyConsistencyHelper {
 
                 let observation: string;
                 if (periodYear === startDate.getFullYear()) {
-                    observation = paymentsInPeriod === 1 ? 'Pago inicial de la póliza' : `Pago período ${periodYear}`;
+                    observation = paymentsInPeriod == 1 ? 'Pago inicial de la póliza' : `Pago período ${periodYear}`;
                 } else {
                     const renewalNumber = periodYear - startDate.getFullYear();
-                    observation = paymentsInPeriod === 1
+                    observation = paymentsInPeriod == 1
                         ? `Pago generado por renovación N° ${renewalNumber}`
                         : `Pago del ciclo de renovación N° ${renewalNumber}`;
                 }
