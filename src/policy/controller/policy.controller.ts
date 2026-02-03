@@ -316,4 +316,41 @@ export class PolicyController {
       note: 'Las correcciones futuras se harán automáticamente en cada actualización/renovación'
     };
   }
+
+  /**
+   * 🧹 Endpoint CORRECTIVO para limpiar pólizas canceladas/culminadas con datos posteriores
+   * 
+   * PROBLEMA: Pólizas canceladas antes de febrero 2026 que tienen:
+   * - Pagos posteriores a la fecha de cancelación
+   * - Renovaciones posteriores a la fecha de cancelación
+   * - Períodos posteriores a la fecha de cancelación
+   * 
+   * Este endpoint busca TODAS las pólizas con estado Cancelada (2) o Culminada (3)
+   * y ejecuta validateAndCleanupPayments para eliminar datos incorrectos.
+   * 
+   * ⚠️ USAR UNA SOLA VEZ para limpiar datos históricos
+   * Después de este fix, el sistema previene automáticamente estos casos.
+   */
+  @Roles('ADMIN')
+  @Post('cleanup-cancelled-policies')
+  async cleanupCancelledPolicies() {
+    console.log('🧹 Iniciando limpieza de pólizas canceladas/culminadas...');
+    const result = await this.policyService.cleanupAllCancelledPolicies();
+
+    return {
+      status: 'success',
+      message: result.totalCleaned > 0 
+        ? `Limpieza completada. ${result.totalCleaned} pólizas procesadas.`
+        : 'No se encontraron pólizas canceladas/culminadas con datos incorrectos.',
+      summary: {
+        totalPoliciesReviewed: result.totalPolicies,
+        totalPoliciesCleaned: result.totalCleaned,
+        totalPaymentsDeleted: result.totalPaymentsDeleted,
+        totalRenewalsDeleted: result.totalRenewalsDeleted,
+        totalPeriodsDeleted: result.totalPeriodsDeleted,
+      },
+      details: result.details,
+      note: 'Las futuras pólizas canceladas/culminadas se limpiarán automáticamente al cambiar de estado'
+    };
+  }
 }

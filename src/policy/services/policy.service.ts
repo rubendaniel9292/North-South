@@ -1514,6 +1514,11 @@ export class PolicyService extends ValidateEntity {
         updateData.policy_status_id = determinedStatus.id;
       }
 
+      // 🔥 CRÍTICO: Detectar si se cambió a Cancelada o Culminada manualmente
+      const oldStatus = policy.policy_status_id;
+      const newStatus = updateData.policy_status_id || oldStatus;
+      const statusChangedToCancelledOrCompleted = (newStatus === 2 || newStatus === 3) && oldStatus !== newStatus;
+
       // Validar y asignar solo las propiedades permitidas de updateData
       Object.assign(policy, updateData);
 
@@ -1538,7 +1543,62 @@ export class PolicyService extends ValidateEntity {
       const policyUpdate: PolicyEntity =
         await this.policyRepository.save(policy);
 
-      // 🔧 NUEVO: Ajustar fechas de pagos y renovaciones si la startDate cambió
+      // � CRÍTICO: Ejecutar limpieza DESPUÉS de guardar si cambió a Cancelada/Culminada
+      // Esto debe hacerse DESPUÉS del save para que validateAndCleanupPayments vea el estado actualizado
+      const today = new Date();
+      const normalizedEndDate = DateHelper.normalizeDateForComparison(endDate);
+      const normalizedToday = DateHelper.normalizeDateForComparison(today);
+
+      // 🔥 CASO 1: Cambio MANUAL a Cancelada/Culminada
+      if (statusChangedToCancelledOrCompleted) {
+        try {
+          console.log(`🔄 [updatedPolicy] Cambio de estado detectado: ${oldStatus} → ${newStatus} (Cancelada/Culminada)`);
+          
+          // Cargar póliza con relaciones necesarias (ya tiene el estado actualizado porque acabamos de guardar)
+          const reloadedPolicy = await this.policyRepository.findOne({
+            where: { id },
+            relations: ['payments', 'renewals', 'periods']
+          });
+
+          if (reloadedPolicy) {
+            console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate (cambio manual de estado)`);
+            await this.validateAndCleanupPayments(reloadedPolicy);
+          }
+        } catch (cleanupError) {
+          console.error(`❌ Error al ejecutar limpieza por cambio de estado: ${cleanupError.message}`);
+        }
+      }
+      // 🔥 CASO 2: Auto-culminación por fecha
+      else if (policyUpdate.policy_status_id !== 2 && normalizedEndDate <= normalizedToday) {
+        try {
+          console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
+          console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 3 (Culminada)`);
+
+          // Actualizar status en BD
+          await this.policyRepository.update(
+            { id: policyUpdate.id },
+            { policy_status_id: 3 }
+          );
+
+          // Actualizar también en el objeto local
+          policyUpdate.policy_status_id = 3;
+
+          // 🔥 Ejecutar limpieza de datos posteriores a endDate
+          const reloadedPolicy = await this.policyRepository.findOne({
+            where: { id },
+            relations: ['payments', 'renewals', 'periods']
+          });
+
+          if (reloadedPolicy) {
+            console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate (auto-culminación)`);
+            await this.validateAndCleanupPayments(reloadedPolicy);
+          }
+        } catch (cleanupError) {
+          console.error(`❌ Error al ejecutar limpieza automática: ${cleanupError.message}`);
+        }
+      }
+
+      // �🔧 NUEVO: Ajustar fechas de pagos y renovaciones si la startDate cambió
       let dateAdjustmentResult;
       if (startDateChanged) {
         console.log('🔔 Detectado cambio en startDate - Ajustando fechas de pagos y renovaciones...');
@@ -1601,43 +1661,6 @@ export class PolicyService extends ValidateEntity {
       } catch (periodValidationError) {
         console.error(`❌ Error al validar períodos: ${periodValidationError.message}`);
         // No lanzar el error para que la actualización continúe
-      }
-
-      // 🔥 CRÍTICO: Verificar si la póliza DEBE estar culminada automáticamente
-      // Si endDate <= today Y NO está cancelada → Cambiar a Culminada (3)
-      const today = new Date();
-      const normalizedEndDate = DateHelper.normalizeDateForComparison(endDate);
-      const normalizedToday = DateHelper.normalizeDateForComparison(today);
-
-      if (policyUpdate.policy_status_id !== 2 && normalizedEndDate <= normalizedToday) {
-        try {
-          console.log(`⚠️ [updatedPolicy] Póliza ${id} debe estar CULMINADA - endDate: ${normalizedEndDate.toISOString().split('T')[0]} <= today: ${normalizedToday.toISOString().split('T')[0]}`);
-          console.log(`   Cambiando status de ${policyUpdate.policy_status_id} → 3 (Culminada)`);
-
-          // Actualizar status en BD
-          await this.policyRepository.update(
-            { id: policyUpdate.id },
-            { policy_status_id: 3 }
-          );
-
-          // Actualizar también en el objeto local
-          policyUpdate.policy_status_id = 3;
-
-          // 🔥 Ejecutar limpieza de datos posteriores a endDate
-          // Cargar póliza con relaciones necesarias (sin usar findPolicyById para evitar efectos secundarios)
-          const reloadedPolicy = await this.policyRepository.findOne({
-            where: { id },
-            relations: ['payments', 'renewals', 'periods']
-          });
-
-          if (reloadedPolicy) {
-            console.log(`🧹 Ejecutando limpieza de datos posteriores a endDate`);
-            await this.validateAndCleanupPayments(reloadedPolicy);
-          }
-        } catch (cleanupError) {
-          console.error(`❌ Error al ejecutar limpieza automática: ${cleanupError.message}`);
-          // No lanzar el error para que la actualización continúe
-        }
       }
 
       await this.invalidateCaches(policy.advisor_id, id);
@@ -2658,6 +2681,127 @@ export class PolicyService extends ValidateEntity {
       };
     } catch (error) {
       console.error('❌ Error en corrección masiva de fechas:', error.message);
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  /**
+   * 16.5: Método para limpiar TODAS las pólizas canceladas/culminadas con datos posteriores
+   * 
+   * PROBLEMA: Pólizas que fueron canceladas/culminadas ANTES de que existiera la limpieza automática
+   * tienen pagos, renovaciones y períodos posteriores a su endDate que no deberían existir.
+   * 
+   * Este método:
+   * 1. Busca todas las pólizas con estado Cancelada (2) o Culminada (3)
+   * 2. Ejecuta validateAndCleanupPayments en cada una
+   * 3. Retorna estadísticas de limpieza
+   * 
+   * ⚠️ USAR UNA SOLA VEZ para reparar datos históricos
+   */
+  public async cleanupAllCancelledPolicies(): Promise<{
+    totalPolicies: number;
+    totalCleaned: number;
+    totalPaymentsDeleted: number;
+    totalRenewalsDeleted: number;
+    totalPeriodsDeleted: number;
+    details: Array<{
+      policyId: number;
+      numberPolicy: string;
+      status: string;
+      endDate: string;
+      paymentsDeleted: number;
+      renewalsDeleted: number;
+      periodsDeleted: number;
+    }>;
+  }> {
+    try {
+      console.log('🧹 Iniciando limpieza masiva de pólizas canceladas/culminadas...');
+
+      // Buscar todas las pólizas canceladas o culminadas
+      const cancelledPolicies = await this.policyRepository.find({
+        where: [
+          { policy_status_id: 2 }, // Cancelada
+          { policy_status_id: 3 }  // Culminada
+        ],
+        relations: ['payments', 'renewals', 'periods', 'policyStatus'],
+        order: { id: 'ASC' }
+      });
+
+      console.log(`📋 Encontradas ${cancelledPolicies.length} pólizas canceladas/culminadas`);
+
+      let totalCleaned = 0;
+      let totalPaymentsDeleted = 0;
+      let totalRenewalsDeleted = 0;
+      let totalPeriodsDeleted = 0;
+      const details = [];
+
+      for (const policy of cancelledPolicies) {
+        const endDate = DateHelper.normalizeDateForComparison(new Date(policy.endDate));
+        
+        // Contar elementos posteriores a endDate ANTES de limpiar
+        const paymentsAfterEnd = policy.payments?.filter(p => 
+          new Date(p.createdAt) >= endDate
+        ).length || 0;
+
+        const renewalsAfterEnd = policy.renewals?.filter(r => 
+          new Date(r.createdAt) >= endDate
+        ).length || 0;
+
+        // Para períodos, usar la lógica de aniversario
+        const startDate = DateHelper.normalizeDateForComparison(new Date(policy.startDate));
+        const endYear = endDate.getFullYear();
+        const anniversaryInEndYear = new Date(startDate);
+        anniversaryInEndYear.setFullYear(endYear);
+        const isBeforeAnniversary = endDate < anniversaryInEndYear;
+        const yearThreshold = isBeforeAnniversary ? endYear : endYear + 1;
+        
+        const periodsAfterEnd = policy.periods?.filter(p => 
+          p.year >= yearThreshold
+        ).length || 0;
+
+        // Si tiene datos posteriores, limpiar
+        if (paymentsAfterEnd > 0 || renewalsAfterEnd > 0 || periodsAfterEnd > 0) {
+          console.log(`🔍 Limpiando póliza ${policy.numberPolicy} (ID: ${policy.id})`);
+          console.log(`   Estado: ${policy.policyStatus?.statusName || policy.policy_status_id}`);
+          console.log(`   EndDate: ${endDate.toISOString().split('T')[0]}`);
+          console.log(`   Datos a eliminar: ${paymentsAfterEnd} pagos, ${renewalsAfterEnd} renovaciones, ${periodsAfterEnd} períodos`);
+
+          await this.validateAndCleanupPayments(policy);
+
+          totalCleaned++;
+          totalPaymentsDeleted += paymentsAfterEnd;
+          totalRenewalsDeleted += renewalsAfterEnd;
+          totalPeriodsDeleted += periodsAfterEnd;
+
+          details.push({
+            policyId: policy.id,
+            numberPolicy: policy.numberPolicy,
+            status: policy.policyStatus?.statusName || `Status ${policy.policy_status_id}`,
+            endDate: endDate.toISOString().split('T')[0],
+            paymentsDeleted: paymentsAfterEnd,
+            renewalsDeleted: renewalsAfterEnd,
+            periodsDeleted: periodsAfterEnd
+          });
+        }
+      }
+
+      console.log(`✅ Limpieza masiva completada:`);
+      console.log(`   - Pólizas revisadas: ${cancelledPolicies.length}`);
+      console.log(`   - Pólizas limpiadas: ${totalCleaned}`);
+      console.log(`   - Total pagos eliminados: ${totalPaymentsDeleted}`);
+      console.log(`   - Total renovaciones eliminadas: ${totalRenewalsDeleted}`);
+      console.log(`   - Total períodos eliminados: ${totalPeriodsDeleted}`);
+
+      return {
+        totalPolicies: cancelledPolicies.length,
+        totalCleaned,
+        totalPaymentsDeleted,
+        totalRenewalsDeleted,
+        totalPeriodsDeleted,
+        details
+      };
+    } catch (error) {
+      console.error('❌ Error en limpieza masiva de pólizas canceladas:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }

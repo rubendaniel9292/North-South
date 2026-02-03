@@ -78,6 +78,13 @@ export class PaymentSchedulerService implements OnModuleInit {
     console.log(`Verificación diaria de pagos por lotes - ${today.toLocaleDateString('es-EC')}`);
 
     try {
+      // 🚀 OPTIMIZACIÓN: Verificación rápida para evitar queries costosas si no hay pagos pendientes
+      const hasPendingPayments = await this.checkIfPendingPaymentsExist();
+      if (!hasPendingPayments) {
+        console.log('✓ No hay pagos pendientes. Verificación completada.');
+        return;
+      }
+
       const totalPolicies = await this.paymentService.countPoliciesWithPendingPayments();
 
       if (totalPolicies === 0) {
@@ -128,7 +135,15 @@ export class PaymentSchedulerService implements OnModuleInit {
             while (iterations < maxIterations) {
               iterations++;
 
-              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
+              // 🔥 CRÍTICO: Revalidar estado de la póliza en cada iteración
+              // Si se canceló/culminó mientras creábamos pagos, detener inmediatamente
+              const reloadedPolicy = await this.paymentService.getPolicyWithPayments(policy.id);
+              if (reloadedPolicy.policy_status_id == 2 || reloadedPolicy.policy_status_id == 3) {
+                console.log(`⚠️ Póliza ${policy.numberPolicy || policy.id} fue cancelada/culminada durante el proceso. Deteniendo creación de pagos.`);
+                break;
+              }
+
+              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, reloadedPolicy);
               if (!nextPaymentDate) break;
 
               const todayNorm = DateHelper.normalizeDateForComparison(today);
@@ -136,7 +151,7 @@ export class PaymentSchedulerService implements OnModuleInit {
 
               // Si la fecha del próximo pago es HOY o ANTERIOR
               if (nextPaymentDateNorm.getTime() <= todayNorm.getTime()) {
-                const createdPayment = await this.createOverduePayment(currentPayment, policy, nextPaymentDateNorm);
+                const createdPayment = await this.createOverduePayment(currentPayment, reloadedPolicy, nextPaymentDateNorm);
                 if (createdPayment) {
                   paymentsCreated++;
                   paymentsCreatedForThisPolicy++;
@@ -194,6 +209,13 @@ export class PaymentSchedulerService implements OnModuleInit {
     console.log(`Procesando pagos vencidos desde ${today.toLocaleDateString('es-EC')} (usando procesamiento por lotes)`);
 
     try {
+      // 🚀 OPTIMIZACIÓN: Verificación rápida para evitar queries costosas si no hay pagos pendientes
+      const hasPendingPayments = await this.checkIfPendingPaymentsExist();
+      if (!hasPendingPayments) {
+        console.log('✓ No hay pagos pendientes para procesar.');
+        return;
+      }
+
       // Obtener el total de pólizas con pagos pendientes
       const totalPolicies = await this.paymentService.countPoliciesWithPendingPayments();
 
@@ -271,7 +293,15 @@ export class PaymentSchedulerService implements OnModuleInit {
             while (iterations < maxIterations) {
               iterations++;
 
-              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, policy);
+              // 🔥 CRÍTICO: Revalidar estado de la póliza en cada iteración
+              // Si se canceló/culminó mientras creábamos pagos, detener inmediatamente
+              const reloadedPolicy = await this.paymentService.getPolicyWithPayments(policy.id);
+              if (reloadedPolicy.policy_status_id == 2 || reloadedPolicy.policy_status_id == 3) {
+                console.log(`⚠️ Póliza ${policy.numberPolicy || policy.id} fue cancelada/culminada durante el proceso. Deteniendo creación de pagos.`);
+                break;
+              }
+
+              const nextPaymentDate = this.calculateNextPaymentDate(currentPayment, reloadedPolicy);
               if (!nextPaymentDate) {
                 break;
               }
@@ -281,7 +311,7 @@ export class PaymentSchedulerService implements OnModuleInit {
 
               // Si la fecha del próximo pago es HOY o ANTERIOR
               if (nextPaymentDateNorm.getTime() <= todayNorm.getTime()) {
-                const createdPayment = await this.createOverduePayment(currentPayment, policy, nextPaymentDateNorm);
+                const createdPayment = await this.createOverduePayment(currentPayment, reloadedPolicy, nextPaymentDateNorm);
                 if (createdPayment) {
                   paymentsCreated++;
                   paymentsCreatedForThisPolicy++;

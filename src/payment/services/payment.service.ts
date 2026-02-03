@@ -138,12 +138,14 @@ export class PaymentService {
   //1.5: metodo optimizado para verificar si existen pagos pendientes sin cargar todos los datos
   public checkPendingPaymentsExist = async (): Promise<boolean> => {
     try {
-      // Consulta optimizada usando find() con count - sin cargar objetos completos
-      const count = await this.paymentRepository.count({
-        where: {
-          pending_value: MoreThan(0)
-        }
-      });
+      // 🔥 CRÍTICO: Solo contar pagos de pólizas ACTIVAS (policy_status_id = 1)
+      // Consulta optimizada usando count con JOIN para verificar estado de póliza
+      const count = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .innerJoin('payment.policies', 'policy')
+        .where('payment.pending_value > 0')
+        .andWhere('policy.policy_status_id = :statusId', { statusId: 1 }) // Solo pólizas ACTIVAS
+        .getCount();
 
       return count > 0;
     } catch (error) {
@@ -346,31 +348,23 @@ export class PaymentService {
    * Método optimizado para obtener SOLO pagos con pending_value > 0
    * Evita cargar todos los 3400+ pagos en memoria
    * Solo carga los que realmente necesitan procesamiento
+   * 🔥 CRÍTICO: Solo incluye pólizas ACTIVAS (excluye canceladas/culminadas)
    */
   public getPaymentsWithPendingValue = async (): Promise<PaymentEntity[]> => {
     try {
-      const payments: PaymentEntity[] = await this.paymentRepository.find({
-        where: {
-          pending_value: MoreThan(0) // Solo pagos con saldo pendiente
-        },
-        relations: [
-          'policies',
-          'policies.renewals',
-          'policies.periods',
-          'policies.payments', // Necesario para cálculos del scheduler
-          'paymentStatus',
-          'policies.paymentFrequency',
-        ],
-        select: {
-          policies: {
-            id: true,
-            numberPolicy: true,
-            policyValue: true,
-            numberOfPayments: true,
-            policy_status_id: true,
-          },
-        },
-      });
+      // 🔥 CRÍTICO: Usar QueryBuilder para filtrar por estado de póliza
+      const payments: PaymentEntity[] = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .innerJoinAndSelect('payment.policies', 'policy')
+        .leftJoinAndSelect('policy.renewals', 'renewals')
+        .leftJoinAndSelect('policy.periods', 'periods')
+        .leftJoinAndSelect('policy.payments', 'payments')
+        .leftJoinAndSelect('payment.paymentStatus', 'paymentStatus')
+        .leftJoinAndSelect('policy.paymentFrequency', 'paymentFrequency')
+        .where('payment.pending_value > 0')
+        .andWhere('policy.policy_status_id = :statusId', { statusId: 1 }) // 🔥 Solo pólizas ACTIVAS
+        .orderBy('payment.id', 'DESC')
+        .getMany();
 
       return payments || [];
     } catch (error) {
@@ -382,51 +376,39 @@ export class PaymentService {
   /**
    * Método paginado para obtener pagos con pending_value > 0 por lotes
    * Permite procesamiento escalable sin crash de memoria
+   * 🔥 CRÍTICO: Solo incluye pólizas ACTIVAS (excluye canceladas/culminadas)
    */
   public getPaymentsWithPendingValuePaginated = async (limit: number = 50, offset: number = 0): Promise<PaymentEntity[]> => {
     try {
-      const payments: PaymentEntity[] = await this.paymentRepository.find({
-        where: {
-          pending_value: MoreThan(0) // Solo pagos con saldo pendiente
-        },
-        relations: [
-          'policies',
-          'policies.renewals',
-          'policies.periods',
-          // 'policies.payments' REMOVIDO: se carga bajo demanda con getPolicyWithPayments()
-          'paymentStatus',
-          'policies.paymentFrequency',
-        ],
-        select: {
-          id: true,
-          policy_id: true,
-          number_payment: true,
-          value: true,
-          pending_value: true,
-          createdAt: true,
-          status_payment_id: true,
-          policies: {
-            id: true,
-            numberPolicy: true,
-            policyValue: true,
-            numberOfPayments: true,
-            policy_status_id: true,
-            payment_frequency_id: true,
-            /*
-              payments: {
-              id: true,
-              number_payment: true,
-              pending_value: true,
-              createdAt: true,
-              policy_id: true,
-            },
-            */
-          },
-        },
-        take: limit,
-        skip: offset,
-        order: { id: 'ASC' } // Orden consistente para paginación
-      });
+      // 🔥 CRÍTICO: Usar QueryBuilder para filtrar por estado de póliza
+      const payments: PaymentEntity[] = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .innerJoinAndSelect('payment.policies', 'policy')
+        .leftJoinAndSelect('policy.renewals', 'renewals')
+        .leftJoinAndSelect('policy.periods', 'periods')
+        .leftJoinAndSelect('payment.paymentStatus', 'paymentStatus')
+        .leftJoinAndSelect('policy.paymentFrequency', 'paymentFrequency')
+        .where('payment.pending_value > 0')
+        .andWhere('policy.policy_status_id = :statusId', { statusId: 1 }) // 🔥 Solo pólizas ACTIVAS
+        .select([
+          'payment.id',
+          'payment.policy_id',
+          'payment.number_payment',
+          'payment.value',
+          'payment.pending_value',
+          'payment.createdAt',
+          'payment.status_payment_id',
+          'policy.id',
+          'policy.numberPolicy',
+          'policy.policyValue',
+          'policy.numberOfPayments',
+          'policy.policy_status_id',
+          'policy.payment_frequency_id',
+        ])
+        .take(limit)
+        .skip(offset)
+        .orderBy('payment.id', 'ASC')
+        .getMany();
 
       return payments || [];
     } catch (error) {
@@ -437,14 +419,17 @@ export class PaymentService {
 
   /**
    * Cuenta el total de pólizas con pagos pendientes para calcular lotes
+   * 🔥 CRÍTICO: Solo cuenta pagos de pólizas ACTIVAS (excluye canceladas/culminadas)
    */
   public countPoliciesWithPendingPayments = async (): Promise<number> => {
     try {
-      const count = await this.paymentRepository.count({
-        where: {
-          pending_value: MoreThan(0)
-        }
-      });
+      // 🔥 CRÍTICO: Usar QueryBuilder para filtrar por estado de póliza
+      const count = await this.paymentRepository
+        .createQueryBuilder('payment')
+        .innerJoin('payment.policies', 'policy')
+        .where('payment.pending_value > 0')
+        .andWhere('policy.policy_status_id = :statusId', { statusId: 1 }) // Solo pólizas ACTIVAS
+        .getCount();
 
       return count;
     } catch (error) {
