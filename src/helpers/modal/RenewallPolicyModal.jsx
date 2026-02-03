@@ -224,101 +224,66 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
   // Actualizar el número de renovación y calcular fecha mínima cuando se recibe el prop `policy`
   useEffect(() => {
-    if (policy && policy.renewals) {
-      // Usar directamente la longitud del array + 1 para asegurar secuencia correcta
-      const newRenewalNumber = policy.renewals.length + 1;
+    if (!policy) return;
 
-      console.log("🔍 DEBUG - Calculando fecha de renovación:");
-      console.log("- Total de pagos recibidos:", policy.payments?.length);
-      console.log("- Pagos:", policy.payments);
-      console.log("- Último periodo:", lastPeriod);
+    // Calcular el número de renovación
+    const newRenewalNumber = policy.renewals ? policy.renewals.length + 1 : 1;
 
-      // Calcular la fecha mínima de renovación basándose en los pagos existentes
-      let calculatedMinDate;
+    console.log("🔍 DEBUG - Calculando fecha de renovación:");
+    console.log("- Número de renovación:", newRenewalNumber);
+    console.log("- Renovaciones existentes:", policy.renewals?.length || 0);
+    console.log("- Fecha de inicio de la póliza:", policy.startDate);
 
-      // Opción 1: Si hay pagos, buscar la fecha del último pago programado
-      if (policy.payments && policy.payments.length > 0) {
-        // Obtener todos los pagos y buscar el que tiene la fecha más reciente
-        const paymentsWithDates = policy.payments.filter(p =>
-          p.paymentDate || p.payment_date || p.fecha_pago_fija
-        );
+    let calculatedMinDate;
 
-        if (paymentsWithDates.length > 0) {
-          // Encontrar el pago con la fecha más reciente
-          const lastPaymentWithDate = paymentsWithDates.reduce((latest, current) => {
-            const latestDate = new Date(latest.paymentDate || latest.payment_date || latest.fecha_pago_fija);
-            const currentDate = new Date(current.paymentDate || current.payment_date || current.fecha_pago_fija);
-            return currentDate > latestDate ? current : latest;
-          });
+    // ✅ LÓGICA CORREGIDA: Basar el cálculo SOLO en renovaciones o fecha de inicio
+    if (policy.renewals && policy.renewals.length > 0) {
+      // Si hay renovaciones, buscar la última renovación registrada
+      const lastRenewal = policy.renewals.reduce((latest, current) => {
+        const latestDate = new Date(latest.createdAt);
+        const currentDate = new Date(current.createdAt);
+        return currentDate > latestDate ? current : latest;
+      });
 
-          const lastPaymentDate = new Date(
-            lastPaymentWithDate.paymentDate ||
-            lastPaymentWithDate.payment_date ||
-            lastPaymentWithDate.fecha_pago_fija
-          );
+      console.log("- Última renovación encontrada:", {
+        numero: lastRenewal.renewalNumber,
+        fecha: lastRenewal.createdAt
+      });
 
-          // Calcular meses entre pagos según frecuencia
-          const frequencyId = String(policy.paymentFrequency?.id || policy.payment_frequency_id);
-          let monthsBetweenPayments = 3; // Trimestral por defecto
-
-          switch (frequencyId) {
-            case "1": monthsBetweenPayments = 1; break;   // Mensual
-            case "2": monthsBetweenPayments = 3; break;   // Trimestral
-            case "3": monthsBetweenPayments = 6; break;   // Semestral
-            case "4": monthsBetweenPayments = 12; break;  // Anual
-            case "5": monthsBetweenPayments = 3; break;   // Otro
-          }
-
-          // La fecha mínima de renovación es el siguiente periodo después del último pago
-          calculatedMinDate = new Date(lastPaymentDate);
-          calculatedMinDate.setMonth(calculatedMinDate.getMonth() + monthsBetweenPayments);
-        }
-      }
-
-      // Opción 2: Basarse en el último periodo si no hay pagos con fechas
-      if (!calculatedMinDate && lastPeriod) {
-        // Año del último periodo + 1, usar la fecha de inicio como referencia
-        const startDate = new Date(policy.startDate);
-        calculatedMinDate = new Date(lastPeriod.year + 1, startDate.getMonth(), startDate.getDate());
-      }
-
-      // Opción 3: Fallback - usar la fecha de inicio de la póliza + años transcurridos
-      if (!calculatedMinDate) {
-        const startDate = new Date(policy.startDate);
-        const yearsElapsed = policy.renewals.length;
-        calculatedMinDate = new Date(startDate.getFullYear() + yearsElapsed + 1, startDate.getMonth(), startDate.getDate());
-      }
-
-      console.log("📅 Fecha mínima de renovación calculada:", calculatedMinDate);
-
-      // Formatear la fecha para el input date (YYYY-MM-DD) usando hora local
-      const year = calculatedMinDate.getFullYear();
-      const month = String(calculatedMinDate.getMonth() + 1).padStart(2, '0');
-      const day = String(calculatedMinDate.getDate()).padStart(2, '0');
-      const minDateString = `${year}-${month}-${day}`;
-
-      console.log("📅 Fecha formateada para input:", minDateString);
-      setMinRenewalDate(minDateString);
-
-      setForm((prevForm) => ({
-        ...prevForm,
-        renewalNumber: newRenewalNumber,
-        createdAt: minDateString, // Establecer como valor por defecto
-      }));
+      // La fecha mínima es 1 año después de la última renovación
+      const lastRenewalDate = new Date(lastRenewal.createdAt);
+      calculatedMinDate = new Date(lastRenewalDate);
+      calculatedMinDate.setFullYear(calculatedMinDate.getFullYear() + 1);
+      
+      console.log("- Fecha calculada: última renovación + 1 año");
     } else {
-      // Si no hay renovaciones, usar el año siguiente a la fecha de inicio
+      // Si NO hay renovaciones, usar la fecha de inicio + 1 año
       const startDate = new Date(policy.startDate);
-      const nextYear = new Date(startDate.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
-      const minDateString = nextYear.toISOString().split('T')[0];
-      setMinRenewalDate(minDateString);
-
-      setForm((prevForm) => ({
-        ...prevForm,
-        renewalNumber: 1, // Valor por defecto si no hay renovaciones
-        createdAt: minDateString,
-      }));
+      calculatedMinDate = new Date(startDate);
+      calculatedMinDate.setFullYear(calculatedMinDate.getFullYear() + 1);
+      
+      console.log("- Fecha calculada: fecha de inicio + 1 año");
     }
-  }, [policy, setForm, lastPeriod]);
+
+    console.log("📅 Fecha mínima de renovación calculada:", calculatedMinDate);
+
+    // Formatear la fecha para el input date (YYYY-MM-DD) usando hora local
+    const year = calculatedMinDate.getFullYear();
+    const month = String(calculatedMinDate.getMonth() + 1).padStart(2, '0');
+    const day = String(calculatedMinDate.getDate()).padStart(2, '0');
+    const minDateString = `${year}-${month}-${day}`;
+
+    console.log("📅 Fecha formateada para input:", minDateString);
+    console.log("✅ Esta fecha será CONSISTENTE en cada apertura del modal");
+
+    setMinRenewalDate(minDateString);
+
+    setForm((prevForm) => ({
+      ...prevForm,
+      renewalNumber: newRenewalNumber,
+      createdAt: minDateString,
+    }));
+  }, [policy, setForm]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -502,7 +467,7 @@ const RenewallPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     Fecha mínima: {minRenewalDate && (() => {
                       const [year, month, day] = minRenewalDate.split('-');
                       const date = new Date(year, month - 1, day);
-                      return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+                      return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
                     })()}
                   </small>
                 </div>
