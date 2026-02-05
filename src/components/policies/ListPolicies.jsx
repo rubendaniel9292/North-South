@@ -249,7 +249,7 @@ const ListPolicies = memo(() => {
         const lastPayment = freshPolicy.payments.reduce(
           (latest, payment) =>
             parseInt(payment.number_payment || 0) >
-            parseInt(latest.number_payment || 0)
+              parseInt(latest.number_payment || 0)
               ? payment
               : latest,
           freshPolicy.payments[0],
@@ -465,15 +465,15 @@ const ListPolicies = memo(() => {
                   </button>
                 )}
 
-                {/* Botón para registro manual de pagos (solo para pruebas)
-                <button
-                  className="btn btn-danger fw-bold"
-                  onClick={() => registerPaymentTest(true)}
-                >
-                  <FontAwesomeIcon icon={faCogs} className="me-2" />
-                  Registro manual de pagos (prueba)
-                </button>
- */}
+                { //Botón para registro manual de pagos (solo para pruebas)
+                  <button
+                    className="btn btn-danger fw-bold"
+                    onClick={() => registerPaymentTest(true)}
+                  >
+                    <FontAwesomeIcon icon={faCogs} className="me-2" />
+                    Registro manual de pagos (prueba)
+                  </button>
+                }
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
                 </small>
@@ -557,9 +557,8 @@ const ListPolicies = memo(() => {
                         <option value="">Todos los asesores</option>
                         {advisor.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {`${item.firstName} ${item.secondName || ""} ${
-                              item.surname
-                            } ${item.secondSurname || ""}`.trim()}
+                            {`${item.firstName} ${item.secondName || ""} ${item.surname
+                              } ${item.secondSurname || ""}`.trim()}
                           </option>
                         ))}
                       </select>
@@ -660,13 +659,13 @@ const ListPolicies = memo(() => {
                     <td>
                       {policy.customer
                         ? `${policy.customer.firstName || ""} ${policy.customer.secondName || ""}`.trim() ||
-                          "N/A"
+                        "N/A"
                         : "Cliente no disponible"}
                     </td>
                     <td>
                       {policy.customer
                         ? `${policy.customer.surname || ""} ${policy.customer.secondSurname || ""}`.trim() ||
-                          "N/A"
+                        "N/A"
                         : "Cliente no disponible"}
                     </td>
                     <td>{policy.company?.companyName}</td>
@@ -690,19 +689,18 @@ const ListPolicies = memo(() => {
                     <td>{policy.coverageAmount}</td>
                     <td>
                       <span
-                        className={`badge fw-bold fs-6 ${
-                          policy.policyStatus?.id == POLICY_STATUS.ACTIVE
+                        className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.ACTIVE
                             ? "bg-success text-white" // ✅ Activa - Verde
                             : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
                               ? "bg-danger text-white" // ✅ Cancelada - Rojo
                               : policy.policyStatus?.id ==
-                                  POLICY_STATUS.COMPLETED
+                                POLICY_STATUS.COMPLETED
                                 ? "bg-secondary text-white" // ✅ Culminada - Gris
                                 : policy.policyStatus?.id ==
-                                    POLICY_STATUS.TO_COMPLETE
+                                  POLICY_STATUS.TO_COMPLETE
                                   ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
                                   : "bg-light text-dark" // ✅ Default - Claro
-                        }`}
+                          }`}
                       >
                         {policy.policyStatus?.statusName}
                       </span>
@@ -761,7 +759,7 @@ const ListPolicies = memo(() => {
                               const lastPayment = policy.payments.reduce(
                                 (latest, payment) =>
                                   parseInt(payment.number_payment || 0) >
-                                  parseInt(latest.number_payment || 0)
+                                    parseInt(latest.number_payment || 0)
                                     ? payment
                                     : latest,
                                 policy.payments[0],
@@ -770,8 +768,8 @@ const ListPolicies = memo(() => {
                               // Capturar el saldo pendiente con múltiples variaciones de nombres de campo
                               const pendingValue = parseFloat(
                                 lastPayment.pending_value ??
-                                  lastPayment.pendingValue ??
-                                  0,
+                                lastPayment.pendingValue ??
+                                0,
                               );
 
                               // Habilitar si saldo pendiente es <= 0.10
@@ -805,9 +803,8 @@ const ListPolicies = memo(() => {
                 {pageNumbers.map((number) => (
                   <li
                     key={number}
-                    className={`page-item${
-                      currentPage === number ? " active" : ""
-                    }`}
+                    className={`page-item${currentPage === number ? " active" : ""
+                      }`}
                   >
                     <button
                       onClick={() => paginate(number)}
@@ -818,9 +815,8 @@ const ListPolicies = memo(() => {
                   </li>
                 ))}
                 <li
-                  className={`page-item${
-                    currentPage === pageNumbers.length ? " disabled" : ""
-                  }`}
+                  className={`page-item${currentPage === pageNumbers.length ? " disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"

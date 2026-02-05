@@ -20,7 +20,8 @@ import {
   faUser,
   faBuilding,
   faCheckCircle,
-  faCogs
+  faCogs,
+  faEye
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -28,6 +29,7 @@ const ListCreditCard = () => {
   const [cards, setCards] = useState([]);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showViewDetailsModal, setShowViewDetailsModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const itemsPerPage = 10;
 
@@ -108,6 +110,18 @@ const ListCreditCard = () => {
 
   const handleCloseUpdateModal = () => {
     setShowUpdateModal(false);
+    setSelectedCard(null);
+  };
+
+  // ✅ Funciones para manejar el modal de visualización de datos sensibles
+  const handleViewCardDetails = (card) => {
+    console.log("👁️ Abriendo modal para ver datos sensibles:", card);
+    setSelectedCard(card);
+    setShowViewDetailsModal(true);
+  };
+
+  const handleCloseViewDetailsModal = () => {
+    setShowViewDetailsModal(false);
     setSelectedCard(null);
   };
 
@@ -200,10 +214,7 @@ const ListCreditCard = () => {
                       <FontAwesomeIcon icon={faHashtag} className="me-2" />
                       Número de tarjeta
                     </th>
-                    <th>
-                      <FontAwesomeIcon icon={faKey} className="me-2" />
-                      Código
-                    </th>
+                   
                     <th>
                       <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                       Fecha de expiración
@@ -246,7 +257,7 @@ const ListCreditCard = () => {
                       <tr key={card.id}>
                         <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                         <td>{card.cardNumber || "-"}</td>
-                        <td>{card.code || "-"}</td>
+                        
                         <td>
                           {card.expirationDate
                             ? dayjs.utc(card.expirationDate).format("DD/MM/YYYY")
@@ -274,16 +285,25 @@ const ListCreditCard = () => {
                             {card.cardstatus?.cardStatusName || "Sin estado"}
                           </span>
                         </td>
-                        <td className="d-flex gap-2">
-                  
-                          <button 
-                            className="btn btn-success text-white fw-bold w-100 my-1"
-                            onClick={() => handleUpdateCard(card)}
-                            title="Actualizar tarjeta"
-                          >
-                            <FontAwesomeIcon icon={faEdit} className="me-1" />
-                            Actualizar
-                          </button>
+                        <td>
+                          <div className="d-flex flex-column gap-2">
+                            <button 
+                              className="btn btn-primary text-white fw-bold w-100"
+                              onClick={() => handleViewCardDetails(card)}
+                              title="Ver datos sensibles"
+                            >
+                              <FontAwesomeIcon icon={faEye} className="me-1" />
+                              Ver Datos
+                            </button>
+                            <button 
+                              className="btn btn-success text-white fw-bold w-100"
+                              onClick={() => handleUpdateCard(card)}
+                              title="Actualizar tarjeta"
+                            >
+                              <FontAwesomeIcon icon={faEdit} className="me-1" />
+                              Actualizar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -348,6 +368,30 @@ const ListCreditCard = () => {
           onCustomerUpdated={() => {}}
           onPolicyUpdated={() => {}}
           onPaymentUpdated={() => {}}
+          commissionHistory={() => {}}
+          commissionRefunds={() => {}}
+          editPoliciesValues={[]}
+          onTaskDeleted={() => {}}
+          tasks={{ id: 0, description: "", estatusTask: "" }}
+        />
+      )}
+
+      {/* ✅ Modal para ver datos sensibles de la tarjeta */}
+      {showViewDetailsModal && selectedCard && (
+        <Modal
+          isOpen={showViewDetailsModal}
+          onClose={handleCloseViewDetailsModal}
+          modalType="viewCreditCardDetails"
+          selectedCard={selectedCard}
+          // ✅ Props obligatorias del Modal (con valores por defecto)
+          policies={[]}
+          cards={[]}
+          payments={[]}
+          onAdvisorUpdated={() => {}}
+          onCustomerUpdated={() => {}}
+          onPolicyUpdated={() => {}}
+          onPaymentUpdated={() => {}}
+          onCardUpdated={() => {}}
           commissionHistory={() => {}}
           commissionRefunds={() => {}}
           editPoliciesValues={[]}

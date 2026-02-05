@@ -17,6 +17,7 @@ import EditPolicyValuesModal from "./EditPolicyValuesModal";
 import CreateTaskModal from "./CreateTaskModal";
 import TaskModal from "./TaskModal";
 import UpdateCreditCardModal from "./UpdateCreditCardModal";
+import ViewCreditCardDetailsModal from "./ViewCreditCardDetailsModal";
 export default function Modal({
   isOpen,
   onClose,
@@ -152,6 +153,13 @@ export default function Modal({
             card={selectedCard}
             onClose={onClose}
             onCardUpdated={onCardUpdated}
+          />
+        );
+      case "viewCreditCardDetails":
+        return (
+          <ViewCreditCardDetailsModal
+            cardId={selectedCard?.id}
+            onClose={onClose}
           />
         );
       default:
