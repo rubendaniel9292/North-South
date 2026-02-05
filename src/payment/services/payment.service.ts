@@ -125,12 +125,40 @@ export class PaymentService {
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
       }
 
+      // 🔥 CRÍTICO: REVALIDAR inmediatamente antes de guardar para evitar race conditions
+      // Recargar los pagos directamente de la BD (sin caché)
+      const latestPayments = await this.paymentRepository.find({
+        where: { policy_id: body.policy_id },
+        order: { number_payment: 'DESC' }
+      });
+
+      // Verificar si ya existe un pago con este número (doble validación)
+      const duplicatePayment = latestPayments.find(p => p.number_payment === body.number_payment);
+      if (duplicatePayment) {
+        console.warn(`⚠️ [DUPLICADO DETECTADO] Ya existe pago #${body.number_payment} para póliza ${body.policy_id} (ID: ${duplicatePayment.id})`);
+        // NO lanzar error, simplemente retornar el pago existente
+        return duplicatePayment;
+      }
 
       const newPayment = await this.paymentRepository.save(body);
       // INVALIDAR caché relacionado
       await this.invalidatePolicyRelatedCache(policy);
       return newPayment;
     } catch (error) {
+      // 🔥 MANEJAR ERRORES DE CONSTRAINT UNIQUE
+      if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique')) {
+        console.warn(`⚠️ [BD CONSTRAINT] Pago duplicado detectado por constraint UNIQUE - Póliza: ${body.policy_id}, Número: ${body.number_payment}`);
+        // Buscar y retornar el pago existente
+        const existingPayment = await this.paymentRepository.findOne({
+          where: { 
+            policy_id: body.policy_id,
+            number_payment: body.number_payment 
+          }
+        });
+        if (existingPayment) {
+          return existingPayment;
+        }
+      }
       throw ErrorManager.createSignatureError(error.message);
     }
   };
