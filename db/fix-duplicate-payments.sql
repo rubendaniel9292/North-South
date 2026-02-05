@@ -35,7 +35,7 @@ WHERE pr.policy_id = d.policy_id
 
 -- Mostrar cuántos se eliminaron
 SELECT 'PASO 1 COMPLETADO: Duplicados eliminados' as status;
-
+COMMIT;
 -- ============================================================
 -- PASO 2: Agregar constraint UNIQUE para evitar futuros duplicados
 -- ============================================================
