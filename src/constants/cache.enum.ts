@@ -17,6 +17,8 @@ export enum CacheKeys {
     GLOBAL_ALL_POLICIES_BY_STATUS = 'global:policiesStatus:all',
     GLOBAL_COMMISSIONS = 'global:commissions:all',
     GLOBAL_COMMISSION_REFUNDS = 'global:commissionRefunds:all',
+    GLOBAL_ALL_CARDS = 'global:allCards:all',
+    GLOBAL_ALL_CARDS_EXPIRED = 'global:allCardsExpired:all',
     
     // User Module Cache Keys
     USERS_LIST = 'users:list',

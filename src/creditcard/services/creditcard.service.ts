@@ -121,8 +121,8 @@ export class CreditcardService extends EncryptDataCard {
       
       await this.redisService.set(`card:${newCard.id}`, JSON.stringify(newCard), 32400); // TTL de 9 horas
       // Invalidar las listas cacheadas para forzar una actualización
-      await this.redisService.del('allCards');
-      await this.redisService.del('allCardsExpired');
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
       
       return newCard;
     } catch (error) {
@@ -228,8 +228,8 @@ export class CreditcardService extends EncryptDataCard {
 
       // 8. Invalidar cachés relacionados
       await this.redisService.del(`card:${id}`);
-      await this.redisService.del('allCards');
-      await this.redisService.del('allCardsExpired');
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
 
       // 9. Guardar la tarjeta actualizada en caché
       await this.redisService.set(`card:${id}`, JSON.stringify(updatedCard), 32400);
@@ -278,11 +278,11 @@ export class CreditcardService extends EncryptDataCard {
   };*/
 
   //4:metodo para consultar y desencriptar las tarjetas de credito
-  public findAllCrards = async (): Promise<CreditCardEntity[]> => {
+  public findAllCards = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
       
-      const cachedCards = await this.redisService.get('allCards');
+      const cachedCards = await this.redisService.get(CacheKeys.GLOBAL_ALL_CARDS);
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
@@ -328,56 +328,20 @@ export class CreditcardService extends EncryptDataCard {
       });
 
       // Guardar los datos desencriptados en Redis
-      await this.redisService.set('allCards', JSON.stringify(decryptedCards), 32400); // TTL de 1 hora
+      await this.redisService.set(CacheKeys.GLOBAL_ALL_CARDS, JSON.stringify(decryptedCards), 32400); // TTL de 9 horas
       return decryptedCards;
 
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };
-  //4:metodo para consultar las tarjetas sin cifrado
-  /*
-  public findAllCrards = async (): Promise<CreditCardEntity[]> => {
-    try {
-      //this.decryptData()
-      const allCards: CreditCardEntity[] = await this.cardRepository.find({
-        relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
-        select: {
-          id: true,
-          cardNumber: true,
-          expirationDate: true,
-          code: true,
-          customer: {
-            ci_ruc: true,
-            firstName: true,
-            secondName: true,
-            surname: true,
-            secondSurname: true,
-          },
-        },
-      });
-
-      if (allCards.length === 0) {
-        //se guarda el error
-        throw new ErrorManager({
-          type: 'BAD_REQUEST',
-          message: 'No se encontró resultados',
-        });
-      }
-
-      return allCards;
-    } catch (error) {
-      //se ejecuta el errir
-      throw ErrorManager.createSignatureError(error.message);
-    }
-  };*/
 
   //5:metodo para consultar las tarjetas expiradas o caducadas
   public findCardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
       
-      const cachedCards = await this.redisService.get('allCardsExpired');
+      const cachedCards = await this.redisService.get(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
@@ -427,7 +391,7 @@ export class CreditcardService extends EncryptDataCard {
         };
       });
       // Guardar los datos desencriptados en Redis
-      await this.redisService.set('allCardsExpired', JSON.stringify(decryptedCards), 32400); // TTL de 9 horas
+      await this.redisService.set(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED, JSON.stringify(decryptedCards), 32400); // TTL de 9 horas
 
       return decryptedCards;
     } catch (error) {
@@ -460,6 +424,67 @@ export class CreditcardService extends EncryptDataCard {
       return allBanks;
     } catch (error) {
       //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //6B:metodo para revelar datos sensibles de una tarjeta específica
+  public revealCardDetails = async (id: number): Promise<{
+    id: number;
+    cardNumber: string;
+    code: string;
+    expirationDate: Date;
+    customer: any;
+    cardoption: any;
+    bank: any;
+    cardstatus: any;
+  }> => {
+    try {
+      // Buscar la tarjeta específica con sus relaciones
+      const card = await this.cardRepository.findOne({
+        where: { id },
+        relations: ['customer', 'cardoption', 'bank','cardstatus'],
+        select: {
+          id: true,
+          cardNumber: true,
+          expirationDate: true,
+          code: true,
+          customer: {
+            ci_ruc: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+        },
+      });
+
+      if (!card) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Tarjeta no encontrada',
+        });
+      }
+
+      // Desencriptar los datos sensibles
+      const { cardNumber, code } = this.decryptData({
+        cardNumber: card.cardNumber,
+        code: card.code,
+      });
+
+      // Retornar datos completos sin enmascarar
+      return {
+        id: card.id,
+        cardNumber, // Número completo
+        code, // Código completo
+        expirationDate: card.expirationDate,
+        customer: card.customer,
+        cardoption: card.cardoption,
+        bank: card.bank,
+        cardstatus: card.cardstatus,
+        
+      };
+    } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };

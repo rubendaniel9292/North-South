@@ -233,8 +233,8 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
         JSON.stringify(mockEncryptedCard),
         32400
       );
-      expect(redisService.del).toHaveBeenCalledWith('allCards');
-      expect(redisService.del).toHaveBeenCalledWith('allCardsExpired');
+      expect(redisService.del).toHaveBeenCalledWith(CacheKeys.GLOBAL_ALL_CARDS);
+      expect(redisService.del).toHaveBeenCalledWith(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
     });
 
     it('should handle encryption errors gracefully', async () => {
@@ -265,9 +265,9 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       const cachedCards = [mockCreditCard];
       redisService.get.mockResolvedValue(JSON.stringify(cachedCards));
 
-      const result = await service.findAllCrards();
+      const result = await service.findAllCards();
 
-      expect(redisService.get).toHaveBeenCalledWith('allCards');
+      expect(redisService.get).toHaveBeenCalledWith(CacheKeys.GLOBAL_ALL_CARDS);
       expect(creditCardRepository.find).not.toHaveBeenCalled();
       expect(result).toEqual(cachedCards);
     });
@@ -276,7 +276,7 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       redisService.get.mockResolvedValue(null); // Cache miss
       creditCardRepository.find.mockResolvedValue([mockEncryptedCard as any]);
 
-      const result = await service.findAllCrards();
+      const result = await service.findAllCards();
 
       expect(result[0].cardNumber).toBe('************0366'); // Last 4 digits only
       expect(result[0].code).toBe('123'); // Code should be decrypted
@@ -286,10 +286,10 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       redisService.get.mockResolvedValue(null);
       creditCardRepository.find.mockResolvedValue([mockEncryptedCard as any]);
 
-      await service.findAllCrards();
+      await service.findAllCards();
 
       expect(redisService.set).toHaveBeenCalledWith(
-        'allCards',
+        CacheKeys.GLOBAL_ALL_CARDS,
         expect.any(String),
         32400
       );
@@ -299,7 +299,7 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       redisService.get.mockResolvedValue(null);
       creditCardRepository.find.mockResolvedValue([]);
 
-      await expect(service.findAllCrards())
+      await expect(service.findAllCards())
         .rejects
         .toThrow('No se encontró resultados');
     });
@@ -310,7 +310,7 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       creditCardRepository.find.mockRejectedValue(new Error('Database connection failed'));
       redisService.get.mockResolvedValue(null);
 
-      await expect(service.findAllCrards())
+      await expect(service.findAllCards())
         .rejects
         .toThrow();
     });
@@ -320,7 +320,7 @@ describe('CreditCardService - AUDITORIA DE SEGURIDAD COMPLETA', () => {
       creditCardRepository.find.mockResolvedValue([mockEncryptedCard as any]);
 
       // Should fall back to database
-      const result = await service.findAllCrards();
+      const result = await service.findAllCards();
       expect(result).toBeDefined();
     });
 

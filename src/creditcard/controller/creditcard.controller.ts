@@ -83,7 +83,7 @@ export class CreditcardController {
     if (!turnstileToken) {
       throw new BadRequestException('Token de Turnstile requerido');
     }
-    const allCards = await this.creditCardService.findAllCrards();
+    const allCards = await this.creditCardService.findAllCards();
     if (allCards) {
       return {
         status: 'success',
@@ -94,7 +94,7 @@ export class CreditcardController {
   @Roles('ADMIN', 'BASIC', 'ELOPDP')
   @Get('all-cards-rp')
   public async findAllCardsRegpolicy() {
-    const allCards = await this.creditCardService.findAllCrards();
+    const allCards = await this.creditCardService.findAllCards();
     if (allCards) {
       return {
         status: 'success',
@@ -134,6 +134,26 @@ export class CreditcardController {
       return {
         status: 'success',
         allCardsExpired,
+      };
+    }
+  }
+
+  // Endpoint seguro para revelar datos sensibles de una tarjeta específica
+  @Roles('ADMIN', 'BASIC')
+  @Get('reveal-card/:id')
+  public async revealCardDetails(
+    @Param('id', ParseIntPipe) id: number,
+    
+  ) {
+    
+    const cardDetails = await this.creditCardService.revealCardDetails(id);
+    
+    if (cardDetails) {
+      return {
+        status: 'success',
+        message: 'Datos sensibles revelados - Use con precaución',
+        cardDetails,
+        warning: 'Estos datos no deben ser almacenados ni compartidos'
       };
     }
   }
