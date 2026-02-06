@@ -466,6 +466,7 @@ const ListPolicies = memo(() => {
                 )}
 
                 { //Botón para registro manual de pagos (solo para pruebas)
+                  /*
                   <button
                     className="btn btn-danger fw-bold"
                     onClick={() => registerPaymentTest(true)}
@@ -473,6 +474,7 @@ const ListPolicies = memo(() => {
                     <FontAwesomeIcon icon={faCogs} className="me-2" />
                     Registro manual de pagos (prueba)
                   </button>
+                  */
                 }
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
