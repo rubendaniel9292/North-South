@@ -44,7 +44,7 @@ const ListCreditCard = () => {
     "cardNumber",
     "code",
     "customer.ci_ruc",
-    "customer.firstName", 
+    "customer.firstName",
     "customer.secondName",
     "customer.surname",
     "customer.secondSurname",
@@ -56,7 +56,7 @@ const ListCreditCard = () => {
   const {
     currentPage,
     currentItems: currentCards,
-    totalPages,  
+    totalPages,
     paginate,
   } = usePagination(searchedCards, itemsPerPage);
 
@@ -125,13 +125,56 @@ const ListCreditCard = () => {
     setSelectedCard(null);
   };
 
+  // ✅ Función para eliminar tarjeta
+  const handleDeleteCard = useCallback(async (card) => {
+    try {
+      const result = await alerts(
+        "¿Está seguro?",
+        `¿Desea eliminar la tarjeta ${card.cardNumber} del cliente ${card.customer?.firstName} ${card.customer?.surname}?`,
+        "warning",
+        {
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Sí, eliminar",
+          cancelButtonText: "Cancelar"
+        }
+      );
+
+      if (result.isConfirmed) {
+        const response = await http.delete(`creditcard/delete-card/${card.id}`);
+
+        if (response.data.status === "success") {
+          alerts("Éxito", "Tarjeta eliminada correctamente", "success");
+
+          // Actualizar el estado eliminando la tarjeta
+          setCards((prevCards) => prevCards.filter((c) => c.id !== card.id));
+        } else {
+          alerts(
+            "Error",
+            response.data.message || "Error al eliminar la tarjeta",
+            "error"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error al eliminar tarjeta:", error);
+
+      if (error.response?.data?.message) {
+        alerts("Error", error.response.data.message, "error");
+      } else {
+        alerts("Error", "No se pudo eliminar la tarjeta", "error");
+      }
+    }
+  }, []);
+
   const handleCardUpdated = useCallback((updatedCard) => {
     console.log("✅ Tarjeta actualizada:", updatedCard);
-    
+
     // Actualizar la tarjeta en el estado local
-    setCards((prevCards) => 
-      prevCards.map((card) => 
-        card.id === updatedCard.id 
+    setCards((prevCards) =>
+      prevCards.map((card) =>
+        card.id === updatedCard.id
           ? { ...card, ...updatedCard }
           : card
       )
@@ -148,7 +191,7 @@ const ListCreditCard = () => {
       <section>
         <div className="text-center py-2">
           <h2 className="py-2">Lista de tarjetas de crédito</h2>
-          
+
           <div id="turnstile-container" className="my-3">
             <Turnstile
               sitekey={siteKey}
@@ -214,15 +257,12 @@ const ListCreditCard = () => {
                       <FontAwesomeIcon icon={faHashtag} className="me-2" />
                       Número de tarjeta
                     </th>
-                   
+
                     <th>
                       <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                       Fecha de expiración
                     </th>
-                    <th>
-                      <FontAwesomeIcon icon={faIdCard} className="me-2" />
-                      Cédula / RUC
-                    </th>
+
                     <th colSpan="4" scope="row">
                       <FontAwesomeIcon icon={faUser} className="me-2" />
                       Cliente
@@ -257,13 +297,13 @@ const ListCreditCard = () => {
                       <tr key={card.id}>
                         <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                         <td>{card.cardNumber || "-"}</td>
-                        
+
                         <td>
                           {card.expirationDate
                             ? dayjs.utc(card.expirationDate).format("DD/MM/YYYY")
                             : "Sin fecha"}
                         </td>
-                        <td>{card.customer?.ci_ruc || "-"}</td>
+
                         <td>{card.customer?.firstName || "-"}</td>
                         <td>{card.customer?.secondName || "-"}</td>
                         <td>{card.customer?.surname || "-"}</td>
@@ -272,36 +312,43 @@ const ListCreditCard = () => {
                         <td>{card.cardoption?.cardName || "-"}</td>
                         <td>
                           <span
-                            className={`badge fw-bold fs-6 ${
-                              card.cardstatus?.id == 1
+                            className={`badge fw-bold fs-6 ${card.cardstatus?.id == 1
                                 ? "bg-success"           // Activa
                                 : card.cardstatus?.id == 2
-                                ? "bg-warning text-dark" // Inactiva  
-                                : card.cardstatus?.id == 3
-                                ? "bg-danger"            // Bloqueada
-                                : "bg-light text-dark"   // Default
-                            }`}
+                                  ? "bg-warning text-dark" // Inactiva  
+                                  : card.cardstatus?.id == 3
+                                    ? "bg-danger"            // Bloqueada
+                                    : "bg-light text-dark"   // Default
+                              }`}
                           >
                             {card.cardstatus?.cardStatusName || "Sin estado"}
                           </span>
                         </td>
                         <td>
-                          <div className="d-flex flex-column gap-2">
-                            <button 
-                              className="btn btn-primary text-white fw-bold w-100"
+                          <div className="d-flex gap-2">
+                            <button
+                              className="btn btn-sm btn-primary text-white fw-bold w-100"
                               onClick={() => handleViewCardDetails(card)}
                               title="Ver datos sensibles"
                             >
-                              <FontAwesomeIcon icon={faEye} className="me-1" />
-                              Ver Datos
+                              Ver datos
+                              <FontAwesomeIcon icon={faEye} className="me-2" />
                             </button>
-                            <button 
-                              className="btn btn-success text-white fw-bold w-100"
+                            <button
+                              className="btn btn-sm btn-success text-white fw-bold w-100"
                               onClick={() => handleUpdateCard(card)}
                               title="Actualizar tarjeta"
                             >
-                              <FontAwesomeIcon icon={faEdit} className="me-1" />
-                              Actualizar
+                              Actualziar
+                              <FontAwesomeIcon icon={faEdit} className="me-2" />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger text-white fw-bold w-100"
+                              onClick={() => handleDeleteCard(card)}
+                              title="Eliminar tarjeta"
+                            >
+                              Eliminar
+                              <FontAwesomeIcon icon={faTrash} className="me-2"/>
                             </button>
                           </div>
                         </td>
@@ -364,14 +411,14 @@ const ListCreditCard = () => {
           policies={[]}
           cards={[]}
           payments={[]}
-          onAdvisorUpdated={() => {}}
-          onCustomerUpdated={() => {}}
-          onPolicyUpdated={() => {}}
-          onPaymentUpdated={() => {}}
-          commissionHistory={() => {}}
-          commissionRefunds={() => {}}
+          onAdvisorUpdated={() => { }}
+          onCustomerUpdated={() => { }}
+          onPolicyUpdated={() => { }}
+          onPaymentUpdated={() => { }}
+          commissionHistory={() => { }}
+          commissionRefunds={() => { }}
           editPoliciesValues={[]}
-          onTaskDeleted={() => {}}
+          onTaskDeleted={() => { }}
           tasks={{ id: 0, description: "", estatusTask: "" }}
         />
       )}
@@ -387,15 +434,15 @@ const ListCreditCard = () => {
           policies={[]}
           cards={[]}
           payments={[]}
-          onAdvisorUpdated={() => {}}
-          onCustomerUpdated={() => {}}
-          onPolicyUpdated={() => {}}
-          onPaymentUpdated={() => {}}
-          onCardUpdated={() => {}}
-          commissionHistory={() => {}}
-          commissionRefunds={() => {}}
+          onAdvisorUpdated={() => { }}
+          onCustomerUpdated={() => { }}
+          onPolicyUpdated={() => { }}
+          onPaymentUpdated={() => { }}
+          onCardUpdated={() => { }}
+          commissionHistory={() => { }}
+          commissionRefunds={() => { }}
           editPoliciesValues={[]}
-          onTaskDeleted={() => {}}
+          onTaskDeleted={() => { }}
           tasks={{ id: 0, description: "", estatusTask: "" }}
         />
       )}
