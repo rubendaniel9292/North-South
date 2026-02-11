@@ -76,7 +76,7 @@ export class CreditcardService extends EncryptDataCard {
     body: CreditCardDTO,
   ): Promise<CreditCardEntity> => {
     try {
-    
+
       //1 Verificar si ya existe una tarjeta con el mismo número asociada al cliente
       const existingCard = await this.cardRepository.findOne({
         where: {
@@ -104,7 +104,7 @@ export class CreditcardService extends EncryptDataCard {
       //4 Asignar el estado determinado al body de la tarjeta
       body.card_status_id = determinedStatus.id;
       body.expirationDate = expirationDate;
- 
+
       //5 Encriptar solo el número de tarjeta y el código
       const encryptedData = this.encryptData(body.cardNumber, body.code);
 
@@ -118,12 +118,12 @@ export class CreditcardService extends EncryptDataCard {
       //7 Guardar los datos encriptados en la base de datos
       const newCard = await this.cardRepository.save(encryptedBody);
       // Guardar la tarjeta en Redis
-      
+
       await this.redisService.set(`card:${newCard.id}`, JSON.stringify(newCard), 32400); // TTL de 9 horas
       // Invalidar las listas cacheadas para forzar una actualización
       await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS);
       await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
-      
+
       return newCard;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -152,7 +152,7 @@ export class CreditcardService extends EncryptDataCard {
       if (updateData.expirationDate) {
         const expirationDate = DateHelper.normalizeDateForDB(updateData.expirationDate);
         const currentDate = new Date();
-        
+
         if (expirationDate <= currentDate) {
           throw new Error('La nueva fecha de expiración ya está caducada.');
         }
@@ -184,7 +184,7 @@ export class CreditcardService extends EncryptDataCard {
         // Si se actualiza el número o código, encriptar los datos
         let cardNumberToEncrypt = updateData.numberCard || existingCard.cardNumber;
         let codeToEncrypt = updateData.code || existingCard.code;
-        
+
         // Primero desencriptar los datos actuales si no se proporcionan nuevos
         if (!updateData.numberCard) {
           const decrypted = this.decryptData({
@@ -208,7 +208,7 @@ export class CreditcardService extends EncryptDataCard {
 
       // 5. Preparar el objeto de actualización
       const updateObject: any = {};
-      
+
       if (updateData.customer_id) updateObject.customers_id = updateData.customer_id;
       if (updateData.numberCard) updateObject.cardNumber = encryptedData.cardNumber;
       if (updateData.expirationDate) updateObject.expirationDate = updateData.expirationDate;
@@ -281,12 +281,12 @@ export class CreditcardService extends EncryptDataCard {
   public findAllCards = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
-      
+
       const cachedCards = await this.redisService.get(CacheKeys.GLOBAL_ALL_CARDS);
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
-      
+
       const allCards: CreditCardEntity[] = await this.cardRepository.find({
         relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
         select: {
@@ -340,12 +340,12 @@ export class CreditcardService extends EncryptDataCard {
   public findCardsExpired = async (): Promise<CreditCardEntity[]> => {
     try {
       // Verificar si los datos están en Redis
-      
+
       const cachedCards = await this.redisService.get(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
       if (cachedCards) {
         return JSON.parse(cachedCards);
       }
-      
+
       const allCardsExpired: CreditCardEntity[] =
         await this.cardRepository.find({
           where: [
@@ -443,7 +443,7 @@ export class CreditcardService extends EncryptDataCard {
       // Buscar la tarjeta específica con sus relaciones
       const card = await this.cardRepository.findOne({
         where: { id },
-        relations: ['customer', 'cardoption', 'bank','cardstatus'],
+        relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
         select: {
           id: true,
           cardNumber: true,
@@ -482,7 +482,7 @@ export class CreditcardService extends EncryptDataCard {
         cardoption: card.cardoption,
         bank: card.bank,
         cardstatus: card.cardstatus,
-        
+
       };
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -514,6 +514,34 @@ export class CreditcardService extends EncryptDataCard {
       return allOptions;
     } catch (error) {
       //se ejecuta el errir
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  };
+
+  //8: metodo para eliminar una tarjeta de credito o debito
+  public deleteCard = async (id: number): Promise<void> => {
+    try {
+      // Verificar que la tarjeta existe antes de eliminar
+      const card = await this.cardRepository.findOne({
+        where: { id },
+      });
+
+      if (!card) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'No se encontró la tarjeta para eliminar',
+        });
+      }
+
+      // Eliminar la tarjeta
+      // Las pólizas asociadas tendrán su credit_card_id en NULL (onDelete: 'SET NULL')
+      await this.cardRepository.delete(id);
+
+      // Invalidar cachés relacionados
+      await this.redisService.del(`card:${id}`);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS);
+      await this.redisService.del(CacheKeys.GLOBAL_ALL_CARDS_EXPIRED);
+    } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
   };

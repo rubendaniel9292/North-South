@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Param,
   Query,
   UseGuards,
@@ -143,11 +144,11 @@ export class CreditcardController {
   @Get('reveal-card/:id')
   public async revealCardDetails(
     @Param('id', ParseIntPipe) id: number,
-    
+
   ) {
-    
+
     const cardDetails = await this.creditCardService.revealCardDetails(id);
-    
+
     if (cardDetails) {
       return {
         status: 'success',
@@ -156,5 +157,17 @@ export class CreditcardController {
         warning: 'Estos datos no deben ser almacenados ni compartidos'
       };
     }
+  }
+
+  @Roles('ADMIN', 'BASIC')
+  @Delete('delete-card/:id')
+  public async deleteCard(
+    @Param('id', ParseIntPipe) id: number
+  ) {
+    await this.creditCardService.deleteCard(id);
+    return {
+      status: 'success',
+      message: 'Tarjeta eliminada correctamente',
+    };
   }
 }
