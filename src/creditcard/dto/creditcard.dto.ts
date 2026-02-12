@@ -42,7 +42,7 @@ export class UpdateCreditCardDTO {
 
   @IsOptional()
   @IsString()
-  numberCard: string;
+  cardNumber: string;
 
   @IsOptional()
   @IsDate()

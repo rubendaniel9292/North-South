@@ -148,7 +148,46 @@ export class CreditcardService extends EncryptDataCard {
         });
       }
 
-      // 2. Si se actualiza la fecha de expiración, normalizarla y verificar que no esté caducada
+      // 2. Preparar el objeto de actualización
+      const updateObject: any = {};
+
+      // 3. Manejar la actualización del número de tarjeta y código
+      // Siempre desencriptar los datos actuales para trabajar con ellos
+      const decryptedExisting = this.decryptData({
+        cardNumber: existingCard.cardNumber,
+        code: existingCard.code,
+      });
+
+      // Determinar qué valores usar (nuevos o existentes)
+      let cardNumberToEncrypt = decryptedExisting.cardNumber;
+      let codeToEncrypt = decryptedExisting.code;
+      let needsReEncryption = false;
+
+      // Si viene un nuevo número y NO está enmascarado, usarlo
+      if (updateData.cardNumber && !updateData.cardNumber.includes('*')) {
+        console.log('Nuevo número detectado:', updateData.cardNumber);
+        cardNumberToEncrypt = updateData.cardNumber;
+        needsReEncryption = true;
+      }
+
+      // Si viene un nuevo código, usarlo
+      if (updateData.code) {
+
+        codeToEncrypt = updateData.code;
+        needsReEncryption = true;
+      }
+
+
+
+      // Solo re-encriptar si hubo cambios en número o código
+      if (needsReEncryption) {
+        const encryptedData = this.encryptData(cardNumberToEncrypt, codeToEncrypt);
+
+        updateObject.cardNumber = encryptedData.cardNumber;
+        updateObject.code = encryptedData.code;
+      }
+
+      // 4. Si se actualiza la fecha de expiración, normalizarla y verificar que no esté caducada
       if (updateData.expirationDate) {
         const expirationDate = DateHelper.normalizeDateForDB(updateData.expirationDate);
         const currentDate = new Date();
@@ -159,63 +198,20 @@ export class CreditcardService extends EncryptDataCard {
 
         // Determinar el nuevo estado basado en la fecha de expiración
         const determinedStatus = await this.creditCardStatusService.determineCardStatus(expirationDate);
-        updateData.card_status_id = determinedStatus.id;
-        updateData.expirationDate = expirationDate;
+        updateObject.card_status_id = determinedStatus.id;
+        updateObject.expirationDate = expirationDate;
       }
 
-      // 3. Si se actualiza el número de tarjeta, verificar que no exista otra tarjeta con el mismo número para el cliente
-      if (updateData.numberCard && updateData.customer_id) {
-        const duplicateCard = await this.cardRepository.findOne({
-          where: {
-            cardNumber: updateData.numberCard,
-            customers_id: updateData.customer_id,
-          },
-        });
-
-        // Si encontramos una tarjeta y no es la que estamos actualizando, es un duplicado
-        if (duplicateCard && duplicateCard.id !== id) {
-          throw new Error('Ya existe otra tarjeta con este número para el cliente.');
-        }
-      }
-
-      // 4. Preparar los datos para encriptar si es necesario
-      let encryptedData: any = {};
-      if (updateData.numberCard || updateData.code) {
-        // Si se actualiza el número o código, encriptar los datos
-        let cardNumberToEncrypt = updateData.numberCard || existingCard.cardNumber;
-        let codeToEncrypt = updateData.code || existingCard.code;
-
-        // Primero desencriptar los datos actuales si no se proporcionan nuevos
-        if (!updateData.numberCard) {
-          const decrypted = this.decryptData({
-            cardNumber: existingCard.cardNumber,
-            code: existingCard.code,
-          });
-          cardNumberToEncrypt = decrypted.cardNumber;
-        }
-
-        if (!updateData.code) {
-          const decrypted = this.decryptData({
-            cardNumber: existingCard.cardNumber,
-            code: existingCard.code,
-          });
-          codeToEncrypt = decrypted.code;
-        }
-
-        // Encriptar los datos
-        encryptedData = this.encryptData(cardNumberToEncrypt, codeToEncrypt);
-      }
-
-      // 5. Preparar el objeto de actualización
-      const updateObject: any = {};
-
+      // 5. Asignar otros campos que no requieren encriptación
       if (updateData.customer_id) updateObject.customers_id = updateData.customer_id;
-      if (updateData.numberCard) updateObject.cardNumber = encryptedData.cardNumber;
-      if (updateData.expirationDate) updateObject.expirationDate = updateData.expirationDate;
-      if (updateData.code) updateObject.code = encryptedData.code;
       if (updateData.card_option_id) updateObject.card_option_id = updateData.card_option_id;
       if (updateData.bank_id) updateObject.bank_id = updateData.bank_id;
-      if (updateData.card_status_id !== undefined) updateObject.card_status_id = updateData.card_status_id;
+      if (updateData.card_status_id !== undefined && !updateData.expirationDate) {
+        // Solo actualizar el estado manualmente si no se está actualizando la fecha
+        updateObject.card_status_id = updateData.card_status_id;
+      }
+
+
 
       // 6. Actualizar la tarjeta
       await this.cardRepository.update(id, updateObject);
@@ -224,6 +220,12 @@ export class CreditcardService extends EncryptDataCard {
       const updatedCard = await this.cardRepository.findOne({
         where: { id },
         relations: ['customer', 'cardoption', 'bank', 'cardstatus'],
+      });
+
+      // Verificar desencriptación
+      const verifyDecrypt = this.decryptData({
+        cardNumber: updatedCard.cardNumber,
+        code: updatedCard.code,
       });
 
       // 8. Invalidar cachés relacionados
@@ -236,6 +238,7 @@ export class CreditcardService extends EncryptDataCard {
 
       return updatedCard;
     } catch (error) {
+      console.error('Error en updateCard:', error);
       throw ErrorManager.createSignatureError(error.message);
     }
   };
