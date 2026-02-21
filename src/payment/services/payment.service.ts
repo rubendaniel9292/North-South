@@ -87,6 +87,12 @@ export class PaymentService {
         });
       }
 
+      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3)
+      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+        console.warn(`⚠️ [createPayment] Bloqueado: intento de crear pago en póliza ${policy.id} con estado ${policy.policy_status_id == 2 ? 'CANCELADA' : 'CULMINADA'}`);
+        return null;
+      }
+
       // Si no se proporciona un número de pago, calcular el siguiente número secuencial
       if (!body.number_payment) {
         // Obtener todos los pagos de la póliza, sin filtrar por renovación
@@ -150,9 +156,9 @@ export class PaymentService {
         console.warn(`⚠️ [BD CONSTRAINT] Pago duplicado detectado por constraint UNIQUE - Póliza: ${body.policy_id}, Número: ${body.number_payment}`);
         // Buscar y retornar el pago existente
         const existingPayment = await this.paymentRepository.findOne({
-          where: { 
+          where: {
             policy_id: body.policy_id,
-            number_payment: body.number_payment 
+            number_payment: body.number_payment
           }
         });
         if (existingPayment) {
@@ -770,8 +776,8 @@ export class PaymentService {
       console.log(`📝 Observaciones (fecha de HOY): ${newPaymentData.observations}`);
 
       // 7. Convertir credit de string a number si es necesario
-      const creditValue = typeof newPaymentData.credit === 'string' 
-        ? parseFloat(newPaymentData.credit) 
+      const creditValue = typeof newPaymentData.credit === 'string'
+        ? parseFloat(newPaymentData.credit)
         : newPaymentData.credit || 0;
 
       // 8. Crear el pago adelantado con pending_value CORREGIDO

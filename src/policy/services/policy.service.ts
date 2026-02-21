@@ -1437,7 +1437,7 @@ export class PolicyService extends ValidateEntity {
 
               if (paymentDay !== correctedDay) {
                 const oldDate = new Date(paymentDate);
-                
+
                 // 🔥 CRÍTICO: Si el día está adelantado más de 1 día, es un error del normalizeDateForDB
                 // Restar los días de más
                 if (dayDifference > 1) {
@@ -1507,7 +1507,7 @@ export class PolicyService extends ValidateEntity {
         DateHelper.normalizeDateForComparison(startDate).getTime();
 
       // Respetar el estado "Cancelado" enviado desde el frontend
-      if (updateData.policy_status_id !== 2) {
+      if (updateData.policy_status_id != 2) {
         // Determinar el estado basado en las fechas solo si no es "Cancelado"
         const determinedStatus =
           await this.policyStatusService.determineNewPolicyStatus(endDate);
@@ -1579,7 +1579,7 @@ export class PolicyService extends ValidateEntity {
       if (statusChangedToCancelledOrCompleted) {
         try {
           console.log(`🔄 [updatedPolicy] Cambio de estado detectado: ${oldStatus} → ${newStatus} (Cancelada/Culminada)`);
-          
+
           // Cargar póliza con relaciones necesarias (ya tiene el estado actualizado porque acabamos de guardar)
           const reloadedPolicy = await this.policyRepository.findOne({
             where: { id },
@@ -1632,7 +1632,7 @@ export class PolicyService extends ValidateEntity {
       console.log(`   policyReactivated: ${policyReactivated}`);
       console.log(`   policyUpdate.policy_status_id: ${policyUpdate.policy_status_id} (tipo: ${typeof policyUpdate.policy_status_id})`);
       console.log(`   Condición completa: ${(endDateExtended || policyReactivated) && policyUpdate.policy_status_id == 1}\n`);
-      
+
       if ((endDateExtended || policyReactivated) && policyUpdate.policy_status_id == 1) {
         console.log(`\n🎯 ========== ENTRANDO A CASO 3: REGENERACIÓN ==========\n`);
         try {
@@ -1641,13 +1641,13 @@ export class PolicyService extends ValidateEntity {
             console.log(`   Anterior: ${oldEndDate.toISOString().split('T')[0]}`);
             console.log(`   Nuevo: ${newEndDate.toISOString().split('T')[0]}`);
           }
-          
+
           if (policyReactivated) {
             console.log(`🔄 [updatedPolicy] REACTIVACIÓN detectada:`);
             console.log(`   Estado anterior: ${oldStatus == 2 ? 'Cancelada' : 'Culminada'}`);
             console.log(`   Estado nuevo: Activa (${policyUpdate.policy_status_id})`);
           }
-          
+
           console.log(`   Regenerando pagos/renovaciones/períodos faltantes...`);
 
           // 🔥 CRÍTICO: Recargar con el estado YA ACTUALIZADO (acabamos de hacer save)
@@ -1673,7 +1673,7 @@ export class PolicyService extends ValidateEntity {
             this.getPaymentsPerCycle.bind(this),
             this.calculatePaymentValue.bind(this)
           );
-          
+
           console.log(`✅ Consistencia restaurada:`);
           console.log(`   - Renovaciones creadas: ${result.renewalsCreated}`);
           console.log(`   - Períodos creados: ${result.periodsCreated}`);
@@ -1737,7 +1737,7 @@ export class PolicyService extends ValidateEntity {
       try {
         console.log(`📅 [updatedPolicy] Validando períodos faltantes para póliza ${id}`);
         const periodValidation = await this.validateAndCreateMissingPeriods(id);
-        
+
         if (periodValidation.created > 0) {
           console.log(`✅ [updatedPolicy] ${periodValidation.created} períodos creados`);
         }
@@ -1854,7 +1854,7 @@ export class PolicyService extends ValidateEntity {
 
       // 7. 🔥 CRÍTICO: Ejecutar helper de consistencia para generar TODOS los pagos faltantes hasta hoy
       console.log(`🔧 Ejecutando helper de consistencia para generar pagos faltantes hasta hoy...`);
-      
+
       try {
         const consistencyResult = await this.policyConsistencyHelper.ensureConsistency(
           updatedPolicy,
@@ -1971,16 +1971,16 @@ export class PolicyService extends ValidateEntity {
       let deletedRenewals = 0;
       let deletedPeriods = 0;
 
-      // 1️⃣ Eliminar TODOS los pagos >= endDate (posteriores o iguales), sin importar su estado
-      // Esto incluye pagos pendientes, atrasados, etc.
+      // 1️⃣ Eliminar pagos POSTERIORES a endDate (estrictamente >), sin importar su estado
+      // Los pagos del MISMO DÍA que endDate se CONSERVAN (ej: pago generado y póliza cancelada el mismo día)
       const paymentsToDelete = await this.paymentRepository
         .createQueryBuilder('payment')
         .where('payment.policy_id = :policyId', { policyId: policy.id })
-        .andWhere('payment.createdAt >= :endDate', { endDate })
+        .andWhere('payment.createdAt > :endDate', { endDate })
         .getMany();
 
       if (paymentsToDelete.length > 0) {
-        console.log(`🗑️ Eliminando ${paymentsToDelete.length} pagos >= fecha de fin`);
+        console.log(`🗑️ Eliminando ${paymentsToDelete.length} pagos posteriores a fecha de fin (conservando pagos del mismo día)`);
 
         for (const payment of paymentsToDelete) {
           await this.paymentRepository.remove(payment);
@@ -1988,7 +1988,7 @@ export class PolicyService extends ValidateEntity {
           console.log(`  ✓ Eliminado pago #${payment.number_payment} (${new Date(payment.createdAt).toISOString().split('T')[0]})`);
         }
       } else {
-        console.log(`✅ No hay pagos >= fecha de fin`);
+        console.log(`✅ No hay pagos posteriores a fecha de fin`);
       }
 
       // 2️⃣ Eliminar renovaciones >= endDate (posteriores o iguales)
@@ -2249,7 +2249,7 @@ export class PolicyService extends ValidateEntity {
 
         period.policyValue = data.policyValue;
         period.agencyPercentage = data.agencyPercentage;
-        
+
         period.advisorPercentage = data.advisorPercentage;
         period.policyFee = data.policyFee;
         savedPeriod = await this.policyPeriodDataRepository.save(period);
@@ -2823,13 +2823,13 @@ export class PolicyService extends ValidateEntity {
 
       for (const policy of cancelledPolicies) {
         const endDate = DateHelper.normalizeDateForComparison(new Date(policy.endDate));
-        
+
         // Contar elementos posteriores a endDate ANTES de limpiar
-        const paymentsAfterEnd = policy.payments?.filter(p => 
+        const paymentsAfterEnd = policy.payments?.filter(p =>
           new Date(p.createdAt) >= endDate
         ).length || 0;
 
-        const renewalsAfterEnd = policy.renewals?.filter(r => 
+        const renewalsAfterEnd = policy.renewals?.filter(r =>
           new Date(r.createdAt) >= endDate
         ).length || 0;
 
@@ -2840,8 +2840,8 @@ export class PolicyService extends ValidateEntity {
         anniversaryInEndYear.setFullYear(endYear);
         const isBeforeAnniversary = endDate < anniversaryInEndYear;
         const yearThreshold = isBeforeAnniversary ? endYear : endYear + 1;
-        
-        const periodsAfterEnd = policy.periods?.filter(p => 
+
+        const periodsAfterEnd = policy.periods?.filter(p =>
           p.year >= yearThreshold
         ).length || 0;
 
