@@ -37,14 +37,15 @@ import {
 const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   //pbeneres valor, % y derecho de poliza
   if (!policy) return null;
-  if (!policy.periods || policy.periods.length === 0) {
+  if (!policy.periods || policy.periods.length == 0) {
     console.error("La póliza no tiene períodos definidos");
     return null;
   }
   const lastPeriod = policy.periods.reduce((a, b) => (a.year > b.year ? a : b));
+  const initialPaymentFrequencyId = getFrequencyIdFromPayments(policy.numberOfPayments);
   console.log("poliza obtenida: ", policy);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCancelled, setIsCancelled] = useState(policy.policyStatus.id === 2); // Asumiendo que 2 es CANCELADA
+  const [isCancelled, setIsCancelled] = useState(policy.policyStatus.id == 2); // Asumiendo que 2 es CANCELADA
 
   const { form, changed } = UserForm({
     numberPolicy: policy.numberPolicy,
@@ -71,10 +72,11 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
     payment_method_id: policy.paymentMethod.id,
     credit_card_id: policy.creditCard?.id,
     bank_account_id: policy.bankAccount?.id,
-    payment_frequency_id: getFrequencyIdFromPayments(policy.numberOfPayments),
+    payment_frequency_id: initialPaymentFrequencyId,
     numberOfPayments: policy.numberOfPayments,
     numberOfPaymentsAdvisor: policy.numberOfPayments,
     policy_status_id: policy.policyStatus.id,
+    correctPreviousPayments: false,
   });
   const [types, setType] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -89,6 +91,7 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [filteredCard, setFilteredCard] = useState([]);
   const [filteredAccount, setFilteredAccount] = useState([]);
   const [allStatusPolicy, setAllStatusPolicy] = useState([]);
+  const [hasPaymentFrequencyChanged, setHasPaymentFrequencyChanged] = useState(false);
 
   // Estado inicial del cliente seleccionado
   const option = "Escoja una opción";
@@ -251,6 +254,17 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
       ]);
 
       setSelectedFrequencyId(selectedFrequencyId);
+      setHasPaymentFrequencyChanged(selectedFrequencyId != initialPaymentFrequencyId);
+    },
+    [changed, initialPaymentFrequencyId]
+  );
+
+  const handleCorrectPreviousPaymentsChange = useCallback(
+    (e) => {
+      changed({
+        name: "correctPreviousPayments",
+        value: e.target.value == "true",
+      });
     },
     [changed]
   );
@@ -478,6 +492,49 @@ const UpdatePolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                     ))}
                   </select>
                 </div>
+                {hasPaymentFrequencyChanged && (
+                  <div className="mb-3 col-3">
+                    <label className="form-label fw-bold text-danger">
+                      ¿Corregir pagos anteriores?
+                    </label>
+                    <div className="border border-danger rounded p-2 bg-light">
+                      <div className="form-check form-check-inline">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="correctPreviousPayments"
+                          id="correctPreviousPaymentsYes"
+                          value="true"
+                          onChange={handleCorrectPreviousPaymentsChange}
+                          checked={form.correctPreviousPayments === true}
+                        />
+                        <label
+                          className="form-check-label fw-bold"
+                          htmlFor="correctPreviousPaymentsYes"
+                        >
+                          SI
+                        </label>
+                      </div>
+                      <div className="form-check form-check-inline">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="correctPreviousPayments"
+                          id="correctPreviousPaymentsNo"
+                          value="false"
+                          onChange={handleCorrectPreviousPaymentsChange}
+                          checked={form.correctPreviousPayments === false}
+                        />
+                        <label
+                          className="form-check-label fw-bold"
+                          htmlFor="correctPreviousPaymentsNo"
+                        >
+                          NO
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mb-3 col-3">
                   <label htmlFor="customers_id" className="form-label">
                     <FontAwesomeIcon icon={faUser} className="me-2" />

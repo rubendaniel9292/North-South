@@ -25,6 +25,7 @@ import {
   getPolicyFields,
   getTotals,
 } from "../../helpers/CommissionUtils";
+import { exportCommissionsToExcel } from "../../helpers/ExcelExportUtils";
 
 // 1. COMPONENTE PRINCIPAL
 const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
@@ -110,86 +111,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
   const [loadedPolicies, setLoadedPolicies] = useState([]);
 
-  // 9. CARGAR PÓLIZAS BAJO DEMANDA MEDIANTE API OPTIMIZADA
-  /*
-  useEffect(() => {
-    const loadPolicies = async () => {
-      const shouldLoad = operationType === "COMISION" && (
-        filterMode === "TODAS" ||
-        (filterMode === "POR_CLIENTE" && selectedCustomerId) ||
-        (filterMode === "POR_POLIZA" && (policySearch || selectedPolicyId))
-      );
 
-      if (shouldLoad) {
-        setIsLoadingPolicies(true);
-
-        try {
-          // Construir parámetros para el endpoint optimizado
-          const params = new URLSearchParams();
-          params.append('page', '1');
-          params.append('limit', '1000'); // Límite alto para obtener todas las que coincidan
-
-          if (filterMode === "POR_CLIENTE" && selectedCustomerId) {
-            params.append('customerId', selectedCustomerId);
-          } else if (filterMode === "POR_POLIZA") {
-            if (selectedPolicyId && selectedPolicyId !== "TODAS") {
-              params.append('policyId', selectedPolicyId);
-            } else if (policySearch) {
-              params.append('search', policySearch);
-            }
-          }
-
-          // Usar el endpoint optimizado que ya tienes
-          const response = await http.get(
-            `advisor/get-advisor-optimized/${advisorId.id}?${params.toString()}`
-          );
-
-          if (response.data && response.data.advisorById && response.data.advisorById.policies) {
-            const loadedPolicies = response.data.advisorById.policies;
-
-            // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
-            const policiesWithBalance = loadedPolicies.filter((policy) => {
-              const released = calculateReleasedCommissions(policy);
-              const total = calculateTotalAdvisorCommissionsGenerated(policy);
-              const paid = Array.isArray(policy.commissions)
-                ? policy.commissions.reduce(
-                  (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
-                  0
-                )
-                : 0;
-              const maxReleased = Math.min(released, total);
-              const balance = maxReleased - paid;
-
-              // Filtrar solo pólizas con saldo real a favor (mínimo 1 centavo)
-              return balance > 0.01; // Excluye balances menores a $0.01 por redondeo
-            });
-
-            setSelectedPolicies(policiesWithBalance);
-          } else {
-            setSelectedPolicies([]);
-          }
-        } catch (error) {
-          console.error("Error cargando pólizas:", error);
-          alerts("Error", "No se pudieron cargar las pólizas. Intenta nuevamente.", "error");
-          setSelectedPolicies([]);
-        }
-
-        setIsLoadingPolicies(false);
-      } else if (operationType === "ANTICIPO") {
-        setSelectedPolicies([]);
-        setFilterMode("");
-        // Limpiar localStorage cuando cambia a ANTICIPO
-        if (advisorId?.id) {
-          localStorage.removeItem(`selectedPolicies_${advisorId.id}`);
-        }
-      } else {
-        setSelectedPolicies([]);
-      }
-    };
-
-    loadPolicies();
-  }, [operationType, advisorId.id, filterMode, selectedCustomerId, policySearch, selectedPolicyId]);
-*/
   useEffect(() => {
     const loadPolicies = async () => {
       const shouldLoad = operationType === "COMISION" && (
@@ -293,71 +215,6 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
     [distributedPolicies, advanceValue, operationType, policyFieldsHelper]
   );
 
-  // 13. CARGAR MÉTODOS DE PAGO, CLIENTES Y PÓLIZAS BÁSICAS
-  /*
-  const fetchData = useCallback(async () => {
-    try {
-      const paymentMethodResponse = await http.get("policy/get-payment-method");
-      setPaymentMethod(paymentMethodResponse.data.allPaymentMethod || []);
-
-      // Cargar lista básica de clientes y pólizas usando el endpoint optimizado (limit=1000 para obtener todos)
-      try {
-        const response = await http.get(
-          `advisor/get-advisor-optimized/${advisorId.id}?page=1&limit=1000`
-        );
-        
-        if (response.data && response.data.advisorById && response.data.advisorById.policies) {
-          const policies = response.data.advisorById.policies;
-          
-          // Filtrar solo pólizas con comisiones a favor > 0.01 (mínimo 1 centavo)
-          const policiesWithBalance = policies.filter((policy) => {
-            const released = calculateReleasedCommissions(policy);
-            const total = calculateTotalAdvisorCommissionsGenerated(policy);
-            const paid = Array.isArray(policy.commissions)
-              ? policy.commissions.reduce(
-                  (sum, payment) => sum + (Number(payment.advanceAmount) || 0),
-                  0
-                )
-              : 0;
-            const maxReleased = Math.min(released, total);
-            const balance = maxReleased - paid;
-            return balance > 0.01; // Excluye balances menores a $0.01 por redondeo
-          });
-          
-          // Extraer clientes únicos SOLO de pólizas con saldo a favor
-          const customersMap = new Map();
-          policiesWithBalance.forEach(policy => {
-            if (policy.customer && policy.customer.id) {
-              if (!customersMap.has(policy.customer.id)) {
-                customersMap.set(policy.customer.id, policy.customer);
-              }
-            }
-          });
-          
-          const uniqueCustomers = Array.from(customersMap.values())
-            .sort((a, b) => 
-              `${a.firstName || ''} ${a.surname || ''}`.localeCompare(`${b.firstName || ''} ${b.surname || ''}`)
-            );
-          
-          setCustomers(uniqueCustomers);
-          
-          // Guardar lista de pólizas para el dropdown (solo las que tienen saldo)
-          const basicPoliciesList = policiesWithBalance.map(p => ({
-            id: p.id,
-            numberPolicy: p.numberPolicy,
-            customer: p.customer
-          }));
-          setPoliciesList(basicPoliciesList);
-        }
-      } catch (error) {
-        console.warn("Error cargando lista de clientes/pólizas:", error);
-      }
-    } catch (error) {
-      console.error("Error fetching initial data:", error);
-      setPaymentMethod([]);
-    }
-  }, [advisorId.id]);
-*/
   const fetchData = useCallback(async () => {
     try {
       const paymentMethodResponse = await http.get("policy/get-payment-method");
@@ -444,6 +301,11 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
   );
 
   const option = "Escoja una opción";
+
+  // EXPORTAR A EXCEL
+  const handleExportExcel = useCallback(() => {
+    exportCommissionsToExcel(distributedPolicies, globalTotals, advisorTotalAdvances, advisorId);
+  }, [distributedPolicies, globalTotals, advisorTotalAdvances, advisorId]);
 
 
   const handleSubmit = useCallback(
@@ -960,7 +822,7 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
               </div>
             </>
           )}
-          <div className="card-commision shadow-sm mb-3 border-0">
+          <div className="card-commision mb-5 border-0">
             <div className="card-body py-3">
               <form
                 onSubmit={handleSubmit}
@@ -1116,6 +978,16 @@ const RegisterAdvanceModal = ({ advisorId, onClose, refreshAdvisor }) => {
                       />
                       Cerrar
                     </button>
+                    {operationType === "COMISION" && distributedPolicies.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleExportExcel}
+                        className="btn btn-outline-success fw-bold px-4 py-2"
+                      >
+                        <FontAwesomeIcon icon={faFileAlt} className="me-2" />
+                        Generar Excel
+                      </button>
+                    )}
                   </div>
                 </div>
               </form>
