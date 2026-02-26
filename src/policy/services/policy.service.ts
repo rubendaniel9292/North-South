@@ -2574,23 +2574,32 @@ export class PolicyService extends ValidateEntity {
         const newPendingValue = newPolicyValue - accumulatedValue;
         payment.pending_value = newPendingValue > 0 ? newPendingValue : 0;
 
-        // Recalcular balance considerando abonos previos
-        const credit = Number(payment.credit || 0);
-        const total = Number(payment.total || 0);
-        const newBalance = newValuePerPayment - credit - total;
+        const oldCredit = Number(payment.credit || 0);
 
-        // Solo actualizar balance si el pago NO está completamente pagado
-        if (payment.status_payment_id === 2) {
+        // 🔑 REGLA DE NEGOCIO: Los pagos siempre se abonan en su totalidad.
+        // La condición NO es el estado del pago (status_payment_id) sino si el
+        // pago YA TENÍA un abono registrado (credit > 0):
+        //
+        //   - credit > 0 → el cliente ya pagó; actualizar Abono al nuevo valor y Saldo = 0
+        //   - credit = 0 → el pago aún no fue cubierto; actualizar solo el Saldo
+        //
+        // Esto ignora el estado del pago intencionalmente: el campo 'credit'
+        // es la fuente de verdad de si el cliente efectivamente realizó el pago.
+        if (oldCredit > 0) {
+          // Ya fue pagado: sincronizar Abono y Total con el nuevo valor del período
+          payment.credit = parseFloat(newValuePerPayment.toFixed(2));
+          payment.total = parseFloat(newValuePerPayment.toFixed(2));
           payment.balance = 0;
         } else {
-          payment.balance = newBalance > 0 ? newBalance : 0;
+          // Aún no pagado: actualizar solo el Saldo (lo que debe pagar)
+          payment.balance = parseFloat(newValuePerPayment.toFixed(2));
         }
 
         await this.paymentRepository.save(payment);
         updatedCount++;
 
         console.log(
-          `  ✓ Pago #${payment.number_payment}: Valor: $${oldValue} → $${newValuePerPayment} | Balance: $${oldBalance} → $${payment.balance} | Pendiente: $${oldPending} → $${payment.pending_value}`,
+          `  ✓ Pago #${payment.number_payment} [credit=${oldCredit > 0 ? 'pagado' : 'pendiente'}]: Valor: $${oldValue} → $${newValuePerPayment} | Abono: $${oldCredit} → $${payment.credit} | Saldo: $${oldBalance} → $${payment.balance} | Pendiente póliza: $${oldPending} → $${payment.pending_value}`,
         );
       }
 
