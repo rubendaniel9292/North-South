@@ -135,6 +135,7 @@ export interface ICommissionsPayments {
   advanceAmount: number;
   createdAt: Date;
   observations?: string;
+  retention?: number;
 
 }
 

@@ -191,4 +191,8 @@ export class UpDatePolicyDTO {
   @IsOptional()
   @IsBoolean()
   renewalCommission: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  correctPreviousPayments?: boolean;
 }
