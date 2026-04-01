@@ -353,4 +353,32 @@ export class PolicyController {
       note: 'Las futuras pólizas canceladas/culminadas se limpiarán automáticamente al cambiar de estado'
     };
   }
+
+  /**
+   * Reconstruye por secuencia las fechas de pagos para todas las pólizas
+   * con start_date en día 29/30/31 que tienen pagos con día/mes incorrecto.
+   * Corrige tanto el día como el mes cuando el overflow de setMonth() desplazó
+   * pagos hacia el mes siguiente.
+   */
+  @Roles('ADMIN')
+  @Post('rebuild-all-inconsistent-payment-dates')
+  async rebuildAllInconsistentPaymentDates() {
+    console.log('🔧 Iniciando reconstrucción de fechas de pago por secuencia...');
+    const result = await this.policyService.rebuildAllInconsistentPaymentDates();
+
+    return {
+      status: 'success',
+      message: result.totalPoliciesFixed > 0
+        ? `Reconstrucción completada: ${result.totalPoliciesFixed} pólizas corregidas, ${result.totalPaymentsCorrected} pagos actualizados.`
+        : 'No se encontraron pagos con fechas inconsistentes.',
+      summary: {
+        totalPoliciesFound: result.totalPoliciesFound,
+        totalPoliciesFixed: result.totalPoliciesFixed,
+        totalPaymentsCorrected: result.totalPaymentsCorrected,
+        totalErrors: result.errors.length,
+      },
+      details: result.details,
+      errors: result.errors,
+    };
+  }
 }

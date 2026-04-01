@@ -4145,4 +4145,265 @@ export class PolicyService extends ValidateEntity {
       throw ErrorManager.createSignatureError(error.message);
     }
   }
+
+  /**
+   * Reconstruye la secuencia correcta de fechas de pagos para una póliza específica.
+   *
+   * Algoritmo:
+   * 1. Genera la secuencia ESPERADA de fechas desde startDate usando advanceDate()
+   *    - Ciclo inicial: paymentsPerCycle fechas desde startDate
+   *    - Por cada renovación: paymentsPerCycle fechas desde renewalDate
+   * 2. Ordena los pagos existentes por number_payment ASC
+   * 3. Asigna a cada pago[i] la fecha esperada[i] (por posición)
+   * 4. Guarda solo los pagos cuya fecha cambió
+   *
+   * Corrige el caso donde setMonth() desbordaba el mes (ej: Oct 31 → skip Nov → Dic 1),
+   * desplazando TODOS los pagos siguientes un mes hacia adelante.
+   */
+  public async rebuildPaymentDatesBySequence(policyId: number): Promise<{
+    corrected: number;
+    unchanged: number;
+    details: Array<{ paymentNumber: number; oldDate: string; newDate: string }>;
+  }> {
+    console.log(
+      `🔧 [rebuildPaymentDatesBySequence] Iniciando para póliza ${policyId}`,
+    );
+
+    // 1. Cargar póliza con renovaciones
+    const policy = await this.policyRepository.findOne({
+      where: { id: policyId },
+      relations: ['renewals'],
+    });
+
+    if (!policy) {
+      throw new ErrorManager({
+        type: 'NOT_FOUND',
+        message: `Póliza ${policyId} no encontrada`,
+      });
+    }
+
+    // 2. Cargar pagos ordenados por number_payment ASC
+    const payments = await this.paymentRepository.find({
+      where: { policy_id: policyId },
+      order: { number_payment: 'ASC' },
+    });
+
+    if (payments.length === 0) {
+      return { corrected: 0, unchanged: 0, details: [] };
+    }
+
+    // 3. Construir la secuencia de fechas esperada
+    const paymentFrequency = Number(policy.payment_frequency_id);
+    const paymentsPerCycle = this.getPaymentsPerCycle(
+      paymentFrequency,
+      policy.numberOfPayments,
+    );
+    const startDate = DateHelper.normalizeDateForComparison(
+      new Date(policy.startDate),
+    );
+    const sortedRenewals = [...(policy.renewals || [])].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
+    const expectedDates: Date[] = [];
+
+    // Ciclo inicial: paymentsPerCycle fechas desde startDate
+    let currentDate = new Date(startDate);
+    for (let i = 0; i < paymentsPerCycle; i++) {
+      expectedDates.push(
+        DateHelper.normalizeDateForComparison(new Date(currentDate)),
+      );
+      currentDate = this.advanceDate(
+        currentDate,
+        paymentFrequency,
+        policy,
+        startDate,
+        paymentsPerCycle,
+      );
+    }
+
+    // Ciclos de renovaciones: paymentsPerCycle fechas por cada renovación
+    for (const renewal of sortedRenewals) {
+      const renewalDate = DateHelper.normalizeDateForComparison(
+        new Date(renewal.createdAt),
+      );
+      currentDate = new Date(renewalDate);
+      for (let i = 0; i < paymentsPerCycle; i++) {
+        expectedDates.push(
+          DateHelper.normalizeDateForComparison(new Date(currentDate)),
+        );
+        currentDate = this.advanceDate(
+          currentDate,
+          paymentFrequency,
+          policy,
+          renewalDate,
+          paymentsPerCycle,
+        );
+      }
+    }
+
+    console.log(
+      `   Pagos en BD: ${payments.length} | Fechas esperadas generadas: ${expectedDates.length}`,
+    );
+
+    // 4. Asignar fechas por posición y guardar solo los que cambian
+    const details: Array<{
+      paymentNumber: number;
+      oldDate: string;
+      newDate: string;
+    }> = [];
+    let corrected = 0;
+    let unchanged = 0;
+
+    for (let i = 0; i < payments.length; i++) {
+      if (i >= expectedDates.length) {
+        // Más pagos que fechas esperadas → dejar como están
+        unchanged++;
+        continue;
+      }
+
+      const payment = payments[i];
+      const expectedDate = expectedDates[i];
+      const currentPaymentDate = DateHelper.normalizeDateForComparison(
+        new Date(payment.createdAt),
+      );
+
+      const oldDateStr = currentPaymentDate.toISOString().split('T')[0];
+      const newDateStr = expectedDate.toISOString().split('T')[0];
+
+      if (oldDateStr !== newDateStr) {
+        // ⚠️ normalizeDateForComparison (NO normalizeDateForDB) porque la fecha es
+        // calculada internamente por el backend, no viene del frontend.
+        // normalizeDateForDB suma +1 día para compensar timezone del frontend → causaría drift.
+        payment.createdAt = DateHelper.normalizeDateForComparison(expectedDate);
+        await this.paymentRepository.save(payment);
+        details.push({
+          paymentNumber: payment.number_payment,
+          oldDate: oldDateStr,
+          newDate: newDateStr,
+        });
+        corrected++;
+        console.log(
+          `   ✓ Pago #${payment.number_payment}: ${oldDateStr} → ${newDateStr}`,
+        );
+      } else {
+        unchanged++;
+      }
+    }
+
+    if (corrected > 0) {
+      await this.invalidateCaches(policy.advisor_id, policyId);
+      console.log(
+        `   ✅ ${corrected} pagos corregidos, ${unchanged} sin cambios`,
+      );
+    } else {
+      console.log(`   ✅ Todos los pagos ya tienen fechas correctas`);
+    }
+
+    return { corrected, unchanged, details };
+  }
+
+  /**
+   * Reconstruye por secuencia las fechas de pagos de TODAS las pólizas cuya
+   * start_date cae en día 29, 30 o 31 y tienen pagos con día/mes inconsistente.
+   *
+   * Detecta y corrige el DÍA y el MES cuando el overflow de setMonth() desplazó
+   * los pagos hacia el mes siguiente. Idempotente: ejecutarlo dos veces no produce
+   * cambios adicionales.
+   */
+  public async rebuildAllInconsistentPaymentDates(): Promise<{
+    totalPoliciesFound: number;
+    totalPoliciesFixed: number;
+    totalPaymentsCorrected: number;
+    details: Array<{
+      policyId: number;
+      numberPolicy: string;
+      expectedDay: number;
+      paymentsCorrected: number;
+    }>;
+    errors: Array<{ policyId: number; error: string }>;
+  }> {
+    console.log(
+      '🔧 [rebuildAllInconsistentPaymentDates] Buscando pólizas con pagos en día/mes incorrecto...',
+    );
+
+    // Pólizas con start_date en día 29/30/31 que tienen al menos un pago con día distinto
+    const inconsistentPolicies: Array<{
+      id: number;
+      number_policy: string;
+      expected_day: number;
+      inconsistent_payments: number;
+    }> = await this.policyRepository.query(`
+      SELECT
+        p.id,
+        p.number_policy,
+        EXTRACT(DAY FROM p.start_date)::int AS expected_day,
+        COUNT(CASE WHEN EXTRACT(DAY FROM pay.created_at) != EXTRACT(DAY FROM p.start_date) THEN 1 END)::int AS inconsistent_payments
+      FROM policy p
+      LEFT JOIN payment_record pay ON pay.policy_id = p.id
+      WHERE EXTRACT(DAY FROM p.start_date) IN (29, 30, 31)
+      GROUP BY p.id, p.number_policy, p.start_date
+      HAVING COUNT(CASE WHEN EXTRACT(DAY FROM pay.created_at) != EXTRACT(DAY FROM p.start_date) THEN 1 END) > 0
+      ORDER BY inconsistent_payments DESC
+    `);
+
+    console.log(
+      `📊 Pólizas con inconsistencias encontradas: ${inconsistentPolicies.length}`,
+    );
+
+    const details: Array<{
+      policyId: number;
+      numberPolicy: string;
+      expectedDay: number;
+      paymentsCorrected: number;
+    }> = [];
+    const errors: Array<{ policyId: number; error: string }> = [];
+
+    let totalPaymentsCorrected = 0;
+    let totalPoliciesFixed = 0;
+
+    for (const row of inconsistentPolicies) {
+      try {
+        console.log(
+          `\n🔄 Procesando póliza ${row.number_policy} (ID: ${row.id}) - día esperado: ${row.expected_day} - pagos inconsistentes: ${row.inconsistent_payments}`,
+        );
+
+        const result = await this.rebuildPaymentDatesBySequence(row.id);
+
+        details.push({
+          policyId: row.id,
+          numberPolicy: row.number_policy,
+          expectedDay: row.expected_day,
+          paymentsCorrected: result.corrected,
+        });
+
+        totalPaymentsCorrected += result.corrected;
+
+        if (result.corrected > 0) {
+          totalPoliciesFixed++;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`❌ Error al procesar póliza ${row.id}: ${msg}`);
+        errors.push({ policyId: row.id, error: msg });
+      }
+    }
+
+    console.log('\n✅ [rebuildAllInconsistentPaymentDates] Completado:');
+    console.log(`   Pólizas encontradas:  ${inconsistentPolicies.length}`);
+    console.log(`   Pólizas corregidas:   ${totalPoliciesFixed}`);
+    console.log(`   Pagos corregidos:     ${totalPaymentsCorrected}`);
+    if (errors.length > 0) {
+      console.warn(`   Errores:             ${errors.length}`);
+    }
+
+    return {
+      totalPoliciesFound: inconsistentPolicies.length,
+      totalPoliciesFixed,
+      totalPaymentsCorrected,
+      details,
+      errors,
+    };
+  }
 }
