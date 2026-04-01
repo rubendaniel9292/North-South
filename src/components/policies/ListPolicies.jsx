@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
+import Swal from "sweetalert2";
 
 import Modal from "../../helpers/modal/Modal";
 import alerts from "../../helpers/Alerts";
@@ -30,6 +31,7 @@ import {
   faCheckCircle,
   faMoneyBillWave,
   faBarcode,
+  faCalendarTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -57,6 +59,7 @@ const ListPolicies = memo(() => {
   const [advisorFilter, setAdvisorFilter] = useState("");
   const [typesFilter, setTypesFilter] = useState("");
   const [isRepairingPeriods, setIsRepairingPeriods] = useState(false); // Estado para reparación masiva
+  const [isFixingDates, setIsFixingDates] = useState(false); // Estado para corrección de fechas inconsistentes
   const itemsPerPage = 7; // Número de elementos por página
   //conseguir la poliza por id
   const getPolicyById = useCallback(async (policyId, type) => {
@@ -153,6 +156,126 @@ const ListPolicies = memo(() => {
       );
     } finally {
       setIsRepairingPeriods(false);
+    }
+  }, [auth, getAllPolicies]);
+
+  // 🗓️ Función para reparar fechas inconsistentes en pagos (días 29/30/31)
+  const fixInconsistentDates = useCallback(async () => {
+    if (auth?.role !== "ADMIN") {
+      alerts(
+        "Acceso Denegado",
+        "Solo los administradores pueden ejecutar esta operación",
+        "error",
+      );
+      return;
+    }
+
+    const confirmResult = await alerts(
+      "Confirmar corrección de fechas",
+      "⚠️ Esta operación buscará pólizas con pagos en días incorrectos (29/30/31) y corregirá las fechas inconsistentes. ¿Desea continuar?",
+      "warning",
+      { showCancelButton: true, confirmButtonText: "Sí, corregir", cancelButtonText: "Cancelar" },
+    );
+
+    if (!confirmResult.isConfirmed) return;
+
+    setIsFixingDates(true);
+    try {
+      const response = await http.post("policy/rebuild-all-inconsistent-payment-dates");
+
+      if (response.data.status === "success" || response.status === 200 || response.status === 201) {
+        const data = response.data?.result ?? response.data;
+        const {
+          totalPoliciesFound = 0,
+          totalPoliciesFixed = 0,
+          totalPaymentsCorrected = 0,
+          details = [],
+          errors = [],
+        } = data;
+
+        const detailsHtml =
+          details.length > 0
+            ? `<div style="max-height:260px;overflow-y:auto;margin-top:10px">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                  <thead>
+                    <tr style="background:#343a40;color:white">
+                      <th style="padding:6px 8px;text-align:left">Póliza</th>
+                      <th style="padding:6px 4px">Día esperado</th>
+                      <th style="padding:6px 4px">Pagos corregidos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${details
+                      .map(
+                        (d) =>
+                          `<tr style="border-bottom:1px solid #dee2e6">
+                            <td style="padding:5px 8px;font-weight:600">${d.numberPolicy}</td>
+                            <td style="text-align:center;padding:5px 4px">${d.expectedDay}</td>
+                            <td style="text-align:center;padding:5px 4px;color:#198754;font-weight:600">${d.paymentsCorrected}</td>
+                          </tr>`,
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>`
+            : `<p style="color:#6c757d;margin-top:10px">No se encontraron pólizas con inconsistencias para corregir.</p>`;
+
+        const errorsHtml =
+          errors.length > 0
+            ? `<div style="margin-top:12px;text-align:left">
+                <b style="color:#dc3545">⚠️ Errores (${errors.length}):</b>
+                <ul style="font-size:12px;margin-top:6px">
+                  ${errors.map((e) => `<li>Póliza ID ${e.policyId}: ${e.error}</li>`).join("")}
+                </ul>
+              </div>`
+            : "";
+
+        await Swal.fire({
+          title: "Corrección de fechas completada",
+          icon: totalPoliciesFixed > 0 ? "success" : "info",
+          width: 620,
+          html: `
+            <div style="text-align:left">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+                <div style="background:#d1ecf1;border-radius:8px;padding:10px">
+                  <div style="font-size:12px;color:#0c5460">Pólizas encontradas</div>
+                  <div style="font-size:22px;font-weight:700;color:#0c5460">${totalPoliciesFound}</div>
+                </div>
+                <div style="background:#d4edda;border-radius:8px;padding:10px">
+                  <div style="font-size:12px;color:#155724">Pólizas corregidas</div>
+                  <div style="font-size:22px;font-weight:700;color:#155724">${totalPoliciesFixed}</div>
+                </div>
+                <div style="background:#fff3cd;border-radius:8px;padding:10px">
+                  <div style="font-size:12px;color:#856404">Pagos corregidos</div>
+                  <div style="font-size:22px;font-weight:700;color:#856404">${totalPaymentsCorrected}</div>
+                </div>
+              </div>
+              <b>Detalle por póliza:</b>
+              ${detailsHtml}
+              ${errorsHtml}
+            </div>
+          `,
+        });
+
+        if (totalPoliciesFixed > 0) {
+          await getAllPolicies();
+        }
+      } else {
+        alerts(
+          "Error",
+          response.data?.message || "No se pudo completar la corrección de fechas",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error corrigiendo fechas inconsistentes:", error);
+      alerts(
+        "Error",
+        error.response?.data?.message || "Error al corregir fechas inconsistentes",
+        "error",
+      );
+    } finally {
+      setIsFixingDates(false);
     }
   }, [auth, getAllPolicies]);
 
@@ -452,21 +575,37 @@ const ListPolicies = memo(() => {
               <div className="d-grid gap-2">
                 {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
                 {auth?.role === "ADMIN" && (
-                  <button
-                    className="btn btn-warning fw-bold"
-                    onClick={repairMissingPeriods}
-                    disabled={isRepairingPeriods}
-                  >
-                    <FontAwesomeIcon
-                      icon={isRepairingPeriods ? faCogs : faWrench}
-                      className={`me-2 ${isRepairingPeriods ? "fa-spin" : ""}`}
-                    />
-                    {isRepairingPeriods ? "Reparando..." : "Reparar Periodos"}
-                  </button>
+                  <>
+                    <button
+                      className="btn btn-warning fw-bold"
+                      onClick={repairMissingPeriods}
+                      disabled={isRepairingPeriods}
+                    >
+                      <FontAwesomeIcon
+                        icon={isRepairingPeriods ? faCogs : faWrench}
+                        className={`me-2 ${isRepairingPeriods ? "fa-spin" : ""}`}
+                      />
+                      {isRepairingPeriods ? "Reparando..." : "Reparar Periodos"}
+                    </button>
+
+                    {/* 🗓️ Botón para corregir fechas inconsistentes (días 29/30/31) */}
+                    <button
+                      className="btn btn-warning fw-bold"
+                      onClick={fixInconsistentDates}
+                      disabled={isFixingDates}
+                      title="Corrige pagos con fechas inconsistentes en pólizas con día de inicio 29, 30 o 31"
+                    >
+                      <FontAwesomeIcon
+                        icon={isFixingDates ? faCogs : faCalendarTimes}
+                        className={`me-2 ${isFixingDates ? "fa-spin" : ""}`}
+                      />
+                      {isFixingDates ? "Corrigiendo..." : "Reparar fechas inconsistentes"}
+                    </button>
+                  </>
                 )}
 
                 { //Botón para registro manual de pagos (solo para pruebas)
-                  /*
+
                   <button
                     className="btn btn-danger fw-bold"
                     onClick={() => registerPaymentTest(true)}
@@ -474,7 +613,7 @@ const ListPolicies = memo(() => {
                     <FontAwesomeIcon icon={faCogs} className="me-2" />
                     Registro manual de pagos (prueba)
                   </button>
-                  */
+
                 }
                 <small className="text-dark fs-5 mb-2">
                   {filteredPolicy.length} póliza(s) encontrada(s)
@@ -692,16 +831,16 @@ const ListPolicies = memo(() => {
                     <td>
                       <span
                         className={`badge fw-bold fs-6 ${policy.policyStatus?.id == POLICY_STATUS.ACTIVE
-                            ? "bg-success text-white" // ✅ Activa - Verde
-                            : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
-                              ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                          ? "bg-success text-white" // ✅ Activa - Verde
+                          : policy.policyStatus?.id == POLICY_STATUS.CANCELLED
+                            ? "bg-danger text-white" // ✅ Cancelada - Rojo
+                            : policy.policyStatus?.id ==
+                              POLICY_STATUS.COMPLETED
+                              ? "bg-secondary text-white" // ✅ Culminada - Gris
                               : policy.policyStatus?.id ==
-                                POLICY_STATUS.COMPLETED
-                                ? "bg-secondary text-white" // ✅ Culminada - Gris
-                                : policy.policyStatus?.id ==
-                                  POLICY_STATUS.TO_COMPLETE
-                                  ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
-                                  : "bg-light text-dark" // ✅ Default - Claro
+                                POLICY_STATUS.TO_COMPLETE
+                                ? "bg-warning text-dark" // ✅ Por Culminar - Amarillo con texto oscuro
+                                : "bg-light text-dark" // ✅ Default - Claro
                           }`}
                       >
                         {policy.policyStatus?.statusName}
