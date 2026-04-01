@@ -102,16 +102,77 @@ export class PolicyService extends ValidateEntity {
 
     switch (paymentFrequency) {
       case 1: // Mensual
-        newDate.setMonth(newDate.getMonth() + 1);
+      case 5: // (si aplica mensual)
+        {
+          // 🔥 FIX: usar setFullYear(year, month, day) de forma atómica para evitar
+          // el desbordamiento de JavaScript cuando el día es 29/30/31 y el mes destino
+          // tiene menos días (ej: Oct 31 → setMonth(nov) → overflow a Dic 1)
+          const targetMonthMensual = newDate.getMonth() + 1;
+          const targetYearMensual =
+            newDate.getFullYear() + Math.floor(targetMonthMensual / 12);
+          const normalizedMonthMensual = targetMonthMensual % 12;
+          const lastDayMensual = new Date(
+            targetYearMensual,
+            normalizedMonthMensual + 1,
+            0,
+          ).getDate();
+          newDate.setFullYear(
+            targetYearMensual,
+            normalizedMonthMensual,
+            Math.min(originalDay, lastDayMensual),
+          );
+        }
         break;
       case 2: // Trimestral
-        newDate.setMonth(newDate.getMonth() + 3);
+        {
+          const targetMonthTrimestral = newDate.getMonth() + 3;
+          const targetYearTrimestral =
+            newDate.getFullYear() + Math.floor(targetMonthTrimestral / 12);
+          const normalizedMonthTrimestral = targetMonthTrimestral % 12;
+          const lastDayTrimestral = new Date(
+            targetYearTrimestral,
+            normalizedMonthTrimestral + 1,
+            0,
+          ).getDate();
+          newDate.setFullYear(
+            targetYearTrimestral,
+            normalizedMonthTrimestral,
+            Math.min(originalDay, lastDayTrimestral),
+          );
+        }
         break;
       case 3: // Semestral
-        newDate.setMonth(newDate.getMonth() + 6);
+        {
+          const targetMonthSemestral = newDate.getMonth() + 6;
+          const targetYearSemestral =
+            newDate.getFullYear() + Math.floor(targetMonthSemestral / 12);
+          const normalizedMonthSemestral = targetMonthSemestral % 12;
+          const lastDaySemestral = new Date(
+            targetYearSemestral,
+            normalizedMonthSemestral + 1,
+            0,
+          ).getDate();
+          newDate.setFullYear(
+            targetYearSemestral,
+            normalizedMonthSemestral,
+            Math.min(originalDay, lastDaySemestral),
+          );
+        }
         break;
       case 4: // Anual
-        newDate.setFullYear(newDate.getFullYear() + 1);
+        {
+          const targetYearAnual = newDate.getFullYear() + 1;
+          const lastDayAnual = new Date(
+            targetYearAnual,
+            newDate.getMonth() + 1,
+            0,
+          ).getDate();
+          newDate.setFullYear(
+            targetYearAnual,
+            newDate.getMonth(),
+            Math.min(originalDay, lastDayAnual),
+          );
+        }
         break;
       case 5: // Personalizado
         if (policy && startDate && paymentsPerCycle) {
@@ -355,9 +416,16 @@ export class PolicyService extends ValidateEntity {
     const yearsDifference = limitDate.getFullYear() - startDate.getFullYear();
     if (yearsDifference > 0) {
       for (let i = 1; i <= yearsDifference; i++) {
-        //const renewalDate = new Date(startDate);
         const renewalDate = new Date(startDate);
-        renewalDate.setFullYear(startDate.getFullYear() + i);
+        // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
+        // (ej: startDate=2024-02-29 + 1 año → setFullYear(2025) overflow → 2025-03-01)
+        const renewalTargetYear = startDate.getFullYear() + i;
+        const renewalLastDay = new Date(renewalTargetYear, startDate.getMonth() + 1, 0).getDate();
+        renewalDate.setFullYear(
+          renewalTargetYear,
+          startDate.getMonth(),
+          Math.min(startDate.getDate(), renewalLastDay),
+        );
 
         // Solo crear renovaciones ANTES de limitDate (no en limitDate mismo)
         if (renewalDate < limitDate) {
@@ -3752,7 +3820,14 @@ export class PolicyService extends ValidateEntity {
 
       // Ciclo inicial: startDate → startDate + 1 año
       const initialCycleEnd = new Date(startDate);
-      initialCycleEnd.setFullYear(startDate.getFullYear() + 1);
+      // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
+      const initialCycleEndYear = startDate.getFullYear() + 1;
+      const initialCycleLastDay = new Date(initialCycleEndYear, startDate.getMonth() + 1, 0).getDate();
+      initialCycleEnd.setFullYear(
+        initialCycleEndYear,
+        startDate.getMonth(),
+        Math.min(startDate.getDate(), initialCycleLastDay),
+      );
       cycles.push({
         cycleStart: new Date(startDate),
         cycleEnd: initialCycleEnd,
@@ -3765,7 +3840,14 @@ export class PolicyService extends ValidateEntity {
           new Date(renewal.createdAt),
         );
         const renewalEnd = new Date(renewalStart);
-        renewalEnd.setFullYear(renewalStart.getFullYear() + 1);
+        // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
+        const renewalEndYear = renewalStart.getFullYear() + 1;
+        const renewalCycleLastDay = new Date(renewalEndYear, renewalStart.getMonth() + 1, 0).getDate();
+        renewalEnd.setFullYear(
+          renewalEndYear,
+          renewalStart.getMonth(),
+          Math.min(renewalStart.getDate(), renewalCycleLastDay),
+        );
         cycles.push({
           cycleStart: renewalStart,
           cycleEnd: renewalEnd,
@@ -3872,7 +3954,9 @@ export class PolicyService extends ValidateEntity {
           createdAt: startDate,
         });
         totalCreated = 1;
-        console.log(`✅ Pago de registro obligatorio creado con fecha ${startDate.toISOString().split('T')[0]}`);
+        console.log(
+          `✅ Pago de registro obligatorio creado con fecha ${startDate.toISOString().split('T')[0]}`,
+        );
       }
 
       console.log(
