@@ -206,15 +206,15 @@ const ListPolicies = memo(() => {
                   </thead>
                   <tbody>
                     ${details
-                      .map(
-                        (d) =>
-                          `<tr style="border-bottom:1px solid #dee2e6">
+              .map(
+                (d) =>
+                  `<tr style="border-bottom:1px solid #dee2e6">
                             <td style="padding:5px 8px;font-weight:600">${d.numberPolicy}</td>
                             <td style="text-align:center;padding:5px 4px">${d.expectedDay}</td>
                             <td style="text-align:center;padding:5px 4px;color:#198754;font-weight:600">${d.paymentsCorrected}</td>
                           </tr>`,
-                      )
-                      .join("")}
+              )
+              .join("")}
                   </tbody>
                 </table>
               </div>`
@@ -573,11 +573,13 @@ const ListPolicies = memo(() => {
             {/* Botones de acción */}
             <div className="col-md-3 mb-3">
               <div className="d-grid gap-2">
-                {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN) */}
+                {/* 🔧 Botón de reparación masiva de periodos (SOLO ADMIN), 
+                quitar d-none en caso de requerirse */}
+
                 {auth?.role === "ADMIN" && (
                   <>
                     <button
-                      className="btn btn-warning fw-bold"
+                      className="btn btn-warning fw-bold d-none"
                       onClick={repairMissingPeriods}
                       disabled={isRepairingPeriods}
                     >
@@ -588,9 +590,10 @@ const ListPolicies = memo(() => {
                       {isRepairingPeriods ? "Reparando..." : "Reparar Periodos"}
                     </button>
 
-                    {/* 🗓️ Botón para corregir fechas inconsistentes (días 29/30/31) */}
+                    {/* 🗓️ Botón para corregir fechas inconsistentes (días 29/30/31) 
+                    quitar d-none en caso de requerirse */}
                     <button
-                      className="btn btn-warning fw-bold"
+                      className="btn btn-warning fw-bold d-none"
                       onClick={fixInconsistentDates}
                       disabled={isFixingDates}
                       title="Corrige pagos con fechas inconsistentes en pólizas con día de inicio 29, 30 o 31"
@@ -605,14 +608,16 @@ const ListPolicies = memo(() => {
                 )}
 
                 { //Botón para registro manual de pagos (solo para pruebas)
-
-                  <button
-                    className="btn btn-danger fw-bold"
-                    onClick={() => registerPaymentTest(true)}
-                  >
-                    <FontAwesomeIcon icon={faCogs} className="me-2" />
-                    Registro manual de pagos (prueba)
-                  </button>
+                  /*
+  
+                    <button
+                      className="btn btn-danger fw-bold"
+                      onClick={() => registerPaymentTest(true)}
+                    >
+                      <FontAwesomeIcon icon={faCogs} className="me-2" />
+                      Registro manual de pagos (prueba)
+                    </button>
+                    */
 
                 }
                 <small className="text-dark fs-5 mb-2">

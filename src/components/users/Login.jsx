@@ -1,4 +1,4 @@
-import Turnstile from "react-turnstile";
+import { Turnstile } from "react-turnstile";
 import img from "../../assets/img/img-01.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock, faUser } from "@fortawesome/free-solid-svg-icons";
