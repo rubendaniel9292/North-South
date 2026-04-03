@@ -8,16 +8,25 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
     "sourceMap": true,
+    "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"]
+      "src/*": [
+        "./src/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
