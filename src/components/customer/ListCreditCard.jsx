@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import alerts from "../../helpers/Alerts";
 import http from "../../helpers/Http";
 import dayjs from "dayjs";
-import Turnstile from "react-turnstile";
+import { Turnstile } from "react-turnstile";
 import useSearch from "../../hooks/useSearch";
 import usePagination from "../../hooks/usePagination";
 import Modal from "../../helpers/modal/Modal";
@@ -14,9 +14,7 @@ import {
   faEdit,
   faTrash,
   faHashtag,
-  faKey,
   faCalendarAlt,
-  faIdCard,
   faUser,
   faBuilding,
   faCheckCircle,
@@ -313,12 +311,12 @@ const ListCreditCard = () => {
                         <td>
                           <span
                             className={`badge fw-bold fs-6 ${card.cardstatus?.id == 1
-                                ? "bg-success"           // Activa
-                                : card.cardstatus?.id == 2
-                                  ? "bg-warning text-dark" // Inactiva  
-                                  : card.cardstatus?.id == 3
-                                    ? "bg-danger"            // Bloqueada
-                                    : "bg-light text-dark"   // Default
+                              ? "bg-success"           // Activa
+                              : card.cardstatus?.id == 2
+                                ? "bg-warning text-dark" // Inactiva  
+                                : card.cardstatus?.id == 3
+                                  ? "bg-danger"            // Bloqueada
+                                  : "bg-light text-dark"   // Default
                               }`}
                           >
                             {card.cardstatus?.cardStatusName || "Sin estado"}
@@ -348,7 +346,7 @@ const ListCreditCard = () => {
                               title="Eliminar tarjeta"
                             >
                               Eliminar
-                              <FontAwesomeIcon icon={faTrash} className="me-2"/>
+                              <FontAwesomeIcon icon={faTrash} className="me-2" />
                             </button>
                           </div>
                         </td>
