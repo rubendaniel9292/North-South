@@ -130,8 +130,9 @@ export const getAdvisorCommissionForPayment = (payment, policy) => {
     const policyStartDate = new Date(policy.startDate);
     const startYear = policyStartDate.getFullYear();
     
-    // Calcular a qué año pertenece este pago
-    const cycleYear = Math.floor((payment.number_payment - 1) / 12);
+    // Usar la frecuencia real de la póliza para determinar a qué periodo pertenece el pago
+    const paymentsPerYear = Number(policy.numberOfPaymentsAdvisor ?? 12);
+    const cycleYear = Math.floor((payment.number_payment - 1) / paymentsPerYear);
     const targetYear = startYear + cycleYear;
 
     // Buscar el periodo por año
@@ -184,10 +185,7 @@ export const getAdvisorCommissionForPayment = (payment, policy) => {
     period.advisorPercentage ?? period.advisor_percentage ?? 0
   );
   
-  // ✅ SIEMPRE usar 12 pagos/año para calcular comisión por pago
-  // Esto mantiene consistencia: la comisión total no cambia si modificas la frecuencia de cobro
-  // La comisión anual se divide entre 12 meses, independiente de cómo el cliente pague
-  const numPayments = 12;
+  const numPayments = Number(period.numberOfPaymentsAdvisor ?? policy.numberOfPaymentsAdvisor ?? 12);
 
   // Comisión de ese pago específico usando los valores del periodo correcto
   return ((policyValue - policyFee) * advisorPercentage) / 100 / numPayments;
@@ -280,11 +278,12 @@ export const calculateTotalAdvisorCommissionsGenerated = (policy) => {
 
   // Si NO tiene comisión por renovación, solo contar pagos del PRIMER año
   if (!hasRenewalCommission) {
+    const paymentsPerYear = Number(policy.numberOfPaymentsAdvisor ?? 12);
     return policy.payments
       .filter(payment => {
         if (!payment.number_payment) return false;
-        // Solo pagos del 1 al 12 (primer año)
-        return payment.number_payment >= 1 && payment.number_payment <= 12;
+        // Solo pagos del primer periodo según la frecuencia real de la póliza
+        return payment.number_payment >= 1 && payment.number_payment <= paymentsPerYear;
       })
       .reduce(
         (total, payment) => total + getAdvisorCommissionForPayment(payment, policy),
