@@ -51,3 +51,12 @@ La sintaxis de Axios es más concisa y amigable
 
 ## NOTA
 ### conflcito en los metadatos del paquete publicado eslint-plugin-react@7.37.5. Ese paquete declara en su package.json que solo soporta eslint hasta ^9.7, y actualmente se tiene eslint@10.1.0. Hasta que los autores de eslint-plugin-react no publiquen una versión que declare soporte para eslint v10, npm siempre lo rechazará. por ello el archivo .npmrc
+
+# Una sola ejecución (ideal para CI o verificar rápido)
+npm run test:run
+
+# Modo watch — re-ejecuta al guardar cambios (ideal mientras desarrollas)
+npm test
+
+# UI visual en el navegador
+npm run test:ui

@@ -215,10 +215,18 @@ const CreatePolicy = () => {
     const policyValue = parseFloat(form.policyValue) || 0;
     const policyFee = parseFloat(form.policyFee) || 0;
     const agencyPercentage = parseFloat(form.agencyPercentage) || 0;
-    const advisorPercentage = parseFloat(form.advisorPercentage) || 0;
+    const advisorPercentage =
+      form.advisorPercentage !== "" && !isNaN(parseFloat(form.advisorPercentage))
+        ? parseFloat(form.advisorPercentage)
+        : null;
 
     // Solo calcular si tenemos valores válidos
-    if (policyValue > 0 && agencyPercentage > 0 && advisorPercentage > 0) {
+    if (
+      policyValue > 0 &&
+      agencyPercentage > 0 &&
+      advisorPercentage !== null &&
+      advisorPercentage >= 0
+    ) {
       const { paymentsToAgency, paymentsToAdvisor } =
         calculateAdvisorAndAgencyPayments(
           policyValue,
@@ -492,7 +500,11 @@ const CreatePolicy = () => {
   }, [accountFormData, selectedCustomer, customers, changed]); // ✅ Dependencias
   useEffect(() => {
     // Solo ejecutar cálculos si tenemos valores válidos para evitar NaN
-    if (form.policyValue && form.agencyPercentage && form.advisorPercentage) {
+    if (
+      form.policyValue !== "" &&
+      form.agencyPercentage !== "" &&
+      form.advisorPercentage !== ""
+    ) {
       calculateAdvisorPayment();
     }
   }, [
@@ -507,19 +519,24 @@ const CreatePolicy = () => {
   const handleAdvisorPercentageChange = useCallback(
     (e) => {
       changed(e); // Actualiza el form normalmente
-      const advisorVal = Number(e.target.value);
+      const advisorValue = e.target.value;
+      const advisorVal = advisorValue === "" ? null : Number(advisorValue);
       const agencyVal = Number(form.agencyPercentage);
 
-      if (agencyVal === 0) {
+      if (form.agencyPercentage === "" || agencyVal === 0) {
         setErrorAdvisorPercentage(
           "Primero ingrese el porcentaje de la agencia"
         );
-      } else if (advisorVal >= agencyVal) {
+      } else if (advisorValue === "") {
+        setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
+      } else if (advisorVal < 0) {
+        setErrorAdvisorPercentage(
+          "El porcentaje del asesor no puede ser negativo"
+        );
+      } else if (advisorVal > agencyVal) {
         setErrorAdvisorPercentage(
           "El porcentaje del asesor debe ser menor o igual que el de la agencia"
         );
-      } else if (advisorVal === "") {
-        setErrorAdvisorPercentage("Por favor ingrese el porcentaje del asesor");
       } else {
         setErrorAdvisorPercentage("");
       }
@@ -1285,11 +1302,12 @@ const CreatePolicy = () => {
             <input
               required
               type="number"
-              className={`form-control ${!form.advisorPercentage ||
+              className={`form-control ${
+                form.advisorPercentage === "" ||
                 Number(form.advisorPercentage) > Number(form.agencyPercentage)
-                ? "is-invalid"
-                : "is-valid"
-                }`}
+                  ? "is-invalid"
+                  : "is-valid"
+              }`}
               id="advisorPercentage"
               name="advisorPercentage"
               onChange={handleAdvisorPercentageChange}
