@@ -966,6 +966,7 @@ export class PolicyService extends ValidateEntity {
           'paymentFrequency',
           'company',
           'customer',
+          'advisor',
         ],
         select: {
           numberPolicy: true,
@@ -979,6 +980,13 @@ export class PolicyService extends ValidateEntity {
           },
           customer: {
             id: true,
+            firstName: true,
+            secondName: true,
+            surname: true,
+            secondSurname: true,
+          },
+          advisor: {
+              id: true,
             firstName: true,
             secondName: true,
             surname: true,

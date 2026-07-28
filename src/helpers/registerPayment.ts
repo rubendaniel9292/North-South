@@ -54,10 +54,15 @@ export class PaymentSchedulerService implements OnModuleInit {
         console.log('⚠️  Se encontraron pagos pendientes. Procesando...');
         await this.processOverduePaymentsBatched();
       } else {
-        console.log('✓ No hay pagos pendientes. Módulo inicializado correctamente.');
+        console.log(
+          '✓ No hay pagos pendientes. Módulo inicializado correctamente.',
+        );
       }
     } catch (error) {
-      console.error('❌ Error al verificar pagos al inicializar el módulo:', error);
+      console.error(
+        '❌ Error al verificar pagos al inicializar el módulo:',
+        error,
+      );
     }
       */
   }
@@ -857,7 +862,11 @@ export class PaymentSchedulerService implements OnModuleInit {
       // 🔥 FIX: usar setFullYear(year, month, day) de forma atómica para evitar
       // el desbordamiento de JavaScript cuando el día es 29/30/31 y el mes destino
       // tiene menos días (ej: Oct 31 → setMonth(nov) → overflow a Dic 1)
-      nextDate.setFullYear(targetYear, normalizedMonth, Math.min(originalDay, lastDay));
+      nextDate.setFullYear(
+        targetYear,
+        normalizedMonth,
+        Math.min(originalDay, lastDay),
+      );
     };
 
     switch (paymentFrequencyId) {
