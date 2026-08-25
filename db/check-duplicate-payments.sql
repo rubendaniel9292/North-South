@@ -15,53 +15,92 @@ FROM (
     HAVING COUNT(*) > 1
 ) AS duplicates;
 
+
 -- 2️⃣ DETALLE: Pólizas con duplicados y cuántos tienen
-SELECT 
-    p."number_policy" as numero_poliza,
-    p.id as policy_id,
-    p.policy_status_id as estado_poliza,
-    ps.status_name as nombre_estado,
-    COUNT(DISTINCT pr.number_payment) as pagos_duplicados,
-    SUM(dup.duplicate_count) as total_registros_duplicados
+SELECT
+    p."number_policy" AS numero_poliza,
+    p.id AS policy_id,
+    p.policy_status_id AS estado_poliza,
+    ps.status_name AS nombre_estado,
+    COUNT(*) AS grupos_de_numeros_duplicados,
+    SUM(dup.duplicate_count) AS total_registros_involucrados,
+    SUM(dup.duplicate_count - 1) AS registros_sobrantes
 FROM policy p
 INNER JOIN (
-    SELECT policy_id, number_payment, COUNT(*) as duplicate_count
+    SELECT
+        policy_id,
+        number_payment,
+        COUNT(*) AS duplicate_count
     FROM payment_record
     GROUP BY policy_id, number_payment
     HAVING COUNT(*) > 1
 ) AS dup ON p.id = dup.policy_id
-INNER JOIN payment_record pr ON pr.policy_id = dup.policy_id AND pr.number_payment = dup.number_payment
 LEFT JOIN policy_status ps ON p.policy_status_id = ps.id
-GROUP BY p.id, p."number_policy", p.policy_status_id, ps.status_name
-ORDER BY total_registros_duplicados DESC, p."number_policy";
+GROUP BY
+    p.id,
+    p."number_policy",
+    p.policy_status_id,
+    ps.status_name
+ORDER BY registros_sobrantes DESC, p."number_policy";
+
+--O POR ID--
+SELECT
+    policy_id,
+    number_payment,
+    COUNT(*) AS total_registros,
+    COUNT(*) - 1 AS registros_sobrantes
+FROM payment_record
+WHERE policy_id = 13
+GROUP BY policy_id, number_payment
+HAVING COUNT(*) > 1
+ORDER BY number_payment;
+
 
 -- 3️⃣ DETALLE COMPLETO: Todos los pagos duplicados con información de póliza
-SELECT 
-    p."number_policy" as numero_poliza,
-    p.id as policy_id,
-    ps.status_name as estado_poliza,
-    pr.number_payment as numero_pago,
-    COUNT(*) as cantidad_duplicados,
-    STRING_AGG(pr.id::text, ', ' ORDER BY pr.id) as payment_ids,
-    MIN(pr.created_at) as primera_creacion,
-    MAX(pr.created_at) as ultima_creacion,
-    MIN(pr.value) as valor_min,
-    MAX(pr.value) as valor_max,
-    CASE 
-        WHEN MIN(pr.value) = MAX(pr.value) THEN 'Valores iguales'
-        ELSE 'Valores diferentes ⚠️'
-    END as comparacion_valores
-FROM payment_record pr
-INNER JOIN policy p ON pr.policy_id = p.id
-LEFT JOIN policy_status ps ON p.policy_status_id = ps.id
-WHERE (pr.policy_id, pr.number_payment) IN (
-    SELECT policy_id, number_payment
+-- Criterio: conservar primero un pago AL DÍA (status_payment_id = 2).
+-- Si todos están ATRASADOS, conservar el de mayor ID.
+--Para previsualizar qué se conservaría y qué se eliminaría:--
+WITH duplicate_groups AS (
+    SELECT
+        policy_id,
+        number_payment,
+        COUNT(*) AS cantidad_registros
     FROM payment_record
     GROUP BY policy_id, number_payment
     HAVING COUNT(*) > 1
+), ranked_payments AS (
+    SELECT
+        pr.*,
+        dg.cantidad_registros,
+        ROW_NUMBER() OVER (
+            PARTITION BY pr.policy_id, pr.number_payment
+            ORDER BY
+                CASE WHEN pr.status_payment_id = 2 THEN 0 ELSE 1 END,
+                pr.id DESC
+        ) AS posicion
+    FROM payment_record pr
+    INNER JOIN duplicate_groups dg
+        ON dg.policy_id = pr.policy_id
+       AND dg.number_payment = pr.number_payment
 )
-GROUP BY p."number_policy", p.id, ps.status_name, pr.number_payment
-ORDER BY p."number_policy", pr.number_payment;
+SELECT
+    p."number_policy" AS numero_poliza,
+    rp.policy_id,
+    rp.number_payment AS numero_pago,
+    rp.cantidad_registros AS cantidad_duplicados,
+    rp.id AS payment_id,
+    rp.value AS valor,
+    rp.pending_value AS pendiente,
+    rp.status_payment_id AS estado_pago,
+    rp.updated_at AS fecha_actualizacion,
+    CASE
+        WHEN rp.posicion = 1 THEN '✅ SE MANTIENE (AL DÍA o más reciente)'
+        ELSE '🗑️ SE ELIMINARÁ'
+    END AS accion
+FROM ranked_payments rp
+INNER JOIN policy p ON rp.policy_id = p.id
+LEFT JOIN policy_status ps ON p.policy_status_id = ps.id
+ORDER BY rp.policy_id, rp.number_payment, rp.posicion;
 
 -- 4️⃣ EJEMPLO ESPECÍFICO: Detalles del caso conocido (póliza 65770F, pago #118)
 SELECT 

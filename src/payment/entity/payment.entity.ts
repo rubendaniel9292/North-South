@@ -5,12 +5,14 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { IdEntity } from '@/config/id.entity';
 import { PolicyEntity } from '@/policy/entities/policy.entity';
 import { PaymentStatusEntity } from './payment.status.entity';
 
 @Entity('payment_record')
+@Unique('unique_payment_number_per_policy', ['policy_id', 'number_payment'])
 export class PaymentEntity extends IdEntity {
   @Column()
   number_payment: number;
@@ -40,7 +42,9 @@ export class PaymentEntity extends IdEntity {
   status_payment_id: number;
 
   // Relación uno a varios, varios pagos pueden estar asociados a una poliza
-  @ManyToOne(() => PolicyEntity, (policy) => policy.payments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PolicyEntity, (policy) => policy.payments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'policy_id' })
   policies: PolicyEntity;
 
@@ -59,11 +63,11 @@ export class PaymentEntity extends IdEntity {
     name: 'created_at',
   })
   createdAt: Date;
+
   @Column({
     nullable: true,
     type: 'timestamp with time zone',
     name: 'updated_at',
-  }
-  )
+  })
   updatedAt: Date;
 }
