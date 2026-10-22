@@ -337,7 +337,7 @@ const ListCreditCard = () => {
                               onClick={() => handleUpdateCard(card)}
                               title="Actualizar tarjeta"
                             >
-                              Actualziar
+                              Actualizar
                               <FontAwesomeIcon icon={faEdit} className="me-2" />
                             </button>
                             <button

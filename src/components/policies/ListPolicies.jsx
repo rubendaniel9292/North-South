@@ -448,6 +448,7 @@ const ListPolicies = memo(() => {
         console.log("- advisorFilter:", advisorFilter, typeof advisorFilter);
         console.log("- typesFilter:", typesFilter, typeof typesFilter);
     */
+   
     // Aplicar filtro por estado si está seleccionado
     if (statusFilter) {
       const beforeCount = result.length;
@@ -487,7 +488,8 @@ const ListPolicies = memo(() => {
         const advisorId = policy.advisor?.id;
         return String(advisorId) === String(advisorFilter);
       });
-      console.log(`- Después filtro asesor: ${beforeCount} → ${result.length}`);
+      //console.log("resultado del filtro de asesor: ", result);
+      //console.log(`- Después filtro asesor: ${beforeCount} → ${result.length}`);
     }
 
     if (typesFilter) {
@@ -499,7 +501,7 @@ const ListPolicies = memo(() => {
       console.log(`- Después filtro tipo: ${beforeCount} → ${result.length}`);
     }
 
-    console.log("✅ Resultado final filtrado:", result.length, "pólizas");
+    //console.log("✅ Resultado final filtrado:", result.length, "pólizas");
 
     return result;
   }, [
