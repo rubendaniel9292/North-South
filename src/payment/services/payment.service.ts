@@ -21,7 +21,35 @@ export class PaymentService {
     @InjectRepository(PolicyEntity)
     private readonly policyRepository: Repository<PolicyEntity>,
     private readonly redisService: RedisModuleService,
-  ) { }
+  ) {}
+
+  private assertPaymentDateWithinPolicyEndDate(
+    policy: PolicyEntity,
+    paymentDate: Date,
+  ): void {
+    const normalizedPaymentDate =
+      DateHelper.normalizeDateForComparison(paymentDate);
+    const normalizedEndDate = DateHelper.normalizeDateForComparison(
+      new Date(policy.endDate),
+    );
+
+    if (
+      Number.isNaN(normalizedPaymentDate.getTime()) ||
+      Number.isNaN(normalizedEndDate.getTime())
+    ) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: `No se puede validar la fecha del pago para la póliza ${policy.id}: fecha de pago o fecha de fin inválida.`,
+      });
+    }
+
+    if (normalizedPaymentDate > normalizedEndDate) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: `No se puede crear el pago para la póliza ${policy.id}: la fecha del pago es posterior a la fecha de fin (${normalizedEndDate.toISOString().split('T')[0]}).`,
+      });
+    }
+  }
 
   private async invalidatePolicyRelatedCache(policy: PolicyEntity) {
     try {
@@ -29,7 +57,9 @@ export class PaymentService {
       const versionKey = 'policies_cache_version';
       const newVersion = Date.now().toString();
       await this.redisService.set(versionKey, newVersion, 86400); // 24 horas
-      console.log(`🔄 Cache version actualizada a: ${newVersion} (desde payment service)`);
+      console.log(
+        `🔄 Cache version actualizada a: ${newVersion} (desde payment service)`,
+      );
 
       // Cachés básicos de la póliza
       await this.redisService.del(`policy:${policy.id}`);
@@ -54,7 +84,9 @@ export class PaymentService {
         await this.redisService.del(`advisor:${policy.advisor_id}`);
         await this.redisService.del('allAdvisors');
         await this.redisService.del(`advisor:${policy.advisor_id}:policies`);
-        await this.redisService.del(`advisor:${policy.advisor_id}:policies.periods`);
+        await this.redisService.del(
+          `advisor:${policy.advisor_id}:policies.periods`,
+        );
         await this.redisService.del(`advisor:${policy.advisor_id}:periods`);
         await this.redisService.del(`commissions:${policy.advisor_id}`);
       }
@@ -63,21 +95,29 @@ export class PaymentService {
       if (policy.renewals && policy.renewals.length > 0) {
         for (const renewal of policy.renewals) {
           await this.redisService.del(`renewal:${renewal.id}`);
-          await this.redisService.del(`policyRenewal:${policy.id}:${renewal.id}`);
+          await this.redisService.del(
+            `policyRenewal:${policy.id}:${renewal.id}`,
+          );
         }
       }
     } catch (error) {
-      console.warn('Warning: Could not invalidate some cache keys:', error.message);
+      console.warn(
+        'Warning: Could not invalidate some cache keys:',
+        error.message,
+      );
     }
   }
   //1: metodo para registrar un pago de poliza
 
-  public createPayment = async (body: PaymentDTO): Promise<PaymentEntity> => {
+  public createPayment = async (
+    body: PaymentDTO,
+    options: { allowInactivePolicy?: boolean } = {},
+  ): Promise<PaymentEntity> => {
     try {
       // validar si la póliza existe antes de registrar el pago.
       const policy = await this.policyRepository.findOne({
         where: { id: body.policy_id },
-        relations: ['payments', 'renewals', 'periods']
+        relations: ['payments', 'renewals', 'periods'],
       });
 
       if (!policy) {
@@ -87,34 +127,55 @@ export class PaymentService {
         });
       }
 
-      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3)
-      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
-        console.warn(`⚠️ [createPayment] Bloqueado: intento de crear pago en póliza ${policy.id} con estado ${policy.policy_status_id == 2 ? 'CANCELADA' : 'CULMINADA'}`);
+      if (
+        !options.allowInactivePolicy &&
+        (policy.policy_status_id === 2 || policy.policy_status_id === 3)
+      ) {
+        console.warn(
+          `⚠️ [createPayment] Bloqueado: intento de crear pago en póliza ${policy.id} con estado ${
+            policy.policy_status_id === 2 ? 'CANCELADA' : 'CULMINADA'
+          }`,
+        );
         return null;
       }
 
+      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3)
+      /*
+      if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+        console.warn(
+          `⚠️ [createPayment] Bloqueado: intento de crear pago en póliza ${policy.id} con estado ${policy.policy_status_id == 2 ? 'CANCELADA' : 'CULMINADA'}`,
+        );
+        return null;
+      }
+*/
       // Si no se proporciona un número de pago, calcular el siguiente número secuencial
       if (!body.number_payment) {
         // Obtener todos los pagos de la póliza, sin filtrar por renovación
         const allPayments = policy.payments || [];
 
         // Encontrar el número más alto de pago existente
-        const maxPaymentNumber = allPayments.length > 0
-          ? Math.max(...allPayments.map(p => p.number_payment))
-          : 0;
+        const maxPaymentNumber =
+          allPayments.length > 0
+            ? Math.max(...allPayments.map((p) => p.number_payment))
+            : 0;
 
         // El siguiente número de pago es el máximo + 1
         body.number_payment = maxPaymentNumber + 1;
 
-        console.log(`Asignando número de pago secuencial: ${body.number_payment}`);
-
+        console.log(
+          `Asignando número de pago secuencial: ${body.number_payment}`,
+        );
       } else {
         // Si se proporciona un número de pago, verificar que no exista ya
         if (policy.payments && policy.payments.length > 0) {
-          const existingPayment = policy.payments.find(p => p.number_payment === body.number_payment);
+          const existingPayment = policy.payments.find(
+            (p) => p.number_payment === body.number_payment,
+          );
 
           if (existingPayment) {
-            console.log(`Ya existe un pago con número ${body.number_payment} para esta póliza.`);
+            console.log(
+              `Ya existe un pago con número ${body.number_payment} para esta póliza.`,
+            );
             throw new ErrorManager({
               type: 'BAD_REQUEST',
               message: `Ya existe un pago con número ${body.number_payment} para esta póliza.`,
@@ -130,18 +191,23 @@ export class PaymentService {
         // Si se proporciona una fecha, normalizarla (sin sumar días)
         body.createdAt = DateHelper.normalizeDateForComparison(body.createdAt);
       }
+      this.assertPaymentDateWithinPolicyEndDate(policy, body.createdAt);
 
       // 🔥 CRÍTICO: REVALIDAR inmediatamente antes de guardar para evitar race conditions
       // Recargar los pagos directamente de la BD (sin caché)
       const latestPayments = await this.paymentRepository.find({
         where: { policy_id: body.policy_id },
-        order: { number_payment: 'DESC' }
+        order: { number_payment: 'DESC' },
       });
 
       // Verificar si ya existe un pago con este número (doble validación)
-      const duplicatePayment = latestPayments.find(p => p.number_payment === body.number_payment);
+      const duplicatePayment = latestPayments.find(
+        (p) => p.number_payment === body.number_payment,
+      );
       if (duplicatePayment) {
-        console.warn(`⚠️ [DUPLICADO DETECTADO] Ya existe pago #${body.number_payment} para póliza ${body.policy_id} (ID: ${duplicatePayment.id})`);
+        console.warn(
+          `⚠️ [DUPLICADO DETECTADO] Ya existe pago #${body.number_payment} para póliza ${body.policy_id} (ID: ${duplicatePayment.id})`,
+        );
         // NO lanzar error, simplemente retornar el pago existente
         return duplicatePayment;
       }
@@ -152,14 +218,20 @@ export class PaymentService {
       return newPayment;
     } catch (error) {
       // 🔥 MANEJAR ERRORES DE CONSTRAINT UNIQUE
-      if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique')) {
-        console.warn(`⚠️ [BD CONSTRAINT] Pago duplicado detectado por constraint UNIQUE - Póliza: ${body.policy_id}, Número: ${body.number_payment}`);
+      if (
+        error.code === '23505' ||
+        error.message?.includes('duplicate key') ||
+        error.message?.includes('unique')
+      ) {
+        console.warn(
+          `⚠️ [BD CONSTRAINT] Pago duplicado detectado por constraint UNIQUE - Póliza: ${body.policy_id}, Número: ${body.number_payment}`,
+        );
         // Buscar y retornar el pago existente
         const existingPayment = await this.paymentRepository.findOne({
           where: {
             policy_id: body.policy_id,
-            number_payment: body.number_payment
-          }
+            number_payment: body.number_payment,
+          },
         });
         if (existingPayment) {
           return existingPayment;
@@ -190,7 +262,6 @@ export class PaymentService {
   //2: metodo para consultar todos los pagos de las polizas
   public getAllPayments = async (): Promise<PaymentEntity[]> => {
     try {
-
       const cachedPayments = await this.redisService.get('payments');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
@@ -207,11 +278,9 @@ export class PaymentService {
           'policies.payments',
         ],
         select: {
-
           policies: {
             id: true,
             numberPolicy: true,
-
           },
         },
       });
@@ -230,7 +299,10 @@ export class PaymentService {
   };
 
   //2.1: método PAGINADO para evitar memory leak - reemplaza getAllPayments en el controlador
-  public getPaymentsPaginated = async (limit: number = 50, offset: number = 0): Promise<PaymentEntity[]> => {
+  public getPaymentsPaginated = async (
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<PaymentEntity[]> => {
     try {
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         take: limit,
@@ -238,10 +310,7 @@ export class PaymentService {
         order: {
           id: 'DESC',
         },
-        relations: [
-          'policies',
-          'paymentStatus',
-        ],
+        relations: ['policies', 'paymentStatus'],
         select: {
           id: true,
           value: true,
@@ -263,7 +332,9 @@ export class PaymentService {
   };
 
   //2.2: método para obtener pagos de una póliza específica
-  public getPaymentsByPolicy = async (policyId: number): Promise<PaymentEntity[]> => {
+  public getPaymentsByPolicy = async (
+    policyId: number,
+  ): Promise<PaymentEntity[]> => {
     try {
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         where: { policy_id: policyId },
@@ -292,7 +363,9 @@ export class PaymentService {
   };
 
   //2.3: método para buscar pagos por número de póliza o ID
-  public searchPayments = async (searchTerm: string): Promise<PaymentEntity[]> => {
+  public searchPayments = async (
+    searchTerm: string,
+  ): Promise<PaymentEntity[]> => {
     try {
       const isNumeric = /^\d+$/.test(searchTerm);
 
@@ -302,7 +375,7 @@ export class PaymentService {
           where: [
             { id: parseInt(searchTerm) },
             { policies: { numberPolicy: searchTerm } },
-            { policies: { id: parseInt(searchTerm) } }
+            { policies: { id: parseInt(searchTerm) } },
           ],
           order: { id: 'DESC' },
           relations: ['policies', 'paymentStatus'],
@@ -325,8 +398,8 @@ export class PaymentService {
         const payments: PaymentEntity[] = await this.paymentRepository.find({
           where: {
             policies: {
-              numberPolicy: searchTerm
-            }
+              numberPolicy: searchTerm,
+            },
           },
           order: { id: 'DESC' },
           relations: ['policies', 'paymentStatus'],
@@ -352,7 +425,9 @@ export class PaymentService {
   };
 
   //2.4: método para obtener pagos por estado específico (ID)
-  public getPaymentsByStatusId = async (statusId: number): Promise<PaymentEntity[]> => {
+  public getPaymentsByStatusId = async (
+    statusId: number,
+  ): Promise<PaymentEntity[]> => {
     try {
       const payments: PaymentEntity[] = await this.paymentRepository.find({
         where: { status_payment_id: statusId },
@@ -412,7 +487,10 @@ export class PaymentService {
    * Permite procesamiento escalable sin crash de memoria
    * 🔥 CRÍTICO: Solo incluye pólizas ACTIVAS (excluye canceladas/culminadas)
    */
-  public getPaymentsWithPendingValuePaginated = async (limit: number = 50, offset: number = 0): Promise<PaymentEntity[]> => {
+  public getPaymentsWithPendingValuePaginated = async (
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<PaymentEntity[]> => {
     try {
       // 🔥 CRÍTICO: Usar QueryBuilder para filtrar por estado de póliza
       const payments: PaymentEntity[] = await this.paymentRepository
@@ -446,7 +524,10 @@ export class PaymentService {
 
       return payments || [];
     } catch (error) {
-      console.error('Error obteniendo pagos paginados con saldo pendiente:', error);
+      console.error(
+        'Error obteniendo pagos paginados con saldo pendiente:',
+        error,
+      );
       throw ErrorManager.createSignatureError(error.message);
     }
   };
@@ -475,7 +556,6 @@ export class PaymentService {
   //3: metodo para obtener los pagos por id
   public getPaymentsId = async (id: number): Promise<PaymentEntity> => {
     try {
-
       const paymentId: PaymentEntity = await this.paymentRepository.findOne({
         where: { id },
         relations: ['policies', 'policies.periods', 'paymentStatus'],
@@ -505,7 +585,6 @@ export class PaymentService {
   //4: metodo para obtener los estados de los pagos
   public getPaymentStatus = async (): Promise<PaymentStatusEntity[]> => {
     try {
-
       const cachedPayments = await this.redisService.get('paymentStatus');
       if (cachedPayments) {
         return JSON.parse(cachedPayments);
@@ -537,7 +616,6 @@ export class PaymentService {
     companyId?: number,
   ): Promise<PaymentEntity[]> => {
     try {
-
       const cacheKey = companyId
         ? `paymentsByStatus:${companyId}`
         : 'paymentsByStatus:general';
@@ -622,7 +700,10 @@ export class PaymentService {
     updateData: Partial<PaymentDTO>,
   ): Promise<PaymentEntity> => {
     try {
-      const payment = await this.paymentRepository.findOne({ where: { id }, relations: ['policies', 'policies.company', 'policies.advisor'] });
+      const payment = await this.paymentRepository.findOne({
+        where: { id },
+        relations: ['policies', 'policies.company', 'policies.advisor'],
+      });
       if (!payment) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -659,7 +740,6 @@ export class PaymentService {
   // 7:  método para obtener póliza con pagos actualizados
   public async getPolicyWithPayments(id: number): Promise<PolicyEntity> {
     try {
-
       const policy = await this.policyRepository.findOne({
         where: { id },
         relations: [
@@ -674,7 +754,6 @@ export class PaymentService {
           payments: {
             number_payment: 'ASC',
           },
-
         },
       });
 
@@ -689,7 +768,7 @@ export class PaymentService {
       throw ErrorManager.createSignatureError(error.message);
     }
   }
-  //8:  
+  //8:
 
   /**
    * Crea el SIGUIENTE pago adelantado para una póliza específica
@@ -710,13 +789,15 @@ export class PaymentService {
     createdAt: string | Date; // ✅ Fecha tentativa de cobro (viene del frontend)
     observations: string; // ✅ Incluye fecha de HOY: "Pago adelantado generado el DD/MM/YYYY"
   }): Promise<PaymentEntity> {
-    console.log(`💰 Procesando pago adelantado para póliza ${newPaymentData.policy_id}...`);
+    console.log(
+      `💰 Procesando pago adelantado para póliza ${newPaymentData.policy_id}...`,
+    );
 
     try {
       // 1. Validar que la póliza existe
       const policy = await this.policyRepository.findOne({
         where: { id: newPaymentData.policy_id },
-        relations: ['payments']
+        relations: ['payments'],
       });
 
       if (!policy) {
@@ -726,59 +807,73 @@ export class PaymentService {
       // 2. Validar que no esté cancelada o culminada
       if (policy.policy_status_id === 2 || policy.policy_status_id === 3) {
         throw ErrorManager.createSignatureError(
-          `Póliza ${policy.policy_status_id === 2 ? 'cancelada' : 'culminada'}`
+          `Póliza ${policy.policy_status_id === 2 ? 'cancelada' : 'culminada'}`,
         );
       }
 
       // 3. Validar que no exista ya un pago con ese número
       const existingPayment = policy.payments?.find(
-        p => p.number_payment === newPaymentData.number_payment
+        (p) => p.number_payment === newPaymentData.number_payment,
       );
 
       if (existingPayment) {
         throw ErrorManager.createSignatureError(
-          `Ya existe un pago con número ${newPaymentData.number_payment}`
+          `Ya existe un pago con número ${newPaymentData.number_payment}`,
         );
       }
 
       // 4. Obtener el último pago para calcular correctamente el pending_value
-      const lastPayment = policy.payments && policy.payments.length > 0
-        ? policy.payments.reduce((prev, current) =>
-          (prev.number_payment > current.number_payment) ? prev : current
-        )
-        : null;
+      const lastPayment =
+        policy.payments && policy.payments.length > 0
+          ? policy.payments.reduce((prev, current) =>
+              prev.number_payment > current.number_payment ? prev : current,
+            )
+          : null;
 
       if (!lastPayment) {
         throw ErrorManager.createSignatureError(
-          'No se encontró ningún pago previo. Debe existir al menos un pago para crear adelantos.'
+          'No se encontró ningún pago previo. Debe existir al menos un pago para crear adelantos.',
         );
       }
 
       // ✅ VALIDACIÓN CRÍTICA: No crear pago si el pending_value es 0 (ciclo completo)
       if (lastPayment.pending_value <= 0) {
         throw ErrorManager.createSignatureError(
-          `No se puede crear pago adelantado. El ciclo actual ya está completo (pending_value = ${lastPayment.pending_value}). Debe renovar la póliza primero.`
+          `No se puede crear pago adelantado. El ciclo actual ya está completo (pending_value = ${lastPayment.pending_value}). Debe renovar la póliza primero.`,
         );
       }
 
       // 5. Calcular el nuevo pending_value: pending_value anterior - valor del nuevo pago
-      const newPendingValue = Math.max(0, lastPayment.pending_value - newPaymentData.value);
+      const newPendingValue = Math.max(
+        0,
+        lastPayment.pending_value - newPaymentData.value,
+      );
 
       console.log(`💰 Último pago #${lastPayment.number_payment}:`);
-      console.log(`   - Saldo pendiente anterior: ${lastPayment.pending_value}`);
+      console.log(
+        `   - Saldo pendiente anterior: ${lastPayment.pending_value}`,
+      );
       console.log(`   - Valor del nuevo pago: ${newPaymentData.value}`);
       console.log(`   - Nuevo saldo pendiente: ${newPendingValue}`);
 
       // 6. Normalizar la fecha tentativa de cobro (viene del frontend)
-      const tentativePaymentDate = DateHelper.normalizeDateForDB(new Date(newPaymentData.createdAt));
+      const tentativePaymentDate = DateHelper.normalizeDateForDB(
+        new Date(newPaymentData.createdAt),
+      );
+      this.assertPaymentDateWithinPolicyEndDate(policy, tentativePaymentDate);
 
-      console.log(`📅 Fecha tentativa de cobro (createdAt): ${tentativePaymentDate.toLocaleDateString('es-EC')}`);
-      console.log(`📝 Observaciones (fecha de HOY): ${newPaymentData.observations}`);
+      console.log(
+        `📅 Fecha tentativa de cobro (createdAt): ${tentativePaymentDate.toLocaleDateString('es-EC')}`,
+      );
+      console.log(
+        `📝 Observaciones (fecha de HOY): ${newPaymentData.observations}`,
+      );
 
       // 7. Convertir credit de string a number si es necesario
-      const creditValue = typeof newPaymentData.credit === 'string'
-        ? parseFloat(newPaymentData.credit)
-        : newPaymentData.credit || 0;
+      const creditValue =
+        typeof newPaymentData.credit === 'string'
+          ? parseFloat(newPaymentData.credit)
+          : newPaymentData.credit || 0;
 
       // 8. Crear el pago adelantado con pending_value CORREGIDO
       const newAdvancedPayment = await this.paymentRepository.save({
@@ -794,18 +889,21 @@ export class PaymentService {
         createdAt: tentativePaymentDate, // ✅ Fecha tentativa de cobro
       });
 
-      console.log(`✅ Pago adelantado #${newAdvancedPayment.number_payment} creado exitosamente`);
-      console.log(`   - Fecha tentativa de cobro: ${tentativePaymentDate.toLocaleDateString('es-EC')}`);
+      console.log(
+        `✅ Pago adelantado #${newAdvancedPayment.number_payment} creado exitosamente`,
+      );
+      console.log(
+        `   - Fecha tentativa de cobro: ${tentativePaymentDate.toLocaleDateString('es-EC')}`,
+      );
       console.log(`   - Observaciones: ${newAdvancedPayment.observations}`);
 
       // 7. Invalidar caché
       await this.invalidatePolicyRelatedCache(policy);
-      console.log(newAdvancedPayment)
+      console.log(newAdvancedPayment);
       return newAdvancedPayment;
     } catch (error) {
       console.error('❌ Error al crear pago adelantado:', error.message);
       throw ErrorManager.createSignatureError(error.message);
     }
   }
-
 }

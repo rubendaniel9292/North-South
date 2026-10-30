@@ -64,7 +64,7 @@ export class PaymentSchedulerService implements OnModuleInit {
         error,
       );
     }
-      */
+    */
   }
 
   // Cron: Todos los días a las 12:00 AM (medianoche) hora Ecuador (GMT-5 = 05:00 UTC)
@@ -713,6 +713,36 @@ export class PaymentSchedulerService implements OnModuleInit {
     }
   }
 
+  private isPaymentOnOrBeforePolicyEndDate(
+    policy: PolicyEntity,
+    paymentDate: Date,
+  ): boolean {
+    const normalizedPaymentDate =
+      DateHelper.normalizeDateForComparison(paymentDate);
+    const normalizedEndDate = DateHelper.normalizeDateForComparison(
+      new Date(policy.endDate),
+    );
+
+    if (
+      Number.isNaN(normalizedPaymentDate.getTime()) ||
+      Number.isNaN(normalizedEndDate.getTime())
+    ) {
+      console.error(
+        `No se puede validar la fecha del pago para la póliza ${policy.id}: fecha de pago o fecha de fin inválida.`,
+      );
+      return false;
+    }
+
+    if (normalizedPaymentDate > normalizedEndDate) {
+      console.warn(
+        `Pago omitido para la póliza ${policy.id}: fecha ${normalizedPaymentDate.toISOString().split('T')[0]} posterior a su fecha de fin ${normalizedEndDate.toISOString().split('T')[0]}.`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   // Método para crear un pago solo si NO existe pago para esa fecha
   async createOverduePayment(
     payment: PaymentEntity,
@@ -723,6 +753,9 @@ export class PaymentSchedulerService implements OnModuleInit {
   ): Promise<PaymentEntity | null> {
     try {
       if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
+        return null;
+      }
+      if (!this.isPaymentOnOrBeforePolicyEndDate(policy, paymentDueDate)) {
         return null;
       }
       if (!policy.payments) {
@@ -905,7 +938,7 @@ export class PaymentSchedulerService implements OnModuleInit {
     return nextDate;
   }
 
-  // Métodos auxiliares igual que en tu código original
+  // Métodos auxiliares
   isPolicyRenewed(policy: PolicyEntity): boolean {
     if (!policy.renewals || policy.renewals.length === 0) {
       return false;
@@ -998,6 +1031,15 @@ export class PaymentSchedulerService implements OnModuleInit {
               const firstPaymentDate = DateHelper.normalizeDateForComparison(
                 new Date(policy.startDate),
               );
+              if (
+                !this.isPaymentOnOrBeforePolicyEndDate(
+                  policy,
+                  firstPaymentDate,
+                )
+              ) {
+                processedPolicies.add(policy.id);
+                continue;
+              }
               const valueToPay =
                 Number(policy.policyValue) / Number(policy.numberOfPayments);
               const remainingPayments = Number(policy.numberOfPayments) - 1;

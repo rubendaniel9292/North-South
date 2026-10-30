@@ -252,6 +252,8 @@ export class PolicyService extends ValidateEntity {
     startDate: Date,
     limitDate: Date,
     paymentFrequency: number,
+    allowInactivePolicy: boolean = false, // Nuevo parámetro para permitir pagos en pólizas inactivas
+    
   ): Promise<void> {
     try {
       console.log(
@@ -327,12 +329,16 @@ export class PolicyService extends ValidateEntity {
               i === 0
                 ? policy.startDate
                 : DateHelper.normalizeDateForComparison(new Date(currentDate)),
+                
           };
 
           console.log(
             `Creando pago inicial #${paymentNumber} para fecha ${currentDate.toISOString()} con valor pendiente ${pendingValue}`,
           );
-          await this.paymentService.createPayment(paymentData);
+          //await this.paymentService.createPayment(paymentData);
+          await this.paymentService.createPayment(paymentData, {
+            allowInactivePolicy,
+          });
           paymentNumber++;
         }
         // Avanzar la fecha según la frecuencia de pago
@@ -412,6 +418,7 @@ export class PolicyService extends ValidateEntity {
     policy: PolicyEntity,
     startDate: Date,
     limitDate: Date,
+     allowInactivePolicy: boolean = false, // Nuevo parámetro para permitir pagos en pólizas inactivas
   ): Promise<void> {
     const yearsDifference = limitDate.getFullYear() - startDate.getFullYear();
     if (yearsDifference > 0) {
@@ -420,7 +427,11 @@ export class PolicyService extends ValidateEntity {
         // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
         // (ej: startDate=2024-02-29 + 1 año → setFullYear(2025) overflow → 2025-03-01)
         const renewalTargetYear = startDate.getFullYear() + i;
-        const renewalLastDay = new Date(renewalTargetYear, startDate.getMonth() + 1, 0).getDate();
+        const renewalLastDay = new Date(
+          renewalTargetYear,
+          startDate.getMonth() + 1,
+          0,
+        ).getDate();
         renewalDate.setFullYear(
           renewalTargetYear,
           startDate.getMonth(),
@@ -447,7 +458,10 @@ export class PolicyService extends ValidateEntity {
             policy,
             normalizedRenewalDate,
             limitDate,
+             allowInactivePolicy
           );
+
+          
         }
       }
     }
@@ -459,6 +473,7 @@ export class PolicyService extends ValidateEntity {
     policy: PolicyEntity,
     renewalDate: Date,
     limitDate: Date, // NUEVO: límite de generación (endDate para culminadas, today para activas)
+    allowInactivePolicy: boolean = false, // Nuevo parámetro para permitir pagos en pólizas inactivas
   ): Promise<void> {
     try {
       // 1. Crear la renovación
@@ -530,7 +545,9 @@ export class PolicyService extends ValidateEntity {
         createdAt: renewalDate,
       };
 
-      await this.paymentService.createPayment(firstPayment);
+      await this.paymentService.createPayment(firstPayment, {
+        allowInactivePolicy,
+      });
       nextPaymentNumber++;
 
       // Generar los pagos restantes del ciclo (hasta limitDate)
@@ -564,7 +581,9 @@ export class PolicyService extends ValidateEntity {
             ),
           };
 
-          await this.paymentService.createPayment(payment);
+          await this.paymentService.createPayment(payment, {
+            allowInactivePolicy,
+          });
           nextPaymentNumber++;
         }
       }
@@ -986,7 +1005,7 @@ export class PolicyService extends ValidateEntity {
             secondSurname: true,
           },
           advisor: {
-              id: true,
+            id: true,
             firstName: true,
             secondName: true,
             surname: true,
@@ -3565,6 +3584,7 @@ export class PolicyService extends ValidateEntity {
     policyId: number,
     newStartDate: Date,
     oldStartDate: Date,
+    
   ): Promise<{
     success: boolean;
     message: string;
@@ -3657,7 +3677,14 @@ export class PolicyService extends ValidateEntity {
       // 8. REGENERAR pagos y renovaciones con la nueva fecha
       console.log('🔄 Regenerando con nueva fecha...');
 
-      const today = new Date();
+      //const today = new Date();
+
+      const today = DateHelper.normalizeDateForComparison(new Date());
+      const policyEndDate = DateHelper.normalizeDateForComparison(
+        new Date(policy.endDate),
+      );
+      const generationLimit = policyEndDate < today ? policyEndDate : today;
+
       const paymentFrequency = Number(policy.payment_frequency_id);
 
       // 🔥 CRÍTICO: Crear periodo inicial ANTES de generar pagos
@@ -3677,16 +3704,25 @@ export class PolicyService extends ValidateEntity {
       );
       console.log(`  ✓ Periodo inicial creado para año ${initialYear}`);
 
-      // Regenerar pagos iniciales (hasta hoy o primera renovación)
+      // Regenerar pagos del ciclo inicial hasta el límite efectivo
       await this.generatePaymentsUsingService(
         policy,
         normalizedNewStart,
-        today,
+        generationLimit,
         paymentFrequency,
+        true,
       );
 
       // Regenerar renovaciones y sus pagos (solo hasta hoy) - estas crean sus propios periodos
-      await this.handleRenewals(policy, normalizedNewStart, today);
+      //await this.handleRenewals(policy, normalizedNewStart, today);
+
+      // Regenerar renovaciones y pagos, respetando el mismo límite
+      await this.handleRenewals(
+        policy,
+        normalizedNewStart,
+        generationLimit,
+        true,
+      );
 
       // 9. Contar nuevos registros
       const updatedPolicy = await this.findPolicyById(policyId);
@@ -3830,7 +3866,11 @@ export class PolicyService extends ValidateEntity {
       const initialCycleEnd = new Date(startDate);
       // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
       const initialCycleEndYear = startDate.getFullYear() + 1;
-      const initialCycleLastDay = new Date(initialCycleEndYear, startDate.getMonth() + 1, 0).getDate();
+      const initialCycleLastDay = new Date(
+        initialCycleEndYear,
+        startDate.getMonth() + 1,
+        0,
+      ).getDate();
       initialCycleEnd.setFullYear(
         initialCycleEndYear,
         startDate.getMonth(),
@@ -3850,7 +3890,11 @@ export class PolicyService extends ValidateEntity {
         const renewalEnd = new Date(renewalStart);
         // 🔥 FIX: setFullYear atómico para manejar Feb 29 en años no bisiestos
         const renewalEndYear = renewalStart.getFullYear() + 1;
-        const renewalCycleLastDay = new Date(renewalEndYear, renewalStart.getMonth() + 1, 0).getDate();
+        const renewalCycleLastDay = new Date(
+          renewalEndYear,
+          renewalStart.getMonth() + 1,
+          0,
+        ).getDate();
         renewalEnd.setFullYear(
           renewalEndYear,
           renewalStart.getMonth(),

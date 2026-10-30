@@ -177,11 +177,13 @@ describe('PaymentService', () => {
       // Mock que la póliza existe con relations
       const mockPolicy = {
         id: 1,
+        endDate: new Date('2099-12-31T00:00:00'),
         payments: [],
         renewals: [],
         periods: []
       } as any;
       policyRepository.findOne.mockResolvedValue(mockPolicy);
+      paymentRepository.find.mockResolvedValue([]);
       paymentRepository.save.mockResolvedValue(mockPayment);
       redisService.del.mockResolvedValue(undefined);
 
@@ -198,6 +200,25 @@ describe('PaymentService', () => {
       expect(result).toEqual(mockPayment);
     });
 
+    it('should reject payments after the policy end date', async () => {
+      policyRepository.findOne.mockResolvedValue({
+        id: 1,
+        endDate: new Date('2026-07-24T00:00:00'),
+        payments: [],
+        renewals: [],
+        periods: [],
+      } as PolicyEntity);
+
+      await expect(
+        service.createPayment({
+          ...mockPaymentDTO,
+          createdAt: new Date('2026-07-25T00:00:00'),
+        }),
+      ).rejects.toThrow('posterior a la fecha de fin');
+
+      expect(paymentRepository.save).not.toHaveBeenCalled();
+    });
+
     it('should throw error when policy not found', async () => {
       // Mock que la póliza no existe
       policyRepository.findOne.mockResolvedValue(null);
@@ -207,11 +228,51 @@ describe('PaymentService', () => {
 
     it('should handle errors during payment creation', async () => {
       const errorMessage = 'Database error';
-      const mockPolicy = { id: 1, payments: [], renewals: [], periods: [] } as any;
+      const mockPolicy = {
+        id: 1,
+        endDate: new Date('2099-12-31T00:00:00'),
+        payments: [],
+        renewals: [],
+        periods: [],
+      } as any;
       policyRepository.findOne.mockResolvedValue(mockPolicy);
       paymentRepository.save.mockRejectedValue(new Error(errorMessage));
 
       await expect(service.createPayment(mockPaymentDTO)).rejects.toThrow();
+    });
+  });
+
+  describe('createAdvancePaymentForPolicy', () => {
+    it('should reject advance payments after the policy end date', async () => {
+      policyRepository.findOne.mockResolvedValue({
+        id: 1,
+        policy_status_id: 1,
+        endDate: new Date('2026-07-24T00:00:00'),
+        payments: [
+          {
+            number_payment: 1,
+            pending_value: 500,
+          },
+        ],
+      } as PolicyEntity);
+
+      await expect(
+        service.createAdvancePaymentForPolicy({
+          policy_id: 1,
+          number_payment: 2,
+          value: 100,
+          pending_value: 400,
+          credit: 0,
+          balance: 100,
+          total: 0,
+          status_payment_id: 1,
+          year: 2026,
+          createdAt: new Date('2026-10-30T00:00:00'),
+          observations: 'Test advance payment',
+        }),
+      ).rejects.toThrow('posterior a la fecha de fin');
+
+      expect(paymentRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -403,8 +464,15 @@ describe('PaymentService', () => {
 
   describe('Cache Management', () => {
     it('should clear cache after payment operations', async () => {
-      const mockPolicy = { id: 1, payments: [], renewals: [], periods: [] } as any;
+      const mockPolicy = {
+        id: 1,
+        endDate: new Date('2099-12-31T00:00:00'),
+        payments: [],
+        renewals: [],
+        periods: [],
+      } as any;
       policyRepository.findOne.mockResolvedValue(mockPolicy);
+      paymentRepository.find.mockResolvedValue([]);
       paymentRepository.save.mockResolvedValue(mockPayment);
       redisService.del.mockResolvedValue(undefined);
 
