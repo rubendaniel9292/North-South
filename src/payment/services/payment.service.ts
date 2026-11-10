@@ -126,6 +126,7 @@ export class PaymentService {
           message: 'No se encontró la póliza',
         });
       }
+      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3) version corregida
 
       if (
         !options.allowInactivePolicy &&
@@ -139,7 +140,8 @@ export class PaymentService {
         return null;
       }
 
-      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3)
+      // 🔥 VALIDACIÓN CRÍTICA: No crear pagos en pólizas canceladas (2) o culminadas (3) version anterior (generadaba inconsistencias en polizas canceladas y culminadas)
+
       /*
       if (policy.policy_status_id == 2 || policy.policy_status_id == 3) {
         console.warn(
@@ -147,7 +149,8 @@ export class PaymentService {
         );
         return null;
       }
-*/
+        */
+
       // Si no se proporciona un número de pago, calcular el siguiente número secuencial
       if (!body.number_payment) {
         // Obtener todos los pagos de la póliza, sin filtrar por renovación
