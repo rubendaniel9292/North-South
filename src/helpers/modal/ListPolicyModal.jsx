@@ -39,6 +39,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   const [advancedPaymentLoading, setAdvancedPaymentLoading] = useState(false);
   const [localPolicy, setLocalPolicy] = useState(policy);
   const { auth } = useAuth();
+  const isPolicyInactive = [2, 3].includes(Number(policy.policyStatus?.id));
   if (!localPolicy) return null;
   const itemsPerPage = 5; // Número de items por página
   console.log("policy en modal:", policy);
@@ -204,149 +205,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
   };
 
   // Función para registrar pago adelantado
-  /*
-  const handleRegisterAdvancedPayment = async () => {
-    setAdvancedPaymentLoading(true);
-    try {
-      // Obtener el último pago registrado (mayor number_payment)
-      const lastPayment = localPolicy.payments.reduce((max, p) =>
-        p.number_payment > max.number_payment ? p : max,
-        localPolicy.payments[0]
-      );
 
-      // ✅ VALIDACIÓN FRONTEND: Verificar si el ciclo está completo
-      if (lastPayment.pending_value <= 0) {
-        alerts(
-          "Ciclo completado",
-          `No se puede crear pago adelantado. El ciclo actual ya está completo (saldo pendiente = ${lastPayment.pending_value}). Debe renovar la póliza primero.`,
-          "warning"
-        );
-        return;
-      }
-
-      // Calcular la fecha del nuevo pago según la frecuencia
-      //const lastDate = new Date(lastPayment.createdAt);
-      const lastDate = dayjs(lastPayment.createdAt);
-      //let nextPaymentDate = new Date(lastDate);
-
-      // ✅ Usar ID en lugar de nombre para mayor confiabilidad
-      const frequencyId = Number(localPolicy.paymentFrequency?.id);
-
-      // ✅ CORRECTO: Usar dayjs para sumar 1 mes correctamente
-
-
-      let nextPaymentDate;
-
-      switch (frequencyId) {
-        case 1: // Mensual
-          nextPaymentDate = lastDate.add(1, 'month');
-          break;
-        case 2: // Trimestral
-          nextPaymentDate = lastDate.add(3, 'month');
-          break;
-        case 3: // Semestral
-          nextPaymentDate = lastDate.add(6, 'month');
-          break;
-        case 4: // Anual
-          nextPaymentDate = lastDate.add(1, 'year');
-          break;
-      }
-
-
-      // ✅ Fecha actual para las observaciones
-      const today = new Date();
-      const todayFormatted = dayjs(today).format('DD/MM/YYYY');
-      const nextPaymentFormatted = dayjs(nextPaymentDate).format('DD/MM/YYYY');
-      // Calcular el nuevo pending_value correctamente
-      const newPendingValue = Math.max(0, lastPayment.pending_value - lastPayment.value);
-
-      // Crear el nuevo pago adelantado
-      const newPaymentData = {
-        policy_id: Number(localPolicy.id),
-        number_payment: lastPayment.number_payment + 1,
-        value: parseFloat(lastPayment.value),
-        pending_value: newPendingValue, // ✅ CORREGIDO: Se reduce
-        credit: "0.00",
-        balance: parseFloat(lastPayment.value),
-        total: "0.00", // ✅ CORREGIDO: Debe ser 0 si no hay abonos
-        status_payment_id: 1, // Pendiente
-        year: nextPaymentDate.year(),
-        createdAt: nextPaymentDate.toISOString(), // ✅ Fecha tentativa de cobro
-        observations: `Pago adelantado generado el ${todayFormatted}`, // ✅ Fecha de HOY
-      };
-
-      console.log("📤 Enviando pago adelantado:", newPaymentData);
-      console.log(`   - Fecha de cobro (createdAt): ${nextPaymentFormatted}`);
-      console.log(`   - Fecha de registro (observations): ${todayFormatted}`);
-
-      const response = await http.post('payment/create-advance-payment', newPaymentData);
-
-      if (response.data.status === "success") {
-        // Agregar el nuevo pago al estado local
-        const newPayment = {
-          id: response.data.data,
-          ...newPaymentData,
-          createdAt: nextPaymentDate.toISOString(), // ✅ Fecha calculada del próximo pago
-          updatedAt: today.toISOString(), // ✅ Fecha de HOY (cuando se creó)
-          paymentStatus: {
-            id: 1,
-            statusNamePayment: "ATRASADO"
-          }
-        };
-
-        const updatedPolicy = {
-          ...localPolicy,
-          payments: [newPayment, ...localPolicy.payments]
-        };
-
-        setLocalPolicy(updatedPolicy);
-
-        // ✅ Notificar al componente padre
-        if (onPolicyUpdated) {
-          onPolicyUpdated(updatedPolicy);
-        }
-
-        setTimeout(() => {
-          alerts(
-            "Pago adelantado registrado",
-            `Se ha creado el pago #${newPayment.number_payment} con fecha de pago fija: ${dayjs(nextPaymentDate).format('DD/MM/YYYY')}`,
-            "success"
-          );
-        }, 500);
-
-
-      } else {
-        alerts(
-          "Error",
-          "No se pudo registrar el pago adelantado",
-          "error"
-        );
-      }
-    } catch (error) {
-      console.error("Error registrando pago adelantado:", error);
-
-      // ✅ Extraer mensaje del backend
-      const errorMessage = error.response?.data?.message || error.message;
-
-      // ✅ Verificar si es el error de ciclo completo
-      if (errorMessage.includes("pending_value") && errorMessage.includes("0")) {
-        alerts(
-          "Ciclo completado",
-          errorMessage,
-          "warning"
-        );
-      } else {
-        alerts(
-          "Error",
-          "Error al registrar el pago adelantado. " + errorMessage,
-          "error"
-        );
-      }
-    } finally {
-      setAdvancedPaymentLoading(false);
-    }
-  };
-  */
   const handleRegisterAdvancedPayment = async () => {
     setAdvancedPaymentLoading(true);
     try {
@@ -549,11 +408,6 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
 
   // obtener último periodo registrado (por año mayor):
 
-  /*const lastPeriod = useMemo(
-    () => policy.periods.reduce((a, b) => (a.year > b.year ? a : b)),
-    [policy.periods]
-  );
-*/
 
   const lastPeriod = useMemo(() => {
     if (!policy.periods || policy.periods.length === 0) {
@@ -743,7 +597,8 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 <td>{policy.agencyPercentage}</td>
                 <td>{policy.advisorPercentage}</td>
                 <td>{policy.policyValue}</td>
-                <td>{policy.numberOfPayments}</td>
+                <td>{policy.numberOfPayments}
+                </td>
                 <td>{policy.policyFee || "NO APLICA"}</td>
                 <td>{policy.paymentsToAgency}</td>
                 <td>{policy.paymentsToAdvisor}</td>*/}
@@ -795,7 +650,7 @@ const ListPolicyModal = ({ policy, onClose, onPolicyUpdated }) => {
                 <button
                   type="button"
                   onClick={handleRegisterAdvancedPayment}
-                  disabled={advancedPaymentLoading}
+                  disabled={advancedPaymentLoading || isPolicyInactive}
                   className="btn btn-warning fw-bold text-dark"
                 >
                   {advancedPaymentLoading ? (
